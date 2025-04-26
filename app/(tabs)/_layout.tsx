@@ -63,7 +63,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="account"
                 options={{
-                    title: 'Account',
+                    title: 'Cloud Sync',
                     tabBarIcon: ({ color }) => <IconSymbol size={28} name="user" color={color} />,
                 }}
             />
