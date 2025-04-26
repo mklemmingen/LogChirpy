@@ -1,37 +1,23 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { useEffect } from 'react';
+import {useColorScheme, View, StyleSheet} from 'react-native';
 import 'react-native-reanimated';
-import { onAuthStateChanged, User } from 'firebase/auth';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { auth } from '@/firebase/config';
+import { theme } from '@/constants/theme';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const colorScheme = useColorScheme() ?? 'light';
+  const currentTheme = theme[colorScheme];
+
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      if (!user) {
-        router.replace('/login');
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     if (loaded) {
@@ -44,17 +30,49 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <View style={{ flex: 1 }}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="signup" options={{ headerShown: false }} />
-          <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
+      <ThemeProvider
+          value={{
+              dark: colorScheme === 'dark',
+              light: colorScheme === 'light',
+              colors: {
+                  notification: currentTheme.colors.active,
+                  background: currentTheme.colors.background,
+                  card: currentTheme.colors.accent,
+                  text: currentTheme.colors.text.primary,
+                  border: currentTheme.colors.border,
+                  primary: currentTheme.colors.primary,
+              },
+              fonts: {
+                  regular: currentTheme.fonts.regular,
+                  medium: currentTheme.fonts.medium,
+                  bold: currentTheme.fonts.bold,
+                  heavy: currentTheme.fonts.heavy,
+              },
+          }}
+      >
+      <View style={styles.container}>
+          <View style={styles.content}>
+              <Stack>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="+not-found" />
+              </Stack>
+          </View>
       </View>
       <StatusBar style="auto" />
-    </ThemeProvider>
+  </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    content: {
+        flex: 1,
+        position: 'relative',
+    },
+    birdAnimation: {
+        ...StyleSheet.absoluteFillObject, // Füllt den gesamten Bildschirm
+        zIndex: -1, // Stellt sicher, dass es hinter allen anderen Elementen liegt
+    },
+});
