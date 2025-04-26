@@ -1,27 +1,48 @@
-import { StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import {StyleSheet, useColorScheme} from 'react-native';
 import { signOut } from 'firebase/auth';
-import { router } from 'expo-router';
+import { Stack, router } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { TouchableOpacity, Image } from 'react-native';
 import { auth } from '@/firebase/config';
 import { theme } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
+
 
 export default function AccountScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const currentTheme = theme[colorScheme];
 
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            setIsLoggedIn(!!user);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
     const handleSignOut = async () => {
         try {
             await signOut(auth);
-            router.replace('/login');
+            router.replace('/account/login');
         } catch (error) {
             console.error('Error signing out:', error);
         }
     };
+
+    if (!isLoggedIn) {
+        return (
+            <Stack>
+                <Stack.Screen name="login" options={{ headerShown: false }} />
+                <Stack.Screen name="signup" options={{ headerShown: false }} />
+                <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+            </Stack>
+        );
+    }
 
     return (
         <ParallaxScrollView
