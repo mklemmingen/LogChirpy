@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import {View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme} from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useThemeColor } from '@/hooks/useThemeColor';
 import { auth } from '@/firebase/config';
 
 export default function SignupScreen() {
@@ -73,7 +73,7 @@ export default function SignupScreen() {
         <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
             <View style={styles.logoContainer}>
                 <Image
-                    source={require('../assets/images/logo_no_bg.png')}
+                    source={require('../../assets/images/logo_no_bg.png')}
                     style={styles.logo}
                     resizeMode="contain"
                 />
@@ -137,7 +137,7 @@ export default function SignupScreen() {
 
                 <TouchableOpacity
                     style={styles.loginLink}
-                    onPress={() => router.push('/login')}
+                    onPress={() => router.push('//account/login')}
                 >
                     <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
                         Already have an account? Sign in

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import {View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme} from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useThemeColor } from '@/hooks/useThemeColor';
 import { auth } from '@/firebase/config';
 
 export default function LoginScreen() {
@@ -74,7 +74,7 @@ export default function LoginScreen() {
         <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
             <View style={styles.logoContainer}>
                 <Image
-                    source={require('../assets/images/logo_no_bg.png')}
+                    source={require('../../assets/images/logo_no_bg.png')}
                     style={styles.logo}
                     resizeMode="contain"
                 />
@@ -138,7 +138,7 @@ export default function LoginScreen() {
 
                 <TouchableOpacity
                     style={styles.forgotPasswordLink}
-                    onPress={() => router.push('/forgot-password')}
+                    onPress={() => router.push('//account/forgot-password')}
                 >
                     <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
                         Forgot Password?
@@ -147,7 +147,7 @@ export default function LoginScreen() {
 
                 <TouchableOpacity
                     style={styles.signupLink}
-                    onPress={() => router.push('/signup')}
+                    onPress={() => router.push('//account/signup')}
                 >
                     <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
                         Don't have an account? Sign up
