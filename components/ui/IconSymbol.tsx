@@ -1,43 +1,62 @@
-// This file is a fallback for using MaterialIcons on Android and web.
-
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight } from 'expo-symbols';
+import { LucideIcon, icons as LucideIcons } from 'lucide-react-native';
 import React from 'react';
-import { OpaqueColorValue, StyleProp, ViewStyle } from 'react-native';
+import { StyleProp, ViewStyle } from 'react-native';
 
-// Add your SFSymbol to MaterialIcons mappings here.
 const MAPPING = {
-  // See MaterialIcons here: https://icons.expo.fyi
-  // See SF Symbols in the SF Symbols app on Mac.
-  'house.fill': 'home',
-  'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
-} as Partial<
-  Record<
-    import('expo-symbols').SymbolViewProps['name'],
-    React.ComponentProps<typeof MaterialIcons>['name']
-  >
->;
+  home: 'Home',
+  explore: 'Map',
+  archive: 'Archive',
+  settings: 'Settings',
+  user: 'User',
+
+  bird: 'Bird',
+  feather: 'Feather',
+  leaf: 'Leaf',
+  tree: 'TreePine',
+  globe: 'Globe',
+
+  mic: 'Mic',
+  waveform: 'Waveform',
+  ear: 'Ear',
+  music: 'Music',
+  headphones: 'Headphones',
+
+  camera: 'Camera',
+  image: 'Image',
+  gallery: 'ImagePlus',
+
+  video: 'Video',
+  film: 'Film',
+  eye: 'Eye',
+  brain: 'BrainCircuit',
+
+  trash: 'Trash2',
+  share: 'Share',
+  upload: 'Upload',
+  plus: 'PlusCircle',
+  minus: 'MinusCircle',
+  check: 'CheckCircle',
+  x: 'XCircle',
+
+  star: 'Star',
+  sparkles: 'Sparkles',
+  lightning: 'Zap',
+  lightbulb: 'Lightbulb',
+} as const;
 
 export type IconSymbolName = keyof typeof MAPPING;
 
-/**
- * An icon component that uses native SFSymbols on iOS, and MaterialIcons on Android and web. This ensures a consistent look across platforms, and optimal resource usage.
- *
- * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
- */
 export function IconSymbol({
-  name,
-  size = 24,
-  color,
-  style,
-}: {
+                             name,
+                             size = 24,
+                             color,
+                             style,
+                           }: {
   name: IconSymbolName;
   size?: number;
-  color: string | OpaqueColorValue;
+  color: string;
   style?: StyleProp<ViewStyle>;
-  weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const LucideIconComponent = LucideIcons[MAPPING[name]] as LucideIcon;
+  return <LucideIconComponent size={size} color={color} style={style} />;
 }
