@@ -2,7 +2,6 @@ import { LucideIcon, icons as LucideIcons } from 'lucide-react-native';
 import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 
-// Mapping of your friendly app icon names -> Lucide real component names
 const MAPPING = {
   home: 'Home',
   explore: 'Map',
@@ -45,7 +44,6 @@ const MAPPING = {
   lightbulb: 'Lightbulb',
 } as const;
 
-// ✨ Add this: the allowed names!
 export type IconSymbolName = keyof typeof MAPPING;
 
 export function IconSymbol({
