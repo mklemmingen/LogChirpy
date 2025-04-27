@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import {View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme } from 'react-native';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+
 import { theme } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { auth } from '@/firebase/config';
 
 export default function ForgotPasswordScreen() {
+    const { t } = useTranslation(); // <-- useTranslation here
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState('');
     const [resetEmailSent, setResetEmailSent] = useState(false);
@@ -18,7 +21,7 @@ export default function ForgotPasswordScreen() {
         setResetEmailSent(false);
 
         if (!email) {
-            setEmailError('Please enter your email address');
+            setEmailError(t('errors.email_required'));
             return;
         }
 
@@ -28,16 +31,16 @@ export default function ForgotPasswordScreen() {
         } catch (error: any) {
             switch (error.code) {
                 case 'account/invalid-email':
-                    setEmailError('Please enter a valid email address');
+                    setEmailError(t('errors.invalid_email'));
                     break;
                 case 'account/user-not-found':
-                    setEmailError('No account found with this email');
+                    setEmailError(t('errors.user_not_found'));
                     break;
                 case 'account/too-many-requests':
-                    setEmailError('Too many requests. Please try again later');
+                    setEmailError(t('errors.too_many_requests'));
                     break;
                 default:
-                    setEmailError('Error sending password reset email');
+                    setEmailError(t('errors.sending_reset_error'));
             }
         }
     };
@@ -53,11 +56,14 @@ export default function ForgotPasswordScreen() {
             </View>
 
             <View style={styles.formContainer}>
-                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>Reset Password</Text>
+                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
+                    {t('auth.forgot_password_title')}
+                </Text>
+
                 {!resetEmailSent ? (
                     <>
                         <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>
-                            Enter your email address and we'll send you instructions to reset your password
+                            {t('auth.forgot_password_instructions')}
                         </Text>
 
                         <View style={styles.inputContainer}>
@@ -70,7 +76,7 @@ export default function ForgotPasswordScreen() {
                                         color: currentTheme.colors.text.primary
                                     }
                                 ]}
-                                placeholder="Email"
+                                placeholder={t('auth.email_placeholder')}
                                 placeholderTextColor={currentTheme.colors.text.primary + '80'}
                                 value={email}
                                 onChangeText={(text) => {
@@ -80,21 +86,29 @@ export default function ForgotPasswordScreen() {
                                 autoCapitalize="none"
                                 keyboardType="email-address"
                             />
-                            {emailError ? <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>{emailError}</Text> : null}
+                            {emailError ? (
+                                <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                                    {emailError}
+                                </Text>
+                            ) : null}
                         </View>
 
                         <TouchableOpacity
                             style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
                             onPress={handleResetPassword}
                         >
-                            <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>Send Reset Link</Text>
+                            <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>
+                                {t('auth.send_reset')}
+                            </Text>
                         </TouchableOpacity>
                     </>
                 ) : (
                     <View style={styles.successContainer}>
-                        <Text style={[styles.successText, { color: currentTheme.colors.primary }]}>Email Sent!</Text>
+                        <Text style={[styles.successText, { color: currentTheme.colors.primary }]}>
+                            {t('auth.email_sent_title')}
+                        </Text>
                         <Text style={[styles.successText, { color: currentTheme.colors.text.primary }]}>
-                            We've sent password reset instructions to {email}. Please check your email inbox and follow the instructions to reset your password.
+                            {t('auth.email_sent_message', { email })}
                         </Text>
                     </View>
                 )}
@@ -104,7 +118,7 @@ export default function ForgotPasswordScreen() {
                     onPress={() => router.back()}
                 >
                     <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
-                        Back to Sign In
+                        {t('auth.back_to_login')}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -186,4 +200,4 @@ const styles = StyleSheet.create({
         ...theme.typography.small,
         fontWeight: '500',
     },
-}); 
+});

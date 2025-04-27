@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import {View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+
 import { theme } from '@/constants/theme';
 import { auth } from '@/firebase/config';
 
 export default function LoginScreen() {
+    const { t } = useTranslation(); // <-- useTranslation here
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [emailError, setEmailError] = useState('');
@@ -28,12 +31,12 @@ export default function LoginScreen() {
         setPasswordError('');
 
         if (!email) {
-            setEmailError('Email is required');
+            setEmailError(t('errors.email_required'));
             return;
         }
 
         if (!password) {
-            setPasswordError('Password is required');
+            setPasswordError(t('errors.password_required'));
             return;
         }
 
@@ -43,28 +46,28 @@ export default function LoginScreen() {
         } catch (error: any) {
             switch (error.code) {
                 case 'account/invalid-email':
-                    setEmailError('Please enter a valid email address');
+                    setEmailError(t('errors.invalid_email'));
                     break;
                 case 'account/user-disabled':
-                    setEmailError('This account has been disabled');
+                    setEmailError(t('errors.disabled_account'));
                     break;
                 case 'account/user-not-found':
-                    setEmailError('No account found with this email');
+                    setEmailError(t('errors.user_not_found'));
                     break;
                 case 'account/wrong-password':
-                    setPasswordError('Incorrect password');
+                    setPasswordError(t('errors.wrong_password'));
                     break;
                 case 'account/too-many-requests':
-                    setPasswordError('Too many failed attempts. Please try again later');
+                    setPasswordError(t('errors.too_many_requests'));
                     break;
                 case 'account/invalid-credential':
-                    setPasswordError('Wrong email or password');
+                    setPasswordError(t('errors.invalid_credential'));
                     break;
                 case 'account/network-request-failed':
-                    setPasswordError('Network error. Please check your connection');
+                    setPasswordError(t('errors.network_error'));
                     break;
                 default:
-                    setPasswordError('An error occurred during sign in');
+                    setPasswordError(t('errors.sign_in_error'));
             }
         }
     };
@@ -80,8 +83,12 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.formContainer}>
-                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>Welcome Back</Text>
-                <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>Sign in to continue</Text>
+                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
+                    {t('auth.login_title')}
+                </Text>
+                <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>
+                    {t('auth.login_subtitle')}
+                </Text>
 
                 <View style={styles.inputContainer}>
                     <TextInput
@@ -93,7 +100,7 @@ export default function LoginScreen() {
                                 color: currentTheme.colors.text.primary
                             }
                         ]}
-                        placeholder="Email"
+                        placeholder={t('auth.email_placeholder')}
                         placeholderTextColor={currentTheme.colors.text.primary + '80'}
                         value={email}
                         onChangeText={(text) => {
@@ -103,7 +110,11 @@ export default function LoginScreen() {
                         autoCapitalize="none"
                         keyboardType="email-address"
                     />
-                    {emailError ? <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>{emailError}</Text> : null}
+                    {emailError ? (
+                        <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                            {emailError}
+                        </Text>
+                    ) : null}
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -116,7 +127,7 @@ export default function LoginScreen() {
                                 color: currentTheme.colors.text.primary
                             }
                         ]}
-                        placeholder="Password"
+                        placeholder={t('auth.password_placeholder')}
                         placeholderTextColor={currentTheme.colors.text.primary + '80'}
                         value={password}
                         onChangeText={(text) => {
@@ -125,14 +136,20 @@ export default function LoginScreen() {
                         }}
                         secureTextEntry
                     />
-                    {passwordError ? <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>{passwordError}</Text> : null}
+                    {passwordError ? (
+                        <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                            {passwordError}
+                        </Text>
+                    ) : null}
                 </View>
 
                 <TouchableOpacity
                     style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
                     onPress={handleLogin}
                 >
-                    <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>Sign In</Text>
+                    <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>
+                        {t('auth.signin')}
+                    </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -140,7 +157,7 @@ export default function LoginScreen() {
                     onPress={() => router.push('/(tabs)/account/(auth)/forgot-password')}
                 >
                     <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
-                        Forgot Password?
+                        {t('auth.forgot_password_link')}
                     </Text>
                 </TouchableOpacity>
 
@@ -149,7 +166,7 @@ export default function LoginScreen() {
                     onPress={() => router.push('/(tabs)/account/(auth)/signup')}
                 >
                     <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
-                        Don't have an account? Sign up
+                        {t('auth.signup_link')}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -222,4 +239,4 @@ const styles = StyleSheet.create({
         ...theme.typography.small,
         fontWeight: '500',
     },
-}); 
+});

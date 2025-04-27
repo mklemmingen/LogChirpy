@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, useColorScheme, TouchableOpacity, View, Image } from 'react-native';
 import { signOut } from 'firebase/auth';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -10,6 +11,7 @@ import { theme } from '@/constants/theme';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 
 export default function AccountScreen() {
+    const { t } = useTranslation(); // <-- Hook into translations
     const colorScheme = useColorScheme() ?? 'light';
     const currentTheme = theme[colorScheme];
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -37,10 +39,16 @@ export default function AccountScreen() {
             }>
             <ThemedView style={styles.container}>
                 <ThemedView style={styles.section}>
-                    <ThemedText type="title" style={{ color: currentTheme.colors.text.primary }}>Account Details</ThemedText>
+                    <ThemedText type="title" style={{ color: currentTheme.colors.text.primary }}>
+                        {t('account.title')}
+                    </ThemedText>
                     <ThemedView style={[styles.infoContainer, { backgroundColor: currentTheme.colors.background }]}>
-                        <ThemedText style={{ color: currentTheme.colors.text.primary }} type="default">Email</ThemedText>
-                        <ThemedText style={{ color: currentTheme.colors.text.secondary }}>{auth.currentUser?.email}</ThemedText>
+                        <ThemedText style={{ color: currentTheme.colors.text.primary }} type="default">
+                            {t('account.email_label')}
+                        </ThemedText>
+                        <ThemedText style={{ color: currentTheme.colors.text.secondary }}>
+                            {auth.currentUser?.email}
+                        </ThemedText>
                     </ThemedView>
                 </ThemedView>
 
@@ -57,7 +65,7 @@ export default function AccountScreen() {
                         }}
                     >
                         <ThemedText style={[styles.signOutButtonText, { color: currentTheme.colors.text.light }]}>
-                            Sign Out
+                            {t('buttons.signout')}
                         </ThemedText>
                     </TouchableOpacity>
                 </ThemedView>
