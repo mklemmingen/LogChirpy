@@ -4,7 +4,8 @@
   "tabs": {
     "archive": "Archivo",
     "log": "Registrar Pájaros",
-    "account": "Sincronizar Nube"
+    "account": "Sincronizar Nube",
+    "settings": "Configuraciones"
   },
   "archive": {
     "title": "Archivo",
@@ -16,7 +17,9 @@
     "video": "Grabar Video",
     "photo": "Tomar Foto",
     "audio": "Grabar Audio",
-    "manual": "Registro Manual"
+    "manual": "Registro Manual",
+    "signout": "Cerrar sesión",
+    "back_to_account": "Volver a la cuenta"
   },
   "auth": {
     "login_title": "Bienvenido de nuevo",
@@ -24,12 +27,39 @@
     "signup_title": "Crear cuenta",
     "signup_subtitle": "Únete a LogChirpy",
     "forgot_password_title": "Restablecer contraseña",
-    "send_reset": "Enviar enlace de restablecimiento",
+    "forgot_password_instructions": "Introduce tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña",
     "email_placeholder": "Correo electrónico",
     "password_placeholder": "Contraseña",
     "signin": "Iniciar sesión",
     "signup": "Registrarse",
+    "send_reset": "Enviar enlace de restablecimiento",
+    "forgot_password_link": "¿Olvidaste tu contraseña?",
+    "signup_link": "¿No tienes una cuenta? Regístrate",
+    "already_have_account": "¿Ya tienes una cuenta? Inicia sesión",
+    "email_sent_title": "¡Correo enviado!",
+    "email_sent_message": "Hemos enviado instrucciones de restablecimiento a {email}. Por favor revisa tu bandeja de entrada y sigue las instrucciones.",
     "back_to_login": "Volver a iniciar sesión"
+  },
+  "errors": {
+    "email_required": "El correo electrónico es obligatorio",
+    "password_required": "La contraseña es obligatoria",
+    "invalid_email": "Por favor introduce un correo electrónico válido",
+    "disabled_account": "Esta cuenta ha sido deshabilitada",
+    "user_not_found": "No se encontró ninguna cuenta con este correo",
+    "wrong_password": "Contraseña incorrecta",
+    "too_many_requests": "Demasiados intentos fallidos. Por favor intenta de nuevo más tarde",
+    "invalid_credential": "Correo electrónico o contraseña incorrectos",
+    "network_error": "Error de red. Por favor revisa tu conexión",
+    "sign_in_error": "Se produjo un error al iniciar sesión",
+    "signup_email_in_use": "Este correo ya está registrado. Inicia sesión en su lugar",
+    "weak_password": "La contraseña es demasiado débil. Por favor usa una contraseña más segura",
+    "operation_not_allowed": "Las cuentas de correo/contraseña no están habilitadas",
+    "signup_error": "Se produjo un error al registrarse",
+    "sending_reset_error": "Error al enviar el enlace de restablecimiento"
+  },
+  "account": {
+    "title": "Detalles de la cuenta",
+    "email_label": "Correo electrónico"
   },
   "settings": {
     "language": "Cambiar idioma"

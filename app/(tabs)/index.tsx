@@ -1,11 +1,15 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+
 import { ThemedView } from '@/components/ThemedView';
 import { HelloWave } from '@/components/HelloWave';
 import { ThemedText } from '@/components/ThemedText';
-import BirdAnimation from '@/components/BirdAnimation'; // <-- import BirdAnimation
+import BirdAnimation from '@/components/BirdAnimation';
 
 export default function Index() {
+    const { t } = useTranslation(); // <-- Hook into translations
+
     return (
         <ThemedView style={{ flex: 1 }}>
             <View style={{ flex: 1 }}>
@@ -16,10 +20,10 @@ export default function Index() {
                 <View style={styles.inner}>
                     <HelloWave />
                     <ThemedText type="title" style={styles.title}>
-                        Logging the Birdies here
+                        {t('welcome')}
                     </ThemedText>
                     <ThemedText type="default" style={styles.subtitle}>
-                        Start logging, saving and exploring chirps 🐦
+                        {t('start_logging')}
                     </ThemedText>
                 </View>
             </View>

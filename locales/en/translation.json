@@ -4,7 +4,8 @@
   "tabs": {
     "archive": "Archive",
     "log": "Log Chirps",
-    "account": "Cloud Sync"
+    "account": "Cloud Sync",
+    "settings": "Settings"
   },
   "archive": {
     "title": "Archive",
@@ -16,7 +17,9 @@
     "video": "Record Video",
     "photo": "Take Photo",
     "audio": "Record Audio",
-    "manual": "Manual Log"
+    "manual": "Manual Log",
+    "signout": "Sign Out",
+    "back_to_account": "Back to Account"
   },
   "auth": {
     "login_title": "Welcome Back",
@@ -24,12 +27,39 @@
     "signup_title": "Create Account",
     "signup_subtitle": "Join LogChirpy today",
     "forgot_password_title": "Reset Password",
-    "send_reset": "Send Reset Link",
+    "forgot_password_instructions": "Enter your email address and we'll send you instructions to reset your password",
     "email_placeholder": "Email",
     "password_placeholder": "Password",
     "signin": "Sign In",
     "signup": "Sign Up",
+    "send_reset": "Send Reset Link",
+    "forgot_password_link": "Forgot Password?",
+    "signup_link": "Don't have an account? Sign up",
+    "already_have_account": "Already have an account? Sign in",
+    "email_sent_title": "Email Sent!",
+    "email_sent_message": "We've sent password reset instructions to {email}. Please check your email inbox and follow the instructions to reset your password.",
     "back_to_login": "Back to Sign In"
+  },
+  "errors": {
+    "email_required": "Email is required",
+    "password_required": "Password is required",
+    "invalid_email": "Please enter a valid email address",
+    "disabled_account": "This account has been disabled",
+    "user_not_found": "No account found with this email",
+    "wrong_password": "Incorrect password",
+    "too_many_requests": "Too many failed attempts. Please try again later",
+    "invalid_credential": "Wrong email or password",
+    "network_error": "Network error. Please check your connection",
+    "sign_in_error": "An error occurred during sign in",
+    "signup_email_in_use": "This email is already registered. Please sign in instead",
+    "weak_password": "Password is too weak. Please use a stronger password",
+    "operation_not_allowed": "Email/password accounts are not enabled",
+    "signup_error": "An error occurred during sign up",
+    "sending_reset_error": "Error sending password reset email"
+  },
+  "account": {
+    "title": "Account Details",
+    "email_label": "Email"
   },
   "settings": {
     "language": "Change Language"
