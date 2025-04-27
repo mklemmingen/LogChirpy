@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -11,8 +11,9 @@ import { initDB } from '@/services/database';
 export default function Index() {
     const { t } = useTranslation(); // <-- Hook into translations
 
+    // initialise database once
     useEffect(() => {
-        initDB(); // hook to initialize the database / sync
+        initDB();              // synchronous – no await needed
     }, []);
 
     return (

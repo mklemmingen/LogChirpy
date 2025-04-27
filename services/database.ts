@@ -1,153 +1,194 @@
-import {openDatabaseSync, SQLiteDatabase} from 'expo-sqlite';
+// services/database.ts (final, sync-only)
+import { openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc } from 'firebase/firestore';
 import { storage, firestore } from '@/firebase/config';
 import * as FileSystem from 'expo-file-system';
 
+/* ------------------------------------------------------------------ */
+/*  Singleton                                                          */
+/* ------------------------------------------------------------------ */
 let db: SQLiteDatabase | null = null;
-
-export async function initDB() {
-    db = await openDatabaseSync('logchirpy.db');
-    await db.withTransactionAsync(async (tx) => {
-        await tx.executeSqlAsync(
-            `CREATE TABLE IF NOT EXISTS bird_spottings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                image_uri TEXT,
-                video_uri TEXT,
-                audio_uri TEXT,
-                text_note TEXT,
-                gps_lat REAL,
-                gps_lng REAL,
-                date TEXT,
-                bird_type TEXT,
-                image_prediction TEXT,
-                audio_prediction TEXT,
-                synced INTEGER DEFAULT 0
-            );`
-        );
-    });
-}
-
-// Insert a new bird spotting
-export async function insertBirdSpotting(entry: {
-    imageUri: string;
-    videoUri: string;
-    audioUri: string;
-    textNote: string;
-    gpsLat: number;
-    gpsLng: number;
-    date: string;
-    birdType: string;
-    imagePrediction: string;
-    audioPrediction: string;
-}) {
-    await db.withTransactionAsync(async (tx) => {
-        await tx.executeSqlAsync(
-            `INSERT INTO bird_spottings
-       (image_uri, video_uri, audio_uri, text_note, gps_lat, gps_lng, date, bird_type, image_prediction, audio_prediction, synced)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);`,
-            [
-                entry.imageUri,
-                entry.videoUri,
-                entry.audioUri,
-                entry.textNote,
-                entry.gpsLat,
-                entry.gpsLng,
-                entry.date,
-                entry.birdType,
-                entry.imagePrediction,
-                entry.audioPrediction,
-            ]
-        );
-    });
-}
-
-export async function getDB() {
-    if (!db) {
-        db = await openDatabaseSync('logchirpy.db');
-    }
+function DB(): SQLiteDatabase {
+    if (!db) db = openDatabaseSync('logchirpy.db');
     return db;
 }
 
-// Get all bird spottings
-export async function getAllBirdSpottings() {
-    let results: any[] = [];
-    await db.withTransactionAsync(async (tx) => {
-        const res = await tx.executeSqlAsync(
-            `SELECT * FROM bird_spottings ORDER BY date DESC;`
-        );
-        results = res.rows;
+//* ------------------------------------------------------------------ */
+/*  Init (call once on app launch)                                   */
+/* ------------------------------------------------------------------ */
+export function initDB(): void {
+    const db = DB();
+
+    // 1. create table (idempotent)
+    db.withTransactionSync(() => {
+        db.execSync(`
+      CREATE TABLE IF NOT EXISTS bird_spottings (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        image_uri        TEXT,
+        video_uri        TEXT,
+        audio_uri        TEXT,
+        text_note        TEXT,
+        gps_lat          REAL,
+        gps_lng          REAL,
+        date             TEXT,
+        bird_type        TEXT,
+        image_prediction TEXT,
+        audio_prediction TEXT,
+        synced           INTEGER DEFAULT 0
+      );
+    `);
     });
-    return results;
+
+    // 2. check row-count
+    const countStmt = db.prepareSync('SELECT COUNT(*) AS cnt FROM bird_spottings');
+    const [{ cnt }] = countStmt.executeSync().getAllSync() as { cnt: number }[];
+    countStmt.finalizeSync();
+
+    // 3. insert demo record once
+    if (cnt === 0) insertTestSpotting();
 }
 
-// Get spotting by ID
-export async function getSpottingById(id: number) {
-    let result = null;
-    await db.withTransactionAsync(async (tx) => {
-        const res = await tx.executeSqlAsync(
-            `SELECT * FROM bird_spottings WHERE id = ? LIMIT 1;`,
-            [id]
-        );
-        result = res.rows.length > 0 ? res.rows[0] : null;
+/* ------------------------------------------------------------------ */
+/*  Insert one demo row when DB is empty                              */
+/* ------------------------------------------------------------------ */
+function insertTestSpotting(): void {
+    const now = new Date();
+    const demo = {
+        imageUri:        '',          // leave empty  → no upload
+        videoUri:        '',
+        audioUri:        '',
+        textNote:        'First test entry',
+        gpsLat:          52.52,
+        gpsLng:          13.405,
+        date:            now.toISOString(),
+        birdType:        'Sparrow',
+        imagePrediction: 'Sparrow',
+        audioPrediction: 'Sparrow',
+    };
+    insertBirdSpotting(demo);
+}
+
+
+/* -------------------------------------------------- */
+/*  Insert                                             */
+/* -------------------------------------------------- */
+export function insertBirdSpotting(e: {
+    imageUri: string;  videoUri: string;   audioUri: string; textNote: string;
+    gpsLat: number;    gpsLng: number;     date: string;     birdType: string;
+    imagePrediction: string;  audioPrediction: string;
+}): void {
+    DB().withTransactionSync(() => {
+        const stmt = DB().prepareSync(`
+      INSERT INTO bird_spottings
+      (image_uri, video_uri, audio_uri, text_note, gps_lat, gps_lng,
+       date, bird_type, image_prediction, audio_prediction, synced)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
+    `);
+        try {
+            stmt.executeSync([
+                e.imageUri, e.videoUri, e.audioUri, e.textNote,
+                e.gpsLat,   e.gpsLng,   e.date,     e.birdType,
+                e.imagePrediction, e.audioPrediction,
+            ]);
+        } finally { stmt.finalizeSync(); }
     });
-    return result;
 }
 
-// Upload a local file to Firebase Storage
-async function uploadFile(localUri: string, remotePath: string): Promise<string> {
-    const fileBlob = await FileSystem.readAsStringAsync(localUri, { encoding: FileSystem.EncodingType.Base64 });
-    const storageRef = ref(storage, remotePath);
-    const response = await uploadBytes(storageRef, Buffer.from(fileBlob, 'base64'));
-    const downloadUrl = await getDownloadURL(response.ref);
-    return downloadUrl;
+/* -------------------------------------------------- */
+/*  Mark a row as synced                               */
+/* -------------------------------------------------- */
+function markSynced(id: number): void {
+    const stmt = DB().prepareSync(
+        'UPDATE bird_spottings SET synced = 1 WHERE id = ?'
+    );
+    try { stmt.executeSync([id]); }
+    finally { stmt.finalizeSync(); }
 }
 
-// Sync unsynced spottings to Firebase
-export async function syncUnsyncedSpottings() {
-    await db.withTransactionAsync(async (tx) => {
-        const res = await tx.executeSqlAsync(
-            `SELECT * FROM bird_spottings WHERE synced = 0;`
-        );
-        const spottings = res.rows;
+/* ------------------------------------------------------------------ */
+/*  Queries                                                            */
+/* ------------------------------------------------------------------ */
+export function getBirdSpottings(limit = 50, sort: 'DESC' | 'ASC' = 'DESC') {
+    const stmt = DB().prepareSync(
+        `SELECT * FROM bird_spottings ORDER BY date ${sort} LIMIT ?`
+    );
+    try { return stmt.executeSync(limit).getAllSync() as any[]; }
+    finally { stmt.finalizeSync(); }
+}
 
-        for (const spotting of spottings) {
+export function getSpottingById(id: number) {
+    const stmt = DB().prepareSync(
+        `SELECT * FROM bird_spottings WHERE id = ? LIMIT 1`
+    );
+    try {
+        const rows = stmt.executeSync(id).getAllSync() as any[];
+        return rows.length ? rows[0] : null;
+    } finally { stmt.finalizeSync(); }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Sync to Firebase                                                  */
+/* ------------------------------------------------------------------ */
+export async function syncUnsyncedSpottings(): Promise<void> {
+    /* 1. fetch unsynced rows ------------------------------------------------ */
+    const selStmt  = DB().prepareSync(
+        'SELECT * FROM bird_spottings WHERE synced = 0'
+    );
+    const unsynced = selStmt.executeSync().getAllSync() as any[];
+    selStmt.finalizeSync();
+
+    /* 2. prepare updater once ---------------------------------------------- */
+    const markStmt = DB().prepareSync(
+        'UPDATE bird_spottings SET synced = 1 WHERE id = ?'
+    );
+
+    try {
+        for (const row of unsynced) {
             try {
-                // Upload files if exist
-                const imageUrl = spotting.image_uri
-                    ? await uploadFile(spotting.image_uri, `bird_images/${spotting.id}_${Date.now()}.jpg`)
+                /* upload files (if any) */
+                const imageUrl = row.image_uri
+                    ? await uploadLocal(row.image_uri, `bird_images/${row.id}_${Date.now()}.jpg`)
                     : '';
-                const videoUrl = spotting.video_uri
-                    ? await uploadFile(spotting.video_uri, `bird_videos/${spotting.id}_${Date.now()}.mp4`)
+                const videoUrl = row.video_uri
+                    ? await uploadLocal(row.video_uri, `bird_videos/${row.id}_${Date.now()}.mp4`)
                     : '';
-                const audioUrl = spotting.audio_uri
-                    ? await uploadFile(spotting.audio_uri, `bird_audios/${spotting.id}_${Date.now()}.m4a`)
+                const audioUrl = row.audio_uri
+                    ? await uploadLocal(row.audio_uri, `bird_audios/${row.id}_${Date.now()}.m4a`)
                     : '';
 
-                // Upload metadata
+                /* push metadata to Firestore */
                 await addDoc(collection(firestore, 'bird_spottings'), {
-                    imageUrl,
-                    videoUrl,
-                    audioUrl,
-                    textNote: spotting.text_note,
-                    gps: { lat: spotting.gps_lat, lng: spotting.gps_lng },
-                    date: spotting.date,
-                    birdType: spotting.bird_type,
-                    imagePrediction: spotting.image_prediction,
-                    audioPrediction: spotting.audio_prediction,
-                    createdAt: new Date().toISOString(),
+                    imageUrl, videoUrl, audioUrl,
+                    textNote:        row.text_note,
+                    gps:             { lat: row.gps_lat, lng: row.gps_lng },
+                    date:            row.date,
+                    birdType:        row.bird_type,
+                    imagePrediction: row.image_prediction,
+                    audioPrediction: row.audio_prediction,
+                    createdAt:       new Date().toISOString(),
                 });
 
-                // Mark as synced
-                await tx.executeSqlAsync(
-                    `UPDATE bird_spottings SET synced = 1 WHERE id = ?;`,
-                    [spotting.id]
-                );
+                /* mark row as synced (prepared statement) */
+                markStmt.executeSync([row.id]);
 
-            } catch (error) {
-                console.error('Failed syncing spotting', spotting.id, error);
-                console.error('Failed syncing spotting', spotting.id, error);
+            } catch (err) {
+                console.error('Sync failed for ID', row.id, err);
             }
         }
+    } finally {
+        markStmt.finalizeSync();       // always free statement
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+async function uploadLocal(localPath: string, remotePath: string) {
+    const base64 = await FileSystem.readAsStringAsync(localPath, {
+        encoding: FileSystem.EncodingType.Base64,
     });
+    const { ref: uploaded } =
+        await uploadBytes(ref(storage, remotePath), Buffer.from(base64, 'base64'));
+    return getDownloadURL(uploaded);
 }
