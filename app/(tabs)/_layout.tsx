@@ -1,11 +1,10 @@
-import { Tabs, Stack, router } from 'expo-router';
+import { Tabs} from 'expo-router';
 import {Platform, useColorScheme} from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { theme } from '@/constants/theme';
-import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function TabLayout() {
     const colorScheme = useColorScheme() ?? 'light';
@@ -65,6 +64,15 @@ export default function TabLayout() {
                 options={{
                     title: 'Cloud Sync',
                     tabBarIcon: ({ color }) => <IconSymbol size={28} name="user" color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="settings"
+                options={{
+                    title: 'Settings',
+                    tabBarIcon: ({ color }) => (
+                        <IconSymbol name="settings" size={26} color={color} />
+                    ),
                 }}
             />
         </Tabs>
