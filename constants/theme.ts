@@ -74,12 +74,13 @@ export const theme = {
             error: '#FF6B6B',
             background: '#FEFFF7',
             border: '#C1D6D9',
-            tabBarBackground: 'rgba(255, 255, 255, 0.8)', // ⬅️ added for light mode
+            tabBarBackground: 'rgba(255, 255, 255, 1)', // ⬅️ added for light mode
             text: {
                 primary: '#76A4B1',
                 secondary: '#5B8999',
                 light: '#FEFFF7',
             },
+            card: '#FFFFFF',
         },
         fonts: baseFonts,
     },
@@ -100,6 +101,7 @@ export const theme = {
                 secondary: '#537981',
                 light: '#FEFFF7',
             },
+            card: '#2C2F33',
         },
         fonts: baseFonts,
     },

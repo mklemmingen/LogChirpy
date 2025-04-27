@@ -31,8 +31,8 @@ export default function TabLayout() {
                         backgroundColor: currentTheme.colors.tabBarBackground,
                     },
                 }),
-                tabBarActiveTintColor: currentTheme.colors.text.light,
-                tabBarInactiveTintColor: currentTheme.colors.text.secondary,
+                tabBarActiveTintColor: currentTheme.colors.text.secondary,
+                tabBarInactiveTintColor: currentTheme.colors.text.primary,
                 tabBarLabelStyle: {
                     fontSize: 12,
                     fontWeight: '600',
