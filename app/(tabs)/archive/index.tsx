@@ -1,153 +1,157 @@
-import { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, StyleSheet, Button, useColorScheme } from "react-native";
-import { useTranslation } from "react-i18next";
-import { useDatabase } from "@/hooks/useDatabase";
+import React, { useEffect, useState } from 'react';
+import {
+    SafeAreaView,
+    View,
+    Text,
+    FlatList,
+    TextInput,
+    TouchableOpacity,
+    StyleSheet,
+    Button,
+    ActivityIndicator,
+    useColorScheme,
+} from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { theme } from "@/constants/theme";
-import { router } from "expo-router";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+import { router } from 'expo-router';
+
+import { theme } from '@/constants/theme';
+import { getBirdSpottings, syncUnsyncedSpottings } from '@/services/database';
+
+type Spotting = {
+    id: number;
+    bird_type: string;
+    date: string;
+    text_note?: string;
+};
 
 export default function ArchiveScreen() {
     const { t } = useTranslation();
-    const { birdSpottings, loading, syncSpottings } = useDatabase();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [sortOption, setSortOption] = useState<'newest' | 'oldest'>('newest');
-    const [filteredSpottings, setFilteredSpottings] = useState<any[]>([]);
-    const [online, setOnline] = useState(true);
-    const [loadingMessage, setLoadingMessage] = useState('Loading...');
+    const scheme  = useColorScheme() ?? 'light';
+    const colors  = theme[scheme].colors;
 
-    const colorScheme = useColorScheme() ?? 'light';
-    const currentTheme = theme[colorScheme];
+    const [rows, setRows]               = useState<Spotting[]>([]);
+    const [loading, setLoading]         = useState(true);
+    const [status, setStatus]           = useState('');
+    const [query, setQuery]             = useState('');
+    const [sort, setSort]               = useState<'DESC' | 'ASC'>('DESC');
+    const [online, setOnline]           = useState(false);
 
+    /** connectivity */
     useEffect(() => {
-        setLoadingMessage('Checking connection...');
-        const unsubscribe = NetInfo.addEventListener(state => {
-            setOnline(state.isConnected ?? false);
-            setLoadingMessage('Loading bird spottings...');
-        });
-        return () => unsubscribe();
+        const unsub = NetInfo.addEventListener(s => setOnline(s.isConnected ?? false));
+        return () => unsub();
     }, []);
 
+    /** fetch rows whenever sort or query changes */
     useEffect(() => {
-        setLoadingMessage('Filtering spottings...');
-        let spottings = [...birdSpottings];
-
-        if (searchQuery.trim() !== '') {
-            const query = searchQuery.toLowerCase();
-            spottings = spottings.filter(spotting =>
-                spotting.bird_type?.toLowerCase().includes(query) ||
-                spotting.date?.toLowerCase().includes(query)
-            );
-        }
-
-        if (sortOption === 'newest') {
-            spottings.sort((a, b) => (new Date(b.date).getTime() - new Date(a.date).getTime()));
-        } else {
-            spottings.sort((a, b) => (new Date(a.date).getTime() - new Date(b.date).getTime()));
-        }
-
-        setFilteredSpottings(spottings.slice(0, 50));
-
-        setTimeout(() => setLoadingMessage(''), 500); // Clear after short delay
-    }, [searchQuery, sortOption, birdSpottings]);
-
-    const handleSyncNow = async () => {
+        setLoading(true);
+        setStatus(t('loading_spottings') || 'Loading...');
         try {
-            setLoadingMessage('Syncing with server...');
-            await syncSpottings();
-            setLoadingMessage('Done syncing!');
-            setTimeout(() => setLoadingMessage(''), 1500);
-        } catch (error) {
-            setLoadingMessage('Error syncing data');
-            console.error(error);
+            let data = getBirdSpottings(50, sort);
+            if (query.trim()) {
+                const q = query.trim().toLowerCase();
+                data = data.filter(
+                    r =>
+                        r.bird_type?.toLowerCase().includes(q) ||
+                        r.date?.toLowerCase().includes(q)
+                );
+            }
+            setRows(data);
+            setStatus('');
+        } catch (err) {
+            console.error(err);
+            setStatus(t('error_loading_spottings') || 'Failed to load');
+        } finally {
+            setLoading(false);
         }
+    }, [sort, query]);
+
+    /** sync handler */
+    const handleSync = async () => {
+        if (!online) return;
+        setStatus(t('syncing_unsynced') || 'Syncing...');
+        await syncUnsyncedSpottings();
+        setStatus(t('sync_complete') || 'Done!');
     };
 
     if (loading) {
         return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color={currentTheme.colors.primary} />
-                <Text style={[styles.loadingText, { color: currentTheme.colors.text.secondary }]}>
-                    {loadingMessage}
-                </Text>
-            </View>
+            <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                {!!status && <Text style={{ marginTop: 10, color: colors.text.secondary }}>{status}</Text>}
+            </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: currentTheme.colors.background }}>
-            <View style={styles.container}>
-                {/* Search Input */}
-                <TextInput
-                    style={[
-                        styles.searchInput,
-                        {
-                            backgroundColor: currentTheme.colors.card,
-                            color: currentTheme.colors.text.primary,
-                            borderColor: currentTheme.colors.border,
-                        }
-                    ]}
-                    placeholder={t('archive.search_placeholder') || "Search by Bird or Date"}
-                    placeholderTextColor={currentTheme.colors.text.secondary}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                />
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <TextInput
+                style={[
+                    styles.input,
+                    { backgroundColor: colors.card, color: colors.text.primary, borderColor: colors.border },
+                ]}
+                placeholder={t('search_placeholder') || 'Search...'}
+                placeholderTextColor={colors.text.secondary}
+                value={query}
+                onChangeText={setQuery}
+            />
 
-                {/* Button Row */}
-                <View style={styles.buttonRow}>
-                    <Button title={t('archive.sort_newest') || "Newest"} onPress={() => setSortOption('newest')} />
-                    <Button title={t('archive.sort_oldest') || "Oldest"} onPress={() => setSortOption('oldest')} />
-                    {online && <Button title={t('archive.sync_now') || "Sync Now"} onPress={handleSyncNow} />}
-                </View>
-
-                {/* List */}
-                <FlatList
-                    data={filteredSpottings}
-                    keyExtractor={(item) => item.id.toString()}
-                    contentContainerStyle={{ padding: 16 }}
-                    ListEmptyComponent={
-                        <Text style={[styles.emptyText, { color: currentTheme.colors.text.secondary }]}>
-                            {t('archive.no_spottings') || "No spottings found."}
-                        </Text>
-                    }
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={[styles.card, { backgroundColor: currentTheme.colors.card }]}
-                            onPress={() => router.push({ pathname: '/archive/detail/[id]', params: { id: item.id } })}
-                        >
-                            <Text style={[styles.cardTitle, { color: currentTheme.colors.text.primary }]}>
-                                {item.bird_type || t('archive.unknown_bird') || 'Unknown Bird'}
-                            </Text>
-                            <Text style={[styles.cardSubtitle, { color: currentTheme.colors.text.secondary }]}>
-                                {new Date(item.date).toLocaleDateString()}
-                            </Text>
-                            <Text style={[styles.cardInfo, { color: currentTheme.colors.text.secondary }]}>
-                                {item.text_note?.slice(0, 80) || ''}
-                            </Text>
-                        </TouchableOpacity>
-                    )}
-                />
+            <View style={styles.row}>
+                <Button title={t('sort_newest') || 'Newest'} onPress={() => setSort('DESC')} />
+                <Button title={t('sort_oldest') || 'Oldest'}  onPress={() => setSort('ASC')}  />
+                {online && <Button title={t('sync_now') || 'Sync'} onPress={handleSync} />}
             </View>
+
+            {!!status && <Text style={{ textAlign: 'center', marginVertical: 6, color: colors.text.secondary }}>{status}</Text>}
+
+            <FlatList
+                data={rows}
+                keyExtractor={item => item.id.toString()}
+                contentContainerStyle={{ padding: 16 }}
+                ListEmptyComponent={
+                    <Text style={{ textAlign: 'center', marginTop: 32, color: colors.text.secondary }}>
+                        {t('no_spottings_found') || 'Nothing here.'}
+                    </Text>
+                }
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={[styles.card, { backgroundColor: colors.card }]}
+                        onPress={() =>
+                            router.push({ pathname: '/archive/detail/[id]', params: { id: item.id } })
+                        }
+                    >
+                        <Text style={[styles.title, { color: colors.text.primary }]}>
+                            {item.bird_type || t('unknown_bird') || 'Unknown Bird'}
+                        </Text>
+                        <Text style={{ color: colors.text.secondary }}>
+                            {new Date(item.date).toLocaleDateString()}
+                        </Text>
+                        {!!item.text_note && (
+                            <Text style={{ color: colors.text.secondary }} numberOfLines={2}>
+                                {item.text_note}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+                )}
+            />
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    searchInput: {
-        height: 50,
-        borderRadius: theme.borderRadius.md,
+    container: { flex: 1 },
+    center:    { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    input: {
+        height: 48,
         borderWidth: 1,
+        borderRadius: theme.borderRadius.md,
         margin: 16,
         paddingHorizontal: 16,
-        fontSize: 16,
     },
-    buttonRow: {
-        flexDirection: "row",
-        justifyContent: "space-around",
-        paddingHorizontal: 16,
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
         marginBottom: 8,
     },
     card: {
@@ -156,36 +160,5 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         ...theme.shadows.sm,
     },
-    cardTitle: {
-        fontSize: 20,
-        fontWeight: "bold",
-        marginBottom: 4,
-    },
-    cardSubtitle: {
-        fontSize: 14,
-        opacity: 0.7,
-        marginBottom: 8,
-    },
-    cardInfo: {
-        fontSize: 14,
-        opacity: 0.8,
-    },
-    emptyText: {
-        marginTop: 32,
-        textAlign: 'center',
-        fontSize: 16,
-        opacity: 0.7,
-    },
-    centered: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    loadingText: {
-        marginTop: 12,
-        fontSize: 16,
-        opacity: 0.7,
-        textAlign: 'center',
-        paddingHorizontal: 32,
-    },
+    title: { fontSize: 18, fontWeight: 'bold' },
 });
