@@ -44,3 +44,4 @@ app-example
 .idea/
 
 .cursor
+/.env
