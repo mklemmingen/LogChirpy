@@ -1,3 +1,4 @@
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform, useColorScheme } from 'react-native';
 import { useTranslation } from 'react-i18next';
