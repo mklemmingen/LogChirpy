@@ -47,7 +47,10 @@ export default function SignupScreen() {
 
         try {
             await createUserWithEmailAndPassword(auth, email, password);
-            router.replace('/(tabs)');
+            /* debounce navigation for the new user */
+            setTimeout(() => {
+                router.replace('/(tabs)/account');
+            }, 0);
         } catch (error: any) {
             switch (error.code) {
                 case 'account/invalid-email':
