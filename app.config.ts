@@ -9,6 +9,11 @@ export default {
     icon: "./assets/images/icon.png",
     scheme: "myapp",
     userInterfaceStyle: "automatic",
+    splash: {
+      image: "./assets/images/logo_no_bg.png",
+      resizeMode: "contain",
+      backgroundColor: "#ffffff"
+    },
     newArchEnabled: true,
     ios: {
       supportsTablet: true
