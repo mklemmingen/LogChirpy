@@ -1,0 +1,38 @@
+{
+  "welcome": "Hier werden die Vögel geloggt",
+  "start_logging": "Beginne, Zwitschern zu protokollieren, zu speichern und zu erkunden 🐦",
+  "tabs": {
+    "archive": "Archiv",
+    "log": "Vögel Loggen",
+    "account": "Cloud Sync"
+  },
+  "archive": {
+    "title": "Archiv",
+    "entry_name": "Name",
+    "entry_date": "Datum",
+    "entry_picture": "Bild"
+  },
+  "buttons": {
+    "video": "Video aufnehmen",
+    "photo": "Foto machen",
+    "audio": "Audio aufnehmen",
+    "manual": "Manueller Eintrag"
+  },
+  "auth": {
+    "login_title": "Willkommen zurück",
+    "login_subtitle": "Melde dich an, um fortzufahren",
+    "signup_title": "Konto erstellen",
+    "signup_subtitle": "Werde Teil von LogChirpy",
+    "forgot_password_title": "Passwort zurücksetzen",
+    "send_reset": "Link zum Zurücksetzen senden",
+    "email_placeholder": "E-Mail",
+    "password_placeholder": "Passwort",
+    "signin": "Anmelden",
+    "signup": "Registrieren",
+    "back_to_login": "Zurück zur Anmeldung"
+  },
+  "settings": {
+    "language": "Sprache ändern"
+  }
+}
+

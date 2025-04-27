@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme} from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { auth } from '@/firebase/config';
 
-export default function LoginScreen() {
+export default function SignupScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [emailError, setEmailError] = useState('');
@@ -24,7 +24,7 @@ export default function LoginScreen() {
         return () => unsubscribe();
     }, []);
 
-    const handleLogin = async () => {
+    const handleSignup = async () => {
         setEmailError('');
         setPasswordError('');
 
@@ -38,34 +38,33 @@ export default function LoginScreen() {
             return;
         }
 
+        if (password.length < 6) {
+            setPasswordError('Password must be at least 6 characters long');
+            return;
+        }
+
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            await createUserWithEmailAndPassword(auth, email, password);
             router.replace('/(tabs)');
         } catch (error: any) {
             switch (error.code) {
-                case 'auth/invalid-email':
+                case 'account/invalid-email':
                     setEmailError('Please enter a valid email address');
                     break;
-                case 'auth/user-disabled':
-                    setEmailError('This account has been disabled');
+                case 'account/email-already-in-use':
+                    setEmailError('This email is already registered. Please sign in instead');
                     break;
-                case 'auth/user-not-found':
-                    setEmailError('No account found with this email');
+                case 'account/weak-password':
+                    setPasswordError('Password is too weak. Please use a stronger password');
                     break;
-                case 'auth/wrong-password':
-                    setPasswordError('Incorrect password');
+                case 'account/operation-not-allowed':
+                    setEmailError('Email/password accounts are not enabled');
                     break;
-                case 'auth/too-many-requests':
-                    setPasswordError('Too many failed attempts. Please try again later');
-                    break;
-                case 'auth/invalid-credential':
-                    setPasswordError('Wrong email or password');
-                    break;
-                case 'auth/network-request-failed':
-                    setPasswordError('Network error. Please check your connection');
+                case 'account/network-request-failed':
+                    setEmailError('Network error. Please check your connection');
                     break;
                 default:
-                    setPasswordError('An error occurred during sign in');
+                    setEmailError('An error occurred during sign up');
             }
         }
     };
@@ -74,15 +73,15 @@ export default function LoginScreen() {
         <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
             <View style={styles.logoContainer}>
                 <Image
-                    source={require('../../assets/images/logo_no_bg.png')}
+                    source={require('../../../../assets/images/logo_no_bg.png')}
                     style={styles.logo}
                     resizeMode="contain"
                 />
             </View>
 
             <View style={styles.formContainer}>
-                <Text style={[styles.title, { color: currentTheme.colors.text.primary }]}>Welcome Back</Text>
-                <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>Sign in to continue</Text>
+                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>Create Account</Text>
+                <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>Join LogChirpy today</Text>
 
                 <View style={styles.inputContainer}>
                     <TextInput
@@ -131,26 +130,17 @@ export default function LoginScreen() {
 
                 <TouchableOpacity
                     style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
-                    onPress={handleLogin}
+                    onPress={handleSignup}
                 >
-                    <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>Sign In</Text>
+                    <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>Sign Up</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={styles.forgotPasswordLink}
-                    onPress={() => router.push('//account/forgot-password')}
+                    style={styles.loginLink}
+                    onPress={() => router.push('/(tabs)/account/(auth)/login')}
                 >
                     <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
-                        Forgot Password?
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.signupLink}
-                    onPress={() => router.push('//account/signup')}
-                >
-                    <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
-                        Don't have an account? Sign up
+                        Already have an account? Sign in
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -211,12 +201,8 @@ const styles = StyleSheet.create({
         ...theme.typography.body,
         fontWeight: '600',
     },
-    forgotPasswordLink: {
-        marginTop: theme.spacing.md,
-        alignItems: 'center',
-    },
-    signupLink: {
-        marginTop: theme.spacing.md,
+    loginLink: {
+        marginTop: theme.spacing.lg,
         alignItems: 'center',
     },
     linkText: {

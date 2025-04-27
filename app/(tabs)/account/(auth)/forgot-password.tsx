@@ -27,13 +27,13 @@ export default function ForgotPasswordScreen() {
             setResetEmailSent(true);
         } catch (error: any) {
             switch (error.code) {
-                case 'auth/invalid-email':
+                case 'account/invalid-email':
                     setEmailError('Please enter a valid email address');
                     break;
-                case 'auth/user-not-found':
+                case 'account/user-not-found':
                     setEmailError('No account found with this email');
                     break;
-                case 'auth/too-many-requests':
+                case 'account/too-many-requests':
                     setEmailError('Too many requests. Please try again later');
                     break;
                 default:
@@ -46,14 +46,14 @@ export default function ForgotPasswordScreen() {
         <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
             <View style={styles.logoContainer}>
                 <Image
-                    source={require('../../assets/images/logo_no_bg.png')}
+                    source={require('../../../../assets/images/logo_no_bg.png')}
                     style={styles.logo}
                     resizeMode="contain"
                 />
             </View>
 
             <View style={styles.formContainer}>
-                <Text style={[styles.title, { color: currentTheme.colors.text.primary }]}>Reset Password</Text>
+                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>Reset Password</Text>
                 {!resetEmailSent ? (
                     <>
                         <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>
@@ -92,7 +92,7 @@ export default function ForgotPasswordScreen() {
                     </>
                 ) : (
                     <View style={styles.successContainer}>
-                        <Text style={[styles.successTitle, { color: currentTheme.colors.primary }]}>Email Sent!</Text>
+                        <Text style={[styles.successText, { color: currentTheme.colors.primary }]}>Email Sent!</Text>
                         <Text style={[styles.successText, { color: currentTheme.colors.text.primary }]}>
                             We've sent password reset instructions to {email}. Please check your email inbox and follow the instructions to reset your password.
                         </Text>

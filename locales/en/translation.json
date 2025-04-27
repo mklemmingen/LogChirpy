@@ -1,0 +1,37 @@
+{
+  "welcome": "Logging the Birdies here",
+  "start_logging": "Start logging, saving and exploring chirps 🐦",
+  "tabs": {
+    "archive": "Archive",
+    "log": "Log Chirps",
+    "account": "Cloud Sync"
+  },
+  "archive": {
+    "title": "Archive",
+    "entry_name": "Name",
+    "entry_date": "Date",
+    "entry_picture": "Picture"
+  },
+  "buttons": {
+    "video": "Record Video",
+    "photo": "Take Photo",
+    "audio": "Record Audio",
+    "manual": "Manual Log"
+  },
+  "auth": {
+    "login_title": "Welcome Back",
+    "login_subtitle": "Sign in to continue",
+    "signup_title": "Create Account",
+    "signup_subtitle": "Join LogChirpy today",
+    "forgot_password_title": "Reset Password",
+    "send_reset": "Send Reset Link",
+    "email_placeholder": "Email",
+    "password_placeholder": "Password",
+    "signin": "Sign In",
+    "signup": "Sign Up",
+    "back_to_login": "Back to Sign In"
+  },
+  "settings": {
+    "language": "Change Language"
+  }
+}

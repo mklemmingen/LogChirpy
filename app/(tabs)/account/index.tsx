@@ -1,48 +1,27 @@
 import { useEffect, useState } from 'react';
-import {StyleSheet, useColorScheme} from 'react-native';
+import { StyleSheet, useColorScheme, TouchableOpacity, View, Image } from 'react-native';
 import { signOut } from 'firebase/auth';
-import { Stack, router } from 'expo-router';
+import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { TouchableOpacity, Image } from 'react-native';
 import { auth } from '@/firebase/config';
 import { theme } from '@/constants/theme';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 
-
 export default function AccountScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const currentTheme = theme[colorScheme];
-
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
-            setIsLoggedIn(!!user);
+            if (!user) {
+                router.replace('/(tabs)/account/(auth)/login');
+            }
         });
-
         return () => unsubscribe();
     }, []);
-
-    const handleSignOut = async () => {
-        try {
-            await signOut(auth);
-            router.replace('/account/login');
-        } catch (error) {
-            console.error('Error signing out:', error);
-        }
-    };
-
-    if (!isLoggedIn) {
-        return (
-            <Stack>
-                <Stack.Screen name="login" options={{ headerShown: false }} />
-                <Stack.Screen name="signup" options={{ headerShown: false }} />
-                <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
-            </Stack>
-        );
-    }
 
     return (
         <ParallaxScrollView
@@ -60,7 +39,7 @@ export default function AccountScreen() {
                 <ThemedView style={styles.section}>
                     <ThemedText type="title" style={{ color: currentTheme.colors.text.primary }}>Account Details</ThemedText>
                     <ThemedView style={[styles.infoContainer, { backgroundColor: currentTheme.colors.background }]}>
-                        <ThemedText style={{ color: currentTheme.colors.text.primary }} type="subtitle">Email</ThemedText>
+                        <ThemedText style={{ color: currentTheme.colors.text.primary }} type="default">Email</ThemedText>
                         <ThemedText style={{ color: currentTheme.colors.text.secondary }}>{auth.currentUser?.email}</ThemedText>
                     </ThemedView>
                 </ThemedView>
@@ -68,7 +47,14 @@ export default function AccountScreen() {
                 <ThemedView style={styles.section}>
                     <TouchableOpacity
                         style={[styles.signOutButton, { backgroundColor: currentTheme.colors.primary }]}
-                        onPress={handleSignOut}
+                        onPress={async () => {
+                            try {
+                                await signOut(auth);
+                                setIsLoggedIn(false);
+                            } catch (error) {
+                                console.error('Error signing out:', error);
+                            }
+                        }}
                     >
                         <ThemedText style={[styles.signOutButtonText, { color: currentTheme.colors.text.light }]}>
                             Sign Out
@@ -84,7 +70,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: theme.spacing.lg,
-        gap: theme.spacing.xl,
     },
     headerAvatar: {
         width: 120,
@@ -95,7 +80,7 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
     },
     section: {
-        gap: theme.spacing.md,
+        marginBottom: theme.spacing.xl,
     },
     infoContainer: {
         padding: theme.spacing.lg,
@@ -114,4 +99,9 @@ const styles = StyleSheet.create({
     signOutButtonText: {
         fontWeight: '600',
     },
-}); 
+    linkText: {
+        fontSize: 18,
+        textAlign: 'center',
+        padding: 16,
+    },
+});
