@@ -26,7 +26,8 @@ export default {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#ffffff"
-      }
+      },
+      package: "com.anonymous.moco_sose25_logchirpy"
     },
     web: {
       bundler: "metro",
@@ -45,6 +46,14 @@ export default {
         }
       ],
       "expo-sqlite",
+      [
+        "react-native-vision-camera",
+        {
+          cameraPermissionText: "$(PRODUCT_NAME) needs access to your Camera.",
+          enableMicrophonePermission: true,
+          microphonePermissionText: "$(PRODUCT_NAME) needs access to your Microphone."
+        }
+      ]
     ],
     experiments: {
       typedRoutes: true

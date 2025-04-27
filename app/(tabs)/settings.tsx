@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Switch, useColorScheme } from "react-native";
 import { useTranslation } from "react-i18next";
 import { I18nManager } from "react-native";
