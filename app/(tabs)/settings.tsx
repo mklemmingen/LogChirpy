@@ -139,7 +139,6 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: "bold",
-        marginBottom: theme.spacing.lg,
         textAlign: "center",
     },
     languageButton: {
@@ -156,14 +155,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginTop: theme.spacing.lg,
         paddingVertical: theme.spacing.sm,
         borderTopWidth: 1,
         borderColor: '#ccc',
     },
     gpsTextContainer: {
         flex: 1, // take up available space
-        paddingRight: theme.spacing.md, // leave some space before switch
     },
     gpsLabel: {
         fontSize: 18,
