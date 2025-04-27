@@ -1,0 +1,37 @@
+{
+  "welcome": "Registrando los pajaritos aquí",
+  "start_logging": "Comienza a registrar, guardar y explorar cantos 🐦",
+  "tabs": {
+    "archive": "Archivo",
+    "log": "Registrar Pájaros",
+    "account": "Sincronizar Nube"
+  },
+  "archive": {
+    "title": "Archivo",
+    "entry_name": "Nombre",
+    "entry_date": "Fecha",
+    "entry_picture": "Imagen"
+  },
+  "buttons": {
+    "video": "Grabar Video",
+    "photo": "Tomar Foto",
+    "audio": "Grabar Audio",
+    "manual": "Registro Manual"
+  },
+  "auth": {
+    "login_title": "Bienvenido de nuevo",
+    "login_subtitle": "Inicia sesión para continuar",
+    "signup_title": "Crear cuenta",
+    "signup_subtitle": "Únete a LogChirpy",
+    "forgot_password_title": "Restablecer contraseña",
+    "send_reset": "Enviar enlace de restablecimiento",
+    "email_placeholder": "Correo electrónico",
+    "password_placeholder": "Contraseña",
+    "signin": "Iniciar sesión",
+    "signup": "Registrarse",
+    "back_to_login": "Volver a iniciar sesión"
+  },
+  "settings": {
+    "language": "Cambiar idioma"
+  }
+}

@@ -42,12 +42,12 @@ export default function RootLayout() {
                   border: currentTheme.colors.border,
                   primary: currentTheme.colors.primary,
               },
-              fonts: {
-                  regular: currentTheme.fonts.regular,
-                  medium: currentTheme.fonts.medium,
-                  bold: currentTheme.fonts.bold,
-                  heavy: currentTheme.fonts.heavy,
-              },
+                fonts: {
+                    regular: 'SpaceMono',
+                    medium: 'SpaceMono',
+                    light: 'SpaceMono',
+                    thin: 'SpaceMono',
+                },
           }}
       >
       <View style={styles.container}>
