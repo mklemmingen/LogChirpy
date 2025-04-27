@@ -11,7 +11,10 @@
     "title": "Archive",
     "entry_name": "Name",
     "entry_date": "Date",
-    "entry_picture": "Picture"
+    "entry_picture": "Picture",
+    "no_spottings": "No spottings found.",
+    "unknown_bird": "Unknown Bird",
+    "error_loading": "Failed to load archive."
   },
   "buttons": {
     "video": "Record Video",

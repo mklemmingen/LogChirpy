@@ -46,7 +46,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="archive"
                 options={{
-                    title: t('tabs.archive'), // 👈 localized title
+                    title: t('tabs.archive'), // localized title
                     tabBarIcon: ({ color }) => (
                         <IconSymbol name="archive" size={26} color={color} />
                     ),
@@ -55,7 +55,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: t('tabs.log'), // 👈 localized title
+                    title: t('tabs.log'), // localized title
                     tabBarIcon: ({ color }) => (
                         <IconSymbol name="bird" size={26} color={color} />
                     ),
@@ -64,7 +64,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="account"
                 options={{
-                    title: t('tabs.account'), // 👈 localized title
+                    title: t('tabs.account'), // localized title
                     tabBarIcon: ({ color }) => (
                         <IconSymbol name="user" size={28} color={color} />
                     ),
@@ -73,7 +73,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="settings"
                 options={{
-                    title: t('tabs.settings'), // 👈 localized title
+                    title: t('tabs.settings'), // localized title
                     tabBarIcon: ({ color }) => (
                         <IconSymbol name="settings" size={26} color={color} />
                     ),
