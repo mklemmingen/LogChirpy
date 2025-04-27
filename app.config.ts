@@ -39,7 +39,8 @@ export default {
           resizeMode: "contain",
           backgroundColor: "#ffffff"
         }
-      ]
+      ],
+      "expo-sqlite",
     ],
     experiments: {
       typedRoutes: true

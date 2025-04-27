@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -6,9 +6,14 @@ import { ThemedView } from '@/components/ThemedView';
 import { HelloWave } from '@/components/HelloWave';
 import { ThemedText } from '@/components/ThemedText';
 import BirdAnimation from '@/components/BirdAnimation';
+import { initDB } from '@/services/database';
 
 export default function Index() {
     const { t } = useTranslation(); // <-- Hook into translations
+
+    useEffect(() => {
+        initDB(); // hook to initialize the database / sync
+    }, []);
 
     return (
         <ThemedView style={{ flex: 1 }}>
