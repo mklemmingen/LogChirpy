@@ -89,5 +89,22 @@
     "language": "Change Language",
     "enable_gps_logging": "Enable GPS Location Logging",
     "logging": "Logging Settings"
+  },
+  "audio": {
+    "start": "Start recording",
+    "stop": "Stop & use recording",
+    "saving": "Processing audio…"
+  },
+  "log": {
+    "add_audio": "Add audio",
+    "add_photo": "Add photo",
+    "add_video": "Add video",
+    "save": "Save entry",
+    "empty_alert": "Please add at least one field before saving."
+  },
+  "camera": {
+    "take_photo": "Take photo",
+    "record_video": "Record video",
+    "no_permission": "Camera permission denied"
   }
 }
