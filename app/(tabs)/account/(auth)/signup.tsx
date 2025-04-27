@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import {View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+
 import { theme } from '@/constants/theme';
-import { useThemeColor } from '@/hooks/useThemeColor';
 import { auth } from '@/firebase/config';
 
 export default function SignupScreen() {
+    const { t } = useTranslation(); // <-- useTranslation here
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [emailError, setEmailError] = useState('');
@@ -29,17 +31,17 @@ export default function SignupScreen() {
         setPasswordError('');
 
         if (!email) {
-            setEmailError('Email is required');
+            setEmailError(t('errors.email_required'));
             return;
         }
 
         if (!password) {
-            setPasswordError('Password is required');
+            setPasswordError(t('errors.password_required'));
             return;
         }
 
         if (password.length < 6) {
-            setPasswordError('Password must be at least 6 characters long');
+            setPasswordError(t('errors.weak_password'));
             return;
         }
 
@@ -49,22 +51,22 @@ export default function SignupScreen() {
         } catch (error: any) {
             switch (error.code) {
                 case 'account/invalid-email':
-                    setEmailError('Please enter a valid email address');
+                    setEmailError(t('errors.invalid_email'));
                     break;
                 case 'account/email-already-in-use':
-                    setEmailError('This email is already registered. Please sign in instead');
+                    setEmailError(t('errors.signup_email_in_use'));
                     break;
                 case 'account/weak-password':
-                    setPasswordError('Password is too weak. Please use a stronger password');
+                    setPasswordError(t('errors.weak_password'));
                     break;
                 case 'account/operation-not-allowed':
-                    setEmailError('Email/password accounts are not enabled');
+                    setEmailError(t('errors.operation_not_allowed'));
                     break;
                 case 'account/network-request-failed':
-                    setEmailError('Network error. Please check your connection');
+                    setEmailError(t('errors.network_error'));
                     break;
                 default:
-                    setEmailError('An error occurred during sign up');
+                    setEmailError(t('errors.signup_error'));
             }
         }
     };
@@ -80,8 +82,12 @@ export default function SignupScreen() {
             </View>
 
             <View style={styles.formContainer}>
-                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>Create Account</Text>
-                <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>Join LogChirpy today</Text>
+                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
+                    {t('auth.signup_title')}
+                </Text>
+                <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>
+                    {t('auth.signup_subtitle')}
+                </Text>
 
                 <View style={styles.inputContainer}>
                     <TextInput
@@ -93,7 +99,7 @@ export default function SignupScreen() {
                                 color: currentTheme.colors.text.primary
                             }
                         ]}
-                        placeholder="Email"
+                        placeholder={t('auth.email_placeholder')}
                         placeholderTextColor={currentTheme.colors.text.primary + '80'}
                         value={email}
                         onChangeText={(text) => {
@@ -103,7 +109,11 @@ export default function SignupScreen() {
                         autoCapitalize="none"
                         keyboardType="email-address"
                     />
-                    {emailError ? <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>{emailError}</Text> : null}
+                    {emailError ? (
+                        <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                            {emailError}
+                        </Text>
+                    ) : null}
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -116,7 +126,7 @@ export default function SignupScreen() {
                                 color: currentTheme.colors.text.primary
                             }
                         ]}
-                        placeholder="Password"
+                        placeholder={t('auth.password_placeholder')}
                         placeholderTextColor={currentTheme.colors.text.primary + '80'}
                         value={password}
                         onChangeText={(text) => {
@@ -125,14 +135,20 @@ export default function SignupScreen() {
                         }}
                         secureTextEntry
                     />
-                    {passwordError ? <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>{passwordError}</Text> : null}
+                    {passwordError ? (
+                        <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                            {passwordError}
+                        </Text>
+                    ) : null}
                 </View>
 
                 <TouchableOpacity
                     style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
                     onPress={handleSignup}
                 >
-                    <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>Sign Up</Text>
+                    <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>
+                        {t('auth.signup')}
+                    </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -140,7 +156,7 @@ export default function SignupScreen() {
                     onPress={() => router.push('/(tabs)/account/(auth)/login')}
                 >
                     <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
-                        Already have an account? Sign in
+                        {t('auth.already_have_account')}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -209,4 +225,4 @@ const styles = StyleSheet.create({
         ...theme.typography.small,
         fontWeight: '500',
     },
-}); 
+});

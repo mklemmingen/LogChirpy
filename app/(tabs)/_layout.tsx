@@ -1,5 +1,6 @@
-import { Tabs} from 'expo-router';
-import {Platform, useColorScheme} from 'react-native';
+import { Tabs } from 'expo-router';
+import { Platform, useColorScheme } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -7,6 +8,7 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { theme } from '@/constants/theme';
 
 export default function TabLayout() {
+    const { t } = useTranslation(); // <-- import useTranslation
     const colorScheme = useColorScheme() ?? 'light';
     const currentTheme = theme[colorScheme];
 
@@ -21,16 +23,16 @@ export default function TabLayout() {
                         position: 'absolute',
                         height: 80,
                         paddingBottom: 10,
-                        backgroundColor: currentTheme.colors.tabBarBackground, // 👈 dynamically from theme
+                        backgroundColor: currentTheme.colors.tabBarBackground,
                     },
                     default: {
                         height: 70,
                         paddingBottom: 8,
-                        backgroundColor: currentTheme.colors.tabBarBackground, // 👈
+                        backgroundColor: currentTheme.colors.tabBarBackground,
                     },
                 }),
-                tabBarActiveTintColor: currentTheme.colors.text.light, // 👈 bright white or light
-                tabBarInactiveTintColor: currentTheme.colors.text.secondary, // 👈 softer text
+                tabBarActiveTintColor: currentTheme.colors.text.light,
+                tabBarInactiveTintColor: currentTheme.colors.text.secondary,
                 tabBarLabelStyle: {
                     fontSize: 12,
                     fontWeight: '600',
@@ -41,10 +43,10 @@ export default function TabLayout() {
                 },
             }}
         >
-        <Tabs.Screen
+            <Tabs.Screen
                 name="archive"
                 options={{
-                    title: 'Archive',
+                    title: t('tabs.archive'), // 👈 localized title
                     tabBarIcon: ({ color }) => (
                         <IconSymbol name="archive" size={26} color={color} />
                     ),
@@ -53,7 +55,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: 'Log Chirps',
+                    title: t('tabs.log'), // 👈 localized title
                     tabBarIcon: ({ color }) => (
                         <IconSymbol name="bird" size={26} color={color} />
                     ),
@@ -62,14 +64,16 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="account"
                 options={{
-                    title: 'Cloud Sync',
-                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="user" color={color} />,
+                    title: t('tabs.account'), // 👈 localized title
+                    tabBarIcon: ({ color }) => (
+                        <IconSymbol name="user" size={28} color={color} />
+                    ),
                 }}
             />
             <Tabs.Screen
                 name="settings"
                 options={{
-                    title: 'Settings',
+                    title: t('tabs.settings'), // 👈 localized title
                     tabBarIcon: ({ color }) => (
                         <IconSymbol name="settings" size={26} color={color} />
                     ),

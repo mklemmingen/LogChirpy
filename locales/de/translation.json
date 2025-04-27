@@ -4,7 +4,8 @@
   "tabs": {
     "archive": "Archiv",
     "log": "Vögel Loggen",
-    "account": "Cloud Sync"
+    "account": "Cloud Sync",
+    "settings": "Einstellungen"
   },
   "archive": {
     "title": "Archiv",
@@ -16,7 +17,9 @@
     "video": "Video aufnehmen",
     "photo": "Foto machen",
     "audio": "Audio aufnehmen",
-    "manual": "Manueller Eintrag"
+    "manual": "Manueller Eintrag",
+    "signout": "Abmelden",
+    "back_to_account": "Zurück zum Konto"
   },
   "auth": {
     "login_title": "Willkommen zurück",
@@ -24,15 +27,41 @@
     "signup_title": "Konto erstellen",
     "signup_subtitle": "Werde Teil von LogChirpy",
     "forgot_password_title": "Passwort zurücksetzen",
-    "send_reset": "Link zum Zurücksetzen senden",
+    "forgot_password_instructions": "Gib deine E-Mail-Adresse ein und wir senden dir Anweisungen zum Zurücksetzen deines Passworts",
     "email_placeholder": "E-Mail",
     "password_placeholder": "Passwort",
     "signin": "Anmelden",
     "signup": "Registrieren",
+    "send_reset": "Link zum Zurücksetzen senden",
+    "forgot_password_link": "Passwort vergessen?",
+    "signup_link": "Noch kein Konto? Registrieren",
+    "already_have_account": "Du hast schon ein Konto? Anmelden",
+    "email_sent_title": "E-Mail gesendet!",
+    "email_sent_message": "Wir haben Anweisungen zum Zurücksetzen deines Passworts an {email} gesendet. Bitte überprüfe dein Postfach und folge den Anweisungen.",
     "back_to_login": "Zurück zur Anmeldung"
+  },
+  "errors": {
+    "email_required": "E-Mail ist erforderlich",
+    "password_required": "Passwort ist erforderlich",
+    "invalid_email": "Bitte gib eine gültige E-Mail-Adresse ein",
+    "disabled_account": "Dieses Konto wurde deaktiviert",
+    "user_not_found": "Kein Konto mit dieser E-Mail gefunden",
+    "wrong_password": "Falsches Passwort",
+    "too_many_requests": "Zu viele Fehlversuche. Bitte versuche es später erneut",
+    "invalid_credential": "Falsche E-Mail oder falsches Passwort",
+    "network_error": "Netzwerkfehler. Bitte überprüfe deine Verbindung",
+    "sign_in_error": "Beim Anmelden ist ein Fehler aufgetreten",
+    "signup_email_in_use": "Diese E-Mail ist bereits registriert. Bitte melde dich stattdessen an",
+    "weak_password": "Passwort ist zu schwach. Bitte benutze ein stärkeres Passwort",
+    "operation_not_allowed": "E-Mail/Passwort-Anmeldung ist nicht aktiviert",
+    "signup_error": "Beim Registrieren ist ein Fehler aufgetreten",
+    "sending_reset_error": "Fehler beim Senden des Zurücksetzungslinks"
+  },
+  "account": {
+    "title": "Kontodetails",
+    "email_label": "E-Mail"
   },
   "settings": {
     "language": "Sprache ändern"
   }
 }
-

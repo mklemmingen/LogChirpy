@@ -1,26 +1,24 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-// Optionally import the services that you want to use
-// import {...} from 'firebase/account';
-// import {...} from 'firebase/database';
-// import {...} from 'firebase/firestore';
-// import {...} from 'firebase/functions';
-// import {...} from 'firebase/storage';
-
+// Firebase config
 const firebaseConfig = {
-    apiKey: "AIzaSyB1-R1Xd4LJIKbM5IOs6JJZXeF1Y7Paq2A",
-    authDomain: "logchirpy.firebaseapp.com",
-    projectId: "logchirpy",
-    storageBucket: "logchirpy.firebasestorage.app",
-    messagingSenderId: "448989343879",
-    appId: "1:448989343879:web:d6a6492352f787eec50822",
-    measurementId: "G-PLEGFD5HKW"
+    apiKey: Constants.expoConfig?.extra?.FIREBASE_API_KEY,
+    authDomain: Constants.expoConfig?.extra?.FIREBASE_AUTH_DOMAIN,
+    projectId: Constants.expoConfig?.extra?.FIREBASE_PROJECT_ID,
+    storageBucket: Constants.expoConfig?.extra?.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: Constants.expoConfig?.extra?.FIREBASE_MESSAGING_SENDER_ID,
+    appId: Constants.expoConfig?.extra?.FIREBASE_APP_ID,
 };
 
+// Initialize App
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export default app;
-// For more information on how to access Firebase in your project,
-// see the Firebase documentation: https://firebase.google.com/docs/web/setup#access-firebase
+// ✅ Initialize Auth with AsyncStorage persistence manually
+const auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+});
+
+export { app, auth };
