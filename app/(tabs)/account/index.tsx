@@ -17,12 +17,14 @@ export default function AccountScreen() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (!user) {
-                router.replace('/(tabs)/account/(auth)/login');
-            }
+        const unsub = auth.onAuthStateChanged(user => {
+            setIsLoggedIn(!!user);
+            /** don’t navigate *while* we’re in the same render frame */
+            if (!user) requestAnimationFrame(() =>
+                router.replace('/(tabs)/account/(auth)/login')
+            );
         });
-        return () => unsubscribe();
+        return unsub;
     }, []);
 
     return (
