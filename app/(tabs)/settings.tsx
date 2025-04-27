@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, useColorScheme } from "react-native";
 import { useTranslation } from "react-i18next";
 import { I18nManager } from "react-native";
 import { languages } from "@/i18n/languages";
@@ -10,8 +10,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function SettingsScreen() {
     const { i18n, t } = useTranslation();
     const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
-    const colorScheme = useColorScheme() ?? 'light'; // detect theme (light/dark)
-    const currentTheme = theme[colorScheme]; // load correct color set
+    const colorScheme = useColorScheme() ?? 'light';
+    const currentTheme = theme[colorScheme];
 
     const changeLanguage = async (lang: string) => {
         await AsyncStorage.setItem('appLanguage', lang);
@@ -42,63 +42,73 @@ export default function SettingsScreen() {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-            <Text style={[styles.title, { color: currentTheme.colors.text.primary }]}>
-                {t("settings.language")}
-            </Text>
+        <ScrollView contentContainerStyle={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+            <View style={[styles.settingsCard, { backgroundColor: currentTheme.colors.card }]}>
+                <Text style={[styles.title, { color: currentTheme.colors.text.primary }]}>
+                    {t("settings.language")}
+                </Text>
 
-            {Object.entries(languages).map(([langKey, langName]: [string, string]) => {
-                const isActive = currentLanguage.startsWith(langKey);
-                return (
-                    <TouchableOpacity
-                        key={langKey}
-                        style={[
-                            styles.languageButton,
-                            {
-                                borderColor: currentTheme.colors.border,
-                                backgroundColor: isActive ? currentTheme.colors.primary : 'transparent'
-                            }
-                        ]}
-                        onPress={() => changeLanguage(langKey)}
-                    >
-                        <Text
+                {Object.entries(languages).map(([langKey, langName]: [string, string]) => {
+                    const isActive = currentLanguage.startsWith(langKey);
+                    return (
+                        <TouchableOpacity
+                            key={langKey}
                             style={[
-                                styles.languageButtonText,
+                                styles.languageButton,
                                 {
-                                    color: isActive
-                                        ? currentTheme.colors.text.light
-                                        : currentTheme.colors.text.primary,
-                                    fontWeight: isActive ? "bold" : "normal"
+                                    backgroundColor: isActive ? currentTheme.colors.primary : currentTheme.colors.background,
+                                    borderColor: currentTheme.colors.border,
                                 }
                             ]}
+                            onPress={() => changeLanguage(langKey)}
                         >
-                            {langName}
-                        </Text>
-                    </TouchableOpacity>
-                );
-            })}
-        </View>
+                            <Text
+                                style={[
+                                    styles.languageButtonText,
+                                    {
+                                        color: isActive ? currentTheme.colors.text.light : currentTheme.colors.text.primary,
+                                        fontWeight: isActive ? "bold" : "normal",
+                                    }
+                                ]}
+                            >
+                                {langName}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
         padding: theme.spacing.lg,
     },
+    settingsCard: {
+        width: '100%',
+        padding: theme.spacing.lg,
+        borderRadius: theme.borderRadius.lg,
+        ...theme.shadows.md, // ✅ subtle card shadow for modern feeling
+        gap: theme.spacing.md,
+    },
     title: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: "bold",
         marginBottom: theme.spacing.lg,
+        textAlign: "center",
     },
     languageButton: {
-        padding: theme.spacing.md,
-        borderWidth: 1,
+        paddingVertical: theme.spacing.md,
+        paddingHorizontal: theme.spacing.lg,
         borderRadius: theme.borderRadius.md,
-        marginBottom: theme.spacing.sm,
+        borderWidth: 1,
     },
     languageButtonText: {
         textAlign: "center",
         fontSize: 16,
-    }
+    },
 });
