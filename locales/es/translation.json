@@ -62,6 +62,8 @@
     "email_label": "Correo electrónico"
   },
   "settings": {
-    "language": "Cambiar idioma"
+    "language": "Cambiar idioma",
+    "enable_gps_logging": "Activar registro de ubicación GPS",
+    "logging": "Configuración de Registro"
   }
 }
