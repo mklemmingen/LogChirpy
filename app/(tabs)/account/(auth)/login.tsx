@@ -42,7 +42,12 @@ export default function LoginScreen() {
 
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            router.replace('/(tabs)');
+            // jump to the root of the Account stack
+            /* give React-Native one frame to finish its transition
+            before we unmount this screen */
+            setTimeout(() => {
+                router.replace('/(tabs)/account');   // land on the Account tab
+            }, 0);
         } catch (error: any) {
             switch (error.code) {
                 case 'account/invalid-email':
