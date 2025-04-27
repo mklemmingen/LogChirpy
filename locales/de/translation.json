@@ -8,10 +8,34 @@
     "settings": "Einstellungen"
   },
   "archive": {
-    "title": "Archiv",
-    "entry_name": "Name",
-    "entry_date": "Datum",
-    "entry_picture": "Bild"
+    "title":            "Archiv",
+    "entry_name":       "Name",
+    "entry_date":       "Datum",
+    "entry_picture":    "Bild",
+    "search_placeholder": "Suche nach Vogelname oder Datum",
+    "sort_newest":        "Neueste",
+    "sort_oldest":        "Älteste",
+    "sync_now":           "Jetzt synchronisieren",
+    "loading":            "Beobachtungen werden geladen…",
+    "load_error":         "Beobachtungen konnten nicht geladen werden",
+    "syncing":            "Synchronisiere…",
+    "sync_ok":            "Synchronisierung abgeschlossen",
+    "sync_failed":        "Synchronisierung fehlgeschlagen",
+    "not_logged_in":      "Zum Synchronisieren musst du angemeldet sein",
+    "empty":              "Keine Vogelbeobachtungen gefunden",
+    "unknown_bird":       "Unbekannter Vogel",
+    "no_spottings":       "Keine Beobachtungen gefunden."
+  },
+  "idcard": {
+    "bird":        "Vogel",
+    "date":        "Datum",
+    "notes":       "Notizen",
+    "gps":         "GPS",
+    "img_ai":      "Bild-KI",
+    "audio_ai":    "Audio-KI",
+    "play_audio":  "Aufnahme abspielen",
+    "unknown":     "Unbekannt",
+    "not_found":   "Keine Beobachtung gefunden."
   },
   "buttons": {
     "video": "Video aufnehmen",
@@ -37,7 +61,7 @@
     "signup_link": "Noch kein Konto? Registrieren",
     "already_have_account": "Du hast schon ein Konto? Anmelden",
     "email_sent_title": "E-Mail gesendet!",
-    "email_sent_message": "Wir haben Anweisungen zum Zurücksetzen deines Passworts an {email} gesendet. Bitte überprüfe dein Postfach und folge den Anweisungen.",
+    "email_sent_message": "Wir haben Anweisungen zum Zurücksetzen deines Passworts an {{email}} gesendet. Bitte überprüfe dein Postfach und folge den Anweisungen.",
     "back_to_login": "Zurück zur Anmeldung"
   },
   "errors": {

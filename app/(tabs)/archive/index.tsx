@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
     SafeAreaView,
     View,
@@ -7,158 +7,323 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    Button,
+    Pressable,
     ActivityIndicator,
+    Image,
+    Alert,
     useColorScheme,
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import * as MediaLibrary from 'expo-media-library';
 
 import { theme } from '@/constants/theme';
 import { getBirdSpottings, syncUnsyncedSpottings } from '@/services/database';
+import { auth } from '@/firebase/config';
+
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { ThemedSnackbar } from '@/components/ThemedSnackbar';
 
 type Spotting = {
     id: number;
     bird_type: string;
     date: string;
     text_note?: string;
+    image_uri?: string;
 };
 
 export default function ArchiveScreen() {
-    const { t } = useTranslation();
+    const { t }   = useTranslation();
     const scheme  = useColorScheme() ?? 'light';
-    const colors  = theme[scheme].colors;
+    const pal     = theme[scheme];
 
-    const [rows, setRows]               = useState<Spotting[]>([]);
-    const [loading, setLoading]         = useState(true);
-    const [status, setStatus]           = useState('');
-    const [query, setQuery]             = useState('');
-    const [sort, setSort]               = useState<'DESC' | 'ASC'>('DESC');
-    const [online, setOnline]           = useState(false);
+    const [rows, setRows]         = useState<Spotting[]>([]);
+    const [query, setQuery]       = useState('');
+    const [sort,  setSort]        = useState<'DESC'|'ASC'>('DESC');
 
-    /** connectivity */
+    const [loading, setLoading]   = useState(true);
+    const [status,  setStatus]    = useState<string>('');
+    const [online,  setOnline]    = useState(false);
+
+    const insets = useSafeAreaInsets();
+
+    const [snackbar, setSnackbar] = useState(false);
+
+    const snackbarMsg = t('archive.not_logged_in');
+
+    /* ───────────────────────────── connection */
     useEffect(() => {
         const unsub = NetInfo.addEventListener(s => setOnline(s.isConnected ?? false));
         return () => unsub();
     }, []);
 
-    /** fetch rows whenever sort or query changes */
+    /* ───────────────────────────── permissions */
     useEffect(() => {
-        setLoading(true);
-        setStatus(t('loading_spottings') || 'Loading...');
-        try {
-            let data = getBirdSpottings(50, sort);
-            if (query.trim()) {
-                const q = query.trim().toLowerCase();
-                data = data.filter(
-                    r =>
-                        r.bird_type?.toLowerCase().includes(q) ||
-                        r.date?.toLowerCase().includes(q)
-                );
+        (async () => {
+            const { status } = await MediaLibrary.getPermissionsAsync();
+            if (status !== 'granted') {
+                await MediaLibrary.requestPermissionsAsync({ readOnly: true });
             }
-            setRows(data);
-            setStatus('');
-        } catch (err) {
-            console.error(err);
-            setStatus(t('error_loading_spottings') || 'Failed to load');
-        } finally {
-            setLoading(false);
-        }
-    }, [sort, query]);
+        })();
+    }, []);
 
-    /** sync handler */
+
+    /* ───────────────────────────── database read */
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                setLoading(true);
+                setStatus(t('archive.loading'));
+
+                let data = getBirdSpottings(50, sort);
+                if (query.trim()) {
+                    const q = query.trim().toLowerCase();
+                    data = data.filter(r =>
+                        r.bird_type?.toLowerCase().includes(q) ||
+                        r.date?.toLowerCase().includes(q),
+                    );
+                }
+                if (mounted) {
+                    setRows(data);
+                    setStatus(data.length ? '' : t('archive.empty'));
+                }
+            } catch (e) {
+                console.error(e);
+                setStatus(t('archive.load_error'));
+            } finally {
+                mounted && setLoading(false);
+            }
+        })();
+        return () => { mounted = false; };
+    }, [query, sort, t]);
+
+    /* ───────────────────────────── sync */
     const handleSync = async () => {
         if (!online) return;
-        setStatus(t('syncing_unsynced') || 'Syncing...');
-        await syncUnsyncedSpottings();
-        setStatus(t('sync_complete') || 'Done!');
+        if (!auth.currentUser) {
+            setSnackbar(true);                    // show the popup
+            return;                               // bail out of sync
+        }
+        try {
+            setStatus(t('archive.syncing'));
+            await syncUnsyncedSpottings();
+            setStatus(t('archive.sync_ok'));
+        } catch (e) {
+            console.error(e);
+            setStatus(t('archive.sync_failed'));
+        }
     };
 
+    /* row renderer */
+    const renderRow = useCallback(({ item }: { item: Spotting }) => (
+        <TouchableOpacity
+            activeOpacity={0.8}
+            style={[
+                styles.card,
+                { backgroundColor: pal.colors.card, shadowColor: pal.colors.shadow },
+            ]}
+            onPress={() =>
+                router.push({ pathname: '/archive/detail/[id]', params: { id: item.id } })
+            }
+        >
+            {!!item.image_uri && <Image source={{ uri: item.image_uri }} style={styles.thumb} />}
+
+            <View style={{ flex: 1 }}>
+                <Text style={[styles.title, { color: pal.colors.text.primary }]}>
+                    {item.bird_type || t('archive.unknown_bird')}
+                </Text>
+                <Text style={{ color: pal.colors.text.secondary, marginBottom: 2 }}>
+                    {new Date(item.date).toLocaleDateString()}
+                </Text>
+                {!!item.text_note && (
+                    <Text style={{ color: pal.colors.text.secondary }} numberOfLines={2}>
+                        {item.text_note}
+                    </Text>
+                )}
+            </View>
+        </TouchableOpacity>
+    ), [pal, t]);
+
+    /* ───────────────────────────── loading view */
     if (loading) {
         return (
-            <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                {!!status && <Text style={{ marginTop: 10, color: colors.text.secondary }}>{status}</Text>}
+            <SafeAreaView style={[styles.center, { backgroundColor: pal.colors.background }]}>
+                <ActivityIndicator size="large" color={pal.colors.primary} />
+                {!!status && <Text style={{ color: pal.colors.text.secondary, marginTop: 8 }}>{status}</Text>}
             </SafeAreaView>
         );
     }
 
+    /* ───────────────────────────── main view */
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            <TextInput
+        <SafeAreaView style={{ flex: 1, backgroundColor: pal.colors.background }}>
+            {/* Search bar */}
+            <View
                 style={[
-                    styles.input,
-                    { backgroundColor: colors.card, color: colors.text.primary, borderColor: colors.border },
+                    styles.searchWrap,
+                    { borderColor: pal.colors.border, marginTop: insets.top + 4 },
                 ]}
-                placeholder={t('search_placeholder') || 'Search...'}
-                placeholderTextColor={colors.text.secondary}
-                value={query}
-                onChangeText={setQuery}
-            />
-
-            <View style={styles.row}>
-                <Button title={t('sort_newest') || 'Newest'} onPress={() => setSort('DESC')} />
-                <Button title={t('sort_oldest') || 'Oldest'}  onPress={() => setSort('ASC')}  />
-                {online && <Button title={t('sync_now') || 'Sync'} onPress={handleSync} />}
+            >
+                <Feather name="search" size={18} color={pal.colors.text.secondary} />
+                <TextInput
+                    style={[styles.input, { color: pal.colors.text.primary }]}
+                    placeholder={t('archive.search_placeholder')}
+                    placeholderTextColor={pal.colors.text.secondary}
+                    value={query}
+                    onChangeText={setQuery}
+                />
             </View>
 
-            {!!status && <Text style={{ textAlign: 'center', marginVertical: 6, color: colors.text.secondary }}>{status}</Text>}
+            {/* Sort & Sync */}
+            <View style={styles.buttonsRow}>
+                {(['DESC', 'ASC'] as const).map(dir => (
+                    <Pressable
+                        key={dir}
+                        onPress={() => setSort(dir)}
+                        style={[
+                            styles.button,
+                            sort === dir && { backgroundColor: pal.colors.primary },
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.buttonText,
+                                {
+                                    color:
+                                        sort === dir
+                                            ? pal.colors.text.light
+                                            : pal.colors.text.primary,
+                                },
+                            ]}
+                        >
+                            {dir === 'DESC' ? t('archive.sort_newest') : t('archive.sort_oldest')}
+                        </Text>
+                    </Pressable>
+                ))}
+                {online && (
+                    <Pressable style={styles.button} onPress={handleSync}>
+                        <Text style={[styles.buttonText, { color: pal.colors.text.primary }]}>
+                            {t('archive.sync_now')}
+                        </Text>
+                    </Pressable>
+                )}
+            </View>
 
+            {!!status && (
+                <Text style={{ textAlign: 'center', marginBottom: 6, color: pal.colors.text.secondary }}>
+                    {status}
+                </Text>
+            )}
+
+            {/* List */}
             <FlatList
                 data={rows}
-                keyExtractor={item => item.id.toString()}
+                keyExtractor={i => i.id.toString()}
                 contentContainerStyle={{ padding: 16 }}
                 ListEmptyComponent={
-                    <Text style={{ textAlign: 'center', marginTop: 32, color: colors.text.secondary }}>
-                        {t('no_spottings_found') || 'Nothing here.'}
+                    <Text style={{ textAlign: 'center', marginTop: 32, color: pal.colors.text.secondary }}>
+                        {t('archive.empty')}
                     </Text>
                 }
                 renderItem={({ item }) => (
                     <TouchableOpacity
-                        style={[styles.card, { backgroundColor: colors.card }]}
+                        activeOpacity={0.8}
+                        style={[
+                            styles.card,
+                            {
+                                backgroundColor: pal.colors.card,
+                                shadowColor: pal.colors.shadow,
+                            },
+                        ]}
                         onPress={() =>
                             router.push({ pathname: '/archive/detail/[id]', params: { id: item.id } })
                         }
                     >
-                        <Text style={[styles.title, { color: colors.text.primary }]}>
-                            {item.bird_type || t('unknown_bird') || 'Unknown Bird'}
-                        </Text>
-                        <Text style={{ color: colors.text.secondary }}>
-                            {new Date(item.date).toLocaleDateString()}
-                        </Text>
-                        {!!item.text_note && (
-                            <Text style={{ color: colors.text.secondary }} numberOfLines={2}>
-                                {item.text_note}
-                            </Text>
+                        {item.image_uri && (
+                            <Image source={{ uri: item.image_uri }} style={styles.thumb} />
                         )}
+
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.title, { color: pal.colors.text.primary }]}>
+                                {item.bird_type || t('archive.unknown_bird')}
+                            </Text>
+                            <Text style={{ color: pal.colors.text.secondary, marginBottom: 2 }}>
+                                {new Date(item.date).toLocaleDateString()}
+                            </Text>
+                            {!!item.text_note && (
+                                <Text
+                                    style={{ color: pal.colors.text.secondary }}
+                                    numberOfLines={2}
+                                >
+                                    {item.text_note}
+                                </Text>
+                            )}
+                        </View>
                     </TouchableOpacity>
                 )}
+            />
+            {/* --- SNACKBAR -------------------------------------------------- */}
+            <ThemedSnackbar
+                visible={snackbar}
+                message={snackbarMsg}
+                onHide={() => setSnackbar(false)}
             />
         </SafeAreaView>
     );
 }
 
+/* ------------------------------------------------------------------ */
+/*  styles                                                             */
+/* ------------------------------------------------------------------ */
+const THUMB = 72;
+
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    center:    { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    input: {
-        height: 48,
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+    searchWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
         borderWidth: 1,
         borderRadius: theme.borderRadius.md,
-        margin: 16,
-        paddingHorizontal: 16,
+        marginHorizontal: 16,
+        paddingHorizontal: 12,
+        height: 46,
     },
-    row: {
+    input: { flex: 1, fontSize: 16, marginLeft: 6 },
+
+    buttonsRow: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        marginBottom: 8,
+        marginVertical: 10,
+        paddingHorizontal: 16,
     },
+    button: {
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: theme.borderRadius.md,
+    },
+    buttonText: { fontSize: 14, fontWeight: '600' },
+
     card: {
+        flexDirection: 'row',
+        padding: 14,
         borderRadius: theme.borderRadius.lg,
-        padding: 16,
-        marginBottom: 16,
-        ...theme.shadows.sm,
+        marginBottom: 18,
+        elevation: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
     },
-    title: { fontSize: 18, fontWeight: 'bold' },
+    thumb: {
+        width: THUMB,
+        height: THUMB,
+        borderRadius: THUMB / 8,
+        marginRight: 14,
+        backgroundColor: '#ccc',
+    },
+    title: { fontSize: 17, fontWeight: '700' },
 });

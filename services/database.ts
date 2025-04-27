@@ -46,27 +46,40 @@ export function initDB(): void {
     countStmt.finalizeSync();
 
     // 3. insert demo record once
-    if (cnt === 0) insertTestSpotting();
+    if (cnt <= 1) insertTestSpotting();
 }
 
-/* ------------------------------------------------------------------ */
-/*  Insert one demo row when DB is empty                              */
-/* ------------------------------------------------------------------ */
+/** Insert two hard-coded demo rows into the local DB */
 function insertTestSpotting(): void {
+    /* ---------- entry #1 – today ---------- */
     const now = new Date();
-    const demo = {
-        imageUri:        '',          // leave empty  → no upload
+    insertBirdSpotting({
+        imageUri:        '',           // empty → no media
         videoUri:        '',
         audioUri:        '',
         textNote:        'First test entry',
-        gpsLat:          52.52,
-        gpsLng:          13.405,
+        gpsLat:          52.5200,
+        gpsLng:          13.4050,
         date:            now.toISOString(),
         birdType:        'Sparrow',
         imagePrediction: 'Sparrow',
         audioPrediction: 'Sparrow',
-    };
-    insertBirdSpotting(demo);
+    });
+
+    /* ---------- entry #2 – yesterday ---------- */
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000); // minus 1 day
+    insertBirdSpotting({
+        imageUri:        '',
+        videoUri:        '',
+        audioUri:        '',
+        textNote:        'Second test entry',
+        gpsLat:          52.5100,
+        gpsLng:          13.4000,
+        date:            yesterday.toISOString(),
+        birdType:        'Robin',
+        imagePrediction: 'Robin',
+        audioPrediction: 'Robin',
+    });
 }
 
 
@@ -109,13 +122,24 @@ function markSynced(id: number): void {
 /* ------------------------------------------------------------------ */
 /*  Queries                                                            */
 /* ------------------------------------------------------------------ */
-export function getBirdSpottings(limit = 50, sort: 'DESC' | 'ASC' = 'DESC') {
+export function getBirdSpottings(
+    limit = 50,
+    sort: 'DESC' | 'ASC' = 'DESC'
+): any[] {
     const stmt = DB().prepareSync(
-        `SELECT * FROM bird_spottings ORDER BY date ${sort} LIMIT ?`
+        `SELECT * FROM bird_spottings
+         ORDER BY date ${sort}
+             LIMIT ?`
     );
-    try { return stmt.executeSync(limit).getAllSync() as any[]; }
-    finally { stmt.finalizeSync(); }
+
+    try {
+        // Pass an *array* of params, even if it’s just one item
+        return stmt.executeSync([limit]).getAllSync();
+    } finally {
+        stmt.finalizeSync();
+    }
 }
+
 
 export function getSpottingById(id: number) {
     const stmt = DB().prepareSync(

@@ -1,47 +1,57 @@
-import { useState, useEffect } from "react";
-import { getAllBirdSpottings, insertBirdSpotting, syncUnsyncedSpottings } from "@/services/database";
+/* hooks/useDatabase.ts
+   works with the sync-only services/database.ts */
+import { useEffect, useState, useCallback } from 'react';
+import {
+    getBirdSpottings,
+    insertBirdSpotting,
+    syncUnsyncedSpottings,
+} from '@/services/database';
 
-export function useDatabase() {
+export function useDatabase(limit = 50) {
     const [birdSpottings, setBirdSpottings] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading,       setLoading]       = useState(true);
 
-    useEffect(() => {
-        refreshSpottings();
-    }, []);
+    /* ------------------------------------------------------------------ */
+    /*  initial load                                                      */
+    /* ------------------------------------------------------------------ */
+    useEffect(() => { refreshSpottings(); }, [limit]);
 
-    async function refreshSpottings() {
+    /* ------------------------------------------------------------------ */
+    /*  helpers                                                           */
+    /* ------------------------------------------------------------------ */
+    const refreshSpottings = useCallback(() => {
         try {
-            const spottings = await getAllBirdSpottings();
-            setBirdSpottings(spottings as any[]);
+            setLoading(true);
+            /* getBirdSpottings is synchronous – no await needed */
+            const rows = getBirdSpottings(limit, 'DESC');
+            setBirdSpottings(rows);
+        } catch (err) {
+            console.error('DB refresh failed', err);
+        } finally {
             setLoading(false);
-        } catch (error) {
-            console.error('Failed to load bird spottings', error);
         }
-    }
+    }, [limit]);
 
-    async function addSpotting(entry: any) {
+    const addSpotting = useCallback((entry: any) => {
         try {
-            await insertBirdSpotting(entry);
-            await refreshSpottings();
-        } catch (error) {
-            console.error('Failed to insert bird spotting', error);
+            insertBirdSpotting(entry);   // synchronous insert
+            refreshSpottings();          // reflect the change
+        } catch (err) {
+            console.error('Insert failed', err);
         }
-    }
+    }, [refreshSpottings]);
 
-    async function syncSpottings() {
+    const syncSpottings = useCallback(async () => {
         try {
-            await syncUnsyncedSpottings();
-            await refreshSpottings();
-        } catch (error) {
-            console.error('Failed to sync spottings', error);
+            await syncUnsyncedSpottings(); // still async (network I/O)
+            refreshSpottings();
+        } catch (err) {
+            console.error('Sync failed', err);
         }
-    }
+    }, [refreshSpottings]);
 
-    return {
-        birdSpottings,
-        loading,
-        addSpotting,
-        syncSpottings,
-        refreshSpottings,
-    };
+    /* ------------------------------------------------------------------ */
+    /*  public API                                                        */
+    /* ------------------------------------------------------------------ */
+    return { birdSpottings, loading, addSpotting, syncSpottings, refreshSpottings };
 }

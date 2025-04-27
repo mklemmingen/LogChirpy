@@ -16,7 +16,11 @@ export default {
     },
     newArchEnabled: true,
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      infoPlist: {
+        NSPhotoLibraryUsageDescription:      "Allow LogChirpy to show your bird photos",
+        NSPhotoLibraryAddUsageDescription:   "Allow LogChirpy to save captured bird photos"
+      }
     },
     android: {
       adaptiveIcon: {

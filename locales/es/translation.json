@@ -8,10 +8,34 @@
     "settings": "Configuraciones"
   },
   "archive": {
-    "title": "Archivo",
-    "entry_name": "Nombre",
-    "entry_date": "Fecha",
-    "entry_picture": "Imagen"
+    "title":            "Archivo",
+    "entry_name":       "Nombre",
+    "entry_date":       "Fecha",
+    "entry_picture":    "Imagen",
+    "search_placeholder": "Buscar por ave o fecha",
+    "sort_newest":        "Más recientes",
+    "sort_oldest":        "Más antiguas",
+    "sync_now":           "Sincronizar ahora",
+    "loading":            "Cargando registros…",
+    "load_error":         "No se pudieron cargar los registros",
+    "syncing":            "Sincronizando…",
+    "sync_ok":            "Sincronización completa",
+    "sync_failed":        "Sincronización fallida",
+    "not_logged_in":      "Debes iniciar sesión para sincronizar",
+    "empty":              "No se encontraron avistamientos de aves",
+    "unknown_bird":       "Ave desconocida",
+    "no_spottings":       "No se encontraron registros."
+  },
+  "idcard": {
+    "bird":        "Ave",
+    "date":        "Fecha",
+    "notes":       "Notas",
+    "gps":         "GPS",
+    "img_ai":      "IA de imagen",
+    "audio_ai":    "IA de audio",
+    "play_audio":  "Reproducir grabación",
+    "unknown":     "Desconocido",
+    "not_found":   "No se encontró avistamiento."
   },
   "buttons": {
     "video": "Grabar Video",
@@ -37,7 +61,7 @@
     "signup_link": "¿No tienes una cuenta? Regístrate",
     "already_have_account": "¿Ya tienes una cuenta? Inicia sesión",
     "email_sent_title": "¡Correo enviado!",
-    "email_sent_message": "Hemos enviado instrucciones de restablecimiento a {email}. Por favor revisa tu bandeja de entrada y sigue las instrucciones.",
+    "email_sent_message": "Hemos enviado instrucciones de restablecimiento a {{email}}. Por favor revisa tu bandeja de entrada y sigue las instrucciones.",
     "back_to_login": "Volver a iniciar sesión"
   },
   "errors": {
