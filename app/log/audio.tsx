@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, useColorScheme } from 'react-native';
 import { Audio } from 'expo-av';
-import { useRouter } from 'expo-router';
+import {Stack, useRouter} from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { theme } from '@/constants/theme';
