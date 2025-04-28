@@ -1,44 +1,64 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export type Draft = {
+// Definiere die Struktur eines Log-Eintrags
+export interface BirdSpotting {
     imageUri?: string;
     videoUri?: string;
     audioUri?: string;
-    imagePrediction?: string;
-    audioPrediction?: string;
-    birdType?: string;
     textNote?: string;
-    date?: string;   // ISO
     gpsLat?: number;
     gpsLng?: number;
-};
+    date?: string;
+    birdType?: string;
+    audioPrediction?: string;
+    imagePrediction?: string;
+}
 
-type Ctx = {
-    draft: Draft;
-    update: (partial: Partial<Draft>) => void;
+interface LogDraftContextType {
+    draft: BirdSpotting;
+    update: (partialDraft: Partial<BirdSpotting>) => void;
     clear: () => void;
+}
+
+const defaultDraft: BirdSpotting = {
+    imageUri: '',
+    videoUri: '',
+    audioUri: '',
+    textNote: '',
+    gpsLat: 0,
+    gpsLng: 0,
+    date: new Date().toISOString(),
+    birdType: '',
+    audioPrediction: '',
+    imagePrediction: '',
 };
 
-const DraftCtx = createContext<Ctx | null>(null);
+const LogDraftContext = createContext<LogDraftContextType | undefined>(undefined);
 
-export function LogDraftProvider({ children }: { children: React.ReactNode }) {
-    const [draft, setDraft] = useState<Draft>({});
+export function useLogDraft() {
+    const context = useContext(LogDraftContext);
+    if (!context) {
+        throw new Error('useLogDraft must be inside <LogDraftProvider>');
+    }
+    return context;
+}
+
+export function LogDraftProvider({ children }: { children: ReactNode }) {
+    const [draft, setDraft] = useState<BirdSpotting>(defaultDraft);
+
+    const update = (partialDraft: Partial<BirdSpotting>) => {
+        setDraft(prev => ({ ...prev, ...partialDraft }));
+    };
+
+    const clear = () => {
+        setDraft(defaultDraft);
+    };
 
     return (
-        <DraftCtx.Provider
-            value={{
-                draft,
-                update: p => setDraft(d => ({ ...d, ...p })),
-                clear: () => setDraft({}),
-            }}
-        >
+        <LogDraftContext.Provider value={{ draft, update, clear }}>
             {children}
-        </DraftCtx.Provider>
+        </LogDraftContext.Provider>
     );
 }
 
-export const useLogDraft = () => {
-    const ctx = useContext(DraftCtx);
-    if (!ctx) throw new Error('useLogDraft must be inside <LogDraftProvider>');
-    return ctx;
-};
+export default useLogDraft; // Standard-Export hinzugefügt

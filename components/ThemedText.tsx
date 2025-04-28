@@ -1,3 +1,4 @@
+import React from 'react';
 import { Text, TextProps } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 

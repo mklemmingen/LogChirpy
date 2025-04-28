@@ -89,5 +89,26 @@
     "language": "Sprache ändern",
     "enable_gps_logging": "GPS-Standortprotokollierung aktivieren",
     "logging": "Protokollierungseinstellungen"
+  },
+  "camera": {
+    "take_photo": "Foto aufnehmen",
+    "record_video": "Video aufnehmen",
+    "no_permission": "Kamerazugriff verweigert",
+    "permission_required": "Kamerazugriff erforderlich",
+    "permission_message": "Um ein Foto aufzunehmen, benötigen wir Zugriff auf deine Kamera. Bitte erlaube den Zugriff in den Einstellungen.",
+    "permission_error": "Bei der Anfrage der Kameraberechtigung ist ein Fehler aufgetreten.",
+    "take_photo_error": "Beim Aufnehmen des Fotos ist ein Fehler aufgetreten.",
+    "not_ready": "Kamera nicht bereit",
+    "wait_ready": "Bitte warten Sie, bis die Kamera bereit ist.",
+    "requesting_access": "Zugriff wird angefordert...",
+    "checking_access": "Kamerazugriff wird überprüft...",
+    "need_permission": "Wir benötigen Zugriff auf deine Kamera",
+    "allow_access": "Zugriff erlauben",
+    "retake": "Neu aufnehmen"
+  },
+  "common": {
+    "ok": "OK",
+    "error": "Fehler",
+    "confirm": "Bestätigen"
   }
 }

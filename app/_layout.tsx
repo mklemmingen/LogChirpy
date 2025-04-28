@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import {useColorScheme, View, StyleSheet} from 'react-native';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
+import { useTheme } from '@react-navigation/native';
 
 import { theme } from '@/constants/theme';
 
@@ -54,7 +55,17 @@ export default function RootLayout() {
       >
       <View style={styles.container}>
           <View style={styles.content}>
-              <Stack>
+              <Stack
+                  screenOptions={{
+                      headerStyle: {
+                          backgroundColor: currentTheme.colors.background,
+                      },
+                      headerTintColor: currentTheme.colors.text.primary,
+                      headerTitleStyle: {
+                          fontWeight: 'bold',
+                      },
+                  }}
+              >
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="+not-found" />
               </Stack>
