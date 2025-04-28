@@ -87,7 +87,23 @@ export default function Index() {
                     tint={mode === 'dark' ? 'dark' : 'light'}
                     style={[styles.card, { borderColor: pal.colors.border }]}
                 >
-                    <ActionBtn icon="camera" label={t('buttons.photo')} route={"/log/image"} />
+                    <ActionBtn icon="codesandbox" label={t('buttons.objectCamera')} route="/log/objectIdentCamera" />
+                </BlurView>
+            </Animated.View>
+
+            {/* -------- action card -------- */}
+            <Animated.View
+                style={[
+                    styles.cardWrap,
+                    { opacity: fade, transform: [{ translateY: slide }] },
+                ]}
+            >
+                <BlurView
+                    intensity={60}
+                    tint={mode === 'dark' ? 'dark' : 'light'}
+                    style={[styles.card, { borderColor: pal.colors.border }]}
+                >
+                    <ActionBtn icon="camera" label={t('buttons.photo')} route="/log/photo" />
                     <ActionBtn icon="video"  label={t('buttons.video')}  route="/log/video"  />
                     <ActionBtn icon="mic"    label={t('buttons.audio')}  route="/log/audio"  />
                     <ActionBtn icon="edit"   label={t('buttons.manual')} route="/log/manual" />
