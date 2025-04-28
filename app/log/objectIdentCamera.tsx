@@ -1,14 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Button, StyleSheet, Image, Text, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Button, StyleSheet, Image, Text, ActivityIndicator, Dimensions } from 'react-native';
 import { CameraView, useCameraPermissions, Camera } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as tf from '@tensorflow/tfjs';
-import { decodeJpeg } from '@tensorflow/tfjs-react-native';
 import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import * as FileSystem from 'expo-file-system';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { ThemedSnackbar } from '@/components/ThemedSnackbar';
+import * as jpeg from 'jpeg-js';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
@@ -30,22 +31,53 @@ export default function ObjectIdentCamera() {
     const [detections, setDetections] = useState<cocoSsd.DetectedObject[]>([]);
     const [displayDetectionFrames, setDisplayDetectionFrames] = useState(0);
     const [lastImageDimensions, setLastImageDimensions] = useState({ width: windowWidth, height: windowHeight });
+    const [decodeJpegFn, setDecodeJpegFn] = useState<((data: Uint8Array) => tf.Tensor3D) | null>(null);
+    // Neue States für Snackbar (Fehler und Popups)
+    const [snackbarVisible, setSnackbarVisible] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
 
-    // TensorFlow.js initialisieren und COCO-SSD Modell laden
+    // TensorFlow.js initialisieren und COCO-SSD Modell laden + eigene Decoder-Funktion
     useEffect(() => {
         const loadTfModel = async () => {
             try {
                 await tf.ready();
                 await tf.setBackend('cpu');
+
+                // Decoder-Funktion mit jpeg-js implementieren
+                const decodeImage = (jpegData: Uint8Array) => {
+                  const { width, height, data } = jpeg.decode(jpegData, { useTArray: true });
+                  const buffer = new Uint8Array(width * height * 3);
+
+                  let offset = 0;
+                  for (let i = 0; i < data.length; i += 4) {
+                    buffer[offset++] = data[i];
+                    buffer[offset++] = data[i + 1];
+                    buffer[offset++] = data[i + 2];
+                  }
+
+                  return tf.tensor3d(buffer, [height, width, 3]);
+                };
+
+                setDecodeJpegFn(() => decodeImage);
                 console.log('Loading CocoSSD model...');
-                const model = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+
+                const modelJson = require('@/assets/model/model.json');
+
+                // Bei tf.loadGraphModel können wir einen Asset-Pfad verwenden
+                const model = await tf.loadGraphModel(modelJson);
+                // Alternativ für cocoSsd spezifisch:
+                // const model = await cocoSsd.load({
+                //   modelUrl: FileSystem.documentDirectory + 'model/model.json'
+                // });
+
                 modelRef.current = model;
                 setModelLoaded(true);
                 setTfReady(true);
                 console.log('TensorFlow.js and model loaded');
             } catch (error) {
                 console.error('Failed to load TensorFlow.js/model:', error);
-                Alert.alert(t('common.error'), 'Failed to load object detection model');
+                setSnackbarMessage('Failed to load object detection model');
+                setSnackbarVisible(true);
             }
         };
         loadTfModel();
@@ -69,14 +101,20 @@ export default function ObjectIdentCamera() {
     }, [cameraReady, modelLoaded, photo]);
 
     const processFrame = async () => {
-        if (!cameraRef.current || !modelRef.current) return;
+        if (!cameraRef.current || !modelRef.current || !decodeJpegFn) return;
         try {
-            // Bild aufnehmen mit reduzierter Qualität für Performance
             const frame = await cameraRef.current.takePictureAsync({
                 skipProcessing: true,
                 quality: 0.5,
                 exif: false,
             });
+            // Sicherstellen, dass frame definiert ist
+            if (!frame) {
+                console.error('Frame is undefined');
+                setSnackbarMessage('Frame is undefined');
+                setSnackbarVisible(true);
+                return;
+            }
             // Speichern der abgemessenen Bilddimensionen
             setLastImageDimensions({ width: frame.width, height: frame.height });
             // Bildgröße reduzieren
@@ -89,7 +127,7 @@ export default function ObjectIdentCamera() {
             const imgB64 = await FileSystem.readAsStringAsync(resized.uri, { encoding: FileSystem.EncodingType.Base64 });
             const imgBuffer = tf.util.encodeString(imgB64, 'base64').buffer;
             const raw = new Uint8Array(imgBuffer);
-            const imageTensor = decodeJpeg(raw);
+            const imageTensor = decodeJpegFn(raw);
             // Objekterkennung durchführen
             const preds = await modelRef.current.detect(imageTensor);
             setDetections(preds);
@@ -97,6 +135,8 @@ export default function ObjectIdentCamera() {
             tf.dispose(imageTensor);
         } catch (error) {
             console.error('Error during object detection:', error);
+            setSnackbarMessage('Error during object detection');
+            setSnackbarVisible(true);
         }
     };
 
@@ -111,13 +151,8 @@ export default function ObjectIdentCamera() {
             console.log("Camera permission status:", status);
 
             if (status !== 'granted') {
-                Alert.alert(
-                    t('camera.permission_required'),
-                    t('camera.permission_message'),
-                    [
-                        { text: t('common.ok') }
-                    ]
-                );
+                setSnackbarMessage(t('camera.permission_required') || 'Camera permission required');
+                setSnackbarVisible(true);
             }
 
             // Seite neu laden nach Berechtigungsanfrage
@@ -125,7 +160,8 @@ export default function ObjectIdentCamera() {
 
         } catch (error) {
             console.error("Error requesting camera permission:", error);
-            Alert.alert(t('common.error'), t('camera.permission_error'));
+            setSnackbarMessage(t('camera.permission_error') || 'Error requesting camera permission');
+            setSnackbarVisible(true);
         } finally {
             setIsRequestingPermission(false);
         }
@@ -140,10 +176,12 @@ export default function ObjectIdentCamera() {
                 }
             } catch (error) {
                 console.error('Error taking picture:', error);
-                Alert.alert(t('common.error'), t('camera.take_photo_error'));
+                setSnackbarMessage(t('camera.take_photo_error') || 'Error taking photo');
+                setSnackbarVisible(true);
             }
         } else {
-            Alert.alert(t('camera.not_ready'), t('camera.wait_ready'));
+            setSnackbarMessage(t('camera.not_ready') || 'Camera not ready');
+            setSnackbarVisible(true);
         }
     };
 
@@ -244,6 +282,11 @@ export default function ObjectIdentCamera() {
                     <Button title={t('camera.retake')} onPress={() => setPhoto(null)} />
                 </View>
             )}
+            <ThemedSnackbar
+                visible={snackbarVisible}
+                message={snackbarMessage}
+                onHide={() => setSnackbarVisible(false)}
+            />
         </View>
     );
 }

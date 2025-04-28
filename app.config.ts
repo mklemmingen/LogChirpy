@@ -14,6 +14,7 @@ export default {
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
+    assets: ["./assets/model/"],
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
