@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" package="com.dhfgkjhksdfgsd.moco_sose25_logchirpy">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
   <uses-permission android:name="android.permission.CAMERA"/>
@@ -30,8 +30,6 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="myapp"/>
-        <data android:scheme="com.anonymous.moco_sose25_logchirpy"/>
-        <data android:scheme="exp+mocosose25logchirpy"/>
         <data android:scheme="com.dhfgkjhksdfgsd.moco_sose25_logchirpy"/>
       </intent-filter>
     </activity>
