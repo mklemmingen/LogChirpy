@@ -45,3 +45,4 @@ app-example
 
 .cursor
 /.env
+/package-lock.json
