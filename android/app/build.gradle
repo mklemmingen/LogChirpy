@@ -86,12 +86,12 @@ android {
         // match AGP’s Java version
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
-      }
+    }
 
-      kotlinOptions {
+    kotlinOptions {
         // tell Kotlin to emit JVM bytecode for Java 17
         jvmTarget = "17"
-      }
+    }
 
     ndkVersion rootProject.ext.ndkVersion
 
