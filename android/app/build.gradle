@@ -86,9 +86,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.moco_sose25_logchirpy'
+    namespace 'com.dhfgkjhksdfgsd.moco_sose25_logchirpy'
     defaultConfig {
-        applicationId 'com.anonymous.moco_sose25_logchirpy'
+        applicationId 'com.dhfgkjhksdfgsd.moco_sose25_logchirpy'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

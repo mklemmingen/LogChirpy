@@ -26,7 +26,7 @@
     "expo": "~52.0.46",
     "expo-av": "~15.0.2",
     "expo-blur": "~14.0.3",
-    "expo-camera": "^13.9.0",
+    "expo-camera": "~16.0.18",
     "expo-constants": "~17.0.8",
     "expo-dev-client": "~5.0.20",
     "expo-file-system": "~18.0.12",
