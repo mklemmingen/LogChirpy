@@ -15,12 +15,14 @@ export default {
       backgroundColor: "#ffffff"
     },
     assetBundlePatterns: [
-      "**/*"
+      "assets/models/*",
+      "assets/fonts/*",
+      "assets/images/*"
     ],
     android: {
       "package": "com.dhfgkjhksdfgsd.moco_sose25_logchirpy"
     },
-    newArchEnabled: true,
+    newArchEnabled: false,
     ios: {
       bundleIdentifier: "com.dhfgkjhksdfgsd.moco-sose25-logchirpy",
       supportsTablet: true,
