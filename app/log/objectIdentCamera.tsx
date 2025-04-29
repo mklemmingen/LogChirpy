@@ -1,21 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-    View,
-    Text,
-    Button,
-    StyleSheet,
-    ActivityIndicator,
-    Dimensions,
-} from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { View, Text, Button, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import {Camera, CameraPermissionStatus, useCameraDevice} from 'react-native-vision-camera';
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-react-native';
 import { decode as atobDecode } from 'base-64';
 import jpeg from 'jpeg-js';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import { bundleResourceIO } from '@tensorflow/tfjs-react-native';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
+import {NoCameraErrorView} from "@/components/noCameraView";
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -26,26 +20,27 @@ interface Detection {
 }
 
 export default function ObjectIdentCamera() {
-    const cameraRef = useRef<CameraView>(null);
-    const [permission, requestPermission] = useCameraPermissions();
+    const cameraRef = useRef<Camera>(null);
+    const [permission, setPermission] = useState<CameraPermissionStatus>('denied');
     const modelRef = useRef<tf.GraphModel | null>(null);
-    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
     const [modelReady, setModelReady] = useState(false);
     const [detections, setDetections] = useState<Detection[]>([]);
     const [debugText, setDebugText] = useState('Initializing...');
 
+    // State for managing the camera device
+    const [device, setDevice] = useState(null); // Initialize with null
+    const cameraDevice = useCameraDevice('back');
+
     // 1. Model loading and permission request
     useEffect(() => {
         (async () => {
-            if (!permission) {
-                await requestPermission();
-            }
+            const status = await Camera.requestCameraPermission();
+            setPermission(status);
 
-            if (permission?.status !== 'granted') {
-                setDebugText('Camera permission denied.');
+            if (status !== 'granted') {
+                setDebugText('Camera permission denied or still asking for permission.');
                 return;
             }
-            setHasPermission(true);
 
             console.log('TensorFlow initializing...');
             await tf.ready();
@@ -72,30 +67,29 @@ export default function ObjectIdentCamera() {
                 setDebugText('Model failed to load.');
             }
         })();
-    }, [permission]);
+    }, []);
 
-// 2. Silent detection only starts when BOTH are ready
+    // 2. Silent detection only starts when BOTH are ready
     useEffect(() => {
-        if (!modelReady || !hasPermission) return;
+        if (!modelReady || permission !== 'granted') return;
 
         console.log('Starting silent detection loop...');
-        let frame = 0;
         const interval = setInterval(async () => {
-            frame = (frame + 1) % 3;
-            if (frame !== 0) return;
-
             if (!cameraRef.current || !modelRef.current) return;
             try {
-                const snapshot = await cameraRef.current.takePictureAsync({
-                    quality: 0.5,
-                    skipProcessing: true,
+                const snapshot = await cameraRef.current.takePhoto({
+                    flash: 'off',
+                    enableShutterSound: false,
+                    enableAutoDistortionCorrection: true,
+                    enableAutoRedEyeReduction: true,
                 });
 
-                if (!snapshot?.uri) return;
+                if (!snapshot?.path) return;
 
-                const resized = await manipulateAsync(snapshot.uri, [{ resize: { width: 300, height: 300 } }], {
+                // updated API for image manipulation
+                const resized = await ImageManipulator.manipulateAsync(snapshot.path, [{ resize: { width: 300, height: 300 } }], {
                     compress: 0.7,
-                    format: SaveFormat.JPEG,
+                    format: ImageManipulator.SaveFormat.JPEG,
                 });
 
                 const b64 = await FileSystem.readAsStringAsync(resized.uri, { encoding: FileSystem.EncodingType.Base64 });
@@ -120,26 +114,31 @@ export default function ObjectIdentCamera() {
                 console.error('Detection error:', err);
                 setDebugText('Detection failed.');
             }
-        });
+        }, 500);
 
         return () => clearInterval(interval);
-    }, [modelReady, hasPermission]);
+    }, [modelReady, permission, device]);
 
-    if (hasPermission === null) return <ActivityIndicator style={styles.centered} />;
-    if (!hasPermission) {
+    if (permission === 'denied') return <ActivityIndicator style={styles.centered} />;
+    if (permission !== 'granted') {
         return (
             <View style={styles.centered}>
-                <Button title="Grant Camera" onPress={async () => await requestPermission()} />
+                <Button title="Grant Camera" onPress={async () => await Camera.requestCameraPermission()} />
             </View>
         );
     }
 
+    if (device == null || cameraDevice == null) {
+        return <NoCameraErrorView onRetry={() => setDevice(cameraDevice)} />;
+    }
+
     return (
         <View style={styles.container}>
-            <CameraView
+            <Camera
                 style={styles.camera}
                 ref={cameraRef}
-                facing="back"
+                device={device}
+                isActive={true}
             >
                 <Svg style={styles.overlay} width="100%" height="100%">
                     {detections.length > 0 ? detections.map((d, i) => {
@@ -182,7 +181,7 @@ export default function ObjectIdentCamera() {
                 <View style={styles.debugTextContainer}>
                     <Text style={styles.debugText}>{debugText}</Text>
                 </View>
-            </CameraView>
+            </Camera>
         </View>
     );
 }

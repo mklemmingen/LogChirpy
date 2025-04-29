@@ -17,7 +17,6 @@ export default {
     assetBundlePatterns: [
       "**/*"
     ],
-    assets: ["./assets/model/"],
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
@@ -26,20 +25,10 @@ export default {
         NSPhotoLibraryAddUsageDescription:   "Allow LogChirpy to save captured bird photos"
       }
     },
-    android: {
-      adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff"
-      },
-      package: "com.anonymous.moco_sose25_logchirpy"
-    },
-    web: {
-      bundler: "metro",
-      output: "static",
-      favicon: "./assets/images/favicon.png"
-    },
+    platforms: ["android", "ios", "web"],
     plugins: [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-splash-screen",
         {
@@ -47,14 +36,6 @@ export default {
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff"
-        }
-      ],
-      [
-        "react-native-fast-tflite",
-        {
-          // Aktiviere je nach Bedarf
-          "enableCoreMLDelegate": true,
-          "enableAndroidGpuLibraries": true
         }
       ],
       "expo-sqlite",
@@ -69,6 +50,9 @@ export default {
       FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET,
       FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
       FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
+      eas: {
+        projectId: process.env.PROJECT_ID
+      }
     }
   }
 };
