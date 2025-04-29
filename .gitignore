@@ -45,7 +45,6 @@ app-example
 
 .cursor
 /.env
-/package-lock.json
 
 # for expo doctor
 /android/
