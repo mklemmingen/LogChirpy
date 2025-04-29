@@ -23,9 +23,6 @@ import * as Location from 'expo-location';
 import { useLogDraft } from '../context/LogDraftContext';
 import { insertBirdSpotting } from '@/services/database';
 import { theme } from '@/constants/theme';
-import '@tensorflow/tfjs-backend-cpu';
-import * as tf from '@tensorflow/tfjs';
-import * as mobilenet from '@tensorflow-models/mobilenet';
 import { decode } from 'jpeg-js';
 
 // Konstanten für das Layout
@@ -83,11 +80,6 @@ export default function Manual() {
             update({ videoUri: params.videoUri as string });
         }
     }, [params]);
-
-    // TensorFlow initialisieren
-    useEffect(() => {
-        tf.ready().then(() => tf.setBackend('cpu'));
-    }, []);
 
     // Kacheln aktualisieren, wenn sich der Draft ändert
     useEffect(() => {
@@ -278,25 +270,7 @@ export default function Manual() {
         if (!draft.imageUri) return;
 
         try {
-            setBusy(true);
-            const res = await fetch(draft.imageUri);
-            const buffer = await res.arrayBuffer();
-            const imageData = decode(new Uint8Array(buffer));
 
-            const imgTensor = tf.tensor3d(
-                imageData.data,
-                [imageData.height, imageData.width, 4]
-            );
-            const rgbTensor = imgTensor.slice([0, 0, 0], [-1, -1, 3]);
-
-            const model = await mobilenet.load();
-            const predictions = await model.classify(rgbTensor as any);
-
-            if (predictions.length > 0) {
-                update({ imagePrediction: predictions[0].className });
-            }
-
-            tf.dispose([imgTensor, rgbTensor]);
         } catch (error) {
             console.error('Bilderkennung fehlgeschlagen:', error);
         } finally {

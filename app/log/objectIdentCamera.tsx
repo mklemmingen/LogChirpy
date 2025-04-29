@@ -1,135 +1,79 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Button, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
-import {Camera, CameraPermissionStatus, useCameraDevice} from 'react-native-vision-camera';
-import * as tf from '@tensorflow/tfjs';
-import '@tensorflow/tfjs-react-native';
-import { decode as atobDecode } from 'base-64';
-import jpeg from 'jpeg-js';
+import { View, Text, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import { Camera, CameraPermissionStatus, useCameraDevice } from 'react-native-vision-camera';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
-import { bundleResourceIO } from '@tensorflow/tfjs-react-native';
-import * as FileSystem from 'expo-file-system';
-import * as ImageManipulator from 'expo-image-manipulator';
-import {NoCameraErrorView} from "@/components/noCameraView";
+import { NoCameraErrorView } from '@/components/noCameraView';
+
+// ML Kit provider hooks
+import { useObjectDetection } from '@infinitered/react-native-mlkit-object-detection';
+import type { MyModelsConfig } from '../_layout';
 
 const { width: W, height: H } = Dimensions.get('window');
 
 interface Detection {
-    bbox: [number, number, number, number];
-    class: string;
-    score: number;
+    frame: { origin: { x: number; y: number }; size: { x: number; y: number } };
+    labels: Array<{ text: string; confidence: number; index: number }>;
 }
 
 export default function ObjectIdentCamera() {
     const cameraRef = useRef<Camera>(null);
     const [permission, setPermission] = useState<CameraPermissionStatus>('denied');
-    const modelRef = useRef<tf.GraphModel | null>(null);
-    const [modelReady, setModelReady] = useState(false);
     const [detections, setDetections] = useState<Detection[]>([]);
     const [debugText, setDebugText] = useState('Initializing...');
+    const device = useCameraDevice('back');
 
-    // State for managing the camera device
-    const [device, setDevice] = useState(null); // Initialize with null
-    const cameraDevice = useCameraDevice('back');
+    // Grab the default detector from context
+    const detector = useObjectDetection<MyModelsConfig>('mobilenetFloat');
 
-    // 1. Model loading and permission request
+    // Request permission
     useEffect(() => {
         (async () => {
             const status = await Camera.requestCameraPermission();
             setPermission(status);
-
             if (status !== 'granted') {
-                setDebugText('Camera permission denied or still asking for permission.');
-                return;
-            }
-
-            console.log('TensorFlow initializing...');
-            await tf.ready();
-            await tf.setBackend('cpu');
-
-            console.log('Loading model...');
-            try {
-                const modelJson = require('../../assets/model/objectDet/model.json');
-                const modelWeights = [
-                    require('../../assets/model/objectDet/group1-shard1of6.bin'),
-                    require('../../assets/model/objectDet/group1-shard2of6.bin'),
-                    require('../../assets/model/objectDet/group1-shard3of6.bin'),
-                    require('../../assets/model/objectDet/group1-shard4of6.bin'),
-                    require('../../assets/model/objectDet/group1-shard5of6.bin'),
-                    require('../../assets/model/objectDet/group1-shard6of6.bin'),
-                ];
-
-                modelRef.current = await tf.loadGraphModel(bundleResourceIO(modelJson, modelWeights));
-                console.log('Model loaded successfully!');
-                setDebugText('Model loaded.');
-                setModelReady(true);
-            } catch (err) {
-                console.error('Model loading failed', err);
-                setDebugText('Model failed to load.');
+                setDebugText('Camera permission denied.');
+            } else {
+                setDebugText('Permission granted. Ready.');
             }
         })();
     }, []);
 
-    // 2. Silent detection only starts when BOTH are ready
+    // Run detection every half-second
     useEffect(() => {
-        if (!modelReady || permission !== 'granted') return;
-
-        console.log('Starting silent detection loop...');
-        const interval = setInterval(async () => {
-            if (!cameraRef.current || !modelRef.current) return;
+        if (permission !== 'granted' || !detector) return;
+        let active = true;
+        const loop = async () => {
+            if (!active) return;
             try {
-                const snapshot = await cameraRef.current.takePhoto({
-                    flash: 'off',
-                    enableShutterSound: false,
-                    enableAutoDistortionCorrection: true,
-                    enableAutoRedEyeReduction: true,
-                });
-
-                if (!snapshot?.path) return;
-
-                // updated API for image manipulation
-                const resized = await ImageManipulator.manipulateAsync(snapshot.path, [{ resize: { width: 300, height: 300 } }], {
-                    compress: 0.7,
-                    format: ImageManipulator.SaveFormat.JPEG,
-                });
-
-                const b64 = await FileSystem.readAsStringAsync(resized.uri, { encoding: FileSystem.EncodingType.Base64 });
-                const u8 = b64toUint8Array(b64);
-                const decoded = jpeg.decode(u8, { useTArray: true });
-                const imgTensor = tf.tidy(() =>
-                    tf.tensor3d(decoded.data, [decoded.height, decoded.width, 4])
-                        .slice([0, 0, 0], [-1, -1, 3])
-                        .expandDims(0)
-                );
-
-                const outputs = (await modelRef.current.executeAsync(imgTensor)) as tf.Tensor[];
-                const results = await processDetections(outputs);
-
-                console.log('[Detection] results:', results);
-                console.log(`Detections found: ${results.length}`);
-                setDebugText(`Detections: ${results.length}`);
-                setDetections(results);
-
-                imgTensor.dispose();
-            } catch (err) {
-                console.error('Detection error:', err);
+                const photo = await cameraRef.current?.takePhoto({ flash: 'off', enableShutterSound: false });
+                if (photo?.path) {
+                    setDebugText('Detecting...');
+                    const results = await detector.detectObjects(photo.path);
+                    setDetections(results);
+                    setDebugText(`Detections: ${results.length}`);
+                }
+            } catch (e) {
+                console.error('Detection error:', e);
                 setDebugText('Detection failed.');
             }
-        }, 500);
+            setTimeout(loop, 500);
+        };
+        loop();
+        return () => { active = false; };
+    }, [permission, detector]);
 
-        return () => clearInterval(interval);
-    }, [modelReady, permission, device]);
-
-    if (permission === 'denied') return <ActivityIndicator style={styles.centered} />;
+    if (permission === 'denied') {
+        return <ActivityIndicator style={styles.centered} />;
+    }
     if (permission !== 'granted') {
         return (
             <View style={styles.centered}>
-                <Button title="Grant Camera" onPress={async () => await Camera.requestCameraPermission()} />
+                <Text>Please grant camera permission.</Text>
             </View>
         );
     }
-
-    if (device == null || cameraDevice == null) {
-        return <NoCameraErrorView onRetry={() => setDevice(cameraDevice)} />;
+    if (!device) {
+        return <NoCameraErrorView onRetry={() => Camera.requestCameraPermission().then(setPermission)} />;
     }
 
     return (
@@ -141,79 +85,47 @@ export default function ObjectIdentCamera() {
                 isActive={true}
             >
                 <Svg style={styles.overlay} width="100%" height="100%">
-                    {detections.length > 0 ? detections.map((d, i) => {
-                        const [x, y, w, h] = d.bbox;
-                        const scaleX = W / 300;
-                        const scaleY = H / 300;
+                    {detections.map((d, i) => {
+                        const { origin, size } = d.frame;
+                        const scaleX = W / size.x;
+                        const scaleY = H / size.y;
                         return (
                             <React.Fragment key={i}>
                                 <Rect
-                                    x={x * scaleX}
-                                    y={y * scaleY}
-                                    width={w * scaleX}
-                                    height={h * scaleY}
+                                    x={origin.x * scaleX}
+                                    y={origin.y * scaleY}
+                                    width={size.x * scaleX}
+                                    height={size.y * scaleY}
                                     stroke="red"
-                                    strokeWidth="2"
+                                    strokeWidth={2}
                                     fill="transparent"
                                 />
-                                <SvgText
-                                    x={x * scaleX}
-                                    y={Math.max(y * scaleY - 5, 0)}
-                                    fill="red"
-                                    fontSize="14"
-                                >
-                                    {`${d.class} ${Math.round(d.score * 100)}%`}
-                                </SvgText>
+                                {d.labels.map((lab, j) => (
+                                    <SvgText
+                                        key={j}
+                                        x={origin.x * scaleX}
+                                        y={Math.max(origin.y * scaleY - 4, 0)}
+                                        fill="red"
+                                        fontSize="12"
+                                    >
+                                        {`${lab.text} ${Math.round(lab.confidence * 100)}%`}
+                                    </SvgText>
+                                ))}
                             </React.Fragment>
                         );
-                    }) : (
-                        <SvgText
-                            x="50%"
-                            y="50%"
-                            textAnchor="middle"
-                            fill="white"
-                            fontSize="18"
-                        >
-                            No detections yet
+                    })}
+                    {detections.length === 0 && (
+                        <SvgText x="50%" y="50%" textAnchor="middle" fill="white" fontSize="18">
+                            {debugText}
                         </SvgText>
                     )}
                 </Svg>
-                <View style={styles.debugTextContainer}>
-                    <Text style={styles.debugText}>{debugText}</Text>
-                </View>
             </Camera>
+            <View style={styles.debugTextContainer}>
+                <Text style={styles.debugText}>{debugText}</Text>
+            </View>
         </View>
     );
-}
-
-function b64toUint8Array(b64: string): Uint8Array {
-    const bin = atobDecode(b64);
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    return arr;
-}
-
-async function processDetections(outputs: tf.Tensor[]): Promise<Detection[]> {
-    const [boxes, scores, classes, validDetections] = outputs;
-    const boxesData = await boxes.array() as number[][][];
-    const scoresData = await scores.array() as number[][];
-    const classesData = await classes.array() as number[][];
-    const valid = (await validDetections.array() as number[])[0];
-
-    const results: Detection[] = [];
-    for (let i = 0; i < valid; i++) {
-        results.push({
-            bbox: [
-                boxesData[0][i][1] * 300,
-                boxesData[0][i][0] * 300,
-                (boxesData[0][i][3] - boxesData[0][i][1]) * 300,
-                (boxesData[0][i][2] - boxesData[0][i][0]) * 300,
-            ],
-            class: String(classesData[0][i]),
-            score: scoresData[0][i],
-        });
-    }
-    return results;
 }
 
 const styles = StyleSheet.create({
@@ -230,8 +142,5 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: 8,
     },
-    debugText: {
-        color: 'white',
-        fontSize: 16,
-    },
+    debugText: { color: 'white', fontSize: 16 },
 });

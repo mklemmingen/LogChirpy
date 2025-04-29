@@ -2,22 +2,21 @@
 
 buildscript {
     ext {
-        buildToolsVersion = findProperty('android.buildToolsVersion') ?: '35.0.0'
-        minSdkVersion = Integer.parseInt(findProperty('android.minSdkVersion') ?: '24')
-        compileSdkVersion = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '35')
-        targetSdkVersion = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '34')
-        kotlinVersion = findProperty('android.kotlinVersion') ?: '1.9.25'
-
-        ndkVersion = "26.1.10909125"
+        buildToolsVersion     = findProperty('android.buildToolsVersion') ?: '35.0.0'
+        minSdkVersion         = Integer.parseInt(findProperty('android.minSdkVersion') ?: '24')
+        compileSdkVersion     = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '35')
+        targetSdkVersion      = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '34')
+        kotlinVersion         = findProperty('android.kotlinVersion') ?: '1.9.25'
+        ndkVersion            = "26.1.10909125"
     }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath('com.android.tools.build:gradle')
-        classpath('com.facebook.react:react-native-gradle-plugin')
-        classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+        classpath 'com.android.tools.build:gradle'
+        classpath 'com.facebook.react:react-native-gradle-plugin'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
     }
 }
 
@@ -25,17 +24,61 @@ apply plugin: "com.facebook.react.rootproject"
 
 allprojects {
     repositories {
+        // RN Android libs
         maven {
-            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
-            url(new File(['node', '--print', "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim(), '../android'))
+            url new File(
+              ['node', '--print', "require.resolve('react-native/package.json')"]
+                .execute(null, rootDir).text.trim(),
+              '../android'
+            )
         }
+        // JSC
         maven {
-            // Android JSC is installed from npm
-            url(new File(['node', '--print', "require.resolve('jsc-android/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim(), '../dist'))
+            url new File(
+              ['node', '--print',
+               "require.resolve('jsc-android/package.json', { paths: [require.resolve('react-native/package.json')] })"]
+                .execute(null, rootDir).text.trim(),
+              '../dist'
+            )
         }
-
         google()
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
     }
 }
+
+// Disable CMake-based tasks for expo-gl & reanimated, and
+//    relocate reanimated's buildDir to avoid collisions.
+subprojects { project ->
+  if (
+      project.name.contains("expo-gl") ||
+      project.name.contains("react-native-reanimated")
+    ) {
+
+    // reanimated wants its own buildDir
+    if (project.name.contains("react-native-reanimated")) {
+      project.buildDir = file("${rootProject.buildDir}/${project.name}")
+    }
+
+    project.tasks.configureEach { task ->
+      if (task.name.contains("externalNativeBuild")) {
+        task.enabled = false
+      }
+    }
+  }
+}
+
+// Strip out old Android support libs (avoid duplicate‐classes)
+subprojects {
+  configurations.all {
+    exclude group: 'com.android.support', module: 'support-compat'
+    exclude group: 'com.android.support', module: 'support-media-compat'
+    // add more excludes here if you see other support‐compat collisions
+  }
+}
+
+// @generated end expo-camera-import
+// @generated begin expo-camera-import - expo prebuild (DO NOT MODIFY) sync-f244f4f3d8bf7229102e8f992b525b8602c74770
+def expoCameraMavenPath = new File(["node", "--print", "require.resolve('expo-camera/package.json')"].execute(null, rootDir).text.trim(), "../android/maven")
+allprojects { repositories { maven { url(expoCameraMavenPath) } } }
+// @generated end expo-camera-import

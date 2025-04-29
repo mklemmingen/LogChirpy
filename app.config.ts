@@ -22,6 +22,7 @@ export default {
     },
     newArchEnabled: true,
     ios: {
+      bundleIdentifier: "com.dhfgkjhksdfgsd.moco-sose25-logchirpy",
       supportsTablet: true,
       infoPlist: {
         NSPhotoLibraryUsageDescription:      "Allow LogChirpy to show your bird photos",
@@ -31,7 +32,6 @@ export default {
     platforms: ["android", "ios", "web"],
     plugins: [
       "expo-router",
-      "expo-dev-client",
       [
         "expo-splash-screen",
         {
