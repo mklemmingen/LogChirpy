@@ -14,6 +14,9 @@ export default {
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
+    assetBundlePatterns: [
+      "**/*"
+    ],
     assets: ["./assets/model/"],
     newArchEnabled: true,
     ios: {
@@ -44,6 +47,14 @@ export default {
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff"
+        }
+      ],
+      [
+        "react-native-fast-tflite",
+        {
+          // Aktiviere je nach Bedarf
+          "enableCoreMLDelegate": true,
+          "enableAndroidGpuLibraries": true
         }
       ],
       "expo-sqlite",

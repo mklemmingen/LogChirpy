@@ -1,8 +1,13 @@
-// Learn more https://docs.expo.io/guides/customizing-metro
 const { getDefaultConfig } = require('@expo/metro-config');
 
-const defaultConfig = getDefaultConfig(__dirname);
+const config = getDefaultConfig(__dirname);
 
-// defaultConfig.resolver.sourceExts.push('cjs');
+config.resolver.assetExts.push('bin'); // allow .bin files
+config.resolver.assetExts.push('json'); // allow model.json files
 
-module.exports = defaultConfig;
+config.resolver.extraNodeModules = {
+    ...config.resolver.extraNodeModules,
+    'react-native-fs': require.resolve('expo-file-system'),
+};
+
+module.exports = config;
