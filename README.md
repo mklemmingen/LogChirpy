@@ -86,17 +86,13 @@ Even if you use WebStorm, you must install Android Studio because:
 
 In your project:
 
-npm install -g expo-cli
-
-Then:
-
-expo run:android
+npm install -g eas-cli
 
 👉 This will build the Dev Build APK and install it onto the emulator.
 
 OR inside WebStorm Terminal:
 
-npx expo run:android
+npm install -g eas-cli
 
 Expo CLI will:
 
