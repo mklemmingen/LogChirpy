@@ -1,5 +1,64 @@
 DOWNGRADE TO JAVA 17! ADD TO JAVA_HOME (windows) as well as PATH!
 https://adoptium.net/temurin/archive/?version=17
+--------------------------
+
+source of all c++ evil:
+
+https://www.npmjs.com/package/@infinitered/react-native-mlkit-object-detection
+
+--------------------------
+root build.gradle
+
+gradle.projectsEvaluated {
+subprojects { project ->
+if (project.name.contains("expo-gl")) {
+project.tasks.configureEach { task ->
+if (task.name.contains("externalNativeBuild")) {
+task.enabled = false
+}
+}
+}
+}
+}
+
+subprojects { subproject ->
+if (subproject.name.contains('react-native-reanimated')) {
+subproject.buildDir = file("${rootProject.buildDir}/${subproject.name}")
+subproject.tasks.configureEach { task ->
+if (task.name.contains('externalNativeBuild')) {
+task.enabled = false
+}
+}
+}
+}
+
+---------------------------
+
+
+To build apks via Android Studio when opening the android folder:
+
+1. Open:
+
+node_modules/expo-gl/android/build.gradle
+
+2. Immediately after:
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'maven-publish'
+
+add:
+
+android {
+compileSdkVersion 35
+
+    defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 34
+    }
+}
+
+--------------------------
 
 DEV via Android Emulation:
 
@@ -143,3 +202,80 @@ If you’re using Gradle for building, ensure that the local.properties file in 
     Add the following line (again, replace <YourUser> with your username):
 
 sdk.dir=C:\\Users\\<YourUser>\\AppData\\Local\\Android\\Sdk
+
+
+-----------------
+
+Using Windows Linux Subsystem für lokale App Erstellung via eas
+
+🛠️ Step-by-Step: Install WSL2 with Ubuntu on Windows
+✅ 1. Enable WSL2
+
+Open PowerShell as Administrator, then run:
+
+wsl --install -d Ubuntu
+
+This will:
+
+    Enable the Windows Subsystem for Linux
+
+    Install the Ubuntu distro
+
+    Set WSL2 as default
+
+🔄 It will take a few minutes and ask you to reboot.
+✅ 2. Open Ubuntu
+
+After reboot, press:
+
+Win + S → Search for "Ubuntu" → Open
+
+🎉 This launches your new Linux terminal.
+
+You'll be asked to create a username and password for your Linux user. Use anything you like.
+✅ 3. Update and install tools in Ubuntu (inside WSL2)
+
+Run the following:
+
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl git unzip openjdk-17-jdk
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+npm install -g eas-cli expo-cli
+
+✅ This installs:
+
+    Java 17 ✅
+
+    Node.js ✅
+
+    npm ✅
+
+    eas-cli and expo-cli ✅
+
+✅ 4. Clone your project inside WSL
+
+git clone https://github.com/your-username/your-repo.git
+cd your-repo
+
+Or if you're working locally, you can access Windows files inside WSL like:
+
+cd /mnt/c/Users/Lauterbach/WebstormProjects/moco_sose25_logchirpy2
+
+✅ 5. Prebuild and install dependencies
+
+npm install --legacy-peer-deps
+npx expo prebuild
+
+✅ 6. Build the APK locally!
+
+eas build --platform android --profile production --local
+
+The .apk will be output to dist/ once it's done.
+✅ 7. Install APK on Android phone (optional)
+
+Plug in your Android device via USB, then run:
+
+adb install dist/your-app.apk
+
+    💡 If adb isn't installed, you can install it via sudo apt install adb or use it from Windows side.
