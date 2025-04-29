@@ -1,4 +1,4 @@
-package com.anonymous.moco_sose25_logchirpy
+package com.dhfgkjhksdfgsd.moco_sose25_logchirpy
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
