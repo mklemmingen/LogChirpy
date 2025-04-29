@@ -1,18 +1,3 @@
-To-Dos:
-
-    Architecting the services and data flow (e.g. when to sync, when to process offline)
-
-    Creating the local ML pipeline (image/audio processing → prediction)
-
-    Offline-first vs Cloud-first structure
-
-    State management choices (Redux Toolkit? Zustand? React Context?)
-
-    How to modularize Firebase logic cleanly
-
-    Integration planning for sticker-export pipelines
-
-
 DOWNGRADE TO JAVA 17! ADD TO JAVA_HOME (windows) as well as PATH!
 https://adoptium.net/temurin/archive/?version=17
 
@@ -86,35 +71,12 @@ Even if you use WebStorm, you must install Android Studio because:
 
 In your project:
 
-npm install -g eas-cli
+eas build -p android --profile production
 
-👉 This will build the Dev Build APK and install it onto the emulator.
+builds it on the expo servers, authentificated via the shared .env (see teams!)
+download the .apk file from the build page
 
-OR inside WebStorm Terminal:
-
-npm install -g eas-cli
-
-Expo CLI will:
-
-    Detect your Emulator automatically
-
-    Push the dev app into it
-
-🚀 Boom, you have a real device in your WebStorm environment!
-🧠 Important Notes:
-
-    Every time you want to use the Emulator, you must launch the Android Emulator manually.
-
-    expo run:android builds the project only once. Then you can live reload changes.
-
-    Dev Builds allow you to use native modules like react-native-vision-camera, TensorFlow Lite, etc.
-
-📋 Recap:
-Step	Tool
-Install Android Studio	https://developer.android.com/studio
-Install SDK + Emulator	Through Android Studio
-Create a Virtual Device	Pixel 6 with Android 13 for example
-Build Expo Dev Build	expo run:android
+------------
 
 Step 1: Install Android SDK
 

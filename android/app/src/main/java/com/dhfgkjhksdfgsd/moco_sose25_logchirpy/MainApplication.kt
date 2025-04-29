@@ -1,4 +1,4 @@
-package com.anonymous.moco_sose25_logchirpy
+package com.dhfgkjhksdfgsd.moco_sose25_logchirpy
 
 import android.app.Application
 import android.content.res.Configuration
