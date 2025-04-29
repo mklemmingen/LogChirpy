@@ -1,8 +1,158 @@
 DOWNGRADE TO JAVA 17! ADD TO JAVA_HOME (windows) as well as PATH!
 https://adoptium.net/temurin/archive/?version=17
+-------------------------
+
+for quick webstorm terminal to expo:android if adb can find an emulator (just make sure to exchange for your project path):
+
+```powershell
+
+function Start-ExpoAndroid {
+param(
+[string]$ProjectPath = 'C:\Users\Lauterbach\WebstormProjects\moco_sose25_logchirpy'
+)
+
+    # 1) Map deep path to X: (silently skip if already mapped)
+    if (-not (Test-Path X:\)) {
+      subst X: $ProjectPath
+    }
+
+    # 2) Jump into the mapped drive
+    Push-Location X:\
+
+    # 3) Build & run on Android
+    npx expo run:android
+
+    # 4) (Optional) un-map X: when you exit back
+    Pop-Location
+    # uncomment the next line if you always want to unmap afterward
+    # subst X: /D
+}
+
+# now just call:
+Start-ExpoAndroid
+```
+or depending on client specifics, you can also use:
+
+First Tab:
+```powershell
+# 1) Map X: → your project (skip if already mapped)
+if (-not (Test-Path X:\)) {
+  subst X: 'C:\Users\Lauterbach\WebstormProjects\moco_sose25_logchirpy'
+}
+
+# 2) Start Metro from X:\ without even cd’ing
+npx --prefix X:\ expo start --dev-client --tunnel
+
+```
+Second Tab:
+```powershell
+# (open a NEW PowerShell tab/window to keep Metro up)
+
+if (-not (Test-Path X:\)) {
+  subst X: 'C:\Users\Lauterbach\WebstormProjects\moco_sose25_logchirpy'
+}
+
+# 3) In the fresh tab, fire up Android on the same short path
+npx --prefix X:\ expo run:android
+
+# 4) When you’re done, unmap X:
+subst X: /D
+```
+
+press a in the expo terminal to open the app on your phone.
+
 --------------------------
 
-source of all c++ evil:
+step by step guide to use wsl2 for local builds on a windows machine with a debugged android phone attached (it was torture to get this working, so I hope this helps you):
+
+1. Install WSL2 (Ubuntu) on Windows
+
+   Open PowerShell as Administrator and run:
+
+   wsl --install -d Ubuntu
+
+   Reboot when prompted.
+
+   After reboot, launch Ubuntu from the Start menu and set up your UNIX username and password.
+
+2. Install core Linux tools in WSL
+
+# in your new Ubuntu shell:
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y git curl unzip adb android-sdk-platform-tools
+
+3. Clone LogChirpy using your GitLab token
+
+   In GitLab web UI, go to User Settings → Access Tokens, create a token with read_repository scope, and copy it.
+
+   In WSL:
+
+export GITLAB_TOKEN="glpat-xxxxxxxxxxxxxxxxxxxx"    # ← your token
+git clone https://oauth2:${GITLAB_TOKEN}@gitlab.reutlingen-university.de/lauterba/moco_sose25_logchirpy.git
+cd moco_sose25_logchirpy
+
+Stash any local edits (if needed) then checkout your feature branch (quotes needed for “!”):
+
+    git stash
+    git fetch origin
+    git checkout 'LogEntry_2!'
+
+4. Install JS dependencies
+
+npm install --legacy-peer-deps
+
+This resolves the TensorFlow ↔ expo-camera peer conflict.
+5. Prebuild native projects
+
+npx expo prebuild --clean
+
+Regenerates android/ and ios/ with your current config.
+6. Install usbipd-win on Windows & bind your phone
+
+   In Windows, download & run the usbipd-win_x64.msi from https://github.com/dorssel/usbipd-win/releases/latest
+
+   Open PowerShell as Administrator and list USB devices:
+
+usbipd list
+
+Locate your phone’s BUSID (e.g. 2-1) and bind + attach:
+
+usbipd bind --busid 2-1
+usbipd attach --busid 2-1
+
+Verify Windows sees it:
+
+    adb devices
+    # → your phone’s serial listed
+
+7. Switch back to WSL and clear any custom ADB socket
+
+# Ensure Linux's adb runs against the USB-shared device
+unset ADB_SERVER_SOCKET
+adb kill-server && adb start-server
+adb devices
+# → you should now see your phone’s serial here too
+
+8. Run your Expo Android app
+
+npx expo run:android
+
+Expo CLI will detect the WSL-visible device and install the debug APK.
+9. What made this work
+
+   WSL2 provided a Linux environment without Windows path-length limits.
+
+   Token-based clone (oauth2:YOUR_TOKEN) let you access the private GitLab repo.
+
+   npm install --legacy-peer-deps resolved the TensorFlow ↔ Expo-camera peer-dependency conflict.
+
+   expo prebuild --clean regenerated native projects with your custom config (assets, plugins, etc.).
+
+   usbipd-win forwarded your USB-debug phone into WSL, and clearing ADB_SERVER_SOCKET let Linux’s adb talk directly to it.
+
+--------------------------
+
+source of all c++ tensor evil:
 
 https://www.npmjs.com/package/@infinitered/react-native-mlkit-object-detection
 
