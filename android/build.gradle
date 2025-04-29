@@ -1,12 +1,5 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
-// Tell Kotlin to use Java 17 for everything
-kotlin {
-  jvmToolchain {
-    (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of(17))
-  }
-}
-
 buildscript {
     ext {
         buildToolsVersion     = findProperty('android.buildToolsVersion') ?: '35.0.0'
