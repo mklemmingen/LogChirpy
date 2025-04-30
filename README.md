@@ -19,7 +19,10 @@ npm run dev:android
 
 make sure you change the route to your emulator in the dev-android.bat script before!
 
+Part of the script:
+
 :: === Start Android emulator (adjust name if needed) ===
+
 start "Emulator" cmd /c ""%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe" @Pixel_6_Pro"
 
 
