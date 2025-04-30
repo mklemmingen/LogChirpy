@@ -1,3 +1,4 @@
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform, useColorScheme } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +21,7 @@ export default function TabLayout() {
                 tabBarBackground: TabBarBackground,
                 tabBarStyle: Platform.select({
                     ios: {
-                        position: 'absolute',
+                        position: 'relative',
                         height: 80,
                         paddingBottom: 10,
                         backgroundColor: currentTheme.colors.tabBarBackground,

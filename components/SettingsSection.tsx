@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, StyleSheet } from "react-native";
 import { ReactNode } from "react";
 import { theme } from "@/constants/theme";
