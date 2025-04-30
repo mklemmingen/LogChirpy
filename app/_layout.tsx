@@ -39,16 +39,6 @@ export default function RootLayout() {
         SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     });
 
-    useEffect(() => {
-        if (loaded) {
-            SplashScreen.hideAsync();
-        }
-    }, [loaded]);
-
-    if (!loaded) {
-        return null;
-    }
-
     const models = useObjectDetectionModels<MyModelsConfig>({
         assets: MODELS,
         loadDefaultModel: true,
@@ -59,6 +49,16 @@ export default function RootLayout() {
         },
     });
     const { ObjectDetectionProvider } = useObjectDetectionProvider(models);
+
+    useEffect(() => {
+        if (loaded) {
+            SplashScreen.hideAsync();
+        }
+    }, [loaded]);
+
+    if (!loaded) {
+        return null;
+    }
 
     return (
         <ThemeProvider
