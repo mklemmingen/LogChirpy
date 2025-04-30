@@ -38,6 +38,7 @@
     "not_found":   "No spotting found."
   },
   "buttons": {
+    "objectCamera" : "Detection & Classification Camera",
     "video": "Record Video",
     "photo": "Take Photo",
     "audio": "Record Audio",
@@ -89,5 +90,38 @@
     "language": "Change Language",
     "enable_gps_logging": "Enable GPS Location Logging",
     "logging": "Logging Settings"
+  },
+  "audio": {
+    "start": "Start recording",
+    "stop": "Stop & use recording",
+    "saving": "Processing audio…"
+  },
+  "log": {
+    "add_audio": "Add audio",
+    "add_photo": "Add photo",
+    "add_video": "Add video",
+    "save": "Save entry",
+    "empty_alert": "Please add at least one field before saving."
+  },
+  "camera": {
+    "take_photo": "Take photo",
+    "record_video": "Record video",
+    "no_permission": "Camera permission denied",
+    "permission_required": "Camera Access Required",
+    "permission_message": "To take a photo, we need access to your camera. Please allow access in settings.",
+    "permission_error": "An error occurred while requesting camera permissions.",
+    "take_photo_error": "An error occurred while taking the photo.",
+    "not_ready": "Camera not ready",
+    "wait_ready": "Please wait until the camera is ready.",
+    "requesting_access": "Requesting access...",
+    "checking_access": "Checking camera access...",
+    "need_permission": "We need access to your camera",
+    "allow_access": "Allow access",
+    "retake": "Retake"
+  },
+  "common": {
+    "ok": "OK",
+    "error": "Error",
+    "confirm": "Confirm"
   }
 }
