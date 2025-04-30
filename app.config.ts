@@ -20,7 +20,12 @@ export default {
       "assets/images/*"
     ],
     android: {
-      "package": "com.dhfgkjhksdfgsd.moco_sose25_logchirpy"
+      "package": "com.dhfgkjhksdfgsd.moco_sose25_logchirpy",
+      permissions: [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     newArchEnabled: false,
     ios: {
@@ -31,7 +36,7 @@ export default {
         NSPhotoLibraryAddUsageDescription:   "Allow LogChirpy to save captured bird photos"
       }
     },
-    platforms: ["android", "ios", "web"],
+    platforms: ["android", "ios"],
     plugins: [
       "expo-router",
       [
@@ -41,6 +46,13 @@ export default {
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff"
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "$(PRODUCT_NAME) needs access to your camera",
+          "enableMicrophonePermission": false
         }
       ],
       "expo-sqlite",
