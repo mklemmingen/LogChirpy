@@ -27,17 +27,7 @@ export default function Index() {
     const pal      = theme[mode];
 
     /* once-per-app boot */
-    useEffect(initDB, []);
-
-    /* slide-in animation for the button card */
-    const slide = useRef(new Animated.Value(40)).current;
-    const fade  = useRef(new Animated.Value(0)).current;
-    useEffect(() => {
-        Animated.parallel([
-            Animated.timing(slide, { toValue: 0, duration: 400, useNativeDriver: true }),
-            Animated.timing(fade,  { toValue: 1, duration: 400, useNativeDriver: true }),
-        ]).start();
-    }, []);
+    useEffect(() => { initDB(); }, []);
 
     /* one tidy small button component */
     const ActionBtn = ({
@@ -78,8 +68,7 @@ export default function Index() {
             {/* -------- action card -------- */}
             <Animated.View
                 style={[
-                    styles.cardWrap,
-                    { opacity: fade, transform: [{ translateY: slide }] },
+                    styles.cardWrap
                 ]}
             >
                 <BlurView
@@ -94,8 +83,7 @@ export default function Index() {
             {/* -------- action card -------- */}
             <Animated.View
                 style={[
-                    styles.cardWrap,
-                    { opacity: fade, transform: [{ translateY: slide }] },
+                    styles.cardWrap
                 ]}
             >
                 <BlurView

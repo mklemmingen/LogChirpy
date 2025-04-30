@@ -1,10 +1,14 @@
 DOWNGRADE TO JAVA 17! ADD TO JAVA_HOME (windows) as well as PATH!
 https://adoptium.net/temurin/archive/?version=17
 -------------------------
+source for the bird image classifier:
+https://github.com/rprkh/Bird-Classifier
+
+(converted label txt into the .tflite with own python metadata writer, see conversion script folder)
+-------------------------
 
 added a concurrently script to package json to we can: 
 
-subst X: 'C:\Users\Lauterbach\WebstormProjects\moco_sose25_logchirpy'
 npm run dev:android
 
 -------------------------

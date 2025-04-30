@@ -38,7 +38,7 @@
     "not_found":   "No spotting found."
   },
   "buttons": {
-    "objectCamera" : "Object-Detection Camera",
+    "objectCamera" : "Detection & Classification Camera",
     "video": "Record Video",
     "photo": "Take Photo",
     "audio": "Record Audio",

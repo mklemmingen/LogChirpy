@@ -60,7 +60,7 @@ export default function SignupScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: theme[colorScheme].colors.background }]}>
-            <Image style={styles.logo} source={require('@/assets/logo.png')} />
+            <Image style={styles.logo} source={require('@/assets/images/logo.png')} />
             <Text style={[styles.title, { color: theme[colorScheme].colors.text.primary }]}>
                 {t('signup.title')}
             </Text>
