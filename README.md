@@ -17,10 +17,6 @@ added a concurrently script to package json so we can:
 
 npm run dev:android
 
-added a concurrently script to package json so we can:
-
-npm run dev:android
-
 make sure you change the route to your emulator in the dev-android.bat script before!
 
 :: === Start Android emulator (adjust name if needed) ===
