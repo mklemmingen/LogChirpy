@@ -7,7 +7,8 @@ if "%PROJECT_PATH:~-1%"=="\" set "PROJECT_PATH=%PROJECT_PATH:~0,-1%"
 
 :: === Use drive X: to shorten long paths (helps with reanimated build) ===
 subst X: "%PROJECT_PATH%"
-pushd X:\
+:: Move to the substituted drive
+pushd X:\%~n0
 
 :: === Clean old build artifacts ===
 echo Cleaning build artifacts...
@@ -20,7 +21,13 @@ rmdir /s /q .expo >nul 2>&1
 rmdir /s /q node_modules\.cache >nul 2>&1
 
 :: === Start Metro bundler ===
-echo Current working dir: %CD%
+echo Current directory is: %CD%
+if not exist android\ (
+    echo ERROR: You are not in the project root! Aborting.
+    subst X: /d
+    endlocal
+    exit /b 1
+)
 start "Metro Bundler" cmd /c "npx expo start --dev-client"
 
 :: === Start Android emulator (adjust name if needed) ===
@@ -30,7 +37,13 @@ start "Emulator" cmd /c ""%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe" @Pix
 timeout /t 10 >nul
 
 :: === Run Expo Android build ===
-echo Current working dir: %CD%
+echo Current directory is: %CD%
+if not exist android\ (
+    echo ERROR: You are not in the project root! Aborting.
+    subst X: /d
+    endlocal
+    exit /b 1
+)
 
 :: === TEMPORARY FIX ===
 set REANIMATED_DISABLE_CMAKE=true
