@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, {useEffect, useMemo} from 'react';
 import { ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -8,6 +8,13 @@ import { useColorScheme, View, StyleSheet } from 'react-native';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
 import { theme } from '@/constants/theme';
+import {
+    useImageLabeling,
+    useImageLabelingProvider,
+    useImageLabelingModels,
+    ImageLabelingConfig,
+    ClassificationResult
+} from "@infinitered/react-native-mlkit-image-labeling";
 
 import {
     useObjectDetectionModels,
@@ -17,37 +24,63 @@ import {
 
 SplashScreen.preventAutoHideAsync();
 
-const MODELS: ObjectDetectionConfig = {
-    mobilenetFloat: {
-        model: require('../assets/models/mobilenet_float_v1_224.tflite'),
+const MODELS_OBJECT: ObjectDetectionConfig = {
+    ssdmobilenetV1 : {
+        model: require('../assets/models/ssd_mobilenet_v1_metadata.tflite'),
+        options: {
+            shouldEnableMultipleObjects: true,
+            shouldEnableClassification: false,       // turn on labels
+            classificationConfidenceThreshold: 0.3, // only show labels over 30%
+            maxPerObjectLabelCount: 1
+        }
     },
-    mobilenetQuant: {
-        model: require('../assets/models/mobilenet_quant_v1_224.tflite'),
-    },
-    mobilenetV2Quant: {
-        model: require('../assets/models/mobilenet_v2_1.0_224_quant.tflite'),
+    efficientNetlite0int8: {
+        model: require('../assets/models/efficientnet-lite0-int8.tflite'),
+        options: {
+            shouldEnableMultipleObjects: true,
+            shouldEnableClassification: false,       // turn on labels
+            classificationConfidenceThreshold: 0.3, // only show labels over 30%
+            maxPerObjectLabelCount: 1
+        }
     },
 };
-export type MyModelsConfig = typeof MODELS;
+export type MyModelsConfig = typeof MODELS_OBJECT;
+
+const MODELS_CLASS: ImageLabelingConfig = {
+    birdClassifier: {
+        model: require("../assets/models/birds_mobilenetv2/bird_classifier_metadata.tflite"),
+        // labels: require("../assets/models/birds_mobilenetv2/labels.txt"),
+        options: {
+            confidenceThreshold: 0.5, // filter out low-score guesses
+            maxResultCount: 5,
+        },
+    },
+};
+export type ClassModelsConfig = typeof MODELS_CLASS;
+
+const FONTS = {
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+};
 
 export default function RootLayout() {
     const colorScheme = useColorScheme() ?? 'light';
     const currentTheme = theme[colorScheme];
+    const [loaded] = useFonts(FONTS);
 
-    // Load custom fonts
-    const [loaded] = useFonts({
-        SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    });
+    // Image Labeling
+    const models_class = useImageLabelingModels(MODELS_CLASS);
+    const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
 
-    const models = useObjectDetectionModels<MyModelsConfig>({
-        assets: MODELS,
-        loadDefaultModel: true,
+    // Object Detection
+    const models = useObjectDetectionModels<MyModelsConfig>(useMemo(() => ({
+        assets: MODELS_OBJECT,
+        loadDefaultModel: true, // loads “mobilenetFloat”
         defaultModelOptions: {
             shouldEnableMultipleObjects: true,
             shouldEnableClassification: true,
-            detectorMode: 'stream',
+            detectorMode: 'singleImage',
         },
-    });
+    }), []));
     const { ObjectDetectionProvider } = useObjectDetectionProvider(models);
 
     useEffect(() => {
@@ -81,27 +114,29 @@ export default function RootLayout() {
                 },
             }}
         >
-            <ObjectDetectionProvider>
-                <View style={styles.container}>
-                    <View style={styles.content}>
-                        <Stack
-                            screenOptions={{
-                                headerStyle: {
-                                    backgroundColor: currentTheme.colors.background,
-                                },
-                                headerTintColor: currentTheme.colors.text.primary,
-                                headerTitleStyle: {
-                                    fontWeight: 'bold',
-                                },
-                            }}
-                        >
-                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                            <Stack.Screen name="+not-found" />
-                        </Stack>
+            <ImageLabelingModelProvider>
+                <ObjectDetectionProvider>
+                    <View style={styles.container}>
+                        <View style={styles.content}>
+                            <Stack
+                                screenOptions={{
+                                    headerStyle: {
+                                        backgroundColor: currentTheme.colors.background,
+                                    },
+                                    headerTintColor: currentTheme.colors.text.primary,
+                                    headerTitleStyle: {
+                                        fontWeight: 'bold',
+                                    },
+                                }}
+                            >
+                                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                <Stack.Screen name="+not-found" />
+                            </Stack>
+                        </View>
                     </View>
-                </View>
-                <StatusBar style="auto" />
-            </ObjectDetectionProvider>
+                    <StatusBar style="auto" />
+                </ObjectDetectionProvider>
+            </ImageLabelingModelProvider>
         </ThemeProvider>
     );
 }
