@@ -14,25 +14,29 @@ export default {
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
-    newArchEnabled: true,
+    assetBundlePatterns: [
+      "assets/models/*",
+      "assets/fonts/*",
+      "assets/images/*"
+    ],
+    android: {
+      "package": "com.dhfgkjhksdfgsd.moco_sose25_logchirpy",
+      permissions: [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    newArchEnabled: false,
     ios: {
+      bundleIdentifier: "com.dhfgkjhksdfgsd.moco-sose25-logchirpy",
       supportsTablet: true,
       infoPlist: {
         NSPhotoLibraryUsageDescription:      "Allow LogChirpy to show your bird photos",
         NSPhotoLibraryAddUsageDescription:   "Allow LogChirpy to save captured bird photos"
       }
     },
-    android: {
-      adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff"
-      }
-    },
-    web: {
-      bundler: "metro",
-      output: "static",
-      favicon: "./assets/images/favicon.png"
-    },
+    platforms: ["android", "ios"],
     plugins: [
       "expo-router",
       [
@@ -44,18 +48,28 @@ export default {
           backgroundColor: "#ffffff"
         }
       ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "$(PRODUCT_NAME) needs access to your camera",
+          "enableMicrophonePermission": false
+        }
+      ],
       "expo-sqlite",
     ],
     experiments: {
       typedRoutes: true
     },
     extra: {
-      FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
-      FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
-      FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
-      FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET,
-      FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
-      FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
+      eas: {
+        projectId: "582ad999-1bd1-4f12-835b-7eaf4e6dacd5"
+      },
+      FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+      FIREBASE_AUTH_DOMAIN: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+      FIREBASE_STORAGE_BUCKET: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      FIREBASE_MESSAGING_SENDER_ID: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
     }
   }
 };

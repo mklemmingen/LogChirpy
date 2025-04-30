@@ -1,67 +1,144 @@
+import React, {useEffect, useMemo} from 'react';
 import { ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import {useColorScheme, View, StyleSheet} from 'react-native';
+import { useColorScheme, View, StyleSheet } from 'react-native';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
-
 import { theme } from '@/constants/theme';
+import {
+    useImageLabeling,
+    useImageLabelingProvider,
+    useImageLabelingModels,
+    ImageLabelingConfig,
+    ClassificationResult
+} from "@infinitered/react-native-mlkit-image-labeling";
+
+import {
+    useObjectDetectionModels,
+    useObjectDetectionProvider,
+    ObjectDetectionConfig
+} from '@infinitered/react-native-mlkit-object-detection';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const currentTheme = theme[colorScheme];
+const MODELS_OBJECT: ObjectDetectionConfig = {
+    ssdmobilenetV1 : {
+        model: require('../assets/models/ssd_mobilenet_v1_metadata.tflite'),
+        options: {
+            shouldEnableMultipleObjects: true,
+            shouldEnableClassification: false,       // turn on labels
+            classificationConfidenceThreshold: 0.3, // only show labels over 30%
+            maxPerObjectLabelCount: 1
+        }
+    },
+    efficientNetlite0int8: {
+        model: require('../assets/models/efficientnet-lite0-int8.tflite'),
+        options: {
+            shouldEnableMultipleObjects: true,
+            shouldEnableClassification: false,       // turn on labels
+            classificationConfidenceThreshold: 0.3, // only show labels over 30%
+            maxPerObjectLabelCount: 1
+        }
+    },
+};
+export type MyModelsConfig = typeof MODELS_OBJECT;
 
-  const [loaded] = useFonts({
+const MODELS_CLASS: ImageLabelingConfig = {
+    birdClassifier: {
+        model: require("../assets/models/birds_mobilenetv2/bird_classifier_metadata.tflite"),
+        // labels: require("../assets/models/birds_mobilenetv2/labels.txt"),
+        options: {
+            confidenceThreshold: 0.5, // filter out low-score guesses
+            maxResultCount: 5,
+        },
+    },
+};
+export type ClassModelsConfig = typeof MODELS_CLASS;
+
+const FONTS = {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+};
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+export default function RootLayout() {
+    const colorScheme = useColorScheme() ?? 'light';
+    const currentTheme = theme[colorScheme];
+    const [loaded] = useFonts(FONTS);
+
+    // Image Labeling
+    const models_class = useImageLabelingModels(MODELS_CLASS);
+    const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
+
+    // Object Detection
+    const models = useObjectDetectionModels<MyModelsConfig>(useMemo(() => ({
+        assets: MODELS_OBJECT,
+        loadDefaultModel: true, // loads “mobilenetFloat”
+        defaultModelOptions: {
+            shouldEnableMultipleObjects: true,
+            shouldEnableClassification: true,
+            detectorMode: 'singleImage',
+        },
+    }), []));
+    const { ObjectDetectionProvider } = useObjectDetectionProvider(models);
+
+    useEffect(() => {
+        if (loaded) {
+            SplashScreen.hideAsync();
+        }
+    }, [loaded]);
+
+    if (!loaded) {
+        return null;
     }
-  }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
-
-  return (
-      <ThemeProvider
-          value={{
-              dark: colorScheme === 'dark',
-              light: colorScheme === 'light',
-              colors: {
-                  notification: currentTheme.colors.active,
-                  background: currentTheme.colors.background,
-                  card: currentTheme.colors.accent,
-                  text: currentTheme.colors.text.primary,
-                  border: currentTheme.colors.border,
-                  primary: currentTheme.colors.primary,
-              },
+    return (
+        <ThemeProvider
+            value={{
+                dark: colorScheme === 'dark',
+                light: colorScheme === 'light',
+                colors: {
+                    notification: currentTheme.colors.active,
+                    background: currentTheme.colors.background,
+                    card: currentTheme.colors.accent,
+                    text: currentTheme.colors.text.primary,
+                    border: currentTheme.colors.border,
+                    primary: currentTheme.colors.primary,
+                },
                 fonts: {
                     regular: 'SpaceMono',
                     medium: 'SpaceMono',
                     light: 'SpaceMono',
                     thin: 'SpaceMono',
                 },
-          }}
-      >
-      <View style={styles.container}>
-          <View style={styles.content}>
-              <Stack>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="+not-found" />
-              </Stack>
-          </View>
-      </View>
-      <StatusBar style="auto" />
-  </ThemeProvider>
-  );
+            }}
+        >
+            <ImageLabelingModelProvider>
+                <ObjectDetectionProvider>
+                    <View style={styles.container}>
+                        <View style={styles.content}>
+                            <Stack
+                                screenOptions={{
+                                    headerStyle: {
+                                        backgroundColor: currentTheme.colors.background,
+                                    },
+                                    headerTintColor: currentTheme.colors.text.primary,
+                                    headerTitleStyle: {
+                                        fontWeight: 'bold',
+                                    },
+                                }}
+                            >
+                                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                <Stack.Screen name="+not-found" />
+                            </Stack>
+                        </View>
+                    </View>
+                    <StatusBar style="auto" />
+                </ObjectDetectionProvider>
+            </ImageLabelingModelProvider>
+        </ThemeProvider>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -73,7 +150,7 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     birdAnimation: {
-        ...StyleSheet.absoluteFillObject, // Füllt den gesamten Bildschirm
-        zIndex: -1, // Stellt sicher, dass es hinter allen anderen Elementen liegt
+        ...StyleSheet.absoluteFillObject,
+        zIndex: -1,
     },
 });
