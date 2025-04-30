@@ -13,7 +13,7 @@ https://github.com/rprkh/Bird-Classifier
 -------------------------
 
 
-added a concurrently script to package json so we can: 
+added a ( not anymore concurrently cause we aint race conditioning this one java-) script to package json so we can: 
 
 npm run dev:android
 
