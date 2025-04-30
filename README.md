@@ -2,6 +2,12 @@ DOWNGRADE TO JAVA 17! ADD TO JAVA_HOME (windows) as well as PATH!
 https://adoptium.net/temurin/archive/?version=17
 -------------------------
 
+added a concurrently script to package json to we can: 
+
+subst X: 'C:\Users\Lauterbach\WebstormProjects\moco_sose25_logchirpy'
+npm run dev:android
+
+-------------------------
 for quick webstorm terminal to expo:android if adb can find an emulator (just make sure to exchange for your project path):
 
 ```powershell

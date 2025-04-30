@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme } from 'react-native';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { theme } from '@/constants/theme';
-import { useThemeColor } from '@/hooks/useThemeColor';
 import { auth } from '@/firebase/config';
 
 export default function ForgotPasswordScreen() {
-    const { t } = useTranslation(); // <-- useTranslation here
+    const { t } = useTranslation();
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState('');
     const [resetEmailSent, setResetEmailSent] = useState(false);
     const colorScheme = useColorScheme() ?? 'light';
-    const currentTheme = theme[colorScheme];
 
     const handleResetPassword = async () => {
         setEmailError('');
@@ -26,102 +23,50 @@ export default function ForgotPasswordScreen() {
         }
 
         try {
-            await sendPasswordResetEmail(auth, email);
+            await auth().sendPasswordResetEmail(email);
             setResetEmailSent(true);
         } catch (error: any) {
             switch (error.code) {
-                case 'account/invalid-email':
+                case 'auth/invalid-email':
                     setEmailError(t('errors.invalid_email'));
                     break;
-                case 'account/user-not-found':
+                case 'auth/user-not-found':
                     setEmailError(t('errors.user_not_found'));
                     break;
-                case 'account/too-many-requests':
-                    setEmailError(t('errors.too_many_requests'));
-                    break;
                 default:
-                    setEmailError(t('errors.sending_reset_error'));
+                    setEmailError(error.message);
+                    break;
             }
         }
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-            <View style={styles.logoContainer}>
-                <Image
-                    source={require('../../../../assets/images/logo_no_bg.png')}
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
-            </View>
-
-            <View style={styles.formContainer}>
-                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
-                    {t('auth.forgot_password_title')}
+        <View style={[styles.container, { backgroundColor: theme[colorScheme].colors.background }]}>
+            <Image style={styles.logo} source={require('@/assets/logo.png')} />
+            <Text style={[styles.title, { color: theme[colorScheme].colors.text }]}>
+                {t('forgotPassword.title')}
+            </Text>
+            <TextInput
+                placeholder={t('forgotPassword.email_placeholder')}
+                placeholderTextColor={theme[colorScheme].colors.placeholder}
+                style={[styles.input, { color: theme[colorScheme].colors.text.primary }]}
+                value={email}
+                onChangeText={text => setEmail(text)}
+                keyboardType="email-address"
+                autoCapitalize="none"
+            />
+            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+            {resetEmailSent && <Text style={styles.successText}>{t('forgotPassword.reset_email_sent')}</Text>}
+            <TouchableOpacity style={styles.button} onPress={handleResetPassword}>
+                <Text style={[styles.buttonText, { color: theme[colorScheme].colors.buttonText }]}>
+                    {t('forgotPassword.send_button')}
                 </Text>
-
-                {!resetEmailSent ? (
-                    <>
-                        <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>
-                            {t('auth.forgot_password_instructions')}
-                        </Text>
-
-                        <View style={styles.inputContainer}>
-                            <TextInput
-                                style={[
-                                    styles.input,
-                                    {
-                                        backgroundColor: currentTheme.colors.background,
-                                        borderColor: emailError ? currentTheme.colors.error : currentTheme.colors.border,
-                                        color: currentTheme.colors.text.primary
-                                    }
-                                ]}
-                                placeholder={t('auth.email_placeholder')}
-                                placeholderTextColor={currentTheme.colors.text.primary + '80'}
-                                value={email}
-                                onChangeText={(text) => {
-                                    setEmail(text);
-                                    setEmailError('');
-                                }}
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                            />
-                            {emailError ? (
-                                <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
-                                    {emailError}
-                                </Text>
-                            ) : null}
-                        </View>
-
-                        <TouchableOpacity
-                            style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
-                            onPress={handleResetPassword}
-                        >
-                            <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>
-                                {t('auth.send_reset')}
-                            </Text>
-                        </TouchableOpacity>
-                    </>
-                ) : (
-                    <View style={styles.successContainer}>
-                        <Text style={[styles.successText, { color: currentTheme.colors.primary }]}>
-                            {t('auth.email_sent_title')}
-                        </Text>
-                        <Text style={[styles.successText, { color: currentTheme.colors.text.primary }]}>
-                            {t('auth.email_sent_message', { email })}
-                        </Text>
-                    </View>
-                )}
-
-                <TouchableOpacity
-                    style={styles.backLink}
-                    onPress={() => router.back()}
-                >
-                    <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
-                        {t('auth.back_to_login')}
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/login')} style={styles.backLink}>
+                <Text style={[styles.linkText, { color: theme[colorScheme].colors.link }]}>
+                    {t('forgotPassword.back_to_login')}
+                </Text>
+            </TouchableOpacity>
         </View>
     );
 }
