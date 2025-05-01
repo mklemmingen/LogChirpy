@@ -88,7 +88,7 @@ const TileCard = memo(function TileCard({
                     );
                 }}
             >
-                <Text style={[styles.audioLabel, { color: palette.colors.text?.light ?? '#fff' }]}>
+                <Text style={[styles.audioLabel, { color: palette.colors.text ?? '#fff' }]}>
                     {tile.value}
                 </Text>
             </Pressable>

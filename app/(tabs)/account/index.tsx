@@ -35,7 +35,7 @@ export default function AccountScreen() {
             }}
             headerImage={
                 <Image
-                    source={require('@assets/images/avatar_placeholder.png')}
+                    source={require('../../../assets/images/avatar_placeholder.png')}
                     style={styles.headerAvatar}
                 />
             }>
