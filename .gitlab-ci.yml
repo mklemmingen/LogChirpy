@@ -1,3 +1,6 @@
+variables:
+  GIT_DEPTH: 0  # ensures full clone to include all objects
+
 stages:
   - deploy
 
@@ -8,7 +11,6 @@ deploy-logchirpy:
     - git config --global user.email "martin.lauterbach@student.reutlingen-university.de"
     - git config --global user.name "mklemmingen"
     - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
-    - git fetch --all
     - git checkout main || git checkout -b main
     - echo "Current Git Log:"
     - git log -n 3 --oneline
