@@ -1,0 +1,20 @@
+stages:
+  - deploy
+
+deploy-logchirpy:
+  stage: deploy
+  script:
+    - echo "Deploying LogChirpy to GitHub..."
+    - git config --global user.email "martin.lauterbach@student.reutlingen-university.de"
+    - git config --global user.name "mklemmingen"
+    - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
+    - git fetch --unshallow || true
+    - git reset --hard HEAD
+    - git checkout -B main
+    - echo "Current Git Log:"
+    - git log -n 3 --oneline
+    - git push --force origin main
+    - echo "LogChirpy successfully deployed."
+  environment: production
+  only:
+    - main
