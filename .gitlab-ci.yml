@@ -1,4 +1,4 @@
-image: ruby:2.7
+image: ruby:2.7-slim
 
 variables:
   GIT_DEPTH: 0
@@ -8,9 +8,9 @@ stages:
 
 deploy-logchirpy:
   stage: deploy
+  before_script:
+    - apt-get update && apt-get install -y git
   script:
-    - echo "Installing Git..."
-    - apk add --no-cache git
     - echo "Writing deployment script..."
     - >
       cat <<'EOF' > run-deploy.sh
@@ -31,7 +31,7 @@ deploy-logchirpy:
       echo "Keeping commits from: \$KEEP_COMMIT"
 
       if [ -z "\$KEEP_COMMIT" ]; then
-        echo "❌ No commits found from April 12, 2025 onward."
+        echo "No commits found from April 12, 2025 onward."
         exit 1
       fi
 
@@ -56,7 +56,7 @@ deploy-logchirpy:
       ' --tag-name-filter cat -- --branches --tags
 
       git push --force origin main
-      echo "✅ LogChirpy deployed."
+      echo "LogChirpy deployed."
       EOF
     - chmod +x run-deploy.sh
     - ./run-deploy.sh
