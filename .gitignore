@@ -91,3 +91,7 @@ yarn-error.*
 *.tsbuildinfo
 
 # @end expo-cli
+/_model_conversion_scripts/.venv/
+/_model_conversion_scripts/venv/
+/_model_conversion_scripts/objectDet/
+/_model_conversion_scripts/faster-rcnn-inception-resnet-v2-tensorflow2-640x640-v1/variables/

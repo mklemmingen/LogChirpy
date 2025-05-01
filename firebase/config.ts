@@ -1,9 +1,9 @@
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeAuth, getAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import firebase from '@react-native-firebase/app';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
-import storage from '@react-native-firebase/storage';
 import Constants from 'expo-constants';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Firebase config
 const firebaseConfig = {
@@ -15,16 +15,15 @@ const firebaseConfig = {
     appId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase app if not already initialized
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+// Initialize App
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Old way to store in async cache
-//const auth = initializeAuth(app, {
-//    persistence: getReactNativePersistence(AsyncStorage)
-//});
+// Verwende die offizielle Firebase-Lösung für React Native
+const auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+});
 
-console.log('Firebase API Key:', Constants.expoConfig?.extra?.FIREBASE_API_KEY);
+const firestore = getFirestore(app);
+const storage = getStorage(app);
 
-export { auth, firestore, storage };
+export { app, auth, firestore, storage };

@@ -1,31 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, useColorScheme, TouchableOpacity, View, Image } from 'react-native';
+import { signOut } from 'firebase/auth';
 import { router } from 'expo-router';
-
-import {getAuth, onAuthStateChanged, signOut} from 'firebase/auth';
-import { auth } from '@/firebase/config';
-import { theme } from '@/constants/theme';
-
 import { useTranslation } from 'react-i18next';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import {userInfo} from "node:os";
+import { auth } from '@/firebase/config';
+import { theme } from '@/constants/theme';
+import ParallaxScrollView from '../../../components/ParallaxScrollView';
 
 export default function AccountScreen() {
     const { t } = useTranslation(); // <-- Hook into translations
     const colorScheme = useColorScheme() ?? 'light';
     const currentTheme = theme[colorScheme];
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const auth = getAuth();
-    const user = auth.currentUser;
 
     useEffect(() => {
-        // if not logged in, move to login!
-        // if logged in, display this AccountScreen
-        const unsub = onAuthStateChanged(auth, (user) => {
+        const unsub = auth.onAuthStateChanged(user => {
             setIsLoggedIn(!!user);
             /** don’t navigate *while* we’re in the same render frame */
             if (!user) requestAnimationFrame(() =>
@@ -33,7 +25,6 @@ export default function AccountScreen() {
             );
         });
         return unsub;
-
     }, []);
 
     return (
@@ -44,7 +35,7 @@ export default function AccountScreen() {
             }}
             headerImage={
                 <Image
-                    source={require('@/assets/images/avatar_placeholder.png')}
+                    source={require('@assets/images/avatar_placeholder.png')}
                     style={styles.headerAvatar}
                 />
             }>
@@ -58,7 +49,7 @@ export default function AccountScreen() {
                             {t('account.email_label')}
                         </ThemedText>
                         <ThemedText style={{ color: currentTheme.colors.text.secondary }}>
-                            {user?.email}
+                            {auth.currentUser?.email}
                         </ThemedText>
                     </ThemedView>
                 </ThemedView>
