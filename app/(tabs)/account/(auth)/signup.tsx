@@ -1,18 +1,31 @@
-import React, { useState } from 'react';
+import React ,{ useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme } from 'react-native';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { theme } from '@/constants/theme';
+
 import { auth } from '@/firebase/config';
+import { theme } from '@/constants/theme';
 
 export default function SignupScreen() {
-    const { t } = useTranslation();
+    const { t } = useTranslation(); // <-- useTranslation here
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const colorScheme = useColorScheme() ?? 'light';
+    const currentTheme = theme[colorScheme];
+
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                router.replace('/(tabs)');
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     const handleSignup = async () => {
         setEmailError('');
@@ -22,80 +35,135 @@ export default function SignupScreen() {
             setEmailError(t('errors.email_required'));
             return;
         }
+
         if (!password) {
             setPasswordError(t('errors.password_required'));
             return;
         }
+
         if (password.length < 6) {
             setPasswordError(t('errors.weak_password'));
             return;
         }
 
         try {
-            await auth().createUserWithEmailAndPassword(email, password);
-            // Navigate to Account or login on success
+            await createUserWithEmailAndPassword(auth, email, password);
+            /* debounce navigation for the new user */
             setTimeout(() => {
-                router.replace('/login');
+                router.replace('/(tabs)/account');
             }, 0);
         } catch (error: any) {
             switch (error.code) {
-                case 'auth/invalid-email':
+                case 'account/invalid-email':
                     setEmailError(t('errors.invalid_email'));
                     break;
-                case 'auth/email-already-in-use':
+                case 'account/email-already-in-use':
                     setEmailError(t('errors.signup_email_in_use'));
                     break;
-                case 'auth/weak-password':
+                case 'account/weak-password':
                     setPasswordError(t('errors.weak_password'));
                     break;
-                case 'auth/operation-not-allowed':
+                case 'account/operation-not-allowed':
                     setEmailError(t('errors.operation_not_allowed'));
                     break;
-                default:
-                    setPasswordError(error.message);
+                case 'account/network-request-failed':
+                    setEmailError(t('errors.network_error'));
                     break;
+                default:
+                    setEmailError(t('errors.signup_error'));
             }
         }
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: theme[colorScheme].colors.background }]}>
-            <Image style={styles.logo} source={require('@/assets/images/logo.png')} />
-            <Text style={[styles.title, { color: theme[colorScheme].colors.text.primary }]}>
-                {t('signup.title')}
-            </Text>
-            <TextInput
-                placeholder={t('signup.email_placeholder')}
-                placeholderTextColor={theme[colorScheme].colors.placeholder}
-                style={[styles.input, { color: theme[colorScheme].colors.text.primary }]}
-                value={email}
-                onChangeText={text => setEmail(text)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
-            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-            <TextInput
-                placeholder={t('signup.password_placeholder')}
-                placeholderTextColor={theme[colorScheme].colors.placeholder}
-                style={[styles.input, { color: theme[colorScheme].colors.text.primary }]}
-                value={password}
-                onChangeText={text => setPassword(text)}
-                secureTextEntry
-            />
-            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-            <TouchableOpacity style={styles.button} onPress={handleSignup}>
-                <Text style={[styles.buttonText, { color: theme[colorScheme].colors.buttonText }]}>
-                    {t('signup.signup_button')}
+        <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+            <View style={styles.logoContainer}>
+                <Image
+                    source={require('@assets/images/logo_no_bg.png')}
+                    style={styles.logo}
+                    resizeMode="contain"
+                />
+            </View>
+
+            <View style={styles.formContainer}>
+                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
+                    {t('auth.signup_title')}
                 </Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/login')} style={styles.loginLink}>
-                <Text style={[styles.linkText, { color: theme[colorScheme].colors.link }]}>
-                    {t('signup.have_account')}{' '}
-                    <Text style={[styles.linkText, { fontWeight: 'bold', color: theme[colorScheme].colors.link }]}>
-                        {t('signup.login_here')}
+                <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>
+                    {t('auth.signup_subtitle')}
+                </Text>
+
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={[
+                            styles.input,
+                            {
+                                backgroundColor: currentTheme.colors.background,
+                                borderColor: emailError ? currentTheme.colors.error : currentTheme.colors.border,
+                                color: currentTheme.colors.text.primary
+                            }
+                        ]}
+                        placeholder={t('auth.email_placeholder')}
+                        placeholderTextColor={currentTheme.colors.text.primary + '80'}
+                        value={email}
+                        onChangeText={(text) => {
+                            setEmail(text);
+                            setEmailError('');
+                        }}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                    />
+                    {emailError ? (
+                        <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                            {emailError}
+                        </Text>
+                    ) : null}
+                </View>
+
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={[
+                            styles.input,
+                            {
+                                backgroundColor: currentTheme.colors.background,
+                                borderColor: passwordError ? currentTheme.colors.error : currentTheme.colors.border,
+                                color: currentTheme.colors.text.primary
+                            }
+                        ]}
+                        placeholder={t('auth.password_placeholder')}
+                        placeholderTextColor={currentTheme.colors.text.primary + '80'}
+                        value={password}
+                        onChangeText={(text) => {
+                            setPassword(text);
+                            setPasswordError('');
+                        }}
+                        secureTextEntry
+                    />
+                    {passwordError ? (
+                        <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                            {passwordError}
+                        </Text>
+                    ) : null}
+                </View>
+
+                <TouchableOpacity
+                    style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
+                    onPress={handleSignup}
+                >
+                    <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>
+                        {t('auth.signup')}
                     </Text>
-                </Text>
-            </TouchableOpacity>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.loginLink}
+                    onPress={() => router.push('/(tabs)/account/(auth)/login')}
+                >
+                    <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
+                        {t('auth.already_have_account')}
+                    </Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }
