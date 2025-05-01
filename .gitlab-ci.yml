@@ -1,3 +1,5 @@
+image: ruby:2.7
+
 variables:
   GIT_DEPTH: 0
 
@@ -7,8 +9,10 @@ stages:
 deploy-logchirpy:
   stage: deploy
   script:
+    - echo "Installing Git..."
+    - apk add --no-cache git
     - echo "Writing deployment script..."
-    - |
+    - >
       cat <<'EOF' > run-deploy.sh
       #!/bin/sh
       set -e
@@ -19,11 +23,15 @@ deploy-logchirpy:
       git config --global user.email "mklemmingen@users.noreply.github.com"
       git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
 
+      echo "Fetching main branch..."
+      git fetch origin main
+      git checkout main
+
       KEEP_COMMIT=$(git rev-list --reverse --since="2025-04-12T00:00:00" main | head -n 1)
       echo "Keeping commits from: \$KEEP_COMMIT"
 
       if [ -z "\$KEEP_COMMIT" ]; then
-        echo "No commits found from April 12, 2025 onward."
+        echo "❌ No commits found from April 12, 2025 onward."
         exit 1
       fi
 
@@ -48,7 +56,7 @@ deploy-logchirpy:
       ' --tag-name-filter cat -- --branches --tags
 
       git push --force origin main
-      echo "LogChirpy deployed."
+      echo "✅ LogChirpy deployed."
       EOF
     - chmod +x run-deploy.sh
     - ./run-deploy.sh
