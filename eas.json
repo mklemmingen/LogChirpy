@@ -18,13 +18,14 @@
       "distribution": "internal"
     },
     "production": {
+      "developmentClient": false,
       "android": {
         "buildType": "apk"
       },
+      "ios": {
+        "simulator": false
+      },
       "autoIncrement": true,
-      "env": {
-        "EXPO_DEBUG": "1"
-      }
     }
   },
   "submit": {
