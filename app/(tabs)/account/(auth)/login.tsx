@@ -1,21 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme } from 'react-native';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { theme } from '@/constants/theme';
 import { auth } from '@/firebase/config';
-
+import { theme } from '@/constants/theme';
 
 export default function LoginScreen() {
-
-    const { t } = useTranslation();
+    const { t } = useTranslation(); // <-- useTranslation here
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const colorScheme = useColorScheme() ?? 'light';
     const currentTheme = theme[colorScheme];
+
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                router.replace('/(tabs)');
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     const handleLogin = async () => {
         setEmailError('');
@@ -25,85 +34,147 @@ export default function LoginScreen() {
             setEmailError(t('errors.email_required'));
             return;
         }
+
         if (!password) {
             setPasswordError(t('errors.password_required'));
             return;
         }
 
         try {
-            await auth().signInWithEmailAndPassword(email, password);
-            // Navigate to Account tab after successful login
+            await signInWithEmailAndPassword(auth, email, password);
+            // jump to the root of the Account stack
+            /* give React-Native one frame to finish its transition
+            before we unmount this screen */
             setTimeout(() => {
-                router.replace('/(tabs)/account');
+                router.replace('/(tabs)/account');   // land on the Account tab
             }, 0);
         } catch (error: any) {
             switch (error.code) {
-                case 'auth/invalid-email':
+                case 'account/invalid-email':
                     setEmailError(t('errors.invalid_email'));
                     break;
-                case 'auth/user-disabled':
+                case 'account/user-disabled':
                     setEmailError(t('errors.disabled_account'));
                     break;
-                case 'auth/user-not-found':
+                case 'account/user-not-found':
                     setEmailError(t('errors.user_not_found'));
                     break;
-                case 'auth/wrong-password':
+                case 'account/wrong-password':
                     setPasswordError(t('errors.wrong_password'));
                     break;
-                case 'auth/too-many-requests':
+                case 'account/too-many-requests':
                     setPasswordError(t('errors.too_many_requests'));
                     break;
-                case 'auth/invalid-credential':
+                case 'account/invalid-credential':
                     setPasswordError(t('errors.invalid_credential'));
                     break;
-                default:
-                    setPasswordError(error.message);
+                case 'account/network-request-failed':
+                    setPasswordError(t('errors.network_error'));
                     break;
+                default:
+                    setPasswordError(t('errors.sign_in_error'));
             }
         }
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: theme[colorScheme].colors.background }]}>
-            <Image style={styles.logo} source={require('@/assets/images/logo.png')} />
-            <Text style={[styles.title, { color: theme[colorScheme].colors.text.primary }]}>
-                {t('login.title')}
-            </Text>
-            <TextInput
-                placeholder={t('login.email_placeholder')}
-                placeholderTextColor={theme[colorScheme].colors.placeholder}
-                style={[styles.input, { color: theme[colorScheme].colors.text.primary }]}
-                value={email}
-                onChangeText={text => setEmail(text)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
-            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-            <TextInput
-                placeholder={t('login.password_placeholder')}
-                placeholderTextColor={theme[colorScheme].colors.placeholder}
-                style={[styles.input, { color: theme[colorScheme].colors.text.primary }]}
-                value={password}
-                onChangeText={text => setPassword(text)}
-                secureTextEntry
-            />
-            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                <Text style={[styles.buttonText, { color: theme[colorScheme].colors.buttonText }]}>
-                    {t('login.login_button')}
+        <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+            <View style={styles.logoContainer}>
+                <Image
+                    source={require('@assets/images/logo_no_bg.png')}
+                    style={styles.logo}
+                    resizeMode="contain"
+                />
+            </View>
+
+            <View style={styles.formContainer}>
+                <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
+                    {t('auth.login_title')}
                 </Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/forgot-password')} style={styles.forgotPasswordLink}>
-                <Text style={[styles.linkText, { color: theme[colorScheme].colors.link }]}>{t('login.forgot_password')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/signup')} style={styles.signupLink}>
-                <Text style={[styles.linkText, { color: theme[colorScheme].colors.link }]}>
-                    {t('login.no_account')}{' '}
-                    <Text style={[styles.linkText, { fontWeight: 'bold', color: theme[colorScheme].colors.link }]}>
-                        {t('login.signup_here')}
+                <Text style={[styles.subtitle, { color: currentTheme.colors.text.primary }]}>
+                    {t('auth.login_subtitle')}
+                </Text>
+
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={[
+                            styles.input,
+                            {
+                                backgroundColor: currentTheme.colors.background,
+                                borderColor: emailError ? currentTheme.colors.error : currentTheme.colors.border,
+                                color: currentTheme.colors.text.primary
+                            }
+                        ]}
+                        placeholder={t('auth.email_placeholder')}
+                        placeholderTextColor={currentTheme.colors.text.primary + '80'}
+                        value={email}
+                        onChangeText={(text) => {
+                            setEmail(text);
+                            setEmailError('');
+                        }}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                    />
+                    {emailError ? (
+                        <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                            {emailError}
+                        </Text>
+                    ) : null}
+                </View>
+
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={[
+                            styles.input,
+                            {
+                                backgroundColor: currentTheme.colors.background,
+                                borderColor: passwordError ? currentTheme.colors.error : currentTheme.colors.border,
+                                color: currentTheme.colors.text.primary
+                            }
+                        ]}
+                        placeholder={t('auth.password_placeholder')}
+                        placeholderTextColor={currentTheme.colors.text.primary + '80'}
+                        value={password}
+                        onChangeText={(text) => {
+                            setPassword(text);
+                            setPasswordError('');
+                        }}
+                        secureTextEntry
+                    />
+                    {passwordError ? (
+                        <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                            {passwordError}
+                        </Text>
+                    ) : null}
+                </View>
+
+                <TouchableOpacity
+                    style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
+                    onPress={handleLogin}
+                >
+                    <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>
+                        {t('auth.signin')}
                     </Text>
-                </Text>
-            </TouchableOpacity>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.forgotPasswordLink}
+                    onPress={() => router.push('/(tabs)/account/(auth)/forgot-password')}
+                >
+                    <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
+                        {t('auth.forgot_password_link')}
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.signupLink}
+                    onPress={() => router.push('/(tabs)/account/(auth)/signup')}
+                >
+                    <Text style={[styles.linkText, { color: currentTheme.colors.text.primary }]}>
+                        {t('auth.signup_link')}
+                    </Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }
