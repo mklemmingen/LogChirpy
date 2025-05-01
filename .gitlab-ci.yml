@@ -7,44 +7,51 @@ stages:
 deploy-logchirpy:
   stage: deploy
   script:
-    - echo "Starting full repo overwrite to GitHub (only main, from Apr 12, 2025)..."
-    - git config --global user.name "mklemmingen"
-    - git config --global user.email "mklemmingen@users.noreply.github.com"
-    - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
-
-    # Find first commit from Apr 12, 2025 onward
-    - export KEEP_COMMIT=$(git rev-list --reverse --since="2025-04-12T00:00:00" main | head -n 1)
-    - echo "Earliest commit to keep: $KEEP_COMMIT"
-    - test -n "$KEEP_COMMIT" || (echo "No commits found from that date onward." && exit 1)
-
-    # Create new branch from that commit
-    - git checkout --detach $KEEP_COMMIT
-    - git checkout -B main
-
-    # Rebase to make $KEEP_COMMIT the root
-    - git rebase --root --onto $KEEP_COMMIT^
-
-    # Sanitize private email
+    - echo "Writing deployment script..."
     - |
-      git filter-branch --env-filter '
-      OLD_EMAIL="martin.lauterbach@student.reutlingen-university.de"
-      CORRECT_NAME="mklemmingen"
-      CORRECT_EMAIL="mklemmingen@users.noreply.github.com"
+      cat <<'EOF' > run-deploy.sh
+      #!/bin/sh
+      set -e
 
-      if [ "$GIT_COMMITTER_EMAIL" = "$OLD_EMAIL" ]; then
-          export GIT_COMMITTER_NAME="$CORRECT_NAME"
-          export GIT_COMMITTER_EMAIL="$CORRECT_EMAIL"
+      echo "Starting deploy..."
+
+      git config --global user.name "mklemmingen"
+      git config --global user.email "mklemmingen@users.noreply.github.com"
+      git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
+
+      KEEP_COMMIT=$(git rev-list --reverse --since="2025-04-12T00:00:00" main | head -n 1)
+      echo "Keeping commits from: \$KEEP_COMMIT"
+
+      if [ -z "\$KEEP_COMMIT" ]; then
+        echo "No commits found from April 12, 2025 onward."
+        exit 1
       fi
-      if [ "$GIT_AUTHOR_EMAIL" = "$OLD_EMAIL" ]; then
-          export GIT_AUTHOR_NAME="$CORRECT_NAME"
-          export GIT_AUTHOR_EMAIL="$CORRECT_EMAIL"
-      fi
+
+      git checkout --detach "\$KEEP_COMMIT"
+      git checkout -B main
+      git rebase --root --onto "\$KEEP_COMMIT"^
+
+      echo "Sanitizing email..."
+      git filter-branch --env-filter '
+        OLD_EMAIL="martin.lauterbach@student.reutlingen-university.de"
+        CORRECT_NAME="mklemmingen"
+        CORRECT_EMAIL="mklemmingen@users.noreply.github.com"
+
+        if [ "\$GIT_COMMITTER_EMAIL" = "\$OLD_EMAIL" ]; then
+            export GIT_COMMITTER_NAME="\$CORRECT_NAME"
+            export GIT_COMMITTER_EMAIL="\$CORRECT_EMAIL"
+        fi
+        if [ "\$GIT_AUTHOR_EMAIL" = "\$OLD_EMAIL" ]; then
+            export GIT_AUTHOR_NAME="\$CORRECT_NAME"
+            export GIT_AUTHOR_EMAIL="\$CORRECT_EMAIL"
+        fi
       ' --tag-name-filter cat -- --branches --tags
 
-    # Force push new cleaned history to GitHub main branch
-    - git push --force origin main
-
-    - echo "Successfully deployed cleaned LogChirpy to GitHub."
+      git push --force origin main
+      echo "LogChirpy deployed."
+      EOF
+    - chmod +x run-deploy.sh
+    - ./run-deploy.sh
   only:
     - main
   environment: production
