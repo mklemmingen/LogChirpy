@@ -4,6 +4,16 @@ https://adoptium.net/temurin/archive/?version=17
 
 -------------------------
 
+main is force mirrored to 
+
+https://github.com/mklemmingen/LogChirpy
+
+automatically. Dont publish any api-keys. 
+The Pipeline filters private student emails and replaces them. 
+The Pipeline filters to only push commits older than the 12th April´25
+
+-------------------------
+
 source for the bird image classifier:
 https://github.com/rprkh/Bird-Classifier
 
