@@ -24,7 +24,9 @@ export default {
       permissions: [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "WRITE_MEDIA_IMAGES"
       ]
     },
     newArchEnabled: false,

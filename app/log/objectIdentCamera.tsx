@@ -11,6 +11,14 @@ import {useFocusEffect, useIsFocused} from '@react-navigation/native';
 import {useAppState} from '@react-native-community/hooks';
 import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
 
+import { useTranslation } from 'react-i18next';
+
+import Slider from '@react-native-community/slider';
+
+import {ThemedSnackbar} from "@/components/ThemedSnackbar";
+
+import * as MediaLibrary from 'expo-media-library';
+
 const { width: W, height: H } = Dimensions.get('window');
 
 interface Detection {
@@ -41,18 +49,51 @@ function getBoxStyle(confidence: number) {
 }
 
 export default function ObjectIdentCamera() {
+    const { t } = useTranslation();
+
     const cameraRef = useRef<Camera>(null);
     const [detections, setDetections] = useState<Detection[]>([]);
     const [lastPhotoUri, setLastPhotoUri] = useState<string | null>(null);
     const [imageDims, setImageDims] = useState({ width: 0, height: 0 });
     const [photoPath, setPhotoPath] = useState<string | null>(null);
     const device = useCameraDevice('back');
-    const [debugText, setDebugText] = useState('Initialisiere.');
+    const [debugText, setDebugText] = useState(t('camera.initializing'));
     const { hasPermission, requestPermission } = useCameraPermission();
+
+    const [pipelineDelay, setPipelineDelay] = useState(1); // default to 1 second
+    const [showLiveCamera, setShowLiveCamera] = useState(true); // toggle if needed
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const [confidenceThreshold, setConfidenceThreshold] = useState(0.8);
 
     const isFocused = useIsFocused();
     const appState = useAppState();
     const isCameraActive = isFocused && appState === 'active';
+
+    const [snackbarVisible, setSnackbarVisible] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+
+    const showSnackbar = (key: string, options?: Record<string, any>) => {
+        setSnackbarMessage(t(key, options));
+        setSnackbarVisible(true);
+        setTimeout(() => setSnackbarVisible(false), 2500);
+    };
+
+    const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
+
+    // Ask for permissions once
+    useEffect(() => {
+        (async () => {
+            const { status } = await MediaLibrary.getPermissionsAsync();
+            if (status !== 'granted') {
+                const { status: requestStatus } = await MediaLibrary.requestPermissionsAsync();
+                if (requestStatus !== 'granted') {
+                    console.warn('Permission denied for MediaLibrary');
+                    return;
+                }
+            }
+        })();
+    }, []);
 
     // Request camera permission if not granted
     useEffect(() => {
@@ -66,6 +107,7 @@ export default function ObjectIdentCamera() {
         return (
             <View style={styles.centered}>
                 <ActivityIndicator size="large" color="#0000ff" />
+                <Text>{t('camera.loading')}</Text>
             </View>
         );
     }
@@ -103,7 +145,9 @@ export default function ObjectIdentCamera() {
             if (!isActive.current || !cameraRef.current) return;
 
             try {
-                setDebugText('Bildaufnahme...');
+                setIsProcessing(true);
+
+                setDebugText(t('camera.capturing'));
                 const photo = await cameraRef.current.takePhoto({
                     flash: 'off',
                     enableShutterSound: false,
@@ -112,7 +156,7 @@ export default function ObjectIdentCamera() {
                 console.log('Photo taken:', photo);
 
                 if (!photo?.path) {
-                    setDebugText('Fehler: Kein Bildpfad.');
+                    setDebugText(t('errors.no_photo_path'));
                     return;
                 }
 
@@ -147,21 +191,22 @@ export default function ObjectIdentCamera() {
                     const savedPath = destFile.uri;
 
                     setPhotoPath(savedPath);
+
                 } catch (copyError: any) {
                     console.error('Error copying photo to document directory:', copyError);
-                    setDebugText(
-                        `Fehler beim Speichern des Fotos: ${copyError.message}`
-                    );
+                    setDebugText(t('errors.save_photo_failed', { message: copyError.message }));
                     return;
                 }
             } catch (err: any) {
-                console.error('Fehler bei Bildaufnahme:', err);
-                setDebugText(`Fehler bei Bildaufnahme: ${err.message}`);
+                console.error(t('errors.capture_failed', { message: err.message }));
+                setDebugText(t('errors.capture_failed', { message: err.message }));
+            } finally {
+                setIsProcessing(false);
             }
 
             // Continue capture loop if still active
             if (isActive.current) {
-                setTimeout(captureLoop, 1000);
+                setTimeout(captureLoop, pipelineDelay*1000);
             }
         };
 
@@ -249,7 +294,7 @@ export default function ObjectIdentCamera() {
 
                 setLastPhotoUri(imagePath);
                 setImageDims({ width: result.width, height: result.height });
-                setDebugText('Objekterkennung läuft...');
+                setDebugText(t('camera.detection_running'));
 
                 // Run object detection on the image
                 const objects = await detector.detectObjects(imagePath);
@@ -300,6 +345,31 @@ export default function ObjectIdentCamera() {
                             }]
                             : [];
 
+                        // check if the label confidence is above the threshold, and save the image if it is
+                        if (labels[0] && labels[0].confidence >= confidenceThreshold) {
+                            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                            const birdName = labels[0].text.replace(/\s+/g, '_');
+                            const saveName = `bird_${birdName}_${timestamp}.jpg`;
+                            const finalFile = new File(new Directory(Paths.document), saveName);
+                            await MediaLibrary.saveToLibraryAsync(finalFile.uri);
+                            console.log(`Bird image saved: ${finalFile.uri}`);
+
+                            try {
+                                console.log(`Attempting to save image to media library: ${finalFile.uri}`);
+                                await MediaLibrary.saveToLibraryAsync(finalFile.uri);
+                                console.log(`Full classified image saved successfully: ${finalFile.uri}`);
+
+                                showSnackbar('camera.bird_detected', {
+                                    bird: birdName,
+                                    confidence: Math.round(labels[0].confidence * 100),
+                                });
+                            } catch (error) {
+                                console.error('Failed to save image to media library:', error);
+                                const message = error instanceof Error ? error.message : String(error);
+                                setDebugText(t('errors.save_photo_failed', { message }));
+                            }
+                        }
+
                         // attach those labels to a fresh object
                         enriched.push({
                             frame: obj.frame,
@@ -329,12 +399,46 @@ export default function ObjectIdentCamera() {
                 setDetections(enriched);
                 setDebugText(
                     enriched.length > 0
-                        ? `${enriched.length} Objekte erkannt und klassifiziert.`
-                        : 'Keine Objekte erkannt.'
+                        ? t('camera.detection_successful', { count: enriched.length })
+                        : t('camera.detection_none')
                 );
+
+                // Run classification on the full image
+                try {
+                    const fullImageLabels = await classifier.classifyImage(imagePath);
+                    console.log('Full image classification:', fullImageLabels);
+
+                    const top = fullImageLabels[0];
+                    if (top && top.confidence >= confidenceThreshold) {
+                        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                        const birdName = top.text.replace(/\s+/g, '_');
+                        const fileName = `full_${birdName}_${timestamp}.jpg`;
+                        const finalFile = new File(new Directory(Paths.document), fileName);
+
+                        try {
+                            console.log(`Attempting to save image to media library: ${finalFile.uri}`);
+                            await MediaLibrary.saveToLibraryAsync(finalFile.uri);
+                            console.log(`Full classified image saved successfully: ${finalFile.uri}`);
+
+                            showSnackbar('camera.bird_detected', {
+                                bird: birdName,
+                                confidence: Math.round(top.confidence * 100),
+                            });
+                        } catch (error) {
+                            console.error('Failed to save image to media library:', error);
+                            const message = error instanceof Error ? error.message : String(error);
+                            setDebugText(t('errors.save_photo_failed', { message }));
+                        }
+
+                    }
+
+                } catch (e) {
+                    console.warn('Failed to classify full image:', e);
+                }
+
             } catch (err: any) {
-                console.error('Fehler bei Erkennung:', err);
-                setDebugText(`Fehler: ${err.message}`);
+                console.error(t('errors.detection_failed', { message: err.message }));
+                setDebugText(t('errors.detection_failed', { message: err.message }));
             }
         })();
     }, [photoPath]);
@@ -361,16 +465,71 @@ export default function ObjectIdentCamera() {
     const scaleX = imageDims.width ? W / imageDims.width : 1;
     const scaleY = imageDims.height ? H / imageDims.height : 1;
 
+    // Fallback
+
+    if (Platform.OS === 'web') {
+        return (
+            <View style={styles.centered}>
+                <Text>{t('camera.unsupported_platform')}</Text>
+            </View>
+        );
+    }
+
+    // Fallback if camera is not available
+
+    if (!device) {
+        return (
+            <View style={styles.centered}>
+                <ActivityIndicator size="large" color="#0000ff" />
+                <Text>{t('camera.loading')}</Text>
+            </View>
+        );
+    }
+
     return (
         <SafeAreaView style={{ flex: 1 }}>
             <View style={styles.container}>
                 <Camera
-                    style={styles.camera}
+                    style={styles.thumbnail}
                     ref={cameraRef}
                     device={device}
                     isActive={isCameraActive}
                     photo={true}
                 />
+                <View style={styles.sliderBlock}>
+                    <View style={styles.sliderRow}>
+                        <Text style={styles.sliderLabel}>{t('camera.pipeline_delay_label')}</Text>
+                        <Slider
+                            value={pipelineDelay}
+                            onValueChange={(value) => setPipelineDelay(value)}
+                            minimumValue={0.01}
+                            maximumValue={1}
+                            step={0.01}
+                            minimumTrackTintColor="#1EB1FC"
+                            maximumTrackTintColor="#d3d3d3"
+                            thumbTintColor="#1EB1FC"
+                            style={{ width: '100%', height: 40 }}
+                        />
+                        <Text style={styles.sliderValue}>{pipelineDelay.toFixed(2)}s</Text>
+                    </View>
+                    <View style={styles.sliderRow}>
+                        <Text style={styles.sliderLabel}>{t('camera.confidence_threshold_label')}</Text>
+                        <Slider
+                            value={confidenceThreshold}
+                            onValueChange={(value) => setConfidenceThreshold(value)}
+                            minimumValue={0}
+                            maximumValue={1}
+                            step={0.01}
+                            minimumTrackTintColor="#1EB1FC"
+                            maximumTrackTintColor="#d3d3d3"
+                            thumbTintColor="#1EB1FC"
+                            style={{ width: '100%', height: 40 }}
+                        />
+                        <Text style={styles.sliderValue}>{Math.round(confidenceThreshold * 100)}%</Text>
+                    </View>
+                </View>
+
+
                 <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
                     {detections.map((d, i) => {
                         // destructure frame and labels from the detection object
@@ -409,11 +568,16 @@ export default function ObjectIdentCamera() {
                     })}
                 </Svg>
                 {lastPhotoUri && (
-                    <Image source={{ uri: lastPhotoUri }} style={styles.thumbnail} />
+                    <Image source={{ uri: lastPhotoUri }} style={styles.camera} />
                 )}
                 <View style={styles.debugTextContainer}>
                     <Text style={styles.debugText}>{debugText}</Text>
                 </View>
+                <ThemedSnackbar
+                    visible={snackbarVisible}
+                    message={snackbarMessage}
+                    onHide={() => setSnackbarVisible(false)}
+                />
             </View>
         </SafeAreaView>
     );
@@ -421,7 +585,7 @@ export default function ObjectIdentCamera() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    camera: { flex: 1 },
+    camera: { flex: 1, zIndex: -2 },
     thumbnail: {
         position: 'absolute',
         width: 80,
@@ -430,6 +594,13 @@ const styles = StyleSheet.create({
         right: 10,
         borderColor: '#fff',
         borderWidth: 1,
+    },
+    sliderValue: {
+        color: 'white',
+        fontSize: 10,
+        textAlign: 'right',
+        marginTop: -6,
+        marginBottom: 8,
     },
     centered: {
         flex: 1,
@@ -446,4 +617,24 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     debugText: { color: 'white', fontSize: 16 },
+    sliderBlock: {
+        position: 'absolute',
+        bottom: 20,
+        left: 20,
+        right: 20,
+        padding: 10,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        borderRadius: 10,
+        zIndex: 10,
+    },
+    sliderRow: {
+        marginBottom: 10,
+    },
+    sliderLabel: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: '400',
+        marginBottom: 4,
+    },
 });
+
