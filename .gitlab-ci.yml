@@ -8,8 +8,13 @@ deploy-job:
     - git config --global user.email "martin.lauterbach@student.reutlingen-university.de"
     - git config --global user.name "mklemmingen"
     - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
+
+    # Ensure full history
     - git fetch --unshallow || true
-    - git fetch --all --tags
+    - git fetch origin main --tags
+    - git checkout -B main origin/main
+
+    # Filter commits after April 12, 2025
     - |
       KEEP_COMMIT=$(git rev-list --reverse --since="2025-04-12T23:59:59" main | head -n 1)
       echo "✅ Keeping commits starting from: $KEEP_COMMIT"
@@ -19,8 +24,10 @@ deploy-job:
       fi
       git checkout -B main "$KEEP_COMMIT"
       git rebase --root --onto "$KEEP_COMMIT"^
+
     - echo "Final Git Log:"
     - git log --oneline --graph --decorate
+
     - git push --force origin main
     - echo "✅ Application successfully deployed (filtered history)."
   environment: production
