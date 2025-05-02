@@ -1,5 +1,5 @@
 variables:
-  GIT_DEPTH: 0
+  GIT_DEPTH: 0  # Ensure full history is cloned from GitLab
 
 stages:
   - deploy
@@ -7,21 +7,25 @@ stages:
 deploy-logchirpy:
   stage: deploy
   script:
-    - echo "🧨 Nuking GitHub history, keeping only clean commits..."
+    - echo "🧨 Nuking GitHub history, keeping only commits after 2025-04-12..."
     - git config --global user.email "mklemmingen@users.noreply.github.com"
     - git config --global user.name "mklemmingen"
-    - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
-    - git fetch origin main --tags
-    - git checkout -B main origin/main
-    - KEEP_COMMIT=$(git rev-list --reverse --since="2025-04-12T23:59:59" main | head -n 1)
+
+    # Ensure we are on the GitLab clone's main branch
+    - git checkout -B main
+
+    # Find the first commit after 2025-04-12
+    - export KEEP_COMMIT=$(git rev-list --reverse --since="2025-04-12T23:59:59" main | head -n 1)
     - if [ -z "$KEEP_COMMIT" ]; then echo "❌ No commits after 2025-04-12 found. Aborting."; exit 1; fi
-    - git checkout --detach "$KEEP_COMMIT"
-    - git checkout --orphan cleaned-main
-    - git commit -m "Start clean history from $KEEP_COMMIT" --allow-empty
-    - git cherry-pick "$KEEP_COMMIT"..main
-    - git branch -M main
+
+    # Rebase from root to exclude everything before KEEP_COMMIT
+    - git rebase --root --onto "$KEEP_COMMIT"^
+
+    # Set remote to GitHub and force-push
+    - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
     - git push --force origin main
-    - echo "✅ LogChirpy successfully deployed with clean history."
+
+    - echo "✅ GitHub main branch successfully overwritten with filtered history."
   only:
     - main
   environment: production
