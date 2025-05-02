@@ -1,3 +1,26 @@
+<table style="width:100%;">
+
+<tr>
+    <td style="width:50%;">
+      <h3>LogChirpy - ornithological archival app</h3>
+       <p> 🔄 Ongoing Develoment </p>
+      <p>🌐 AGPL-3.0 License</p>
+      <p><strong>Tech:</strong> TensorflowJs, Typescript, Javascript, React Native, Expo, SQL, Firebase, Relational Databasing, Batch Scripts, Android and Ios Building</p>
+      <p><strong>Time:</strong> Q2-Q3 2025</p>
+      <p>App to live-camera-feed identify birds, as well as archive log, identify on picture and sounds, synchronise and display. Uses mobile object detection and classification of image and audio data, completely local. And optionally syncs to firestore with authentication and DSGVO-conformity.</p>
+      <a href="https://github.com/mklemmingen/LogChirpy">
+        <img src="https://img.shields.io/static/v1?label=mklemmingen&message=LogChirpy&color=brown&logo=github" alt="GitHub Repo">
+      </a>
+    </td>
+    <td align="center"  style="width:50%;">
+      <a>
+        <img src="https://github.com/mklemmingen/mklemmingen/blob/2e0097a5f41866463d8746eed09821d5a46f3e6e/LogChirpy%20(2).gif" alt="gif of working LogChirpy Object Detection and Classification" height="150">
+      </a>
+    </td>
+  
+  </tr>
+</table>
+
 # TO-DOS:
 
 - photo könnte eine gemachte kamera nutzen, die bilder macht und im media speicher des handys ablegt. Es sollte beim gps zu den bildern hinzufügen die setting toggle über gps logging beachtet werden. Über einen Custom Button sollte dann auf manual weitergegangen werden können, wo man (bisher noch nicht) mit einem klick auf image.add das bild in den LogContextProvider laden sollte und das bild darstellen.
