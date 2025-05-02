@@ -7,21 +7,15 @@ stages:
 deploy-logchirpy:
   stage: deploy
   script:
-    - echo "🧨 Nuking GitHub history, keeping only commits after 2025-04-12..."
+    - echo "🧨 Rewriting history to remove commit 6dc08e15..."
     - git config --global user.email "mklemmingen@users.noreply.github.com"
     - git config --global user.name "mklemmingen"
-
-    # Ensure working with GitLab clone
     - git checkout -B main
 
-    # Find first commit after cutoff date
-    - export KEEP_COMMIT=$(git rev-list --reverse --since="2025-04-12T23:59:59" main | head -n 1)
-    - if [ -z "$KEEP_COMMIT" ]; then echo "❌ No commits after 2025-04-12 found. Aborting."; exit 1; fi
+    # Remove only the specific commit
+    - git rebase --onto 6dc08e15^ 6dc08e15
 
-    # Rewrite history to remove earlier commits
-    - git rebase --root --onto "$KEEP_COMMIT"^
-
-    # Sanitize emails after filtering
+    # Optionally sanitize emails (if still needed)
     - echo "✉️ Rewriting emails from student to GitHub..."
     - git filter-branch --env-filter '
         OLD_EMAIL="martin.lauterbach@student.reutlingen-university.de"
@@ -37,10 +31,10 @@ deploy-logchirpy:
         fi
       ' --tag-name-filter cat -- --branches --tags
 
-    # Overwrite GitHub main with filtered history
+    # Force-push to GitHub to overwrite
     - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
     - git push --force origin main
-    - echo "✅ GitHub main branch successfully overwritten with clean and sanitized history."
+    - echo "✅ History cleaned and pushed to GitHub."
   only:
     - main
   environment: production
