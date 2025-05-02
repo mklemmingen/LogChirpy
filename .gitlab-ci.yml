@@ -25,6 +25,16 @@ deploy-logchirpy:
             commit.skip()
       '
 
+    - echo "🧹 Removing commit and large file from history..."
+    - >
+      git-filter-repo --force
+      --commit-callback '
+        if commit.original_id == b"6dc08e153ae7aa2670a085104a1dbb95dd64254c":
+            commit.skip()
+      '
+      --path _model_conversion_scripts/faster-rcnn-inception-resnet-v2-tensorflow2-640x640-v1/variables/variables.data-00000-of-00001
+      --invert-paths
+
     - echo "✉️ Rewriting student email to GitHub address..."
     - >
       git-filter-repo --force --email-callback '
