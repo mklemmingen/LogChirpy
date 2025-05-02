@@ -1,33 +1,42 @@
 variables:
-  GIT_DEPTH: 0
+  GIT_DEPTH: 0  # ensures full clone including all history
 
 stages:
   - deploy
 
 deploy-logchirpy:
   stage: deploy
+  image: ruby:2.7
   script:
-    - echo "🧨 Rewriting history with git-filter-repo..."
+    - echo "🧨 Installing git-filter-repo..."
     - apt-get update && apt-get install -y python3 wget
     - wget https://raw.githubusercontent.com/newren/git-filter-repo/main/git-filter-repo -O /usr/local/bin/git-filter-repo
     - chmod +x /usr/local/bin/git-filter-repo
+
+    - echo "🛠️ Git setup..."
     - git config --global user.email "mklemmingen@users.noreply.github.com"
     - git config --global user.name "mklemmingen"
     - git checkout -B main
-    - |
+
+    - echo "🧹 Removing commit 6dc08e15 from history..."
+    - >
       git-filter-repo --force --commit-callback '
         if commit.original_id == b"6dc08e153ae7aa2670a085104a1dbb95dd64254c":
             commit.skip()
-        if commit.author_email == b"martin.lauterbach@student.reutlingen-university.de":
-            commit.author_email = b"mklemmingen@users.noreply.github.com"
-            commit.author_name = b"mklemmingen"
-        if commit.committer_email == b"martin.lauterbach@student.reutlingen-university.de":
-            commit.committer_email = b"mklemmingen@users.noreply.github.com"
-            commit.committer_name = b"mklemmingen"
       '
-    - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
+
+    - echo "✉️ Rewriting student email to GitHub address..."
+    - >
+      git-filter-repo --force --email-callback '
+        if email == b"martin.lauterbach@student.reutlingen-university.de":
+            return b"mklemmingen@users.noreply.github.com"
+        return email
+      '
+
+    - echo "🌐 Pushing cleaned history to GitHub..."
+    - git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
     - git push --force origin main
-    - echo "✅ LogChirpy deployed with commit removed and emails rewritten."
+    - echo "✅ Successfully deployed cleaned GitHub history."
   only:
     - main
   environment: production
