@@ -8,6 +8,7 @@ import { Config } from "@/constants/config"; // <-- import global config
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SettingsSection from "@/components/SettingsSection";
+import Section from "@/components/Section";
 
 export default function SettingsScreen() {
     const { i18n, t } = useTranslation();

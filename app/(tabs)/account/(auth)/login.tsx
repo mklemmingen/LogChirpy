@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { auth } from '@/firebase/config';
 import { theme } from '@/constants/theme';
+import Section from "@/components/Section";
 
 export default function LoginScreen() {
     const { t } = useTranslation(); // <-- useTranslation here
@@ -95,58 +96,60 @@ export default function LoginScreen() {
                     {t('auth.login_subtitle')}
                 </Text>
 
-                <View style={styles.inputContainer}>
-                    <TextInput
-                        style={[
-                            styles.input,
-                            {
-                                backgroundColor: currentTheme.colors.background,
-                                borderColor: emailError ? currentTheme.colors.error : currentTheme.colors.border,
-                                color: currentTheme.colors.text.primary
-                            }
-                        ]}
-                        placeholder={t('auth.email_placeholder')}
-                        placeholderTextColor={currentTheme.colors.text.primary + '80'}
-                        value={email}
-                        onChangeText={(text) => {
-                            setEmail(text);
-                            setEmailError('');
-                        }}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                    />
-                    {emailError ? (
-                        <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
-                            {emailError}
-                        </Text>
-                    ) : null}
-                </View>
+                <Section>
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={[
+                                styles.input,
+                                {
+                                    backgroundColor: currentTheme.colors.background,
+                                    borderColor: emailError ? currentTheme.colors.error : currentTheme.colors.border,
+                                    color: currentTheme.colors.text.primary
+                                }
+                            ]}
+                            placeholder={t('auth.email_placeholder')}
+                            placeholderTextColor={currentTheme.colors.text.primary + '80'}
+                            value={email}
+                            onChangeText={(text) => {
+                                setEmail(text);
+                                setEmailError('');
+                            }}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                        />
+                        {emailError ? (
+                            <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                                {emailError}
+                            </Text>
+                        ) : null}
+                    </View>
 
-                <View style={styles.inputContainer}>
-                    <TextInput
-                        style={[
-                            styles.input,
-                            {
-                                backgroundColor: currentTheme.colors.background,
-                                borderColor: passwordError ? currentTheme.colors.error : currentTheme.colors.border,
-                                color: currentTheme.colors.text.primary
-                            }
-                        ]}
-                        placeholder={t('auth.password_placeholder')}
-                        placeholderTextColor={currentTheme.colors.text.primary + '80'}
-                        value={password}
-                        onChangeText={(text) => {
-                            setPassword(text);
-                            setPasswordError('');
-                        }}
-                        secureTextEntry
-                    />
-                    {passwordError ? (
-                        <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
-                            {passwordError}
-                        </Text>
-                    ) : null}
-                </View>
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={[
+                                styles.input,
+                                {
+                                    backgroundColor: currentTheme.colors.background,
+                                    borderColor: passwordError ? currentTheme.colors.error : currentTheme.colors.border,
+                                    color: currentTheme.colors.text.primary
+                                }
+                            ]}
+                            placeholder={t('auth.password_placeholder')}
+                            placeholderTextColor={currentTheme.colors.text.primary + '80'}
+                            value={password}
+                            onChangeText={(text) => {
+                                setPassword(text);
+                                setPasswordError('');
+                            }}
+                            secureTextEntry
+                        />
+                        {passwordError ? (
+                            <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                                {passwordError}
+                            </Text>
+                        ) : null}
+                    </View>
+                </Section>
 
                 <TouchableOpacity
                     style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}

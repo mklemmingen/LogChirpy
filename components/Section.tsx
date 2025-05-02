@@ -6,14 +6,11 @@ import { useColorScheme } from "react-native";
 import {BlurView} from "expo-blur";
 
 interface SettingsSectionProps {
-    title: string;
+    title?: string;
     children: ReactNode;
 }
 
-const { width } = Dimensions.get('window');
-const CARD_W = width * 0.82;
-
-export default function SettingsSection({ title, children }: SettingsSectionProps) {
+export default function Section({ title, children }: SettingsSectionProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const currentTheme = theme[colorScheme];
 
@@ -26,9 +23,11 @@ export default function SettingsSection({ title, children }: SettingsSectionProp
             tint={mode === 'dark' ? 'dark' : 'light'}
             style={[styles.card, { borderColor: pal.colors.border }]}
         >
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.text.primary }]}>
-                {title}
-            </Text>
+            {title ? (
+                <Text style={[styles.sectionTitle, { color: currentTheme.colors.text.primary }]}>
+                    {title}
+                </Text>
+            ) : null}
             {children}
         </BlurView>
     );
@@ -41,12 +40,11 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.md,
     },
     card: {
-        width: CARD_W,
-        justifyContent: 'space-between',
-        marginBottom: theme.spacing.lg,
-        padding: theme.spacing.lg,
+        marginBottom: 18,
+        paddingHorizontal: 18,
+        paddingTop: 18,
+        paddingBottom: 4,
         borderRadius: theme.borderRadius.lg,
         borderWidth: 1,
-        gap: theme.spacing.md,
     },
 });
