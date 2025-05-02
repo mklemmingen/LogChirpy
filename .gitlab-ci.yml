@@ -1,5 +1,5 @@
 variables:
-  GIT_DEPTH: 0  # ensure full history
+  GIT_DEPTH: 0
 
 stages:
   - deploy
@@ -8,30 +8,19 @@ deploy-logchirpy:
   stage: deploy
   script:
     - echo "🧨 Nuking GitHub history, keeping only clean commits..."
-
     - git config --global user.email "mklemmingen@users.noreply.github.com"
     - git config --global user.name "mklemmingen"
     - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
-
-    # Fetch full history just in case
     - git fetch origin main --tags
     - git checkout -B main origin/main
-
-    # Find first commit after April 12
-    - export KEEP_COMMIT=$(git rev-list --reverse --since="2025-04-12T23:59:59" main | head -n 1)
-    - echo "✅ Keeping commits starting from: $KEEP_COMMIT"
+    - KEEP_COMMIT=$(git rev-list --reverse --since="2025-04-12T23:59:59" main | head -n 1)
     - if [ -z "$KEEP_COMMIT" ]; then echo "❌ No commits after 2025-04-12 found. Aborting."; exit 1; fi
-
-    # Create new orphan branch and replay the desired history
     - git checkout --detach "$KEEP_COMMIT"
     - git checkout --orphan cleaned-main
     - git commit -m "Start clean history from $KEEP_COMMIT" --allow-empty
     - git cherry-pick "$KEEP_COMMIT"..main
-
-    # Replace history
     - git branch -M main
     - git push --force origin main
-
     - echo "✅ LogChirpy successfully deployed with clean history."
   only:
     - main
