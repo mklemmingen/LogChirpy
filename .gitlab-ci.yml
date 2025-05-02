@@ -37,9 +37,11 @@ deploy-logchirpy:
         exit 1
       fi
 
-      git checkout --detach "\$KEEP_COMMIT"
+      echo "Keeping commits from: $KEEP_COMMIT"
+      git checkout --detach "$KEEP_COMMIT"
       git checkout -B main
-      git rebase --root --onto "\$KEEP_COMMIT"^
+      git rebase --root --onto "$KEEP_COMMIT"^
+
 
       echo "Sanitizing email..."
       git filter-branch --env-filter '
