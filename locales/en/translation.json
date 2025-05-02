@@ -44,7 +44,10 @@
     "audio": "Record Audio",
     "manual": "Manual Log",
     "signout": "Sign Out",
-    "back_to_account": "Back to Account"
+    "back_to_account": "Back to Account",
+    "cancel": "Cancel",
+    "save": "Save",
+    "confirm": "Confirm"
   },
   "auth": {
     "login_title": "Welcome Back",
@@ -80,7 +83,15 @@
     "weak_password": "Password is too weak. Please use a stronger password",
     "operation_not_allowed": "Email/password accounts are not enabled",
     "signup_error": "An error occurred during sign up",
-    "sending_reset_error": "Error sending password reset email"
+    "sending_reset_error": "Error sending password reset email",
+    "location_permission_title": "Location Permission Needed",
+    "location_permission_message": "Please enable location access in settings to continue.",
+    "save_failed_title": "Save Failed",
+    "save_failed_message": "Could not save your entry. Please try again.",
+    "no_photo_path": "Error: No photo path.",
+    "save_photo_failed": "Failed to save photo: {{message}}",
+    "capture_failed": "Photo capture failed: {{message}}",
+    "detection_failed": "Detection error: {{message}}"
   },
   "account": {
     "title": "Account Details",
@@ -100,8 +111,22 @@
     "add_audio": "Add audio",
     "add_photo": "Add photo",
     "add_video": "Add video",
+    "add_image": "Add image",
     "save": "Save entry",
-    "empty_alert": "Please add at least one field before saving."
+    "empty_alert": "Please add at least one field before saving.",
+    "image": "Image",
+    "video": "Video",
+    "audio": "Audio",
+    "bird_type": "Bird Type",
+    "notes": "Notes",
+    "date": "Date",
+    "location": "Location",
+    "no_location": "No location available",
+    "image_prediction": "Image Prediction",
+    "audio_prediction": "Audio Prediction",
+    "select_date": "Select Date",
+    "stop_audio": "Stop Audio",
+    "play_audio": "Play Audio"
   },
   "camera": {
     "take_photo": "Take photo",
@@ -117,7 +142,19 @@
     "checking_access": "Checking camera access...",
     "need_permission": "We need access to your camera",
     "allow_access": "Allow access",
-    "retake": "Retake"
+    "retake": "Retake",
+    "initializing": "Initializing...",
+    "capturing": "Capturing photo...",
+    "detection_running": "Running object detection...",
+    "detection_successful": "{{count}} objects detected and classified.",
+    "detection_none": "No objects detected.",
+    "loading": "Loading camera...",
+    "unsupported_platform": "Web platform is not supported.",
+    "pipeline_delay_description": "Adjust how often the pipeline processes a new image (0.01–1s)",
+    "confidence_threshold_description": "Images are saved if the label exceeds this confidence level.",
+    "pipeline_delay_label": "Pipeline Delay (s)",
+    "confidence_threshold_label": "Confidence Threshold (%) to automatically save",
+    "bird_detected": "{{bird}} image saved with {{confidence}}% confidence"
   },
   "common": {
     "ok": "OK",
