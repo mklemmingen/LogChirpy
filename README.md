@@ -1,3 +1,79 @@
+# TO-DOS:
+
+- photo könnte eine gemachte kamera nutzen, die bilder macht und im media speicher des handys ablegt. Es sollte beim gps zu den bildern hinzufügen die setting toggle über gps logging beachtet werden. Über einen Custom Button sollte dann auf manual weitergegangen werden können, wo man (bisher noch nicht) mit einem klick auf image.add das bild in den LogContextProvider laden sollte und das bild darstellen.
+
+- Video sollte genauso eine bestehende best practice lösung nutzen, die alles was die geräte kamera kann halt nutzen soll. Gleiches Prinzip wie bei photo, mit custom button, und dann in manual das auswählen und anzeigen
+
+- audio genau das gleiche, wobei die audio sequenz dargestellt werden sollte, weniger komplex wie bei BirdNet, aber aussagekräftig, mit möglichkeit des schneidens, des speicherns, und der übergabe an manuel
+
+Files funktionieren! die package und die best practice methoden mit error-catching ist in CameraObjectDetection.tsx in log
+
+# Done Tasks:
+
+## ML
+
+- Project Concept
+- custom dev client setup
+- batch script for android emulation
+- metro config
+- app.config.ts config for dev client
+- expo config
+
+
+- README setup guide
+- CI/CD pipeline to Github
+- EAS build setup and custom eas.json
+
+
+- BirdAnimation for the background root index with custom spritesheet slicing and on-click bird sounds
+
+
+- Theme with Hooks
+- Slider, ThemedSnackbar, Section, NoCameraView, SettingsSection - Component and Custom IconSymbols that fit and have birds
+- Dark Mode / Light Mode and Frontend-Structure Implementation with Components
+
+- Tabs Structure
+
+
+- Archive Database Structure Async on Device, with startup sql database creation and init
+- archive with visualization, sorting, searching
+
+
+- Localization
+- Settings
+- logging structure with context provider
+- logging manual with:
+- - Video Component (rudimentary concept structure)
+- - Image Component (rudimentary concept structure)
+- - Audio Component (rudimentary concept structure)
+- - Direct Manual (frontend and backend structure without storage access on button click)
+
+
+- ML Model Training (Object Detection)
+- ML Model Integration (Object Detection and Classification (see source)) by wrapping the root layout with all models at startup
+- Model Conversion from weights to .tflite as well as integration of labels into existing models in .tflite format (see _model_conversion for the python script and other received or trained models)
+- Custom Camera Component with MLKit Object Detection and Image Classification | both full image and detected objects get classified with bird classifier
+- - custom image and live view
+- - custom rectangles with labels and confidence values
+- - custom photo to data/0 storage to model pipeline
+- - custom photo if over settable confidence value to media storage (confidence slider)
+- - custom settable delay between photo to pipeline for making sure device not overwhelmed by models (confidence slider)
+
+## LW
+- Project Setup
+- Firebase and Firestore Setup 
+- Firebase Authentication with Signup, Login, Logout, Account-View, Forgot Password
+- Making Synchronization of Firebase and Local Archive possible
+
+## YS
+- Wireframe creation for visualising for all developers
+
+## AF
+- x
+
+
+-------------------------
+
 DOWNGRADE TO JAVA 17! ADD TO JAVA_HOME (windows) as well as PATH!
 
 https://adoptium.net/temurin/archive/?version=17
