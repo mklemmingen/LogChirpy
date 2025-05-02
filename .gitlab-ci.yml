@@ -12,16 +12,18 @@ deploy-logchirpy:
     - apt-get update && apt-get install -y git
   script:
     - echo "Writing deployment script..."
-    - >
+    - |
       cat <<'EOF' > run-deploy.sh
-      #!/bin/sh
+      #!/bin/bash
       set -e
 
       echo "Starting deploy..."
 
       git config --global user.name "mklemmingen"
       git config --global user.email "mklemmingen@users.noreply.github.com"
-      git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
+
+      git remote remove origin || true
+      git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
 
       echo "Fetching main branch..."
       git fetch origin main
@@ -55,7 +57,14 @@ deploy-logchirpy:
         fi
       ' --tag-name-filter cat -- --branches --tags
 
-      git push --force origin main
+      echo "Pushing to GitHub..."
+      if git push --force origin main; then
+        echo "✅ Push successful"
+      else
+        echo "❌ Push failed"
+        exit 1
+      fi
+
       echo "LogChirpy deployed."
       EOF
     - chmod +x run-deploy.sh
