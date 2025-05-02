@@ -15,7 +15,7 @@ deploy-logchirpy:
     - git config --global user.name "mklemmingen"
     - git checkout -B main
     - |
-      git-filter-repo --commit-callback '
+      git-filter-repo --force --commit-callback '
         if commit.original_id == b"6dc08e153ae7aa2670a085104a1dbb95dd64254c":
             commit.skip()
         if commit.author_email == b"martin.lauterbach@student.reutlingen-university.de":
