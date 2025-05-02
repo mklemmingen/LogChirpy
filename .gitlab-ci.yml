@@ -1,5 +1,5 @@
 variables:
-  GIT_DEPTH: 0  # ensure full clone from GitLab
+  GIT_DEPTH: 0
 
 stages:
   - deploy
@@ -7,15 +7,21 @@ stages:
 deploy-logchirpy:
   stage: deploy
   script:
-    - echo "🧨 Rewriting history to remove commit 6dc08e15..."
+    - echo "🧨 Rewriting Git history to remove commit 6dc08e15..."
     - git config --global user.email "mklemmingen@users.noreply.github.com"
     - git config --global user.name "mklemmingen"
     - git checkout -B main
 
     # Remove only the specific commit
-    - git rebase --onto 6dc08e15^ 6dc08e15
+    - git filter-branch --commit-filter '
+        if [ "$GIT_COMMIT" = "6dc08e153ae7aa2670a085104a1dbb95dd64254c" ]; then
+          skip_commit "$@";
+        else
+          git commit-tree "$@";
+        fi
+      ' -- --all
 
-    # Optionally sanitize emails (if still needed)
+    # Optionally: fix emails afterward
     - echo "✉️ Rewriting emails from student to GitHub..."
     - git filter-branch --env-filter '
         OLD_EMAIL="martin.lauterbach@student.reutlingen-university.de"
@@ -31,10 +37,10 @@ deploy-logchirpy:
         fi
       ' --tag-name-filter cat -- --branches --tags
 
-    # Force-push to GitHub to overwrite
+    # Force push clean state to GitHub
     - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
     - git push --force origin main
-    - echo "✅ History cleaned and pushed to GitHub."
+    - echo "✅ GitHub history cleaned and deployed."
   only:
     - main
   environment: production
