@@ -26,6 +26,7 @@ import { auth } from '@/firebase/config';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedSnackbar } from '@/components/ThemedSnackbar';
+import {BlurView} from "expo-blur";
 
 type Spotting = {
     id: number;
@@ -39,6 +40,7 @@ export default function ArchiveScreen() {
     const { t }   = useTranslation();
     const scheme  = useColorScheme() ?? 'light';
     const pal     = theme[scheme];
+    const mode     = useColorScheme() ?? 'light';
 
     const [rows, setRows]         = useState<Spotting[]>([]);
     const [query, setQuery]       = useState('');
@@ -120,32 +122,34 @@ export default function ArchiveScreen() {
 
     /* row renderer */
     const renderRow = useCallback(({ item }: { item: Spotting }) => (
-        <TouchableOpacity
-            activeOpacity={0.8}
-            style={[
-                styles.card,
-                { backgroundColor: pal.colors.card, shadowColor: pal.colors.shadow },
-            ]}
-            onPress={() =>
-                router.push({ pathname: '/archive/detail/[id]', params: { id: item.id } })
-            }
+        <BlurView
+            intensity={60}
+            tint={mode === 'dark' ? 'dark' : 'light'}
+            style={[styles.card, { borderColor: pal.colors.border }]}
         >
-            {!!item.image_uri && <Image source={{ uri: item.image_uri }} style={styles.thumb} />}
+            <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() =>
+                    router.push({ pathname: '/archive/detail/[id]', params: { id: item.id } })
+                }
+            >
+                {!!item.image_uri && <Image source={{ uri: item.image_uri }} style={styles.thumb} />}
 
-            <View style={{ flex: 1 }}>
-                <Text style={[styles.title, { color: pal.colors.text.primary }]}>
-                    {item.bird_type || t('archive.unknown_bird')}
-                </Text>
-                <Text style={{ color: pal.colors.text.secondary, marginBottom: 2 }}>
-                    {new Date(item.date).toLocaleDateString()}
-                </Text>
-                {!!item.text_note && (
-                    <Text style={{ color: pal.colors.text.secondary }} numberOfLines={2}>
-                        {item.text_note}
+                <View style={{ flex: 1 }}>
+                    <Text style={[styles.title, { color: pal.colors.text.primary }]}>
+                        {item.bird_type || t('archive.unknown_bird')}
                     </Text>
-                )}
-            </View>
-        </TouchableOpacity>
+                    <Text style={{ color: pal.colors.text.secondary, marginBottom: 2 }}>
+                        {new Date(item.date).toLocaleDateString()}
+                    </Text>
+                    {!!item.text_note && (
+                        <Text style={{ color: pal.colors.text.secondary }} numberOfLines={2}>
+                            {item.text_note}
+                        </Text>
+                    )}
+                </View>
+            </TouchableOpacity>
+        </BlurView>
     ), [pal, t]);
 
     /* ───────────────────────────── loading view */
@@ -230,40 +234,42 @@ export default function ArchiveScreen() {
                     </Text>
                 }
                 renderItem={({ item }) => (
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        style={[
-                            styles.card,
-                            {
-                                backgroundColor: pal.colors.card,
-                                shadowColor: pal.colors.shadow,
-                            },
-                        ]}
-                        onPress={() =>
-                            router.push({ pathname: '/archive/detail/[id]', params: { id: item.id } })
-                        }
+                    <BlurView
+                        intensity={60}
+                        tint={mode === 'dark' ? 'dark' : 'light'}
+                        style={[styles.cardBlur, { borderColor: pal.colors.border }]}
                     >
-                        {item.image_uri && (
-                            <Image source={{ uri: item.image_uri }} style={styles.thumb} />
-                        )}
-
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.title, { color: pal.colors.text.primary }]}>
-                                {item.bird_type || t('archive.unknown_bird')}
-                            </Text>
-                            <Text style={{ color: pal.colors.text.secondary, marginBottom: 2 }}>
-                                {new Date(item.date).toLocaleDateString()}
-                            </Text>
-                            {!!item.text_note && (
-                                <Text
-                                    style={{ color: pal.colors.text.secondary }}
-                                    numberOfLines={2}
-                                >
-                                    {item.text_note}
-                                </Text>
+                        <TouchableOpacity
+                            activeOpacity={0.5}
+                            style={[
+                                styles.card
+                            ]}
+                            onPress={() =>
+                                router.push({ pathname: '/archive/detail/[id]', params: { id: item.id } })
+                            }
+                        >
+                            {item.image_uri && (
+                                <Image source={{ uri: item.image_uri }} style={styles.thumb} />
                             )}
-                        </View>
-                    </TouchableOpacity>
+
+                            <View style={{ flex: 1 }}>
+                                <Text style={[styles.title, { color: pal.colors.text.primary }]}>
+                                    {item.bird_type || t('archive.unknown_bird')}
+                                </Text>
+                                <Text style={{ color: pal.colors.text.secondary, marginBottom: 2 }}>
+                                    {new Date(item.date).toLocaleDateString()}
+                                </Text>
+                                {!!item.text_note && (
+                                    <Text
+                                        style={{ color: pal.colors.text.secondary }}
+                                        numberOfLines={2}
+                                    >
+                                        {item.text_note}
+                                    </Text>
+                                )}
+                            </View>
+                        </TouchableOpacity>
+                    </BlurView>
                 )}
             />
             {/* --- SNACKBAR -------------------------------------------------- */}
@@ -310,13 +316,12 @@ const styles = StyleSheet.create({
 
     card: {
         flexDirection: 'row',
-        padding: 14,
+    },
+    cardBlur: {
+        marginBottom: theme.spacing.lg,
+        padding: THUMB/4,
         borderRadius: theme.borderRadius.lg,
-        marginBottom: 18,
-        elevation: 2,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
+        borderWidth: 1,
     },
     thumb: {
         width: THUMB,

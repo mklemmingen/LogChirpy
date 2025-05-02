@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { auth } from '@/firebase/config';
 import { theme } from '@/constants/theme';
+import Section from "@/components/Section";
 
 export default function ForgotPasswordScreen() {
     const { t } = useTranslation(); // <-- useTranslation here
@@ -66,32 +67,34 @@ export default function ForgotPasswordScreen() {
                             {t('auth.forgot_password_instructions')}
                         </Text>
 
-                        <View style={styles.inputContainer}>
-                            <TextInput
-                                style={[
-                                    styles.input,
-                                    {
-                                        backgroundColor: currentTheme.colors.background,
-                                        borderColor: emailError ? currentTheme.colors.error : currentTheme.colors.border,
-                                        color: currentTheme.colors.text.primary
-                                    }
-                                ]}
-                                placeholder={t('auth.email_placeholder')}
-                                placeholderTextColor={currentTheme.colors.text.primary + '80'}
-                                value={email}
-                                onChangeText={(text) => {
-                                    setEmail(text);
-                                    setEmailError('');
-                                }}
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                            />
-                            {emailError ? (
-                                <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
-                                    {emailError}
-                                </Text>
-                            ) : null}
-                        </View>
+                        <Section>
+                            <View style={styles.inputContainer}>
+                                <TextInput
+                                    style={[
+                                        styles.input,
+                                        {
+                                            backgroundColor: currentTheme.colors.background,
+                                            borderColor: emailError ? currentTheme.colors.error : currentTheme.colors.border,
+                                            color: currentTheme.colors.text.primary
+                                        }
+                                    ]}
+                                    placeholder={t('auth.email_placeholder')}
+                                    placeholderTextColor={currentTheme.colors.text.primary + '80'}
+                                    value={email}
+                                    onChangeText={(text) => {
+                                        setEmail(text);
+                                        setEmailError('');
+                                    }}
+                                    autoCapitalize="none"
+                                    keyboardType="email-address"
+                                />
+                                {emailError ? (
+                                    <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                                        {emailError}
+                                    </Text>
+                                ) : null}
+                            </View>
+                        </Section>
 
                         <TouchableOpacity
                             style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
