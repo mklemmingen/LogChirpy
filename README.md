@@ -59,17 +59,53 @@ Files funktionieren! die package und die best practice methoden mit error-catchi
 - - custom photo if over settable confidence value to media storage (confidence slider)
 - - custom settable delay between photo to pipeline for making sure device not overwhelmed by models (confidence slider)
 
+Challenges:
+
+
+- Switching from a simple ExpoGo compatible build to a custom dev client build was a challenge, as it required creating custom configs for eas, metro, the package.json and the app.config.ts.
+-> solved by creating the configs in the root folder and using a custom batch script that handles un-staling, installing and running the emulator with the custom dev client build and the two-port servers. Had to find the best practice for save-dev'ing the package installations to the package.json, as well as the metro.config.js and app.config.ts, as files needed to override dependencies and ask for permission for the android build with gradle as well as the cmake process and the javascript conversion.
+
+
+- Handling Files on Android took a while, since the ExpoGo build does not support file handling and the custom dev client build required a lot of custom async code handling for not accessing unsaved files in the object and image classification pipeline.
+
+
+- Object Detection and Image Classification as well as Custom Camera Component took quite a while to get working, 
+
+-> Used a couple old react-native packages that were not well maintained and had a lot of issues with the latest react-native versions, as well as deprecated expo-images and expo-camera packages.
+
+-> finally stumbled upon two packages for MLKit Object Detection and Image Classification that were well maintained, using the same core (it came from the same developers) and worked with the latest react-native versions, that I could wrap around the root _layout for quick context provider access to the models.
+
+-> creation fitting input and output models with labels was a challenge, since I had to learn output formatting and how to convert the weights to .tflite format. I used a couple of different models, 
+but finally ended up with a custom trained model from github that was able to detect birds in the wild with a good accuracy, that I simply wrote the accompanying .labels.txt file to a .tflite file with the python script in the _model_conversion folder.
+
+- The custom camera component was also a challenge, as it required a lot of custom code to get it working with the MLKit models. 
+
+
+-> since the models cant handle frameProcessing, even tho the vision camera could, I had to hack workaround by saving the images aSync to the app storage, pipelining to object detect, pipelining iterating with expo-image-manipulater for cutting out the object frame from the big image, input into the image classifier, and then afterwards delete all those temporary images, except if the images is above the user set confidence level at that point in time (it then gets saved HQ to the media storage, the temporary file is still deleted. Its a Hack, for sure, but it works without significant delay on all testing devices (Android from 2020 and later, low-end to high-end))
+
+
+-> all that took a lot of try catches to only pipeline if async is finished, and a lot of useStates to make sure nothing is done if something hasnt finished setting up later.
+
+
+- The Visualization of the detected objects and the custom rectangles was also a challenge, as it was hard to find a middle ground of performance, visibility and usability. Also - there are suprinsingly little drop-in slider components with out-of-the-box direkt on valule changes visualisations. Had to hack around there too, first with creating custom sliders, then hacking a package.
+
 ## LW
 - Project Setup
 - Firebase and Firestore Setup 
 - Firebase Authentication with Signup, Login, Logout, Account-View, Forgot Password
 - Making Synchronization of Firebase and Local Archive possible
 
+Challenges:
+
 ## YS
 - Wireframe creation for visualising for all developers
 
+Challenges:
+
 ## AF
 - x
+
+Challenges:
 
 
 -------------------------
