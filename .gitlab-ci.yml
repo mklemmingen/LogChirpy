@@ -29,6 +29,10 @@ deploy-logchirpy:
       git fetch origin main
       git checkout main
 
+      echo "Fetching full history from GitLab repo..."
+      git fetch --unshallow || true
+      git fetch --all --tags
+
       KEEP_COMMIT=$(git rev-list --reverse --since="2025-04-12T00:00:00" main | head -n 1)
       echo "Keeping commits from: \$KEEP_COMMIT"
 
@@ -36,8 +40,6 @@ deploy-logchirpy:
         echo "No commits found from April 12, 2025 onward."
         exit 1
       fi
-
-      git checkout main
 
       echo "Filtering history from $KEEP_COMMIT (inclusive)..."
       git rebase --onto "$KEEP_COMMIT"^ "$KEEP_COMMIT"
