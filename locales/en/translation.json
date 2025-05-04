@@ -154,7 +154,28 @@
     "confidence_threshold_description": "Images are saved if the label exceeds this confidence level.",
     "pipeline_delay_label": "Pipeline Delay (s)",
     "confidence_threshold_label": "Confidence Threshold (%) to automatically save",
-    "bird_detected": "{{bird}} image saved with {{confidence}}% confidence"
+    "bird_detected": "{{bird}} image saved with {{confidence}}% confidence",
+    "pause_detection": "Pause Detection",
+    "pause": "Pause Detection",
+    "resume": "Resume Detection",
+    "retry": "Retry",
+    "retrying_models": "Retrying model loading…",
+    "status_detecting": "Detecting...",
+    "status_ready": "Ready",
+    "status_idle": "Idle...",
+    "zoom": "Zoom Level",
+    "error": {
+      "camera_not_available": "Camera not available",
+      "camera_permission_denied": "Camera permission denied",
+      "camera_permission_denied_message": "Please enable camera access in settings.",
+      "camera_not_ready": "Camera not ready",
+      "camera_error": "Camera error: {{message}}",
+      "classifier_unavailable": "Image classifier not loaded.",
+      "classifier_error": "Error loading image classifier: {{message}}",
+      "detection_error": "Error during object detection: {{message}}",
+      "detector_unavailable": "Object detector not loaded.",
+      "detector_error": "Error loading object detector: {{message}}"
+    }
   },
   "common": {
     "ok": "OK",

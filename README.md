@@ -29,6 +29,8 @@
 
 - audio genau das gleiche, wobei die audio sequenz dargestellt werden sollte, weniger komplex wie bei BirdNet, aber aussagekräftig, mit möglichkeit des schneidens, des speicherns, und der übergabe an manuel
 
+- Save to Log und Delete in ObjectDetectionCamera Modal View (ganz unten im return)
+
 Files funktionieren! die package und die best practice methoden mit error-catching ist in CameraObjectDetection.tsx in log
 
 # Done Tasks:
