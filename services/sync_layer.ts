@@ -136,10 +136,8 @@ async function downloadFileToLocal(
   try {
     console.log("Downloading file:", remoteUrl, "to", localUri);
 
-    // Attempt to download the file using FileSystem.downloadAsync
     await FileSystem.downloadAsync(remoteUrl, localUri);
 
-    // Verify the file exists
     const fileInfo = await FileSystem.getInfoAsync(localUri);
     console.log("File info:", fileInfo);
 
