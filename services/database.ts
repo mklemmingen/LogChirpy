@@ -29,8 +29,6 @@ export function initDB(): void {
       );
     `);
   });
-  // insertTestSpotting();
-  // dropAllSightings();
 }
 
 export function insertBirdSpotting(e: {
