@@ -37,27 +37,26 @@ if exist android\gradlew.bat (
 rd /s /q .expo 2>nul
 rd /s /q node_modules\.cache 2>nul
 
-:: Step 5: Check if any emulator is running
+:: Step 5: Ensure an emulator/device is running
 set EMU_RUNNING=false
 for /f "tokens=*" %%i in ('adb devices ^| findstr /i "emulator"') do (
     set EMU_RUNNING=true
 )
 
-:: Step 6: Launch first available emulator if none is running
 if "!EMU_RUNNING!"=="false" (
     echo [INFO] No emulator running. Attempting to start the first available AVD...
 
     for /f "delims=" %%e in ('"%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe" -list-avds') do (
         echo [INFO] Starting emulator: %%e
         start "" "%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe" @%%e
-        goto :WAIT_FOR_EMULATOR
+        goto :WAIT_FOR_BOOT
     )
 
     echo [ERROR] No emulators found. Please create one using Android Studio AVD Manager.
     exit /b 1
 )
 
-:WAIT_FOR_EMULATOR
+:WAIT_FOR_BOOT
 echo [INFO] Waiting for emulator to boot...
 
 set /a countdown=20
@@ -68,8 +67,23 @@ timeout /t 1 >nul
 cls
 if !countdown! gtr 0 goto spinner_loop
 
-echo [INFO] Waiting for device to become ready...
 adb wait-for-device
+echo [INFO] Device ready.
+
+:: Step 6: Check if dev client is installed
+echo [INFO] Checking if dev client is installed...
+
+adb shell pm list packages | findstr com.dhfgkjhksdfgsd.moco_sose25_logchirpy >nul
+if errorlevel 1 (
+    echo [INFO] Dev client not found. Installing now...
+    call npx expo run:android --variant devDebug
+    if errorlevel 1 (
+        echo [ERROR] Dev client build/install failed.
+        exit /b 1
+    )
+) else (
+    echo [INFO] Dev client already installed.
+)
 
 :: Step 7: Start ADB Logcat viewer (background window)
 start "ADB Logcat" cmd /c "adb logcat *:S ReactNative:V ReactNativeJS:V VisionCamera:V"
