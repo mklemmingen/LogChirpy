@@ -25,7 +25,7 @@
       "ios": {
         "simulator": false
       },
-      "autoIncrement": true,
+      "autoIncrement": true
     }
   },
   "submit": {
