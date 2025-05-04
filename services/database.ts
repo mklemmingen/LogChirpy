@@ -29,7 +29,8 @@ export function initDB(): void {
       );
     `);
   });
-  insertTestSpotting();
+  // insertTestSpotting();
+  // dropAllSightings();
 }
 
 export function insertBirdSpotting(e: {
@@ -140,8 +141,6 @@ async function copyImageToLocalSystem() {
 async function insertTestSpotting(): Promise<void> {
   const localImagePath = await copyImageToLocalSystem();
 
-  dropAllSightings();
-
   /* ---------- entry #1 – today ---------- */
   const now = new Date();
   insertBirdSpotting({
@@ -160,7 +159,7 @@ async function insertTestSpotting(): Promise<void> {
   /* ---------- entry #2 – yesterday ---------- */
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000); // minus 1 day
   insertBirdSpotting({
-    imageUri: localImagePath,
+    imageUri: "",
     videoUri: "",
     audioUri: "",
     textNote: "Second test entry",
