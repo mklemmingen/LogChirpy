@@ -2,6 +2,23 @@ import { openDatabaseSync, type SQLiteDatabase } from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import { Asset } from "expo-asset";
 
+export interface BirdSpotting {
+  id: number;
+  imageUri: string;
+  videoUri: string;
+  audioUri: string;
+  textNote: string;
+  gpsLat: number;
+  gpsLng: number;
+  date: string;
+  birdType: string;
+  imagePrediction: string;
+  audioPrediction: string;
+  synced: 0 | 1;
+}
+
+export type InsertBirdSpotting = Omit<BirdSpotting, "id" | "synced">;
+
 let db: SQLiteDatabase | null = null;
 
 export function DB(): SQLiteDatabase {
@@ -9,7 +26,7 @@ export function DB(): SQLiteDatabase {
   return db;
 }
 
-export function initDB(): void {
+export async function initDB(): Promise<void> {
   const db = DB();
   db.withTransactionSync(() => {
     db.execSync(`
@@ -31,18 +48,7 @@ export function initDB(): void {
   });
 }
 
-export function insertBirdSpotting(e: {
-  imageUri: string;
-  videoUri: string;
-  audioUri: string;
-  textNote: string;
-  gpsLat: number;
-  gpsLng: number;
-  date: string;
-  birdType: string;
-  imagePrediction: string;
-  audioPrediction: string;
-}): void {
+export function insertBirdSpotting(spotting: InsertBirdSpotting): void {
   DB().withTransactionSync(() => {
     const stmt = DB().prepareSync(`
       INSERT INTO bird_spottings
@@ -52,16 +58,16 @@ export function insertBirdSpotting(e: {
     `);
     try {
       stmt.executeSync([
-        e.imageUri,
-        e.videoUri,
-        e.audioUri,
-        e.textNote,
-        e.gpsLat,
-        e.gpsLng,
-        e.date,
-        e.birdType,
-        e.imagePrediction,
-        e.audioPrediction,
+        spotting.imageUri,
+        spotting.videoUri,
+        spotting.audioUri,
+        spotting.textNote,
+        spotting.gpsLat,
+        spotting.gpsLng,
+        spotting.date,
+        spotting.birdType,
+        spotting.imagePrediction,
+        spotting.audioPrediction,
       ]);
     } finally {
       stmt.finalizeSync();
@@ -72,7 +78,7 @@ export function insertBirdSpotting(e: {
 export function getBirdSpottings(
   limit = 50,
   sort: "DESC" | "ASC" = "DESC"
-): any[] {
+): BirdSpotting[] {
   const stmt = DB().prepareSync(
     `SELECT * FROM bird_spottings
          ORDER BY date ${sort}
@@ -80,18 +86,18 @@ export function getBirdSpottings(
   );
 
   try {
-    return stmt.executeSync([limit]).getAllSync();
+    return stmt.executeSync([limit]).getAllSync() as BirdSpotting[];
   } finally {
     stmt.finalizeSync();
   }
 }
 
-export function getSpottingById(id: number) {
+export function getSpottingById(id: number): BirdSpotting | null {
   const stmt = DB().prepareSync(
     `SELECT * FROM bird_spottings WHERE id = ? LIMIT 1`
   );
   try {
-    const rows = stmt.executeSync(id).getAllSync() as any[];
+    const rows = stmt.executeSync(id).getAllSync() as BirdSpotting[];
     return rows.length ? rows[0] : null;
   } finally {
     stmt.finalizeSync();
