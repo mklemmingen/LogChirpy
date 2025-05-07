@@ -164,6 +164,7 @@
     "status_ready": "Ready",
     "status_idle": "Idle...",
     "zoom": "Zoom Level",
+    "loading_screen": "Loading camera and models...",
     "error": {
       "camera_not_available": "Camera not available",
       "camera_permission_denied": "Camera permission denied",

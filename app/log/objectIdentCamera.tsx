@@ -2,7 +2,6 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
     ActivityIndicator, Button,
     Dimensions,
-    FlatList,
     Image, Modal,
     Platform,
     SafeAreaView,
@@ -35,6 +34,9 @@ import * as Haptics from 'expo-haptics';
 import { LayoutAnimation, UIManager} from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {theme} from "@/constants/theme";
+import { useColorScheme } from 'react-native'
+
 
 const STORAGE_KEYS = {
     pipelineDelay: 'pipelineDelay',
@@ -46,15 +48,6 @@ const { width: W, height: H } = Dimensions.get('window');
 interface Detection {
     frame: { origin: { x: number; y: number }; size: { x: number; y: number } };
     labels: Array<{ text: string; confidence: number; index: number }>;
-}
-
-async function waitForFile(file: File, timeout = 3000, interval = 100): Promise<boolean> {
-    const start = Date.now();
-    while (Date.now() - start < timeout) {
-        if (file.exists) return true;
-        await new Promise((resolve) => setTimeout(resolve, interval));
-    }
-    return false;
 }
 
 function getBoxStyle(confidence: number) {
@@ -158,15 +151,51 @@ async function deleteOldFiles(dirUri: string, maxAgeMinutes: number): Promise<vo
     }
 }
 
-export default function ObjectIdentCamera() {
+export default function ObjectIdentCameraWrapper() {
+    const [isLoading, setIsLoading] = useState(true);
+    const device = useCameraDevice('back');
+    const { hasPermission, requestPermission } = useCameraPermission();
+    const { t } = useTranslation();
+    const raw = useColorScheme()
+    const colorScheme: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light'
+    const currentTheme = theme[colorScheme]       // safe: 'light' or 'dark'
+
+    // 1) run loading timer and kick off permission request exactly once
+    useEffect(() => {
+        // 3s splash
+        const timer = setTimeout(() => setIsLoading(false), 3000);
+        requestPermission();     // side-effect only here
+        return () => clearTimeout(timer);
+    }, []);
+
+    // 2) if we’re still loading resources, show loader
+    if (isLoading || !device || !hasPermission) {
+        return (
+            <View style={styles.centered}>
+                <ActivityIndicator size="large" color="#0000ff" />
+                <Text style={{color: currentTheme.colors.text.primary, fontSize: 16, marginTop: 10}}>
+                    {t('camera.loading_screen')}
+                </Text>
+            </View>
+        );
+    }
+
+    // 3) when everything’s ready, mount the real camera content
+    return <ObjectIdentCameraContent />;
+}
+
+
+function ObjectIdentCameraContent() {
+
+    const device = useCameraDevice('back');
+
     // i18n (internationalization)
     const { t } = useTranslation();
 
     // Camera setup and permissions
     const cameraRef = useRef<Camera>(null);
-    const device = useCameraDevice('back');
-    const { hasPermission, requestPermission } = useCameraPermission();
-    const [showLiveCamera, setShowLiveCamera] = useState(true);
+    const [isInitialized, setIsInitialized] = useState(false);
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [zoom, setZoom] = useState(1);
 
@@ -210,12 +239,9 @@ export default function ObjectIdentCamera() {
         setTimeout(() => setSnackbarVisible(false), 2500);
     }, [t]);
 
-    // Media library permissions
-    const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
 
     // Debug message shown to user
     const [debugText, setDebugText] = useState(t('camera.initializing'));
-
 
     useEffect(() => {
         (async () => {
@@ -274,23 +300,6 @@ export default function ObjectIdentCamera() {
         }
     };
 
-    // Request camera permission if not granted
-    useEffect(() => {
-        if (!hasPermission) {
-            requestPermission();
-        }
-    }, [hasPermission]);
-
-    // If no camera or no permission, show loader
-    if (device == null || !hasPermission) {
-        return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#0000ff" />
-                <Text>{t('camera.loading')}</Text>
-            </View>
-        );
-    }
-
     const detector = useObjectDetection<MyModelsConfig>('efficientNetlite0int8');
     const classifier = useImageLabeling("birdClassifier");
 
@@ -298,7 +307,7 @@ export default function ObjectIdentCamera() {
 
     const classifyImage = async (imageUri: string): Promise<ClassificationResult> => {
         try {
-            const result = await classifier.classifyImage(imageUri);
+            const result = await classifier?.classifyImage(imageUri);
             console.log('Classifier result:', result);
 
             // If result is string, try JSON.parse
@@ -316,27 +325,18 @@ export default function ObjectIdentCamera() {
 
     const imageContext = ImageManipulator.useImageManipulator(photoPath || '');
     const isActive = useRef(true);
-    const hasStartedCaptureLoop = useRef(false);
 
     // Capture loop: take photo, manipulate, and save to document directory
     useEffect(() => {
-        if (
-            !detector ||
-            !device ||
-            !cameraRef.current ||
-            hasStartedCaptureLoop.current
-        ) {
-            return;
-        }
-        hasStartedCaptureLoop.current = true;
 
         const captureLoop = async () => {
-            if (!isActive.current || !cameraRef.current || isDetectionPaused) return;
+            if (!cameraRef.current || !isInitialized || isDetectionPaused) return;
 
             try {
                 setIsProcessing(true);
-
                 setDebugText(t('camera.capturing'));
+
+                if (!cameraRef.current) return
                 const photo = await cameraRef.current.takePhoto({
                     flash: 'off',
                     enableShutterSound: false,
@@ -402,7 +402,7 @@ export default function ObjectIdentCamera() {
         };
 
         captureLoop();
-    }, [detector, device]);
+    }, [detector, device, isInitialized, isDetectionPaused]);
 
     async function cropImage(imageUri: string, box: any) : Promise<string> {
         const cropAction = {
@@ -664,23 +664,11 @@ export default function ObjectIdentCamera() {
     const scaleX = imageDims.width ? W / imageDims.width : 1;
     const scaleY = imageDims.height ? H / imageDims.height : 1;
 
-    // Fallback
-
+    // ——— FALLBACKS & CONTENT ———
     if (Platform.OS === 'web') {
         return (
             <View style={styles.centered}>
-                <Text>{t('camera.unsupported_platform')}</Text>
-            </View>
-        );
-    }
-
-    // Fallback if camera is not available
-
-    if (!device) {
-        return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#0000ff" />
-                <Text>{t('camera.loading')}</Text>
+                <Text>{ t('camera.unsupported_platform') }</Text>
             </View>
         );
     }
@@ -784,6 +772,10 @@ export default function ObjectIdentCamera() {
                     photo={true}
                     zoom={zoom}
                     enableZoomGesture={true}
+                    onInitialized={() => {
+                        console.log("Camera initialized!");
+                        setIsInitialized(true);
+                    }}
                 />
                 {isCameraActive && (
                     <View style={styles.statusBadge}>
