@@ -104,7 +104,8 @@
     "checking_access": "Kamerazugriff wird überprüft...",
     "need_permission": "Wir benötigen Zugriff auf deine Kamera",
     "allow_access": "Zugriff erlauben",
-    "retake": "Neu aufnehmen"
+    "retake": "Neu aufnehmen",
+    "loading_screen": "Kamera und Modelle werden geladen..."
   },
   "common": {
     "ok": "OK",

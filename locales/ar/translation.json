@@ -89,5 +89,8 @@
     "language": "تغيير اللغة",
     "enable_gps_logging": "تفعيل تسجيل الموقع عبر GPS",
     "logging": "إعدادات التسجيل"
+  },
+  "camera": {
+    "loading_screen": "جارٍ تحميل الكاميرا والنماذج..."
   }
 }

@@ -89,5 +89,8 @@
     "language": "Cambiar idioma",
     "enable_gps_logging": "Activar registro de ubicación GPS",
     "logging": "Configuración de Registro"
+  },
+  "camera": {
+    "loading_screen": "Cargando cámara y modelos..."
   }
 }
