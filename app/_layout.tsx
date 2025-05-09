@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import { ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -21,6 +21,10 @@ import {
     useObjectDetectionProvider,
     ObjectDetectionConfig
 } from '@infinitered/react-native-mlkit-object-detection';
+
+// BirDex Database loaded at startup
+import { initDB } from '@/services/database';
+import { initBirdDexDB } from '@/services/databaseBirDex';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -71,6 +75,9 @@ export default function RootLayout() {
     const models_class = useImageLabelingModels(MODELS_CLASS);
     const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
 
+    // Database BirDex
+    const [isDbReady, setIsDbReady] = useState(false);
+
     // Object Detection
     const models = useObjectDetectionModels<MyModelsConfig>(useMemo(() => ({
         assets: MODELS_OBJECT,
@@ -83,13 +90,29 @@ export default function RootLayout() {
     }), []));
     const { ObjectDetectionProvider } = useObjectDetectionProvider(models);
 
+    // 1) Initialize both DBs on mount
     useEffect(() => {
-        if (loaded) {
+        (async () => {
+            try {
+                initDB();              // creates bird_spottings table
+                await initBirdDexDB(); // upserts birddex table
+            } catch (e) {
+                console.error('DB init error', e);
+            } finally {
+                setIsDbReady(true);
+            }
+        })();
+    }, []);
+
+    // 2) Once fonts _and_ DB are ready, hide the splash
+    useEffect(() => {
+        if (loaded && isDbReady) {
             SplashScreen.hideAsync();
         }
-    }, [loaded]);
+    }, [loaded, isDbReady]);
 
-    if (!loaded) {
+    // 3) Show nothing until both ready
+    if (!loaded || !isDbReady) {
         return null;
     }
 

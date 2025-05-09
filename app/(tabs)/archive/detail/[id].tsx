@@ -147,30 +147,30 @@ export default function ArchiveDetailScreen() {
     /* build tiles */
     const tiles: Tile[] = [];
 
-    if (entry.image_uri)
-        tiles.push({ type: 'image', key: 'img', uri: entry.image_uri,
+    if (entry.imageUri)
+        tiles.push({ type: 'image', key: 'img', uri: entry.imageUri,
             span: Math.random() < 0.4 ? 'full' : 'half' });
 
-    if (entry.video_uri)
-        tiles.push({ type: 'video', key: 'vid', uri: entry.video_uri, span: 'half' });
+    if (entry.videoUri)
+        tiles.push({ type: 'video', key: 'vid', uri: entry.videoUri, span: 'half' });
 
-    if (entry.audio_uri)
-        tiles.push({ type: 'audio', key: 'aud', uri: entry.audio_uri,
+    if (entry.audioUri)
+        tiles.push({ type: 'audio', key: 'aud', uri: entry.audioUri,
             span: 'half', value: t('idcard.play_audio') });
 
     tiles.push(
         { type: 'text', key: 'bird', label: t('idcard.bird'),
-            value: entry.bird_type || t('idcard.unknown'), span: 'half' },
+            value: entry.birdType || t('idcard.unknown'), span: 'half' },
         { type: 'text', key: 'date', label: t('idcard.date'),
             value: new Date(entry.date).toLocaleString(), span: 'half' },
         { type: 'text', key: 'note', label: t('idcard.notes'),
-            value: entry.text_note || '—', span: 'full' },
+            value: entry.textNote || '—', span: 'full' },
         { type: 'text', key: 'gps', label: t('idcard.gps'),
-            value: `${entry.gps_lat}, ${entry.gps_lng}`, span: 'half' },
+            value: `${entry.gpsLat}, ${entry.gpsLng}`, span: 'half' },
         { type: 'text', key: 'imgai', label: t('idcard.img_ai'),
-            value: entry.image_prediction || 'N/A', span: 'half' },
+            value: entry.imagePrediction || 'N/A', span: 'half' },
         { type: 'text', key: 'audai', label: t('idcard.audio_ai'),
-            value: entry.audio_prediction || 'N/A', span: 'half' },
+            value: entry.audioPrediction || 'N/A', span: 'half' },
     );
 
     return (

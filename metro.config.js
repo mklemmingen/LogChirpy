@@ -9,7 +9,7 @@ const config = getDefaultConfig(projectRoot);
 config.watchFolders = [projectRoot];
 
 // 2) Add custom asset and source extensions
-config.resolver.assetExts.push('bin', 'json', 'tflite');
+config.resolver.assetExts.push('bin', 'json', 'tflite', 'csv', 'xml');
 config.resolver.sourceExts.push('cjs', 'mjs');
 
 // 3) Redirect react-native-fs to expo-file-system

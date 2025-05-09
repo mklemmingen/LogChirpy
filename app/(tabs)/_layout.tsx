@@ -45,6 +45,15 @@ export default function TabLayout() {
             }}
         >
             <Tabs.Screen
+                name="birdex"
+                options={{
+                    title: 'BirdyDex', // non-localized title
+                    tabBarIcon: ({ color }) => (
+                        <IconSymbol name="feather" size={26} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name="archive"
                 options={{
                     title: t('tabs.archive'), // localized title

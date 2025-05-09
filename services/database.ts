@@ -2,6 +2,11 @@ import { openDatabaseSync, type SQLiteDatabase } from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import { Asset } from "expo-asset";
 
+/**
+ * A single bird‐spotting record in SQLite.
+ * We’ve added an optional latinBirDex column to hold
+ * the BirDex (Latin) name when the user assigns it.
+ */
 export interface BirdSpotting {
   id: number;
   imageUri: string;
@@ -15,8 +20,13 @@ export interface BirdSpotting {
   imagePrediction: string;
   audioPrediction: string;
   synced: 0 | 1;
+  latinBirDex?: string | null; // optional, may be null
 }
 
+/**
+ * When inserting a new spot, you may include latinBirDex
+ * if the user has assigned one; otherwise omit it.
+ */
 export type InsertBirdSpotting = Omit<BirdSpotting, "id" | "synced">;
 
 let db: SQLiteDatabase | null = null;
@@ -26,10 +36,15 @@ export function DB(): SQLiteDatabase {
   return db;
 }
 
+/**
+ * Initialize (or migrate) the bird_spottings table.
+ * Adds the latinBirDex column if it doesn’t already exist.
+ */
 export async function initDB(): Promise<void> {
-  const db = DB();
-  db.withTransactionSync(() => {
-    db.execSync(`
+  const database = DB();
+  database.withTransactionSync(() => {
+    // 1) Create table if missing
+    database.execSync(`
       CREATE TABLE IF NOT EXISTS bird_spottings (
         id               INTEGER PRIMARY KEY AUTOINCREMENT,
         image_uri        TEXT,
@@ -45,16 +60,29 @@ export async function initDB(): Promise<void> {
         synced           INTEGER DEFAULT 0
       );
     `);
+
+    // 2) Add latinBirDex column if it's not already there
+    try {
+      database.execSync(`ALTER TABLE bird_spottings ADD COLUMN latinBirDex TEXT;`);
+    } catch (_e) {
+      // column already exists → ignore
+    }
   });
 }
 
+/**
+ * Insert a new spotting. If InsertBirdSpotting.latinBirDex is provided,
+ * it will be stored; otherwise it remains NULL.
+ */
 export function insertBirdSpotting(spotting: InsertBirdSpotting): void {
   DB().withTransactionSync(() => {
     const stmt = DB().prepareSync(`
       INSERT INTO bird_spottings
-      (image_uri, video_uri, audio_uri, text_note, gps_lat, gps_lng,
-       date, bird_type, image_prediction, audio_prediction, synced)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
+      (image_uri, video_uri, audio_uri, text_note,
+       gps_lat, gps_lng, date, bird_type,
+       image_prediction, audio_prediction,
+       latinBirDex, synced)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
     `);
     try {
       stmt.executeSync([
@@ -68,11 +96,65 @@ export function insertBirdSpotting(spotting: InsertBirdSpotting): void {
         spotting.birdType,
         spotting.imagePrediction,
         spotting.audioPrediction,
+        spotting.latinBirDex ?? null,
       ]);
     } finally {
       stmt.finalizeSync();
     }
   });
+}
+
+
+/**
+ * Update the latinBirDex text for an existing spotting by ID.
+ */
+export function updateLatinBirDex(id: number, latinBirDex: string): void {
+  DB().withTransactionSync(() => {
+    const stmt = DB().prepareSync(`
+      UPDATE bird_spottings
+         SET latinBirDex = ?
+       WHERE id = ?;
+    `);
+    try {
+      stmt.executeSync([latinBirDex, id]);
+    } finally {
+      stmt.finalizeSync();
+    }
+  });
+}
+
+/**
+ * Returns true if there is at least one spotting with the given latinBirDex.
+ */
+export function hasSpottingForLatin(latinBirDex: string): boolean {
+  const stmt = DB().prepareSync(`
+    SELECT COUNT(*) AS cnt
+      FROM bird_spottings
+     WHERE latinBirDex = ?;
+  `);
+  try {
+    const rows = stmt.executeSync(latinBirDex).getAllSync();
+    const cnt = rows.length ? (rows[0] as any).cnt : 0;
+    return cnt > 0;
+  } finally {
+    stmt.finalizeSync();
+  }
+}
+
+/**
+ * Fetch all spot entries that have the given latinBirDex.
+ */
+export function getSpottingsByLatin(latinBirDex: string): BirdSpotting[] {
+  const stmt = DB().prepareSync(`
+    SELECT * FROM bird_spottings
+     WHERE latinBirDex = ?
+     ORDER BY date DESC;
+  `);
+  try {
+    return stmt.executeSync(latinBirDex).getAllSync() as BirdSpotting[];
+  } finally {
+    stmt.finalizeSync();
+  }
 }
 
 export function getBirdSpottings(

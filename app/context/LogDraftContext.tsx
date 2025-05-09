@@ -61,4 +61,4 @@ export function LogDraftProvider({ children }: { children: ReactNode }) {
     );
 }
 
-export default useLogDraft; // Standard-Export hinzugefügt
+export default useLogDraft;

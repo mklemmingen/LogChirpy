@@ -30,10 +30,10 @@ import { syncDatabase } from "@/services/sync_layer";
 
 type Spotting = {
   id: number;
-  bird_type: string;
+  birdType: string;
   date: string;
-  text_note?: string;
-  image_uri?: string;
+  textNote?: string;
+  imageUri?: string;
 };
 
 export default function ArchiveScreen() {
@@ -87,7 +87,7 @@ export default function ArchiveScreen() {
           const q = query.trim().toLowerCase();
           data = data.filter(
             (r) =>
-              r.bird_type?.toLowerCase().includes(q) ||
+              r.birdType?.toLowerCase().includes(q) ||
               r.date?.toLowerCase().includes(q)
           );
         }
@@ -125,7 +125,7 @@ export default function ArchiveScreen() {
         const q = query.trim().toLowerCase();
         data = data.filter(
           (r) =>
-            r.bird_type?.toLowerCase().includes(q) ||
+            r.birdType?.toLowerCase().includes(q) ||
             r.date?.toLowerCase().includes(q)
         );
       }
@@ -156,23 +156,23 @@ export default function ArchiveScreen() {
             })
           }
         >
-          {!!item.image_uri && (
-            <Image source={{ uri: item.image_uri }} style={styles.thumb} />
+          {!!item.imageUri && (
+            <Image source={{ uri: item.imageUri }} style={styles.thumb} />
           )}
 
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: pal.colors.text.primary }]}>
-              {item.bird_type || t("archive.unknown_bird")}
+              {item.birdType || t("archive.unknown_bird")}
             </Text>
             <Text style={{ color: pal.colors.text.secondary, marginBottom: 2 }}>
               {new Date(item.date).toLocaleDateString()}
             </Text>
-            {!!item.text_note && (
+            {!!item.textNote && (
               <Text
                 style={{ color: pal.colors.text.secondary }}
                 numberOfLines={2}
               >
-                {item.text_note}
+                {item.textNote}
               </Text>
             )}
           </View>
@@ -301,27 +301,27 @@ export default function ArchiveScreen() {
                 })
               }
             >
-              {item.image_uri && (
-                <Image source={{ uri: item.image_uri }} style={styles.thumb} />
+              {item.imageUri && (
+                <Image source={{ uri: item.imageUri }} style={styles.thumb} />
               )}
 
               <View style={{ flex: 1 }}>
                 <Text
                   style={[styles.title, { color: pal.colors.text.primary }]}
                 >
-                  {item.bird_type || t("archive.unknown_bird")}
+                  {item.birdType || t("archive.unknown_bird")}
                 </Text>
                 <Text
                   style={{ color: pal.colors.text.secondary, marginBottom: 2 }}
                 >
                   {new Date(item.date).toLocaleDateString()}
                 </Text>
-                {!!item.text_note && (
+                {!!item.textNote && (
                   <Text
                     style={{ color: pal.colors.text.secondary }}
                     numberOfLines={2}
                   >
-                    {item.text_note}
+                    {item.textNote}
                   </Text>
                 )}
               </View>
