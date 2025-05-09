@@ -158,12 +158,12 @@ export default function ObjectIdentCameraWrapper() {
     const { t } = useTranslation();
     const raw = useColorScheme()
     const colorScheme: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light'
-    const currentTheme = theme[colorScheme]       // safe: 'light' or 'dark'
+    const currentTheme = theme[colorScheme]
 
     // 1) run loading timer and kick off permission request exactly once
     useEffect(() => {
         // 3s splash
-        const timer = setTimeout(() => setIsLoading(false), 3000);
+        const timer = setTimeout(() => setIsLoading(false), 1000);
         requestPermission();     // side-effect only here
         return () => clearTimeout(timer);
     }, []);

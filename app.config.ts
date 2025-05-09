@@ -15,9 +15,11 @@ export default {
       backgroundColor: "#ffffff"
     },
     assetBundlePatterns: [
+      "assets/**/*", // all assets basically
       "assets/models/*",
       "assets/fonts/*",
-      "assets/images/*"
+      "assets/images/*",
+      "**/*.csv"         // include all CSVs anywhere
     ],
     android: {
       "package": "com.dhfgkjhksdfgsd.moco_sose25_logchirpy",

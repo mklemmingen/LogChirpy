@@ -13,7 +13,6 @@ import { ThemedView }    from '@/components/ThemedView';
 import BirdAnimation     from '@/components/BirdAnimation';
 import { HelloWave }     from '@/components/HelloWave';
 import { theme }         from '@/constants/theme';
-import { initDB }        from '@/services/database';
 
 /* ---------- helpers ---------- */
 type FeatherName = keyof typeof Feather.glyphMap;
@@ -25,9 +24,6 @@ export default function Index() {
     const { t }    = useTranslation();
     const mode     = useColorScheme() ?? 'light';
     const pal      = theme[mode];
-
-    /* once-per-app boot */
-    useEffect(() => { initDB(); }, []);
 
     /* one tidy small button component */
     const ActionBtn = ({
@@ -134,7 +130,7 @@ const styles = StyleSheet.create({
     /* buttons inside card */
     btn: {
         flex: 1,
-        minWidth: (CARD_W - 18 * 2 - 8 * 3) / 4, // equal width inc. gaps
+        minWidth: (CARD_W - 18 * 2 - 8 * 3) / 4,
         borderRadius: 14,
         paddingVertical: 10,
         alignItems: 'center',
