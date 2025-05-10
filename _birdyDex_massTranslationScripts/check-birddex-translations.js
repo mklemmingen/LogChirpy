@@ -30,11 +30,11 @@ const { argv } = yargs(hideBin(process.argv))
 
 const filePath = path.resolve(argv.file);
 const REQUIRED_COLUMNS = [
-    'english_name',
-    'german_name',
-    'spanish_name',
+    'English name',
+    'de_name',
+    'es_name',
     'ukrainian_name',
-    'arabic_name',
+    'ar_name',
 ];
 
 function exit(code) {
