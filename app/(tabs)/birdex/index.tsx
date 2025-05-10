@@ -3,7 +3,6 @@ import {
     SafeAreaView,
     View,
     Text,
-    FlatList,
     TextInput,
     Pressable,
     StyleSheet,
@@ -11,6 +10,7 @@ import {
     ActivityIndicator,
     Linking,
     Alert,
+    FlatList,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
@@ -18,13 +18,14 @@ import BirdAnimation from '@/components/BirdAnimation';
 import { theme } from '@/constants/theme';
 import {
     initBirdDexDB,
-    queryBirdDexBatch,
+    queryBirdDexPage,
+    getBirdDexRowCount,
     type BirdDexRecord,
 } from '@/services/databaseBirDex';
 import { hasSpottingForLatin } from '@/services/database';
-import { fetchLocalizedNamesBatch } from '@/services/wikipediaService';
+import { fetchLocalizedNamesPage } from '@/services/wikipediaService';
 
-const BATCH_SIZE = 50;
+const PAGE_SIZE = 20;
 
 type DisplayRecord = BirdDexRecord & {
     displayName: string;
@@ -37,89 +38,68 @@ const BirdDexIndex: React.FC = () => {
     const scheme = useColorScheme() ?? 'light';
     const pal = theme[scheme];
 
-    // Pagination/filter/sort state
+    /* ──────────────────────────  STATE  ────────────────────────── */
     const [displayList, setDisplayList] = useState<DisplayRecord[]>([]);
-    const [searchText, setSearchText] = useState('');
-    const [sortKey, setSortKey] = useState<keyof BirdDexRecord>('english_name');
+    const [searchText, setSearchText]   = useState('');
+    const [sortKey, setSortKey]         = useState<keyof BirdDexRecord>('english_name');
     const [sortAscending, setSortAscending] = useState(true);
-    const [offset, setOffset] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
 
-    // Loading flags
     const [isInitialLoading, setIsInitialLoading] = useState(true);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [isRefreshing,     setIsRefreshing]     = useState(false);
     const initedRef = useRef(false);
 
-    // Load a page of records
-    const loadBatch = useCallback(
-        async (reset = false) => {
-            // Reset states if refreshing
-            if (reset) {
-                setIsRefreshing(true);
-                setOffset(0);
-                setHasMore(true);
-            }
+    const [page, setPage]           = useState(1);
+    const [pageCount, setPageCount] = useState(1);
 
-            const pageOffset = reset ? 0 : offset;
+    /* ────────────────────────  DATA LOADER  ─────────────────────── */
+    const loadPage = useCallback(async (targetPage: number) => {
+        setIsRefreshing(true);
+        try {
+            const offset = (targetPage - 1) * PAGE_SIZE;
+            const raw = queryBirdDexPage(
+                searchText.trim(),
+                sortKey,
+                sortAscending,
+                PAGE_SIZE,
+                offset,
+            );
 
+            /* map + logged flag */
+            let rows: DisplayRecord[] = raw.map(r => ({
+                ...r,
+                displayName: r.english_name,
+                logged: hasSpottingForLatin(r.scientific_name),
+            }));
+
+            /* localisation */
             try {
-                // Fetch raw batch
-                const raw = queryBirdDexBatch(
-                    searchText.trim(),
-                    sortKey,
-                    sortAscending,
-                    BATCH_SIZE,
-                    pageOffset
-                );
-
-                // Map to display model
-                const batch: DisplayRecord[] = raw.map(item => ({
-                    ...item,
-                    displayName: item.english_name,
-                    logged: hasSpottingForLatin(item.scientific_name),
+                const sci = rows.map(r => r.scientific_name);
+                const loc = await fetchLocalizedNamesPage(sci, i18n.language);
+                rows = rows.map(r => ({
+                    ...r,
+                    displayName: loc[r.scientific_name] ?? r.displayName,
                 }));
-
-                // Fetch localized names
-                try {
-                    const sciNames = batch.map(b => b.scientific_name);
-                    const localized = await fetchLocalizedNamesBatch(
-                        sciNames,
-                        i18n.language
-                    );
-                    batch.forEach(b => {
-                        const loc = localized[b.scientific_name];
-                        if (loc) b.displayName = loc;
-                    });
-                } catch (err) {
-                    console.warn('Localization failed', err);
-                }
-
-                // Append or replace
-                if (reset) {
-                    setDisplayList(batch);
-                } else {
-                    setDisplayList(prev => [...prev, ...batch]);
-                }
-
-                // Update offset and hasMore
-                setOffset(prev => reset ? batch.length : prev + batch.length);
-                if (batch.length < BATCH_SIZE) {
-                    setHasMore(false);
-                }
-            } catch (err) {
-                console.error('Error loading batch:', err);
-                Alert.alert(t('birddex.error'), t('birddex.loadBatchFailed'));
-            } finally {
-                if (reset) setIsRefreshing(false);
-                if (isInitialLoading) setIsInitialLoading(false);
-                setIsLoadingMore(false);
+            } catch (e) {
+                console.warn('Localization failed', e);
             }
-        },
-        [searchText, sortKey, sortAscending, offset, i18n.language, t, isInitialLoading]
-    );
 
-    // initialize DB then load first batch
+            /* total pages */
+            const total = getBirdDexRowCount(searchText.trim());
+            setPageCount(Math.max(1, Math.ceil(total / PAGE_SIZE)));
+
+            /* UI push */
+            setDisplayList(rows);
+            setPage(targetPage);
+        } catch (e) {
+            console.error(e);
+            Alert.alert(t('birddex.error'), t('birddex.loadPageFailed'));
+        } finally {
+            setIsRefreshing(false);
+            setIsInitialLoading(false);
+        }
+    }, [searchText, sortKey, sortAscending, i18n.language]);
+
+    /* ──────────────────  INITIALISE + WATCH FILTERS  ────────────────── */
     useEffect(() => {
         (async () => {
             try {
@@ -127,160 +107,124 @@ const BirdDexIndex: React.FC = () => {
                     await initBirdDexDB();
                     initedRef.current = true;
                 }
-            } catch (err) {
-                console.error('DB init error:', err);
+            } catch (e) {
+                console.error('DB init error', e);
                 Alert.alert(t('birddex.error'), t('birddex.initFailed'));
             } finally {
-                await loadBatch(true);
+                loadPage(1);
             }
         })();
-    }, [loadBatch, t]);
+    }, []); // run exactly once
 
-    // reload on filter/sort change
-    useEffect(() => {
-        loadBatch(true);
-    }, [searchText, sortKey, sortAscending, loadBatch]);
+    /* reload when search / sort change */
+    useEffect(() => { loadPage(1); }, [searchText, sortKey, sortAscending]);
 
-    // infinite scroll
-    const onEndReached = () => {
-        if (hasMore && !isInitialLoading && !isRefreshing && !isLoadingMore) {
-            setIsLoadingMore(true);
-            loadBatch(false);
-        }
-    };
-
-    // sort toggler
+    /* ────────────────────────  UI HELPERS  ───────────────────────── */
     const toggleSort = (key: keyof BirdDexRecord) => {
-        if (key === sortKey) {
-            setSortAscending(p => !p);
-        } else {
-            setSortKey(key);
-            setSortAscending(true);
-        }
+        if (key === sortKey) setSortAscending(p => !p);
+        else { setSortKey(key); setSortAscending(true); }
     };
 
-    // navigation to log select
-    const handleLog = (latin: string) => {
-        router.push({ pathname: '/log/select', params: { latin } });
-    };
+    const handleLog = (latin: string) => router.push({ pathname: '/log/select', params: { latin } });
 
-    // Wikipedia opener
     const handleWiki = (sci: string) => {
-        const title = encodeURIComponent(sci.replace(/ /g, '_'));
-        const url = `https://${i18n.language}.wikipedia.org/wiki/${title}`;
+        const url = `https://${i18n.language}.wikipedia.org/wiki/${encodeURIComponent(sci.replace(/ /g, '_'))}`;
         Linking.openURL(url).catch(e => {
-            console.error('Wiki open error:', e);
+            console.error('Wiki open error', e);
             Alert.alert(t('birddex.error'), t('birddex.openWikiFailed'));
         });
     };
 
-    // item renderer
-    const renderItem = useCallback(
-        ({ item }: { item: DisplayRecord }) => (
-            <View
-                style={[
-                    styles.row,
-                    { borderColor: pal.colors.border },
-                    item.logged && { backgroundColor: pal.colors.primary + '20' },
-                ]}
-            >
-                <Text style={[styles.cell, { color: pal.colors.text.primary }]}>
-                    {item.displayName}
-                </Text>
-                <Text style={[styles.cell, { color: pal.colors.text.secondary }]}>
-                    {item.scientific_name}
-                </Text>
-                <View style={[styles.cell, styles.loggedCol]}>
-                    <Text>{item.logged ? '✅' : ''}</Text>
-                </View>
-                <Pressable
-                    style={({ pressed }) => [
-                        styles.actionButton,
-                        pressed && { opacity: 0.6 },
-                    ]}
-                    onPress={() => handleLog(item.scientific_name)}
-                >
-                    <Text style={[styles.buttonText, { color: pal.colors.primary }]}>
-                        {t('birddex.log')}
-                    </Text>
-                </Pressable>
-                <Pressable
-                    style={({ pressed }) => [
-                        styles.actionButton,
-                        pressed && { opacity: 0.6 },
-                    ]}
-                    onPress={() => handleWiki(item.scientific_name)}
-                >
-                    <Text style={[styles.buttonText, { color: pal.colors.primary }]}>
-                        {t('birddex.wikipedia')}
-                    </Text>
-                </Pressable>
-            </View>
-        ),
-        [pal.colors, t]
-    );
+    /* ───────────────────────────  RENDER  ─────────────────────────── */
+    const renderItem = useCallback(({ item }: { item: DisplayRecord }) => (
+        <View style={[styles.row, { borderColor: pal.colors.border }, item.logged && { backgroundColor: pal.colors.primary + '20' }]}>
+            <Text style={[styles.cell, { color: pal.colors.text.primary }]}>{item.displayName}</Text>
+            <Text style={[styles.cell, { color: pal.colors.text.secondary }]}>{item.scientific_name}</Text>
+            <View style={[styles.cell, styles.loggedCol]}><Text>{item.logged ? '✅' : ''}</Text></View>
+            <Pressable style={({ pressed }) => [styles.actionButton, pressed && { opacity: 0.6 }]} onPress={() => handleLog(item.scientific_name)}>
+                <Text style={[styles.buttonText, { color: pal.colors.primary }]}>{t('birddex.log')}</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.actionButton, pressed && { opacity: 0.6 }]} onPress={() => handleWiki(item.scientific_name)}>
+                <Text style={[styles.buttonText, { color: pal.colors.primary }]}>{t('birddex.wikipedia')}</Text>
+            </Pressable>
+        </View>
+    ), [pal.colors, t]);
 
-    // header
     const renderHeader = () => (
         <View style={[styles.headerRow, { backgroundColor: pal.colors.card }]}>
-            <Pressable style={styles.headerCell} onPress={() => toggleSort('english_name')}>
-                <Text style={{ color: pal.colors.text.primary }}>
-                    {t('birddex.name')} {sortKey === 'english_name' ? (sortAscending ? '↑' : '↓') : ''}
-                </Text>
-            </Pressable>
-            <Pressable style={styles.headerCell} onPress={() => toggleSort('scientific_name')}>
-                <Text style={{ color: pal.colors.text.primary }}>
-                    {t('birddex.scientific')} {sortKey === 'scientific_name' ? (sortAscending ? '↑' : '↓') : ''}
-                </Text>
-            </Pressable>
-            <View style={[styles.headerCell, styles.loggedCol]}>
-                <Text style={{ color: pal.colors.text.primary }}>{t('birddex.logged')}</Text>
-            </View>
-            <View style={styles.headerCell}>
-                <Text style={{ color: pal.colors.text.primary }}>{t('birddex.action')}</Text>
-            </View>
-            <View style={styles.headerCell}>
-                <Text style={{ color: pal.colors.text.primary }}>{t('birddex.wikipedia')}</Text>
-            </View>
+            {([['english_name', t('birddex.name')], ['scientific_name', t('birddex.scientific')]] as const).map(([key, label]) => (
+                <Pressable key={key} style={styles.headerCell} onPress={() => toggleSort(key)}>
+                    <Text style={{ color: pal.colors.text.primary }}>{label} {sortKey === key ? (sortAscending ? '↑' : '↓') : ''}</Text>
+                </Pressable>
+            ))}
+            <View style={[styles.headerCell, styles.loggedCol]}><Text style={{ color: pal.colors.text.primary }}>{t('birddex.logged')}</Text></View>
+            <View style={styles.headerCell}><Text style={{ color: pal.colors.text.primary }}>{t('birddex.action')}</Text></View>
+            <View style={styles.headerCell}><Text style={{ color: pal.colors.text.primary }}>{t('birddex.wikipedia')}</Text></View>
         </View>
     );
 
-    // empty state
-    const ListEmpty = () =>
-        isRefreshing ? (
-            <View style={styles.emptyWrapper}>
-                <ActivityIndicator size="large" color={pal.colors.primary} />
-                <Text style={[styles.emptyText, { color: pal.colors.text.secondary }]}>
-                    {t('birddex.loadingEntries')}
-                </Text>
-            </View>
-        ) : (
-            <Text style={[styles.emptyText, { color: pal.colors.text.secondary }]}>
-                {t('birddex.noResults')}
-            </Text>
-        );
+    const ListEmpty = () => isRefreshing ? (
+        <View style={styles.emptyWrapper}>
+            <ActivityIndicator size="large" color={pal.colors.primary} />
+            <Text style={[styles.emptyText, { color: pal.colors.text.secondary }]}>{t('birddex.loadingEntries')}</Text>
+        </View>
+    ) : <Text style={[styles.emptyText, { color: pal.colors.text.secondary }]}>{t('birddex.noResults')}</Text>;
 
-    // footer spinner
-    const renderFooter = () =>
-        isLoadingMore ? <ActivityIndicator style={{ margin: 16 }} color={pal.colors.primary} /> : null;
+    if (isInitialLoading) return (
+        <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+            <BirdAnimation numberOfBirds={5} />
+            <ActivityIndicator size="large" color={pal.colors.primary} />
+            <Text style={[styles.loadingText, { color: pal.colors.text.primary }]}>{t('birddex.initializingDb')}</Text>
+        </SafeAreaView>
+    );
 
-    // initial loading screen
-    if (isInitialLoading) {
+    const Pager = () => {
+        // show ≤5 numbers around the current page so it stays compact
+        const window = 2;
+        const first  = Math.max(1, page - window);
+        const last   = Math.min(pageCount, page + window);
+        const nums   = [];
+        for (let i = first; i <= last; i++) nums.push(i);
+
         return (
-            <SafeAreaView
-                style={[
-                    styles.container,
-                    { backgroundColor: pal.colors.background, justifyContent: 'center', alignItems: 'center' },
-                ]}
-            >
-                <BirdAnimation numberOfBirds={5} />
-                <ActivityIndicator size="large" color={pal.colors.primary} />
-                <Text style={[styles.loadingText, { color: pal.colors.text.primary }]}>
-                    {t('birddex.initializingDb')}
-                </Text>
-            </SafeAreaView>
+            <View style={styles.pagerRow}>
+                {/* left arrow */}
+                <Pressable
+                    disabled={page === 1}
+                    onPress={() => loadPage(page - 1)}
+                    style={[styles.pageBtn, page === 1 && styles.disabledBtn]}>
+                    <Text style={styles.pageTxt}>{'‹‹'}</Text>
+                </Pressable>
+
+                {/* page numbers */}
+                {nums.map(n => (
+                    <Pressable
+                        key={n}
+                        onPress={() => loadPage(n)}
+                        style={[
+                            styles.pageBtn,
+                            n === page && styles.currentBtn,
+                        ]}>
+                        <Text style={[
+                            styles.pageTxt,
+                            n === page && styles.currentTxt,
+                        ]}>{n}</Text>
+                    </Pressable>
+                ))}
+
+                {/* right arrow */}
+                <Pressable
+                    disabled={page === pageCount}
+                    onPress={() => loadPage(page + 1)}
+                    style={[
+                        styles.pageBtn,
+                        page === pageCount && styles.disabledBtn,
+                    ]}>
+                    <Text style={styles.pageTxt}>{'››'}</Text>
+                </Pressable>
+            </View>
         );
-    }
+    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
@@ -298,7 +242,7 @@ const BirdDexIndex: React.FC = () => {
                         { backgroundColor: pal.colors.primary },
                         pressed && { opacity: 0.7 },
                     ]}
-                    onPress={() => loadBatch(true)}
+                    onPress={() => loadPage(1)}
                 >
                     <Text style={[styles.buttonText, { color: pal.colors.text.light }]}>
                         {t('birddex.reload')}
@@ -306,21 +250,7 @@ const BirdDexIndex: React.FC = () => {
                 </Pressable>
             </View>
 
-            <FlatList<DisplayRecord>
-                data={displayList}
-                keyExtractor={item => item.species_code}
-                renderItem={renderItem}
-                ListHeaderComponent={renderHeader}
-                ListEmptyComponent={ListEmpty}
-                ListFooterComponent={renderFooter}
-                onEndReached={onEndReached}
-                onEndReachedThreshold={0.5}
-                showsVerticalScrollIndicator
-                initialNumToRender={20}
-                maxToRenderPerBatch={20}
-                windowSize={21}
-                contentContainerStyle={displayList.length === 0 ? { flex: 1, justifyContent: 'center' } : undefined}
-            />
+            <Pager />
         </SafeAreaView>
     );
 };
@@ -382,4 +312,20 @@ const styles = StyleSheet.create({
         fontSize: 16,
         textAlign: 'center',
     },
+    pagerRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 8,
+    },
+    pageBtn: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        marginHorizontal: 2,
+        borderRadius: theme.borderRadius.sm,
+    },
+    currentBtn: { backgroundColor: theme.dark.colors.text.primary + '20' },
+    disabledBtn: { opacity: 0.3 },
+    pageTxt:   { color: theme.dark.colors.text.primary, fontSize: 16 },
+    currentTxt:{ fontWeight: '700' },
 });
