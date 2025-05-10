@@ -64,6 +64,8 @@ const BirdDexIndex: React.FC = () => {
                 offset,
             );
 
+            console.log("raw BirDex Page Length:", raw.length);
+
             /* map + logged flag */
             let rows: DisplayRecord[] = raw.map(r => ({
                 ...r,
@@ -258,7 +260,7 @@ const BirdDexIndex: React.FC = () => {
 export default BirdDexIndex;
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: { flex: 1, marginTop: 25 },
     loadingText: { fontSize: 16, marginTop: 8 },
     searchWrap: {
         flexDirection: 'row',

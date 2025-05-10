@@ -352,10 +352,13 @@ export function queryBirdDexPage(
         ORDER  BY hasBeenLogged DESC, "${sortKey}" ${orderDir}
     LIMIT  ? OFFSET ?;`;
 
+    console.log(`queryBirdDexPage: ${sql}`);
+
     const stmt = db.prepareSync(sql);
     try {
         if (filter) {
             const like = `%${filter}%`;
+            console.log(`queryBirdDexPage: filter=${like}`);
             return stmt
                 .executeSync(like, like, pageSize, offset)
                 .getAllSync() as BirdDexRecord[];

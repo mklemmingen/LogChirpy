@@ -49,6 +49,8 @@
     "metro": "^0.81.0",
     "metro-config": "^0.81.0",
     "metro-resolver": "^0.81.0",
+    "node-fetch": "^3.3.2",
+    "p-limit": "^6.2.0",
     "papaparse": "^5.5.2",
     "react": "18.3.1",
     "react-i18next": "^15.5.1",
