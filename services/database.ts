@@ -224,7 +224,7 @@ async function copyImageToLocalSystem() {
   }
 }
 
-async function insertTestSpotting(): Promise<void> {
+export async function insertTestSpotting(): Promise<void> {
   const localImagePath = await copyImageToLocalSystem();
 
   /* ---------- entry #1 – today ---------- */
@@ -240,6 +240,7 @@ async function insertTestSpotting(): Promise<void> {
     birdType: "Sparrow",
     imagePrediction: "Sparrow",
     audioPrediction: "Sparrow",
+    latinBirDex: "Passer domesticus",
   });
 
   /* ---------- entry #2 – yesterday ---------- */
@@ -255,5 +256,6 @@ async function insertTestSpotting(): Promise<void> {
     birdType: "Robin",
     imagePrediction: "Robin",
     audioPrediction: "Robin",
+    latinBirDex: "Erithacus rubecula",
   });
 }

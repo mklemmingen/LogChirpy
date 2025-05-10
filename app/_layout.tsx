@@ -23,7 +23,7 @@ import {
 } from '@infinitered/react-native-mlkit-object-detection';
 
 // BirDex Database loaded at startup
-import { initDB } from '@/services/database';
+import { initDB, insertTestSpotting } from '@/services/database';
 import { initBirdDexDB } from '@/services/databaseBirDex';
 
 SplashScreen.preventAutoHideAsync();
@@ -95,6 +95,7 @@ export default function RootLayout() {
         (async () => {
             try {
                 initDB();              // creates bird_spottings table
+                insertTestSpotting(); // TODO REMOVE BEFORE PRODUCTION
                 await initBirdDexDB(); // upserts birddex table
             } catch (e) {
                 console.error('DB init error', e);

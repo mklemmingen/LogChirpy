@@ -63,7 +63,8 @@
     "react-native-vision-camera": "^4.6.4",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
-    "react-native-zip-archive": "^7.0.1"
+    "react-native-zip-archive": "^7.0.1",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
