@@ -14,7 +14,7 @@ import {
     Alert,
     Modal,
     Button,
-    Platform, // Import für Plattformprüfung
+    Platform,
 } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -24,14 +24,13 @@ import { useLogDraft } from '../context/LogDraftContext';
 import { insertBirdSpotting } from '@/services/database';
 import { theme } from '@/constants/theme';
 import { useVideoPlayer, VideoView, VideoSource } from 'expo-video';
+import React from 'react';
 
-// Konstanten für das Layout
 const COL_GAP = 12;
 const SCREEN_W = Dimensions.get('window').width;
 const HALF_W = (SCREEN_W - COL_GAP * 3) / 2;
 const FULL_W = SCREEN_W - COL_GAP * 2;
 
-// Kacheltypen und -struktur
 type TileType = 'image' | 'video' | 'audio' | 'text' | 'date' | 'gps' | 'button';
 
 type TileConfig = {
@@ -54,42 +53,51 @@ export default function Manual() {
     const colorScheme = useColorScheme() ?? 'light';
     const pal = theme[colorScheme];
     const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
-
-    // Datumsauswahl-Modal
     const [dateModalVisible, setDateModalVisible] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
 
-    // Create preview video player at the top level
     const previewPlayer = useVideoPlayer((draft.videoUri || '') as VideoSource, (player) => {
         if (draft.videoUri) {
             player.loop = true;
             player.muted = true;
-            player.play();
+            if (!isVideoModalVisible) {
+                player.play();
+            }
         }
     });
 
-    // Create full screen video player
     const fullscreenPlayer = useVideoPlayer((draft.videoUri || '') as VideoSource, (player) => {
-        if (draft.videoUri && isVideoModalVisible) {
+        if (draft.videoUri) {
             player.loop = false;
             player.muted = false;
-            player.play();
+            if (isVideoModalVisible) {
+                player.play();
+            }
         }
     });
+
+    useEffect(() => {
+        if (isVideoModalVisible && draft.videoUri) {
+            previewPlayer.pause();
+            fullscreenPlayer.play();
+        } else if (draft.videoUri) {
+            fullscreenPlayer.pause();
+            previewPlayer.play();
+        }
+    }, [isVideoModalVisible, draft.videoUri]);
 
     const openDateModal = () => {
         setSelectedDate(draft.date ? new Date(draft.date) : new Date());
         setDateModalVisible(true);
     };
 
-    // Handle video modal
     const openVideoModal = () => {
         setIsVideoModalVisible(true);
     };
 
     const closeVideoModal = () => {
         setIsVideoModalVisible(false);
-        fullscreenPlayer.pause();
+        fullscreenPlayer?.pause();
     };
 
     const handleVideoRetake = () => {
@@ -97,7 +105,6 @@ export default function Manual() {
         router.push('/log/video');
     };
 
-    // Parameter aus der Navigation verarbeiten
     useEffect(() => {
         if (params.audioUri) {
             update({ audioUri: params.audioUri as string });
@@ -108,14 +115,12 @@ export default function Manual() {
         if (params.videoUri) {
             update({ videoUri: params.videoUri as string });
         }
-    }, [params]);
+    }, []);
 
-    // Kacheln aktualisieren, wenn sich der Draft ändert
     useEffect(() => {
         const generateTiles = () => {
             const newTiles: TileConfig[] = [];
 
-            // Bild-Kachel
             if (draft.imageUri) {
                 newTiles.push({
                     type: 'image',
@@ -134,7 +139,6 @@ export default function Manual() {
                 });
             }
 
-            // Video-Kachel
             if (draft.videoUri) {
                 newTiles.push({
                     type: 'video',
@@ -153,7 +157,6 @@ export default function Manual() {
                 });
             }
 
-            // Audio-Kachel
             if (draft.audioUri) {
                 newTiles.push({
                     type: 'audio',
@@ -172,7 +175,6 @@ export default function Manual() {
                 });
             }
 
-            // Vogelart-Kachel
             newTiles.push({
                 type: 'text',
                 key: 'birdType',
@@ -182,7 +184,6 @@ export default function Manual() {
                 value: draft.birdType || '',
             });
 
-            // Notiz-Kachel
             newTiles.push({
                 type: 'text',
                 key: 'textNote',
@@ -192,7 +193,6 @@ export default function Manual() {
                 value: draft.textNote || '',
             });
 
-            // Datum-Kachel
             newTiles.push({
                 type: 'date',
                 key: 'date',
@@ -202,7 +202,6 @@ export default function Manual() {
                 action: () => openDateModal(),
             });
 
-            // GPS-Kachel
             const gpsValue = draft.gpsLat && draft.gpsLng
                 ? `${draft.gpsLat.toFixed(6)}, ${draft.gpsLng.toFixed(6)}`
                 : t('log.no_location');
@@ -216,7 +215,6 @@ export default function Manual() {
                 action: () => getLocation(),
             });
 
-            // KI-Vorhersage-Kacheln (werden nur angezeigt, wenn vorhanden)
             if (draft.imagePrediction) {
                 newTiles.push({
                     type: 'text',
@@ -243,7 +241,6 @@ export default function Manual() {
         generateTiles();
     }, [draft, t]);
 
-    // Audio-Wiedergabe
     const playAudio = async (uri: string) => {
         try {
             if (sound) {
@@ -267,7 +264,6 @@ export default function Manual() {
         }
     };
 
-    // Standort abrufen
     const getLocation = async () => {
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
@@ -289,12 +285,10 @@ export default function Manual() {
         }
     };
 
-    // Textinput-Änderungen
     const handleTextChange = (key: string, value: string) => {
         update({ [key]: value });
     };
 
-    // KI-Bildanalyse durchführen
     const analyzeImage = async () => {
         if (!draft.imageUri) return;
 
@@ -307,12 +301,10 @@ export default function Manual() {
         }
     };
 
-    // Speichern
     const onSave = async () => {
         setBusy(true);
 
         try {
-            // KI-Bildanalyse nur ausführen, wenn ein Bild vorhanden ist und keine Vorhersage existiert
             if (draft.imageUri && !draft.imagePrediction) {
                 await analyzeImage();
             }
@@ -331,7 +323,6 @@ export default function Manual() {
                 audioPrediction: draft.audioPrediction || '',
             });
 
-            // LogDraft zurücksetzen und Benutzer weiterleiten
             clear();
             router.replace('/(tabs)');
         } catch (error) {
@@ -345,7 +336,6 @@ export default function Manual() {
         }
     };
 
-    // Kachel-Rendering
     const renderTile = (tile: TileConfig) => {
         const tileStyles = [
             styles.tile,
@@ -355,7 +345,6 @@ export default function Manual() {
             }
         ];
 
-        // Bild-Kachel
         if (tile.type === 'image' && draft.imageUri) {
             return (
                 <TouchableOpacity
@@ -377,7 +366,6 @@ export default function Manual() {
             );
         }
 
-        // Video-Kachel
         if (tile.type === 'video' && draft.videoUri) {
             return (
                 <>
@@ -386,11 +374,13 @@ export default function Manual() {
                         style={[...tileStyles, styles.mediaTile]}
                         onPress={openVideoModal}
                     >
-                        <VideoView
-                            player={previewPlayer}
-                            style={styles.mediaPreview}
-                            contentFit="cover"
-                        />
+                        {previewPlayer && (
+                            <VideoView
+                                player={previewPlayer}
+                                style={styles.mediaPreview}
+                                contentFit="cover"
+                            />
+                        )}
                         <View style={styles.tileOverlay}>
                             <Text style={[styles.tileLabel, { color: pal.colors.text.light }]}>
                                 {tile.label}
@@ -405,12 +395,14 @@ export default function Manual() {
                         onRequestClose={closeVideoModal}
                     >
                         <View style={styles.videoModalContainer}>
-                            <VideoView
-                                player={fullscreenPlayer}
-                                style={styles.fullscreenVideo}
-                                contentFit="contain"
-                                nativeControls
-                            />
+                            {fullscreenPlayer && (
+                                <VideoView
+                                    player={fullscreenPlayer}
+                                    style={styles.fullscreenVideo}
+                                    contentFit="contain"
+                                    nativeControls
+                                />
+                            )}
                             <View style={styles.videoModalControls}>
                                 <TouchableOpacity
                                     style={[styles.button, { backgroundColor: pal.colors.primary }]}
@@ -432,7 +424,6 @@ export default function Manual() {
             );
         }
 
-        // Audio-Kachel
         if (tile.type === 'audio') {
             return (
                 <TouchableOpacity
@@ -450,7 +441,6 @@ export default function Manual() {
             );
         }
 
-        // Text-Kachel (editierbar)
         if (tile.type === 'text' && tile.editable) {
             return (
                 <View key={tile.key} style={tileStyles}>
@@ -473,7 +463,6 @@ export default function Manual() {
             );
         }
 
-        // Text-Kachel (nicht editierbar)
         if (tile.type === 'text' && !tile.editable) {
             return (
                 <View key={tile.key} style={tileStyles}>
@@ -485,7 +474,6 @@ export default function Manual() {
             );
         }
 
-        // Datum-Kachel
         if (tile.type === 'date') {
             return (
                 <TouchableOpacity
@@ -503,7 +491,6 @@ export default function Manual() {
             );
         }
 
-        // GPS-Kachel
         if (tile.type === 'gps') {
             return (
                 <TouchableOpacity
@@ -521,7 +508,6 @@ export default function Manual() {
             );
         }
 
-        // Button-Kachel (für "Hinzufügen")
         if (tile.type === 'button') {
             return (
                 <TouchableOpacity
@@ -547,7 +533,11 @@ export default function Manual() {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.masonry}>
-                    {tiles.map(renderTile)}
+                    {tiles.map((tile) => (
+                        <React.Fragment key={tile.key}>
+                            {renderTile(tile)}
+                        </React.Fragment>
+                    ))}
                 </View>
             </ScrollView>
 
