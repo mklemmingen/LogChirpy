@@ -65,7 +65,8 @@
     "react-native-webview": "13.12.5",
     "react-native-zip-archive": "^7.0.1",
     "winston": "^3.17.0",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "expo-video": "~2.0.6"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

@@ -59,6 +59,7 @@ export default {
         }
       ],
       "expo-sqlite",
+      "expo-video"
     ],
     experiments: {
       typedRoutes: true
