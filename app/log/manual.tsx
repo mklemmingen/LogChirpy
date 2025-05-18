@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -23,7 +23,7 @@ import * as Location from 'expo-location';
 import { useLogDraft } from '../context/LogDraftContext';
 import { insertBirdSpotting } from '@/services/database';
 import { theme } from '@/constants/theme';
-import { decode } from 'jpeg-js';
+import { useVideoPlayer, VideoView, VideoSource } from 'expo-video';
 
 // Konstanten für das Layout
 const COL_GAP = 12;
@@ -53,19 +53,48 @@ export default function Manual() {
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const colorScheme = useColorScheme() ?? 'light';
     const pal = theme[colorScheme];
+    const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
 
     // Datumsauswahl-Modal
     const [dateModalVisible, setDateModalVisible] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
+
+    // Create preview video player at the top level
+    const previewPlayer = useVideoPlayer((draft.videoUri || '') as VideoSource, (player) => {
+        if (draft.videoUri) {
+            player.loop = true;
+            player.muted = true;
+            player.play();
+        }
+    });
+
+    // Create full screen video player
+    const fullscreenPlayer = useVideoPlayer((draft.videoUri || '') as VideoSource, (player) => {
+        if (draft.videoUri && isVideoModalVisible) {
+            player.loop = false;
+            player.muted = false;
+            player.play();
+        }
+    });
 
     const openDateModal = () => {
         setSelectedDate(draft.date ? new Date(draft.date) : new Date());
         setDateModalVisible(true);
     };
 
-    const confirmDate = () => {
-        update({ date: selectedDate.toISOString() });
-        setDateModalVisible(false);
+    // Handle video modal
+    const openVideoModal = () => {
+        setIsVideoModalVisible(true);
+    };
+
+    const closeVideoModal = () => {
+        setIsVideoModalVisible(false);
+        fullscreenPlayer.pause();
+    };
+
+    const handleVideoRetake = () => {
+        closeVideoModal();
+        router.push('/log/video');
     };
 
     // Parameter aus der Navigation verarbeiten
@@ -112,7 +141,7 @@ export default function Manual() {
                     key: 'videoUri',
                     label: t('log.video'),
                     span: 'half',
-                    action: () => router.push('/log/video'),
+                    action: () => openVideoModal(),
                 });
             } else {
                 newTiles.push({
@@ -351,20 +380,55 @@ export default function Manual() {
         // Video-Kachel
         if (tile.type === 'video' && draft.videoUri) {
             return (
-                <TouchableOpacity
-                    key={tile.key}
-                    style={[...tileStyles, styles.mediaTile]}
-                    onPress={tile.action}
-                >
-                    <View style={styles.videoPreview}>
-                        <Text style={styles.playIcon}>▶</Text>
-                    </View>
-                    <View style={styles.tileOverlay}>
-                        <Text style={[styles.tileLabel, { color: pal.colors.text.light }]}>
-                            {tile.label}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
+                <>
+                    <TouchableOpacity
+                        key={tile.key}
+                        style={[...tileStyles, styles.mediaTile]}
+                        onPress={openVideoModal}
+                    >
+                        <VideoView
+                            player={previewPlayer}
+                            style={styles.mediaPreview}
+                            contentFit="cover"
+                        />
+                        <View style={styles.tileOverlay}>
+                            <Text style={[styles.tileLabel, { color: pal.colors.text.light }]}>
+                                {tile.label}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <Modal
+                        visible={isVideoModalVisible}
+                        transparent={true}
+                        animationType="fade"
+                        onRequestClose={closeVideoModal}
+                    >
+                        <View style={styles.videoModalContainer}>
+                            <VideoView
+                                player={fullscreenPlayer}
+                                style={styles.fullscreenVideo}
+                                contentFit="contain"
+                                nativeControls
+                            />
+                            <View style={styles.videoModalControls}>
+                                <TouchableOpacity
+                                    style={[styles.button, { backgroundColor: pal.colors.primary }]}
+                                    onPress={closeVideoModal}
+                                >
+                                    <Text style={styles.buttonText}>{t('select.back')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.button, { backgroundColor: pal.colors.primary }]}
+                                    onPress={handleVideoRetake}
+                                >
+                                    <Text style={styles.buttonText}>{t('camera.retake')}</Text>
+                                </TouchableOpacity>
+
+                            </View>
+                        </View>
+                    </Modal>
+                </>
             );
         }
 
@@ -478,69 +542,75 @@ export default function Manual() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
             <Stack.Screen options={{ headerShown: false }} />
-                <ScrollView
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                >
-                    <View style={styles.masonry}>
-                        {tiles.map(renderTile)}
-                    </View>
-                </ScrollView>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={styles.masonry}>
+                    {tiles.map(renderTile)}
+                </View>
+            </ScrollView>
 
-                {/* Datumsauswahl-Modal */}
-                <Modal
-                    visible={dateModalVisible}
-                    transparent={true}
-                    animationType="slide"
-                >
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalContent}>
-                            <Text style={styles.modalTitle}>{t('log.select_date')}</Text>
-                            {Platform.OS === 'ios' ? (
-                                <View>
-                                    <TextInput
-                                        style={styles.input}
-                                        value={selectedDate.toDateString()}
-                                        editable={false}
-                                    />
-                                    <Button
-                                        title={t('buttons.confirm')}
-                                        onPress={confirmDate}
-                                    />
-                                </View>
-                            ) : (
-                                <View>
-                                    <Button
-                                        title={t('buttons.confirm')}
-                                        onPress={confirmDate}
-                                    />
-                                </View>
-                            )}
-                            <Button
-                                title={t('buttons.cancel')}
-                                onPress={() => setDateModalVisible(false)}
-                            />
-                        </View>
+            {/* Datumsauswahl-Modal */}
+            <Modal
+                visible={dateModalVisible}
+                transparent={true}
+                animationType="slide"
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>{t('log.select_date')}</Text>
+                        {Platform.OS === 'ios' ? (
+                            <View>
+                                <TextInput
+                                    style={styles.input}
+                                    value={selectedDate.toDateString()}
+                                    editable={false}
+                                />
+                                <Button
+                                    title={t('buttons.confirm')}
+                                    onPress={() => {
+                                        update({ date: selectedDate.toISOString() });
+                                        setDateModalVisible(false);
+                                    }}
+                                />
+                            </View>
+                        ) : (
+                            <View>
+                                <Button
+                                    title={t('buttons.confirm')}
+                                    onPress={() => {
+                                        update({ date: selectedDate.toISOString() });
+                                        setDateModalVisible(false);
+                                    }}
+                                />
+                            </View>
+                        )}
+                        <Button
+                            title={t('buttons.cancel')}
+                            onPress={() => setDateModalVisible(false)}
+                        />
                     </View>
-                </Modal>
+                </View>
+            </Modal>
 
-                {/* Speichern-Button */}
-                <TouchableOpacity
-                    style={[
-                        styles.saveBtn,
-                        { backgroundColor: pal.colors.primary },
-                        busy && styles.disabledBtn
-                    ]}
-                    onPress={onSave}
-                >
-                    <Text style={styles.saveText}>{t('buttons.save')}</Text>
-                </TouchableOpacity>
+            {/* Speichern-Button */}
+            <TouchableOpacity
+                style={[
+                    styles.saveBtn,
+                    { backgroundColor: pal.colors.primary },
+                    busy && styles.disabledBtn
+                ]}
+                onPress={onSave}
+            >
+                <Text style={styles.saveText}>{t('buttons.save')}</Text>
+            </TouchableOpacity>
 
-                {busy && (
-                    <View style={styles.busyOverlay}>
-                        <ActivityIndicator size="large" color={pal.colors.primary} />
-                    </View>
-                )}
+            {busy && (
+                <View style={styles.busyOverlay}>
+                    <ActivityIndicator size="large" color={pal.colors.primary} />
+                </View>
+            )}
         </SafeAreaView>
     );
 }
@@ -657,5 +727,31 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    videoModalContainer: {
+        flex: 1,
+        backgroundColor: 'black',
+        justifyContent: 'space-between',
+    },
+    fullscreenVideo: {
+        flex: 1,
+        width: '100%',
+    },
+    videoModalControls: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        padding: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    button: {
+        padding: 12,
+        borderRadius: theme.borderRadius.sm,
+        borderWidth: 1,
+        borderColor: theme.light.colors.primary,
+    },
+    buttonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#fff',
     },
 });
