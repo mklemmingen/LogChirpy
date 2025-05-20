@@ -1,7 +1,7 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme, View, StyleSheet } from 'react-native';
@@ -29,7 +29,7 @@ import { initBirdDexDB } from '@/services/databaseBirDex';
 SplashScreen.preventAutoHideAsync();
 
 const MODELS_OBJECT: ObjectDetectionConfig = {
-    ssdmobilenetV1 : {
+    ssdmobilenetV1: {
         model: require('../assets/models/ssd_mobilenet_v1_metadata.tflite'),
         options: {
             shouldEnableMultipleObjects: true,
@@ -71,6 +71,10 @@ export default function RootLayout() {
     const currentTheme = theme[colorScheme];
     const [loaded] = useFonts(FONTS);
 
+    const segments = useSegments()
+    // last segment is e.g. 'photo', 'video', 'manual', etc.
+    const current = segments[segments.length - 1]
+
     // Image Labeling
     const models_class = useImageLabelingModels(MODELS_CLASS);
     const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
@@ -81,7 +85,7 @@ export default function RootLayout() {
     // Object Detection
     const models = useObjectDetectionModels<MyModelsConfig>(useMemo(() => ({
         assets: MODELS_OBJECT,
-        loadDefaultModel: true, // loads “mobilenetFloat”
+        loadDefaultModel: true, // loads "mobilenetFloat"
         defaultModelOptions: {
             shouldEnableMultipleObjects: true,
             shouldEnableClassification: true,
@@ -143,15 +147,19 @@ export default function RootLayout() {
                     <View style={styles.container}>
                         <View style={styles.content}>
                             <Stack
-                                screenOptions={{
+                                screenOptions={() => ({
                                     headerStyle: {
-                                        backgroundColor: currentTheme.colors.background,
+                                        backgroundColor:
+                                            current === 'photo' || current === 'video'
+                                                ? 'transparent'
+                                                : currentTheme.colors.background,
                                     },
+                                    headerTransparent: current === 'photo' || current === 'video',
                                     headerTintColor: currentTheme.colors.text.primary,
                                     headerTitleStyle: {
                                         fontWeight: 'bold',
                                     },
-                                }}
+                                })}
                             >
                                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                                 <Stack.Screen name="+not-found" />
