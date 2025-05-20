@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
-  Button,
   StyleSheet,
   Image,
   Text,
@@ -14,7 +13,8 @@ import { CameraView, useCameraPermissions, Camera } from "expo-camera";
 import { Stack, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { theme } from '@/constants/theme';
-import { CameraButton } from '@/components/CameraButton';
+import { CameraControls } from '@/components/CameraControls';
+import { Feather } from '@expo/vector-icons';
 
 export default function PhotoCapture() {
   const { t } = useTranslation();
@@ -25,35 +25,27 @@ export default function PhotoCapture() {
   const [cameraReady, setCameraReady] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const [permissionCheckNeeded, setPermissionCheckNeeded] = useState(false);
+  const [facing, setFacing] = useState<'back' | 'front'>('back');
   const cameraRef = useRef<CameraView>(null);
   const router = useRouter();
 
-  // Regelmäßige Überprüfung nach einer Berechtigungsanfrage
   useEffect(() => {
     let checkInterval: NodeJS.Timeout | null = null;
 
     if (permissionCheckNeeded) {
-      // Starte eine regelmäßige Überprüfung des Berechtigungsstatus
       checkInterval = setInterval(async () => {
-        console.log("Checking if permission was granted...");
         try {
-          // Manuelles Abrufen des aktuellen Berechtigungsstatus
           const { status } = await Camera.getCameraPermissionsAsync();
-          console.log("Current permission status:", status);
-
-          // Wenn sich der Status geändert hat, beenden wir die Überprüfung
           if (status === "granted" || status === "denied") {
             setPermissionCheckNeeded(false);
-            // Manuell den Hook aktualisieren, indem requestPermission aufgerufen wird
             requestPermission();
           }
         } catch (error) {
           console.error("Error checking permission status:", error);
         }
-      }, 1000); // Alle 1 Sekunde überprüfen
+      }, 1000);
     }
 
-    // Aufräumen beim Unmount
     return () => {
       if (checkInterval) clearInterval(checkInterval);
     };
@@ -62,16 +54,8 @@ export default function PhotoCapture() {
   const requestPermissionHandler = async () => {
     try {
       setIsRequestingPermission(true);
-      console.log("Requesting camera permission...");
-
-      // Manuelles Anfordern der Berechtigung mit dem nativen Modul
       const { status } = await Camera.requestCameraPermissionsAsync();
-
-      console.log("Camera permission status:", status);
-
-      // Nach der Anfrage starten wir eine regelmäßige Überprüfung
       setPermissionCheckNeeded(true);
-
       if (status !== "granted") {
         Alert.alert(
           t("camera.permission_required"),
@@ -79,8 +63,6 @@ export default function PhotoCapture() {
           [{ text: t("common.ok") }]
         );
       }
-
-      // Seite neu laden nach Berechtigungsanfrage
       router.replace("/log/photo");
     } catch (error) {
       console.error("Error requesting camera permission:", error);
@@ -115,7 +97,10 @@ export default function PhotoCapture() {
     }
   };
 
-  // Anzeige während Permission-Abfrage läuft
+  const flipCamera = () => {
+    setFacing(prev => prev === 'back' ? 'front' : 'back');
+  };
+
   if (isRequestingPermission) {
     return (
       <View style={styles.permissionContainer}>
@@ -127,7 +112,6 @@ export default function PhotoCapture() {
     );
   }
 
-  // Anzeige wenn Permission fehlt oder überprüft wird
   if (permission === null || permissionCheckNeeded) {
     return (
       <View style={styles.permissionContainer}>
@@ -139,7 +123,6 @@ export default function PhotoCapture() {
     );
   }
 
-  // Anzeige wenn Permission abgelehnt wurde
   if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
@@ -164,12 +147,16 @@ export default function PhotoCapture() {
       {!photo ? (
         <CameraView
           style={styles.camera}
-          facing="back"
+          facing={facing}
           ref={cameraRef}
           onCameraReady={() => setCameraReady(true)}
         >
           <View style={styles.controlBar}>
-            <CameraButton onPress={takePicture} />
+            <CameraControls
+              onCapture={takePicture}
+              onFlip={flipCamera}
+              isFlipDisabled={!cameraReady}
+            />
           </View>
         </CameraView>
       ) : (
@@ -209,9 +196,9 @@ const styles = StyleSheet.create({
   },
   controlBar: {
     position: 'absolute',
-    bottom: theme.spacing.xl,
-    width: '100%',
-    alignItems: 'center',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   previewContainer: {
     flex: 1,
