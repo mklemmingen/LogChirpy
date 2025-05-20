@@ -105,13 +105,13 @@ export default function VideoCapture() {
 
   if (!device || !hasCameraPermission || !hasMicPermission) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#0000ff" />
+      <View style={[styles.centered, { backgroundColor: currentTheme.colors.background }]}>
+        <ActivityIndicator size="large" color={currentTheme.colors.primary} />
         <Text
           style={{
             color: currentTheme.colors.text.primary,
-            fontSize: 16,
-            marginTop: 10,
+            fontSize: theme.typography.body.fontSize,
+            marginTop: theme.spacing.sm,
           }}
         >
           {t('camera.loading_screen')}
@@ -122,7 +122,7 @@ export default function VideoCapture() {
 
   if (videoUri) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         <View style={styles.videoContainer}>
           <VideoView
             player={player}
@@ -132,11 +132,21 @@ export default function VideoCapture() {
           />
         </View>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity onPress={handleRetake} style={styles.button}>
-            <Text style={styles.buttonText}>{t('camera.retake')}</Text>
+          <TouchableOpacity
+            onPress={handleRetake}
+            style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
+          >
+            <Text style={[styles.buttonText, { color: currentTheme.colors.buttonText }]}>
+              {t('camera.retake')}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleConfirm} style={styles.button}>
-            <Text style={styles.buttonText}>{t('common.confirm')}</Text>
+          <TouchableOpacity
+            onPress={handleConfirm}
+            style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
+          >
+            <Text style={[styles.buttonText, { color: currentTheme.colors.buttonText }]}>
+              {t('common.confirm')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -157,7 +167,7 @@ export default function VideoCapture() {
         />
         {isRecording && (
           <View style={styles.timerContainer}>
-            <Text style={styles.recordingTime}>
+            <Text style={[styles.recordingTime, { color: currentTheme.colors.error }]}>
               {formatTime(recordingTime)}
             </Text>
           </View>
@@ -165,13 +175,14 @@ export default function VideoCapture() {
         <View style={styles.controlBar}>
           <TouchableOpacity
             onPress={isRecording ? stopRecording : startRecording}
-            style={styles.outerCircle}
+            style={[styles.outerCircle, { borderColor: currentTheme.colors.buttonText }]}
             activeOpacity={0.7}
           >
             <View
               style={[
                 styles.innerCircle,
                 isRecording && styles.innerSquare,
+                { backgroundColor: currentTheme.colors.primary }
               ]}
             />
           </TouchableOpacity>
@@ -189,28 +200,26 @@ const styles = StyleSheet.create({
   },
   controlBar: {
     position: 'absolute',
-    bottom: 40,
+    bottom: theme.spacing.xl,
     width: '100%',
     alignItems: 'center',
   },
   timerContainer: {
     position: 'absolute',
-    right: 20,
-    paddingTop: 8,
-    borderRadius: 6,
+    right: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
+    borderRadius: theme.borderRadius.sm,
   },
   recordingTime: {
-    color: 'red',
-    fontSize: 20,
+    fontSize: theme.typography.h2.fontSize,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: theme.spacing.md,
   },
   outerCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
     borderWidth: 4,
-    borderColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
@@ -218,22 +227,19 @@ const styles = StyleSheet.create({
   innerCircle: {
     width: 60,
     height: 60,
-    backgroundColor: '#e74c3c',
     borderRadius: 30,
   },
   innerSquare: {
     width: 40,
     height: 40,
-    borderRadius: 6,
-    backgroundColor: '#e74c3c',
+    borderRadius: theme.borderRadius.sm,
   },
   container: {
     flex: 1,
-    backgroundColor: 'black',
   },
   videoContainer: {
     flex: 1,
-    marginBottom: 20,
+    marginBottom: theme.spacing.md,
   },
   preview: {
     flex: 1,
@@ -241,19 +247,18 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingBottom: 40,
-    paddingHorizontal: 20,
+    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.md,
   },
   button: {
-    backgroundColor: '#2196F3',
-    padding: 15,
-    borderRadius: 8,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
     minWidth: 120,
     alignItems: 'center',
+    ...theme.shadows.sm,
   },
   buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.body.fontSize,
+    fontWeight: 'bold',
   },
 });
