@@ -17,7 +17,8 @@ import {
 import { useVideoPlayer, VideoView, VideoSource } from 'expo-video';
 import { t } from 'i18next';
 import { theme } from '@/constants/theme';
-import { CameraButton } from '@/components/CameraButton';
+import { CameraControls } from '@/components/CameraControls';
+import { Feather } from '@expo/vector-icons';
 
 export default function VideoCapture() {
   const router = useRouter();
@@ -28,9 +29,9 @@ export default function VideoCapture() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [videoUri, setVideoUri] = useState<string | null>(null);
+  const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Prepare an expo-video player, source is videoUri or empty string
   const player = useVideoPlayer((videoUri || '') as VideoSource, (player) => {
     if (videoUri) {
       player.loop = false;
@@ -48,7 +49,13 @@ export default function VideoCapture() {
 
   const colorScheme = useColorScheme() as 'light' | 'dark';
   const currentTheme = theme[colorScheme];
-  const device = useCameraDevice('back');
+  const device = useCameraDevice(cameraPosition);
+
+  const flipCamera = () => {
+    if (!isRecording) {
+      setCameraPosition(prev => prev === 'back' ? 'front' : 'back');
+    }
+  };
 
   const startRecording = async () => {
     if (!cameraRef.current) return;
@@ -174,9 +181,11 @@ export default function VideoCapture() {
           </View>
         )}
         <View style={styles.controlBar}>
-          <CameraButton
-            onPress={isRecording ? stopRecording : startRecording}
+          <CameraControls
+            onCapture={isRecording ? stopRecording : startRecording}
+            onFlip={flipCamera}
             isRecording={isRecording}
+            isFlipDisabled={isRecording}
           />
         </View>
       </View>
@@ -192,9 +201,9 @@ const styles = StyleSheet.create({
   },
   controlBar: {
     position: 'absolute',
-    bottom: theme.spacing.xl,
-    width: '100%',
-    alignItems: 'center',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   timerContainer: {
     position: 'absolute',
