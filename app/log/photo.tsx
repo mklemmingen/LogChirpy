@@ -14,6 +14,7 @@ import { CameraView, useCameraPermissions, Camera } from "expo-camera";
 import { Stack, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { theme } from '@/constants/theme';
+import { CameraButton } from '@/components/CameraButton';
 
 export default function PhotoCapture() {
   const { t } = useTranslation();
@@ -168,13 +169,7 @@ export default function PhotoCapture() {
           onCameraReady={() => setCameraReady(true)}
         >
           <View style={styles.controlBar}>
-            <TouchableOpacity
-              onPress={takePicture}
-              style={[styles.outerCircle, { borderColor: currentTheme.colors.buttonText }]}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.innerCircle, { backgroundColor: currentTheme.colors.primary }]} />
-            </TouchableOpacity>
+            <CameraButton onPress={takePicture} />
           </View>
         </CameraView>
       ) : (
@@ -217,20 +212,6 @@ const styles = StyleSheet.create({
     bottom: theme.spacing.xl,
     width: '100%',
     alignItems: 'center',
-  },
-  outerCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  innerCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
   },
   previewContainer: {
     flex: 1,
