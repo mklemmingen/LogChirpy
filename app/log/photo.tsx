@@ -7,6 +7,7 @@ import {
   Text,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { CameraView, useCameraPermissions, Camera } from "expo-camera";
 import { useRouter } from "expo-router";
@@ -154,15 +155,27 @@ export default function PhotoCapture() {
           ref={cameraRef}
           onCameraReady={() => setCameraReady(true)}
         >
-          <View style={styles.buttonContainer}>
-            <Button title={t("camera.take_photo")} onPress={takePicture} />
+          <View style={styles.controlBar}>
+            <TouchableOpacity
+              onPress={takePicture}
+              style={styles.outerCircle}
+              activeOpacity={0.7}
+            >
+              <View style={styles.innerCircle} />
+            </TouchableOpacity>
           </View>
         </CameraView>
       ) : (
         <View style={styles.previewContainer}>
           <Image source={{ uri: photo }} style={styles.preview} />
-          <Button title={t("common.confirm")} onPress={confirmPhoto} />
-          <Button title={t("camera.retake")} onPress={() => setPhoto(null)} />
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity onPress={() => setPhoto(null)} style={styles.button}>
+              <Text style={styles.buttonText}>{t("camera.retake")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={confirmPhoto} style={styles.button}>
+              <Text style={styles.buttonText}>{t("common.confirm")}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -177,21 +190,53 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
   },
-  buttonContainer: {
-    backgroundColor: "transparent",
-    alignSelf: "center",
-    marginBottom: 20,
+  controlBar: {
+    position: 'absolute',
+    bottom: 40,
+    width: '100%',
+    alignItems: 'center',
+  },
+  outerCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  innerCircle: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#e74c3c',
+    borderRadius: 30,
   },
   previewContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 5,
+    backgroundColor: 'black',
   },
   preview: {
-    width: "100%",
-    height: "80%",
+    flex: 1,
     marginBottom: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+  },
+  button: {
+    backgroundColor: '#2196F3',
+    padding: 15,
+    borderRadius: 8,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   permissionContainer: {
     flex: 1,
