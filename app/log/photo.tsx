@@ -8,13 +8,17 @@ import {
   Alert,
   ActivityIndicator,
   TouchableOpacity,
+  useColorScheme,
 } from "react-native";
 import { CameraView, useCameraPermissions, Camera } from "expo-camera";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { theme } from '@/constants/theme';
 
 export default function PhotoCapture() {
   const { t } = useTranslation();
+  const colorScheme = useColorScheme() as 'light' | 'dark';
+  const currentTheme = theme[colorScheme];
   const [permission, requestPermission] = useCameraPermissions();
   const [photo, setPhoto] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
@@ -114,8 +118,8 @@ export default function PhotoCapture() {
   if (isRequestingPermission) {
     return (
       <View style={styles.permissionContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={styles.permissionText}>
+        <ActivityIndicator size="large" color={currentTheme.colors.primary} />
+        <Text style={[styles.permissionText, { color: currentTheme.colors.text.primary }]}>
           {t("camera.requesting_access")}
         </Text>
       </View>
@@ -126,8 +130,10 @@ export default function PhotoCapture() {
   if (permission === null || permissionCheckNeeded) {
     return (
       <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>{t("camera.checking_access")}</Text>
-        <ActivityIndicator size="small" color="#0000ff" />
+        <Text style={[styles.permissionText, { color: currentTheme.colors.text.primary }]}>
+          {t("camera.checking_access")}
+        </Text>
+        <ActivityIndicator size="small" color={currentTheme.colors.primary} />
       </View>
     );
   }
@@ -136,18 +142,24 @@ export default function PhotoCapture() {
   if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>{t("camera.need_permission")}</Text>
-        <Button
-          title={t("camera.allow_access")}
+        <Text style={[styles.permissionText, { color: currentTheme.colors.text.primary }]}>
+          {t("camera.need_permission")}
+        </Text>
+        <TouchableOpacity
           onPress={requestPermissionHandler}
           disabled={isRequestingPermission}
-        />
+          style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
+        >
+          <Text style={[styles.buttonText, { color: currentTheme.colors.buttonText }]}>
+            {t("camera.allow_access")}
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
       {!photo ? (
         <CameraView
           style={styles.camera}
@@ -158,10 +170,10 @@ export default function PhotoCapture() {
           <View style={styles.controlBar}>
             <TouchableOpacity
               onPress={takePicture}
-              style={styles.outerCircle}
+              style={[styles.outerCircle, { borderColor: currentTheme.colors.buttonText }]}
               activeOpacity={0.7}
             >
-              <View style={styles.innerCircle} />
+              <View style={[styles.innerCircle, { backgroundColor: currentTheme.colors.primary }]} />
             </TouchableOpacity>
           </View>
         </CameraView>
@@ -169,11 +181,21 @@ export default function PhotoCapture() {
         <View style={styles.previewContainer}>
           <Image source={{ uri: photo }} style={styles.preview} />
           <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={() => setPhoto(null)} style={styles.button}>
-              <Text style={styles.buttonText}>{t("camera.retake")}</Text>
+            <TouchableOpacity
+              onPress={() => setPhoto(null)}
+              style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
+            >
+              <Text style={[styles.buttonText, { color: currentTheme.colors.buttonText }]}>
+                {t("camera.retake")}
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={confirmPhoto} style={styles.button}>
-              <Text style={styles.buttonText}>{t("common.confirm")}</Text>
+            <TouchableOpacity
+              onPress={confirmPhoto}
+              style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
+            >
+              <Text style={[styles.buttonText, { color: currentTheme.colors.buttonText }]}>
+                {t("common.confirm")}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -192,7 +214,7 @@ const styles = StyleSheet.create({
   },
   controlBar: {
     position: 'absolute',
-    bottom: 40,
+    bottom: theme.spacing.xl,
     width: '100%',
     alignItems: 'center',
   },
@@ -201,7 +223,6 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 4,
-    borderColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
@@ -209,44 +230,41 @@ const styles = StyleSheet.create({
   innerCircle: {
     width: 60,
     height: 60,
-    backgroundColor: '#e74c3c',
     borderRadius: 30,
   },
   previewContainer: {
     flex: 1,
-    backgroundColor: 'black',
   },
   preview: {
     flex: 1,
-    marginBottom: 20,
+    marginBottom: theme.spacing.md,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingBottom: 40,
-    paddingHorizontal: 20,
+    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.md,
   },
   button: {
-    backgroundColor: '#2196F3',
-    padding: 15,
-    borderRadius: 8,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
     minWidth: 120,
     alignItems: 'center',
+    ...theme.shadows.sm,
   },
   buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.body.fontSize,
+    fontWeight: 'bold',
   },
   permissionContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: theme.spacing.lg,
   },
   permissionText: {
-    marginBottom: 20,
+    marginBottom: theme.spacing.md,
     textAlign: "center",
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
   },
 });
