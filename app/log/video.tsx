@@ -17,6 +17,7 @@ import {
 import { useVideoPlayer, VideoView, VideoSource } from 'expo-video';
 import { t } from 'i18next';
 import { theme } from '@/constants/theme';
+import { CameraButton } from '@/components/CameraButton';
 
 export default function VideoCapture() {
   const router = useRouter();
@@ -173,19 +174,10 @@ export default function VideoCapture() {
           </View>
         )}
         <View style={styles.controlBar}>
-          <TouchableOpacity
+          <CameraButton
             onPress={isRecording ? stopRecording : startRecording}
-            style={[styles.outerCircle, { borderColor: currentTheme.colors.buttonText }]}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.innerCircle,
-                isRecording && styles.innerSquare,
-                { backgroundColor: currentTheme.colors.primary }
-              ]}
-            />
-          </TouchableOpacity>
+            isRecording={isRecording}
+          />
         </View>
       </View>
     </>
@@ -214,25 +206,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.h2.fontSize,
     fontWeight: 'bold',
     marginBottom: theme.spacing.md,
-  },
-  outerCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  innerCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
-  innerSquare: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.borderRadius.sm,
   },
   container: {
     flex: 1,
