@@ -198,12 +198,13 @@ const styles = StyleSheet.create({
   },
   timerContainer: {
     position: 'absolute',
+    top: theme.spacing.xxl,
     right: theme.spacing.md,
     paddingTop: theme.spacing.sm,
     borderRadius: theme.borderRadius.sm,
   },
   recordingTime: {
-    fontSize: theme.typography.h2.fontSize,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: 'bold',
     marginBottom: theme.spacing.md,
   },
