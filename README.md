@@ -114,6 +114,12 @@ but finally ended up with a custom trained model from github that was able to de
 
 - The Visualization of the detected objects and the custom rectangles was also a challenge, as it was hard to find a middle ground of performance, visibility and usability. Also - there are suprinsingly little drop-in slider components with out-of-the-box direkt on valule changes visualisations. Had to hack around there too, first with creating custom sliders, then hacking a package.
 
+- BirdyDex Database and all Components, reading in the csv of all birds in the world, optimization
+- Translating all known birds from the english and latin name into the localizations into the cornell university csv before building
+so it doesnt have to be done in app runtime. Used a lot of scientific apis, got rate limited a lot, used chatgpt 3.5 api with 5 dollar budget.
+- Forever scroll to batch pagination. Also filter and batch read in sql was hard.
+- Translation Page feature using the read-in sql birdydex was cool, as it was real requirement by Ms.Martinez
+
 ## LW
 - Project Setup
 - Firebase and Firestore Setup 

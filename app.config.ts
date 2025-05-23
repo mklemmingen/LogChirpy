@@ -6,11 +6,11 @@ export default {
     slug: "moco_sose25_logchirpy",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/icon.svg",
     scheme: "myapp",
     userInterfaceStyle: "automatic",
     splash: {
-      image: "./assets/images/logo_no_bg.png",
+      image: "./assets/images/logo_no_bg.svg",
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
@@ -45,7 +45,7 @@ export default {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: "./assets/images/splash-icon.svg",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff"
