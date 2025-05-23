@@ -90,25 +90,7 @@ if !countdown! gtr 0 goto boot_spinner
 
 
 :: === Step 7: Ensure dev client is installed ===
-echo [INFO] Verifying dev client...
 
-set ADB=adb
-where adb >nul 2>&1
-if errorlevel 1 (
-    set ADB="%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe"
-)
-
-%ADB% shell pm list packages | findstr com.dhfgkjhksdfgsd.moco_sose25_logchirpy >nul
-if errorlevel 1 (
-    echo [INFO] Dev client not found. Installing...
-    call npx expo run:android --variant devDebug
-    if errorlevel 1 (
-        echo [ERROR] Dev client install failed.
-        exit /b 1
-    )
-) else (
-    echo [INFO] Dev client is already installed.
-)
 
 
 :: === Step 8: Start Logcat ===
