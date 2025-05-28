@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Switch, useColorScheme } from "react-native";
-import { useTranslation } from "react-i18next";
-import { I18nManager } from "react-native";
-import { languages } from "@/i18n/languages";
-import { theme } from "@/constants/theme";
-import { Config } from "@/constants/config"; // <-- import global config
+import React, {useEffect, useState} from "react";
+import {I18nManager, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, useColorScheme, View} from "react-native";
+import {useTranslation} from "react-i18next";
+import {languages} from "@/i18n/languages";
+import {theme} from "@/constants/theme";
+import {Config} from "@/constants/config"; // <-- import global config
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SettingsSection from "@/components/SettingsSection";
-import Section from "@/components/Section";
 
 export default function SettingsScreen() {
     const { i18n, t } = useTranslation();
@@ -89,7 +87,7 @@ export default function SettingsScreen() {
                                     style={[
                                         styles.languageButtonText,
                                         {
-                                            color: isActive ? currentTheme.colors.text.light : currentTheme.colors.text.primary,
+                                            color: isActive ? currentTheme.colors.text.primary : currentTheme.colors.text.primary,
                                             fontWeight: isActive ? "bold" : "normal",
                                         }
                                     ]}
@@ -114,7 +112,7 @@ export default function SettingsScreen() {
                         value={gpsEnabled}
                         onValueChange={toggleGpsLogging}
                         trackColor={{ false: currentTheme.colors.border, true: currentTheme.colors.primary }}
-                        thumbColor={gpsEnabled ? currentTheme.colors.text.light : currentTheme.colors.text.primary}
+                        thumbColor={gpsEnabled ? currentTheme.colors.text.primary : currentTheme.colors.text.primary}
                     />
                 </View>
             </SettingsSection>

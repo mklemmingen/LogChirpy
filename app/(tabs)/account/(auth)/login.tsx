@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme } from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
+import React, {useEffect, useState} from 'react';
+import {Image, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View} from 'react-native';
+import {signInWithEmailAndPassword} from 'firebase/auth';
+import {router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 
-import { auth } from '@/firebase/config';
-import { theme } from '@/constants/theme';
+import {auth} from '@/firebase/config';
+import {theme} from '@/constants/theme';
 import Section from "@/components/Section";
 
 export default function LoginScreen() {
@@ -155,7 +155,7 @@ export default function LoginScreen() {
                     style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
                     onPress={handleLogin}
                 >
-                    <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>
+                    <Text style={[styles.buttonText, { color: currentTheme.colors.text.primary }]}>
                         {t('auth.signin')}
                     </Text>
                 </TouchableOpacity>

@@ -23,7 +23,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
               size={18}
               color={currentTheme.primary}
           />
-          <ThemedText type="defaultSemiBold">{title}</ThemedText>
+          <ThemedText type="default" style={styles.title}>{title}</ThemedText>
         </TouchableOpacity>
         {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
       </ThemedView>
@@ -35,6 +35,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  title: {
+    fontWeight: '600', // This makes it semi-bold
   },
   content: {
     marginTop: 6,

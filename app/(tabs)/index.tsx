@@ -1,18 +1,17 @@
-import React, { useEffect, useRef } from 'react';
-import {
-    StyleSheet, View, Pressable, Animated, useColorScheme, Dimensions,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { BlurView } from 'expo-blur';              // nice glass-morphism
+import React from 'react';
+import {Animated, Dimensions, StyleSheet, useColorScheme, View,} from 'react-native';
+import {Feather} from '@expo/vector-icons';
+import {router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {BlurView} from 'expo-blur'; // nice glass-morphism
 import * as Haptics from 'expo-haptics';
 
-import { ThemedText }    from '@/components/ThemedText';
-import { ThemedView }    from '@/components/ThemedView';
-import BirdAnimation     from '@/components/BirdAnimation';
-import { HelloWave }     from '@/components/HelloWave';
-import { theme }         from '@/constants/theme';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import BirdAnimation from '@/components/BirdAnimation';
+import {HelloWave} from '@/components/HelloWave';
+import {theme} from '@/constants/theme';
 
 /* ---------- helpers ---------- */
 type FeatherName = keyof typeof Feather.glyphMap;
@@ -28,26 +27,31 @@ export default function Index() {
     /* one tidy small button component */
     const ActionBtn = ({
                            icon, label, route,
-                       }: { icon: FeatherName; label: string; route: string }) => (
-        <Pressable
-            style={({ pressed }) => [
-                styles.btn,
-                {
-                    backgroundColor: pressed
-                        ? pal.colors.primary + '33'
-                        : pal.colors.card + 'AA',         // translucent
-                },
-            ]}
+                       }: {
+        icon: FeatherName;
+        label: string;
+        route: Parameters<typeof router.push>[0];
+    }) => (
+        <ThemedPressable
+            variant="ghost"
+            direction="column"
+            style={styles.btn}
             onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 router.push(route);
             }}
         >
-            <Feather name={icon} size={22} color={pal.colors.text.primary} />
-            <ThemedText type="default" style={[styles.btnLabel, { color: pal.colors.text.primary }]}>
+            <Feather name={icon} size={20} color={pal.colors.text.primary} />
+            <ThemedText
+                type="default"
+                style={[styles.btnLabel, { color: pal.colors.text.primary }]}
+                numberOfLines={2}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.8}
+            >
                 {label}
             </ThemedText>
-        </Pressable>
+        </ThemedPressable>
     );
 
     return (
@@ -97,19 +101,25 @@ export default function Index() {
     );
 }
 
-/* <ActionBtn icon="camera" label={t('buttons.photo')}  route="/log/photo"  /> */
-
 /* ---------- styles ---------- */
 const styles = StyleSheet.create({
     center: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 24,
-        gap: 16,
+        paddingHorizontal: theme.spacing.lg,
+        gap: theme.spacing.md,
     },
-    title:    { textAlign: 'center', fontSize: 24, marginTop: 8 },
-    subtitle: { textAlign: 'center', fontSize: 16, opacity: 0.8 },
+    title: {
+        textAlign: 'center',
+        fontSize: theme.typography.h2.fontSize,
+        marginTop: theme.spacing.sm
+    },
+    subtitle: {
+        textAlign: 'center',
+        fontSize: theme.typography.body.fontSize,
+        opacity: 0.8
+    },
 
     /* frosted card */
     cardWrap: {
@@ -120,22 +130,29 @@ const styles = StyleSheet.create({
         width: CARD_W,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingVertical: 14,
-        paddingHorizontal: 18,
-        borderRadius: 20,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.borderRadius.xl,
         borderWidth: 1,
-        gap: 8,
+        gap: theme.spacing.sm,
     },
 
     /* buttons inside card */
     btn: {
         flex: 1,
-        minWidth: (CARD_W - 18 * 2 - 8 * 3) / 4,
-        borderRadius: 14,
-        paddingVertical: 10,
+        borderRadius: theme.borderRadius.md,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.xs, // Add horizontal padding
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 4,
+        gap: theme.spacing.xs,
+        backgroundColor: 'transparent', // Override ThemedPressable default
+        minHeight: 60, // Ensure enough height for icon + text
     },
-    btnLabel: { fontSize: 12, fontWeight: '600' },
+    btnLabel: {
+        fontSize: 11, // Slightly smaller to fit better
+        fontWeight: '600',
+        textAlign: 'center',
+        lineHeight: 14, // Tighter line height
+    },
 });

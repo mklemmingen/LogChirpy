@@ -1,30 +1,28 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack, useSegments } from 'expo-router';
+import React, {useEffect, useMemo, useState} from 'react';
+import {ThemeProvider} from '@react-navigation/native';
+import {useFonts} from 'expo-font';
+import {Stack, useSegments} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useColorScheme, View, StyleSheet } from 'react-native';
+import {StatusBar} from 'expo-status-bar';
+import {StyleSheet, useColorScheme, View} from 'react-native';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
-import { theme } from '@/constants/theme';
+import {theme} from '@/constants/theme';
 import {
-    useImageLabeling,
-    useImageLabelingProvider,
-    useImageLabelingModels,
     ImageLabelingConfig,
-    ClassificationResult
+    useImageLabelingModels,
+    useImageLabelingProvider
 } from "@infinitered/react-native-mlkit-image-labeling";
 
 import {
+    ObjectDetectionConfig,
     useObjectDetectionModels,
-    useObjectDetectionProvider,
-    ObjectDetectionConfig
+    useObjectDetectionProvider
 } from '@infinitered/react-native-mlkit-object-detection';
 
 // BirDex Database loaded at startup
-import { initDB, insertTestSpotting } from '@/services/database';
-import { initBirdDexDB } from '@/services/databaseBirDex';
+import {initDB, insertTestSpotting} from '@/services/database';
+import {initBirdDexDB} from '@/services/databaseBirDex';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -98,8 +96,7 @@ export default function RootLayout() {
     useEffect(() => {
         (async () => {
             try {
-                initDB();              // creates bird_spottings table
-                insertTestSpotting(); // TODO REMOVE BEFORE PRODUCTION
+                await initDB(); // creates bird_spottings table
                 await initBirdDexDB(); // upserts birddex table
             } catch (e) {
                 console.error('DB init error', e);
@@ -125,9 +122,8 @@ export default function RootLayout() {
         <ThemeProvider
             value={{
                 dark: colorScheme === 'dark',
-                light: colorScheme === 'light',
                 colors: {
-                    notification: currentTheme.colors.active,
+                    notification: currentTheme.colors.secondary,
                     background: currentTheme.colors.background,
                     card: currentTheme.colors.accent,
                     text: currentTheme.colors.text.primary,
@@ -135,10 +131,22 @@ export default function RootLayout() {
                     primary: currentTheme.colors.primary,
                 },
                 fonts: {
-                    regular: 'SpaceMono',
-                    medium: 'SpaceMono',
-                    light: 'SpaceMono',
-                    thin: 'SpaceMono',
+                    regular: {
+                        fontFamily: 'SpaceMono',
+                        fontWeight: 'normal',
+                    },
+                    medium: {
+                        fontFamily: 'SpaceMono',
+                        fontWeight: '500',
+                    },
+                    bold: {
+                        fontFamily: 'SpaceMono',
+                        fontWeight: 'bold',
+                    },
+                    heavy: {
+                        fontFamily: 'SpaceMono',
+                        fontWeight: '800',
+                    },
                 },
             }}
         >

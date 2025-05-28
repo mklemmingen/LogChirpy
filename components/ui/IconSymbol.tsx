@@ -57,6 +57,14 @@ export function IconSymbol({
   color: string;
   style?: StyleProp<ViewStyle>;
 }) {
-  const LucideIconComponent = LucideIcons[MAPPING[name]] as LucideIcon;
+  const iconName = MAPPING[name];
+  const LucideIconComponent = (LucideIcons as any)[iconName] as LucideIcon;
+
+  // Fallback in case the icon doesn't exist
+  if (!LucideIconComponent) {
+    console.warn(`Icon "${iconName}" not found in Lucide icons`);
+    return null;
+  }
+
   return <LucideIconComponent size={size} color={color} style={style} />;
 }
