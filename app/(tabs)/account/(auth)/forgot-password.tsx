@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useColorScheme } from 'react-native';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-
-import { useThemeColor } from '@/hooks/useThemeColor';
-import { auth } from '@/firebase/config';
-import { theme } from '@/constants/theme';
+import React, {useState} from 'react';
+import {Image, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View} from 'react-native';
+import {sendPasswordResetEmail} from 'firebase/auth';
+import {router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {auth} from '@/firebase/config';
+import {theme} from '@/constants/theme';
 import Section from "@/components/Section";
 
 export default function ForgotPasswordScreen() {
-    const { t } = useTranslation(); // <-- useTranslation here
+    const { t } = useTranslation();
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState('');
     const [resetEmailSent, setResetEmailSent] = useState(false);
@@ -100,7 +98,7 @@ export default function ForgotPasswordScreen() {
                             style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
                             onPress={handleResetPassword}
                         >
-                            <Text style={[styles.buttonText, { color: currentTheme.colors.text.light }]}>
+                            <Text style={[styles.buttonText, { color: currentTheme.colors.text.primary }]}>
                                 {t('auth.send_reset')}
                             </Text>
                         </TouchableOpacity>

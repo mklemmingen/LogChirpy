@@ -1,12 +1,18 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
-    ActivityIndicator, Button,
+    ActivityIndicator,
+    Button,
     Dimensions,
-    Image, Modal,
+    Image,
+    LayoutAnimation,
+    Modal,
     Platform,
     SafeAreaView,
     StyleSheet,
-    Text, TouchableOpacity,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    useColorScheme,
     View,
 } from 'react-native';
 import {Camera, useCameraDevice, useCameraPermission,} from 'react-native-vision-camera';
@@ -23,7 +29,7 @@ import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 
-import { useTranslation } from 'react-i18next';
+import {useTranslation} from 'react-i18next';
 
 import Slider from '@react-native-community/slider';
 
@@ -31,11 +37,8 @@ import {ThemedSnackbar} from "@/components/ThemedSnackbar";
 
 import * as Haptics from 'expo-haptics';
 
-import { LayoutAnimation, UIManager} from 'react-native';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {theme} from "@/constants/theme";
-import { useColorScheme } from 'react-native'
 
 
 const STORAGE_KEYS = {
@@ -673,6 +676,8 @@ function ObjectIdentCameraContent() {
         );
     }
 
+    // @ts-ignore
+    // @ts-ignore
     return (
         <SafeAreaView style={{ flex: 1 }}>
             <View style={styles.container}>

@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, {createContext, ReactNode, useContext, useReducer, useCallback, useState, useEffect} from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Definiere die Struktur eines Log-Eintrags
 export interface BirdSpotting {
   imageUri?: string;
   videoUri?: string;
@@ -14,28 +14,38 @@ export interface BirdSpotting {
   imagePrediction?: string;
 }
 
+type LogAction =
+    | { type: 'UPDATE'; payload: Partial<BirdSpotting> }
+    | { type: 'CLEAR' }
+    | { type: 'LOAD'; payload: BirdSpotting };
+
+const STORAGE_KEY = 'logchirpy_draft';
+
+function logReducer(state: BirdSpotting, action: LogAction): BirdSpotting {
+  switch (action.type) {
+    case 'UPDATE':
+      const newState = { ...state, ...action.payload };
+      // Auto-save to storage
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+      return newState;
+    case 'CLEAR':
+      AsyncStorage.removeItem(STORAGE_KEY);
+      return {};
+    case 'LOAD':
+      return action.payload;
+    default:
+      return state;
+  }
+}
+
 interface LogDraftContextType {
   draft: BirdSpotting;
   update: (partialDraft: Partial<BirdSpotting>) => void;
   clear: () => void;
+  isLoading: boolean;
 }
 
-const defaultDraft: BirdSpotting = {
-  imageUri: "",
-  videoUri: "",
-  audioUri: "",
-  textNote: "",
-  gpsLat: 0,
-  gpsLng: 0,
-  date: new Date().toISOString(),
-  birdType: "",
-  audioPrediction: "",
-  imagePrediction: "",
-};
-
-const LogDraftContext = createContext<LogDraftContextType | undefined>(
-  undefined
-);
+const LogDraftContext = createContext<LogDraftContextType | undefined>(undefined);
 
 export function useLogDraft() {
   const context = useContext(LogDraftContext);
@@ -46,34 +56,37 @@ export function useLogDraft() {
 }
 
 export function LogDraftProvider({ children }: { children: ReactNode }) {
-  const [draft, setDraft] = useState<BirdSpotting>(defaultDraft);
+  const [draft, dispatch] = useReducer(logReducer, {});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const update = (partialDraft: Partial<BirdSpotting>) => {
-    setDraft((prev) => {
-      // if we dont do this check, the change in draft triggers a rerender which then triggers this again and so in resulting in an infinite loop
-      // Check if any value actually changes
-      const hasChange = Object.entries(partialDraft).some(
-        ([key, value]) => prev[key as keyof BirdSpotting] !== value
-      );
-
-      // Only update if something really changed
-      if (hasChange) {
-        return { ...prev, ...partialDraft };
+  // Load persisted draft on mount
+  useEffect(() => {
+    const loadDraft = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          dispatch({ type: 'LOAD', payload: JSON.parse(stored) });
+        }
+      } catch (error) {
+        console.error('Failed to load draft:', error);
+      } finally {
+        setIsLoading(false);
       }
+    };
+    loadDraft();
+  }, []);
 
-      return prev;
-    });
-  };
+  const update = useCallback((partialDraft: Partial<BirdSpotting>) => {
+    dispatch({ type: 'UPDATE', payload: partialDraft });
+  }, []);
 
-  const clear = () => {
-    setDraft(defaultDraft);
-  };
+  const clear = useCallback(() => {
+    dispatch({ type: 'CLEAR' });
+  }, []);
 
   return (
-    <LogDraftContext.Provider value={{ draft, update, clear }}>
-      {children}
-    </LogDraftContext.Provider>
+      <LogDraftContext.Provider value={{ draft, update, clear, isLoading }}>
+        {children}
+      </LogDraftContext.Provider>
   );
 }
-
-export default useLogDraft;

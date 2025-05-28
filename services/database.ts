@@ -1,6 +1,6 @@
-import { openDatabaseSync, type SQLiteDatabase } from "expo-sqlite";
+import {openDatabaseSync, type SQLiteDatabase} from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
-import { Asset } from "expo-asset";
+import {Asset} from "expo-asset";
 
 /**
  * A single bird‐spotting record in SQLite.

@@ -1,8 +1,8 @@
-import { firestore } from "@/firebase/config";
-import { getAuth } from "firebase/auth";
-import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
-import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
-import { DB } from "./database";
+import {firestore} from "@/firebase/config";
+import {getAuth} from "firebase/auth";
+import {addDoc, collection, getDocs, query, where} from "firebase/firestore";
+import {getDownloadURL, getStorage, ref, uploadBytes} from "firebase/storage";
+import {DB} from "./database";
 import * as FileSystem from "expo-file-system";
 
 export async function syncDatabase(): Promise<void> {

@@ -1,7 +1,7 @@
+import type {LanguageDetectorAsyncModule} from 'i18next';
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+import {initReactI18next} from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { LanguageDetectorAsyncModule } from 'i18next';
 
 import en from "@/locales/en/translation.json";
 import de from "@/locales/de/translation.json";
@@ -13,18 +13,19 @@ import ar from "@/locales/ar/translation.json";
 const languageDetectorPlugin: LanguageDetectorAsyncModule = {
     type: 'languageDetector',
     async: true,
-    detect: async (callback) => {
-        try {
-            const savedLang = await AsyncStorage.getItem('appLanguage');
-            if (savedLang) {
-                callback(savedLang);
-            } else {
+    detect: (callback) => {
+        AsyncStorage.getItem('appLanguage')
+            .then((savedLang) => {
+                if (savedLang) {
+                    callback(savedLang);
+                } else {
+                    callback('en');
+                }
+            })
+            .catch((error) => {
+                console.error('Failed to detect language', error);
                 callback('en');
-            }
-        } catch (error) {
-            console.error('Failed to detect language', error);
-            callback('en');
-        }
+            });
     },
     init: () => {},
     cacheUserLanguage: () => {},

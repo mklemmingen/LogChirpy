@@ -1,20 +1,10 @@
-import { useState, useRef, useEffect } from "react";
-import {
-  View,
-  StyleSheet,
-  Image,
-  Text,
-  Alert,
-  ActivityIndicator,
-  TouchableOpacity,
-  useColorScheme,
-} from "react-native";
-import { CameraView, useCameraPermissions, Camera } from "expo-camera";
-import { Stack, useRouter } from "expo-router";
-import { useTranslation } from "react-i18next";
-import { theme } from '@/constants/theme';
-import { CameraControls } from '@/components/CameraControls';
-import { Feather } from '@expo/vector-icons';
+import {useEffect, useRef, useState} from "react";
+import {ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, useColorScheme, View,} from "react-native";
+import {Camera, CameraView, useCameraPermissions} from "expo-camera";
+import {useRouter} from "expo-router";
+import {useTranslation} from "react-i18next";
+import {theme} from '@/constants/theme';
+import {CameraControls} from '@/components/CameraControls';
 
 export default function PhotoCapture() {
   const { t } = useTranslation();
@@ -134,7 +124,7 @@ export default function PhotoCapture() {
           disabled={isRequestingPermission}
           style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
         >
-          <Text style={[styles.buttonText, { color: currentTheme.colors.buttonText }]}>
+          <Text style={[styles.buttonText, { color: currentTheme.colors.secondary }]}>
             {t("camera.allow_access")}
           </Text>
         </TouchableOpacity>
@@ -167,7 +157,7 @@ export default function PhotoCapture() {
               onPress={() => setPhoto(null)}
               style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
             >
-              <Text style={[styles.buttonText, { color: currentTheme.colors.buttonText }]}>
+              <Text style={[styles.buttonText, { color: currentTheme.colors.secondary }]}>
                 {t("camera.retake")}
               </Text>
             </TouchableOpacity>
@@ -175,7 +165,7 @@ export default function PhotoCapture() {
               onPress={confirmPhoto}
               style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
             >
-              <Text style={[styles.buttonText, { color: currentTheme.colors.buttonText }]}>
+              <Text style={[styles.buttonText, { color: currentTheme.colors.secondary }]}>
                 {t("common.confirm")}
               </Text>
             </TouchableOpacity>

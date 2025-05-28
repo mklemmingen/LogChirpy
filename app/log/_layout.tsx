@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
-import { LogDraftProvider } from '../context/LogDraftContext';
+import {Stack} from 'expo-router';
+import {LogDraftProvider} from '../context/LogDraftContext';
 
 export default function LogLayout() {
     return (

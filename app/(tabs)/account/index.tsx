@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, useColorScheme, TouchableOpacity, View, Image } from 'react-native';
-import { signOut } from 'firebase/auth';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
+import React, {useEffect, useState} from 'react';
+import {Image, StyleSheet, TouchableOpacity, useColorScheme} from 'react-native';
+import {signOut} from 'firebase/auth';
+import {router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { auth } from '@/firebase/config';
-import { theme } from '@/constants/theme';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedView} from '@/components/ThemedView';
+import {auth} from '@/firebase/config';
+import {theme} from '@/constants/theme';
 import ParallaxScrollView from '../../../components/ParallaxScrollView';
 
 export default function AccountScreen() {
@@ -30,8 +30,8 @@ export default function AccountScreen() {
     return (
         <ParallaxScrollView
             headerBackgroundColor={{
-                light: currentTheme.colors.highlight,
-                dark: currentTheme.colors.shadow
+                light: currentTheme.colors.background,
+                dark: currentTheme.colors.background,
             }}
             headerImage={
                 <Image
@@ -66,7 +66,7 @@ export default function AccountScreen() {
                             }
                         }}
                     >
-                        <ThemedText style={[styles.signOutButtonText, { color: currentTheme.colors.text.light }]}>
+                        <ThemedText style={[styles.signOutButtonText, { color: currentTheme.colors.text.primary }]} type="default">
                             {t('buttons.signout')}
                         </ThemedText>
                     </TouchableOpacity>

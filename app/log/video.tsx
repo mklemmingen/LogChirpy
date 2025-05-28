@@ -1,24 +1,11 @@
-import React, { useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  useColorScheme,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import {
-  Camera,
-  useCameraDevice,
-  useCameraPermission,
-  useMicrophonePermission,
-} from 'react-native-vision-camera';
-import { useVideoPlayer, VideoView, VideoSource } from 'expo-video';
-import { t } from 'i18next';
-import { theme } from '@/constants/theme';
-import { CameraControls } from '@/components/CameraControls';
-import { Feather } from '@expo/vector-icons';
+import React, {useRef, useState} from 'react';
+import {ActivityIndicator, StyleSheet, Text, TouchableOpacity, useColorScheme, View,} from 'react-native';
+import {Stack, useRouter} from 'expo-router';
+import {Camera, useCameraDevice, useCameraPermission, useMicrophonePermission,} from 'react-native-vision-camera';
+import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
+import {t} from 'i18next';
+import {theme} from '@/constants/theme';
+import {CameraControls} from '@/components/CameraControls';
 
 export default function VideoCapture() {
   const router = useRouter();
@@ -144,7 +131,7 @@ export default function VideoCapture() {
             onPress={handleRetake}
             style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
           >
-            <Text style={[styles.buttonText, { color: currentTheme.colors.buttonText }]}>
+            <Text style={[styles.buttonText, { color: currentTheme.colors.secondary }]}>
               {t('camera.retake')}
             </Text>
           </TouchableOpacity>
@@ -152,7 +139,7 @@ export default function VideoCapture() {
             onPress={handleConfirm}
             style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
           >
-            <Text style={[styles.buttonText, { color: currentTheme.colors.buttonText }]}>
+            <Text style={[styles.buttonText, { color: currentTheme.colors.secondary }]}>
               {t('common.confirm')}
             </Text>
           </TouchableOpacity>

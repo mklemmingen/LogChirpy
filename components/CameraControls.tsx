@@ -26,7 +26,7 @@ export function CameraControls({
             <View style={styles.section}>
                 <TouchableOpacity
                     onPress={onCapture}
-                    style={[styles.outerCircle, { borderColor: currentTheme.colors.buttonText }]}
+                    style={[styles.outerCircle, { borderColor: currentTheme.colors.secondary }]}
                     activeOpacity={activeOpacity}
                 >
                     <View

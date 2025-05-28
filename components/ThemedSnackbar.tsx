@@ -50,8 +50,8 @@ export function ThemedSnackbar({ visible, message, onHide, style }: Props) {
             style={[
                 styles.wrap,
                 {
-                    backgroundColor: colors.card,
-                    shadowColor: colors.shadow,
+                    backgroundColor: colors.statusBar,
+                    shadowColor: colors.backdrop,
                     transform: [{ translateY }],
                 },
                 style,

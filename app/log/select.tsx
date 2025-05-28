@@ -1,25 +1,21 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
-    SafeAreaView,
-    View,
-    Text,
-    FlatList,
-    TextInput,
-    Pressable,
-    StyleSheet,
-    useColorScheme,
-    Alert,
     ActivityIndicator,
+    Alert,
+    FlatList,
+    Pressable,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TextInput,
+    useColorScheme,
+    View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '@/constants/theme';
-import {
-    getBirdSpottings,
-    type BirdSpotting,
-    updateLatinBirDex,
-} from '@/services/database';
+import {useTranslation} from 'react-i18next';
+import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {theme} from '@/constants/theme';
+import {type BirdSpotting, getBirdSpottings, updateLatinBirDex,} from '@/services/database';
 
 /**
  * Selection screen to assign a Latin name to an existing spotting.
