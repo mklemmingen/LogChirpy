@@ -2,6 +2,7 @@ import 'dotenv/config';
 
 export default {
   expo: {
+    owner: "dhfgkjhksdfgsd",
     name: "LogChirpy",
     slug: "logchirpy",
     version: "1.0.0",
@@ -106,6 +107,6 @@ export default {
       eas: {
         projectId: "f3cad8d2-c8a4-4696-a73f-9f57db6f7f08"
       }
-    }
+    },
   }
 };
