@@ -83,7 +83,15 @@ export default {
         }
       ],
       "expo-sqlite",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow LogChirpy to save bird photos to your gallery",
+          "savePhotosPermission": "Allow LogChirpy to save bird photos to your gallery",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
     ],
     experiments: {
       typedRoutes: true
@@ -96,7 +104,7 @@ export default {
       EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
       EXPO_PUBLIC_FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
       eas: {
-        projectId: process.env.EXPO_PUBLIC_PROJECT_ID
+        projectId: "f3cad8d2-c8a4-4696-a73f-9f57db6f7f08"
       }
     }
   }
