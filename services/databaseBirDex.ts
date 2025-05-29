@@ -12,8 +12,8 @@ import Papa from 'papaparse';
 
 const ASSET_CSV = require('../assets/birds_fully_translated.csv');
 const BIRDDEX_VERSION = 'Clements-v2024-October-2024-rev-categories';
-const BATCH_SIZE = 1000;
-const MAX_CONCURRENT_ANIMATIONS = 3; // Limit concurrent animations
+const BATCH_SIZE = 100; // Smaller batch size for better progress updates
+const MAX_CONCURRENT_ANIMATIONS = 3;
 
 // Async SQLite helper using runtime openDatabase
 let db: SQLiteDatabase | null = null;
@@ -22,26 +22,9 @@ export function DB(): SQLiteDatabase {
     return db;
 }
 
-async function execSqlAsync(
-    database: SQLiteDatabase,
-    sql: string,
-    params: any[] = []
-): Promise<any> {
-    return new Promise((resolve, reject) => {
-        database.transaction((tx: any) => {
-            tx.executeSql(
-                sql,
-                params,
-                (_txn: any, result: any) => resolve(result),
-                (_txn: any, error: any) => { reject(error); return false; }
-            );
-        });
-    });
-}
-
 // Tracking database initialization state
 let isDbInitialized = false;
-let isInitializing = false; // Prevent concurrent initialization
+let isInitializing = false;
 export function isDbReady(): boolean {
     return isDbInitialized;
 }
@@ -61,9 +44,8 @@ export interface ProgressData {
         ukrainian_name?: string;
         arabic_name?: string;
     };
-    // Animation control
-    shouldTriggerAnimation?: boolean; // Only trigger animation when this is true
-    animationId?: string; // Unique ID to prevent duplicates
+    shouldTriggerAnimation?: boolean;
+    animationId?: string;
 }
 
 type ProgressCallback = (progress: ProgressData) => void;
@@ -149,217 +131,25 @@ function getEnglishNameForSubspecies(
     return currentScientific;
 }
 
-export async function initBirdDexDB(
-    progressCallback?: ProgressCallback
+// Process batch with progress updates
+async function processBatch(
+    database: SQLiteDatabase,
+    rows: any[],
+    startIdx: number,
+    batchSize: number,
+    insertSql: string,
+    totalRows: number,
+    progressCallback?: ProgressCallback,
+    animationCounter?: { count: number }
 ): Promise<void> {
-    // Prevent concurrent initialization
-    if (isInitializing) {
-        console.log('Database initialization already in progress');
-        return;
-    }
-
-    if (isDbInitialized) {
-        console.log('Database already initialized');
-        return;
-    }
-
-    isInitializing = true;
-
-    try {
-        const database = DB();
-        let animationCounter = 0;
-
-        // Helper function to send progress with controlled animations
-        const sendProgress = (
-            progress: Partial<ProgressData>,
-            shouldAnimate: boolean = false
-        ) => {
-            if (progressCallback) {
-                const fullProgress: ProgressData = {
-                    loaded: 0,
-                    total: 100,
-                    phase: 'parsing',
-                    ...progress,
-                    shouldTriggerAnimation:
-                        shouldAnimate && animationCounter < MAX_CONCURRENT_ANIMATIONS,
-                    animationId: shouldAnimate
-                        ? `anim_${Date.now()}_${Math.random()}`
-                        : undefined,
-                };
-
-                if (shouldAnimate && animationCounter < MAX_CONCURRENT_ANIMATIONS) {
-                    animationCounter++;
-                    setTimeout(() => {
-                        animationCounter = Math.max(0, animationCounter - 1);
-                    }, 8000);
-                }
-
-                progressCallback(fullProgress);
-            }
-        };
-
-        // Initial progress
-        sendProgress({
-            loaded: 0,
-            total: 100,
-            phase: 'parsing',
-            message: 'Öffne Datenbank...',
-        });
-
-        // Database optimization
-        await execSqlAsync(database, 'PRAGMA synchronous = OFF;');
-        await execSqlAsync(database, 'PRAGMA journal_mode = WAL;');
-        await execSqlAsync(database, 'PRAGMA temp_store = MEMORY;');
-        await execSqlAsync(database, 'PRAGMA cache_size = 10000;');
-        await execSqlAsync(database, 'PRAGMA locking_mode = EXCLUSIVE;');
-
-        // Create tables
-        await execSqlAsync(
-            database,
-            `
-                CREATE TABLE IF NOT EXISTS metadata (
-                                                        key   TEXT PRIMARY KEY,
-                                                        value TEXT
-                );
-            `
-        );
-
-        await execSqlAsync(
-            database,
-            `
-                CREATE TABLE IF NOT EXISTS birddex (
-                                                       species_code           TEXT    PRIMARY KEY,
-                                                       english_name           TEXT    NOT NULL,
-                                                       scientific_name        TEXT    NOT NULL,
-                                                       category               TEXT,
-                                                       family                 TEXT,
-                                                       order_                 TEXT,
-                                                       sort_v2024             TEXT,
-                                                       clements_v2024b_change TEXT,
-                                                       text_for_website_v2024b TEXT,
-                                                       range                  TEXT,
-                                                       extinct                TEXT,
-                                                       extinct_year           TEXT,
-                                                       sort_v2023             TEXT,
-                                                       german_name            TEXT,
-                                                       spanish_name           TEXT,
-                                                       ukrainian_name         TEXT,
-                                                       arabic_name            TEXT
-                );
-            `
-        );
-
-        // Check version
-        const verRes = await execSqlAsync(
-            database,
-            `SELECT value FROM metadata WHERE key = 'birddex_version' LIMIT 1;`
-        );
-        const currentVersion = verRes.rows.length > 0 ? verRes.rows.item(0).value : null;
-
-        if (currentVersion === BIRDDEX_VERSION) {
-            console.log('BirdDex up-to-date; skipping CSV sync.');
-            await execSqlAsync(database, 'PRAGMA synchronous = NORMAL;');
-            await execSqlAsync(database, 'PRAGMA locking_mode = NORMAL;');
-            isDbInitialized = true;
-
-            sendProgress({
-                loaded: 100,
-                total: 100,
-                phase: 'complete',
-                message: 'BirdDex ist bereits auf dem neuesten Stand.',
-            });
-
-            return;
-        }
-
-        sendProgress({
-            loaded: 5,
-            total: 100,
-            phase: 'parsing',
-            message: 'CSV-Datei wird geladen...',
-        });
-
-        console.log('BirdDex version changed; importing CSV...');
-
-        // Drop indexes to prevent conflicts
-        await execSqlAsync(database, 'DROP INDEX IF EXISTS idx_birddex_english;');
-        await execSqlAsync(database, 'DROP INDEX IF EXISTS idx_birddex_scientific;');
-        await execSqlAsync(database, 'DROP INDEX IF EXISTS idx_birddex_category;');
-        await execSqlAsync(database, 'DROP INDEX IF EXISTS idx_birddex_family;');
-
-        // CRITICAL: Clear existing data to prevent UNIQUE constraint conflicts
-        await execSqlAsync(database, 'DELETE FROM birddex;');
-
-        // Also clear any orphaned data
-        await execSqlAsync(database, 'VACUUM;');
-
-        const asset = Asset.fromModule(ASSET_CSV);
-        await asset.downloadAsync();
-        const uri = asset.localUri ?? asset.uri;
-        if (!uri) throw new Error('Could not resolve birddex CSV asset URI');
-
-        sendProgress({
-            loaded: 10,
-            total: 100,
-            phase: 'parsing',
-            message: 'CSV-Datei wird geparst...',
-        });
-
-        const csvText = await FileSystem.readAsStringAsync(uri);
-        const rows: Record<string, string>[] = [];
-        // Chunked parsing
-        await new Promise<void>((resolve, reject) => {
-            Papa.parse<Record<string, string>>(csvText, {
-                header: true,
-                skipEmptyLines: true,
-                transform: v => v.trim(),
-                step: async ({ data }) => {
-                    rows.push(data);
-                    if (rows.length % 100 === 0) {
-                        await new Promise(r => setTimeout(r, 0));
-                        sendProgress({
-                            loaded: 10 + Math.min(10, (rows.length / 1000) * 10),
-                            total: 100,
-                            phase: 'parsing',
-                            message: `Parsed ${rows.length} rows…`,
-                        });
-                    }
-                },
-                complete: () => resolve(),
-                error: (err: any) => reject(err),
-            });
-        });
-
-        const filtered = rows.filter(
-            row => row.species_code?.trim() &&
-                ['species', 'subspecies', 'family', 'group (polytypic)', 'group (monotypic)'].includes(
-                    row.category?.trim() || ''
-                )
-        );
-
-        console.log(`Processing ${filtered.length} bird records...`);
+    return new Promise((resolve) => {
+        const endIdx = Math.min(startIdx + batchSize, rows.length);
+        const stmt = database.prepareSync(insertSql);
 
         try {
-            sendProgress({
-                loaded: 25,
-                total: 100,
-                phase: 'inserting',
-                message: 'Datensätze werden in die Datenbank eingefügt...',
-                tables: { birddex: { loaded: 0, total: filtered.length } },
-            });
-
-            const insertSql = `
-                INSERT OR REPLACE INTO birddex (
-          species_code, english_name, scientific_name, category, family, order_,
-          sort_v2024, clements_v2024b_change, text_for_website_v2024b, range,
-          extinct, extinct_year, sort_v2023, german_name, spanish_name,
-          ukrainian_name, arabic_name
-        ) VALUES (?,?,...17 placeholders?)
-            `;
-
-            for (let i = 0; i < filtered.length; i++) {
-                const r = filtered[i];
-                const englishName = getEnglishNameForSubspecies(filtered, r);
+            for (let i = startIdx; i < endIdx; i++) {
+                const r = rows[i];
+                const englishName = getEnglishNameForSubspecies(rows, r);
                 const speciesCode = r['species_code']?.trim() || '';
                 if (!speciesCode) continue;
 
@@ -383,91 +173,296 @@ export async function initBirdDexDB(
                     r['arabic_name']?.trim() || ''
                 ];
 
-                await execSqlAsync(database, insertSql, params);
+                stmt.executeSync(params);
 
-                if (i % 50 === 0) {
-                    await new Promise(res => setTimeout(res, 0));
-                    const overall = 25 + (i / filtered.length) * 60;
-                    sendProgress(
-                        {
-                            loaded: Math.round(overall),
-                            total: 100,
-                            phase: 'inserting',
-                            message: `${i} von ${filtered.length} Vogelarten verarbeitet…`,
-                            tables: { birddex: { loaded: i, total: filtered.length } },
-                            currentBird: {
-                                scientific_name: r['scientific name']!,
-                                english_name: englishName,
-                                german_name: r['german_name'],
-                                spanish_name: r['spanish_name'],
-                                ukrainian_name: r['ukrainian_name'],
-                                arabic_name: r['arabic_name'],
-                            },
+                // Send progress update every 10 records
+                if (i % 10 === 0 && progressCallback) {
+                    const overall = 25 + (i / totalRows) * 60;
+                    const shouldAnimate = animationCounter &&
+                        animationCounter.count < MAX_CONCURRENT_ANIMATIONS &&
+                        i % 50 === 0;
+
+                    if (shouldAnimate) {
+                        animationCounter.count++;
+                        setTimeout(() => {
+                            animationCounter.count = Math.max(0, animationCounter.count - 1);
+                        }, 8000);
+                    }
+
+                    progressCallback({
+                        loaded: Math.round(overall),
+                        total: 100,
+                        phase: 'inserting',
+                        message: `${i} von ${totalRows} Vogelarten verarbeitet…`,
+                        tables: { birddex: { loaded: i, total: totalRows } },
+                        currentBird: {
+                            scientific_name: r['scientific name']!,
+                            english_name: englishName,
+                            german_name: r['german_name'],
+                            spanish_name: r['spanish_name'],
+                            ukrainian_name: r['ukrainian_name'],
+                            arabic_name: r['arabic_name'],
                         },
-                        true
-                    );
+                        shouldTriggerAnimation: shouldAnimate,
+                        animationId: shouldAnimate ? `anim_${Date.now()}_${Math.random()}` : undefined
+                    });
                 }
             }
-        } catch (err) {
-            console.error('Bulk insert failed:', err);
-            throw err;
+        } finally {
+            stmt.finalizeSync();
         }
 
-        sendProgress({
-            loaded: 85,
-            total: 100,
-            phase: 'indexing',
-            message: 'Indices werden erstellt...',
+        // Allow UI to update
+        setTimeout(() => resolve(), 0);
+    });
+}
+
+export async function initBirdDexDB(
+    progressCallback?: ProgressCallback
+): Promise<void> {
+    if (isInitializing) {
+        console.log('Database initialization already in progress');
+        return;
+    }
+
+    if (isDbInitialized) {
+        console.log('Database already initialized');
+        return;
+    }
+
+    isInitializing = true;
+    const animationCounter = { count: 0 };
+
+    try {
+        const database = DB();
+
+        // Initial progress
+        if (progressCallback) {
+            progressCallback({
+                loaded: 0,
+                total: 100,
+                phase: 'parsing',
+                message: 'Öffne Datenbank...',
+            });
+        }
+
+        // Allow UI to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Database optimization
+        database.execSync('PRAGMA synchronous = OFF;');
+        database.execSync('PRAGMA journal_mode = WAL;');
+        database.execSync('PRAGMA temp_store = MEMORY;');
+        database.execSync('PRAGMA cache_size = 10000;');
+
+        // Create tables
+        database.execSync(`
+            CREATE TABLE IF NOT EXISTS metadata (
+                key   TEXT PRIMARY KEY,
+                value TEXT
+            );
+        `);
+
+        database.execSync(`
+            CREATE TABLE IF NOT EXISTS birddex (
+                species_code           TEXT    PRIMARY KEY,
+                english_name           TEXT    NOT NULL,
+                scientific_name        TEXT    NOT NULL,
+                category               TEXT,
+                family                 TEXT,
+                order_                 TEXT,
+                sort_v2024             TEXT,
+                clements_v2024b_change TEXT,
+                text_for_website_v2024b TEXT,
+                range                  TEXT,
+                extinct                TEXT,
+                extinct_year           TEXT,
+                sort_v2023             TEXT,
+                german_name            TEXT,
+                spanish_name           TEXT,
+                ukrainian_name         TEXT,
+                arabic_name            TEXT
+            );
+        `);
+
+        // Check version
+        const stmt = database.prepareSync(`SELECT value FROM metadata WHERE key = 'birddex_version' LIMIT 1;`);
+        const verRes = stmt.executeSync().getAllSync();
+        stmt.finalizeSync();
+        const currentVersion = verRes.length > 0 ? verRes[0].value : null;
+
+        if (currentVersion === BIRDDEX_VERSION) {
+            console.log('BirdDex up-to-date; skipping CSV sync.');
+            database.execSync('PRAGMA synchronous = NORMAL;');
+            isDbInitialized = true;
+
+            if (progressCallback) {
+                progressCallback({
+                    loaded: 100,
+                    total: 100,
+                    phase: 'complete',
+                    message: 'BirdDex ist bereits auf dem neuesten Stand.',
+                });
+            }
+
+            return;
+        }
+
+        if (progressCallback) {
+            progressCallback({
+                loaded: 5,
+                total: 100,
+                phase: 'parsing',
+                message: 'CSV-Datei wird geladen...',
+            });
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        console.log('BirdDex version changed; importing CSV...');
+
+        // Drop and recreate indexes
+        database.execSync('DROP INDEX IF EXISTS idx_birddex_english;');
+        database.execSync('DROP INDEX IF EXISTS idx_birddex_scientific;');
+        database.execSync('DROP INDEX IF EXISTS idx_birddex_category;');
+        database.execSync('DROP INDEX IF EXISTS idx_birddex_family;');
+
+        // Clear existing data
+        database.execSync('DELETE FROM birddex;');
+
+        const asset = Asset.fromModule(ASSET_CSV);
+        await asset.downloadAsync();
+        const uri = asset.localUri ?? asset.uri;
+        if (!uri) throw new Error('Could not resolve birddex CSV asset URI');
+
+        if (progressCallback) {
+            progressCallback({
+                loaded: 10,
+                total: 100,
+                phase: 'parsing',
+                message: 'CSV-Datei wird geparst...',
+            });
+        }
+
+        const csvText = await FileSystem.readAsStringAsync(uri);
+
+        // Parse CSV
+        const parseResult = await new Promise<Record<string, string>[]>((resolve, reject) => {
+            const rows: Record<string, string>[] = [];
+            Papa.parse<Record<string, string>>(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                transform: v => v.trim(),
+                complete: () => resolve(rows),
+                error: (err: any) => reject(err),
+                step: ({ data }) => {
+                    rows.push(data);
+                    if (rows.length % 1000 === 0 && progressCallback) {
+                        progressCallback({
+                            loaded: 10 + Math.min(10, (rows.length / 10000) * 10),
+                            total: 100,
+                            phase: 'parsing',
+                            message: `${rows.length} Einträge geparst...`,
+                        });
+                    }
+                }
+            });
         });
 
-        await execSqlAsync(
-            database,
-            'CREATE INDEX IF NOT EXISTS idx_birddex_english ON birddex(english_name COLLATE NOCASE);'
-        );
-        await execSqlAsync(
-            database,
-            'CREATE INDEX IF NOT EXISTS idx_birddex_scientific ON birddex(scientific_name COLLATE NOCASE);'
-        );
-        await execSqlAsync(
-            database,
-            'CREATE INDEX IF NOT EXISTS idx_birddex_category ON birddex(category);'
-        );
-        await execSqlAsync(
-            database,
-            'CREATE INDEX IF NOT EXISTS idx_birddex_family ON birddex(family);'
+        const filtered = parseResult.filter(
+            row => row.species_code?.trim() &&
+                ['species', 'subspecies', 'family', 'group (polytypic)', 'group (monotypic)'].includes(
+                    row.category?.trim() || ''
+                )
         );
 
-        sendProgress({
-            loaded: 95,
-            total: 100,
-            phase: 'indexing',
-            message: 'Metadaten werden aktualisiert...',
-        });
+        console.log(`Processing ${filtered.length} bird records...`);
 
-        await execSqlAsync(
-            database,
-            'INSERT OR REPLACE INTO metadata(key,value) VALUES(?,?);',
-            ['birddex_version', BIRDDEX_VERSION]
-        );
+        if (progressCallback) {
+            progressCallback({
+                loaded: 25,
+                total: 100,
+                phase: 'inserting',
+                message: 'Datensätze werden in die Datenbank eingefügt...',
+                tables: { birddex: { loaded: 0, total: filtered.length } },
+            });
+        }
 
-        await execSqlAsync(database, 'PRAGMA synchronous = NORMAL;');
-        await execSqlAsync(database, 'PRAGMA locking_mode = NORMAL;');
-        await execSqlAsync(database, 'PRAGMA optimize;');
+        const insertSql = `
+            INSERT OR REPLACE INTO birddex (
+                species_code, english_name, scientific_name, category, family, order_,
+                sort_v2024, clements_v2024b_change, text_for_website_v2024b, range,
+                extinct, extinct_year, sort_v2023, german_name, spanish_name,
+                ukrainian_name, arabic_name
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        `;
+
+        // Process in batches
+        for (let i = 0; i < filtered.length; i += BATCH_SIZE) {
+            await processBatch(
+                database,
+                filtered,
+                i,
+                BATCH_SIZE,
+                insertSql,
+                filtered.length,
+                progressCallback,
+                animationCounter
+            );
+        }
+
+        if (progressCallback) {
+            progressCallback({
+                loaded: 85,
+                total: 100,
+                phase: 'indexing',
+                message: 'Indices werden erstellt...',
+            });
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Create indexes
+        database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_english ON birddex(english_name COLLATE NOCASE);');
+        database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_scientific ON birddex(scientific_name COLLATE NOCASE);');
+        database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_category ON birddex(category);');
+        database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_family ON birddex(family);');
+
+        if (progressCallback) {
+            progressCallback({
+                loaded: 95,
+                total: 100,
+                phase: 'indexing',
+                message: 'Metadaten werden aktualisiert...',
+            });
+        }
+
+        // Update metadata
+        const metaStmt = database.prepareSync('INSERT OR REPLACE INTO metadata(key,value) VALUES(?,?);');
+        metaStmt.executeSync(['birddex_version', BIRDDEX_VERSION]);
+        metaStmt.finalizeSync();
+
+        database.execSync('PRAGMA synchronous = NORMAL;');
+        database.execSync('PRAGMA optimize;');
 
         console.log('BirdDex database initialization complete.');
         isDbInitialized = true;
 
-        sendProgress({
-            loaded: 100,
-            total: 100,
-            phase: 'complete',
-            message: 'BirdDex Datenbank erfolgreich initialisiert.',
-        });
+        if (progressCallback) {
+            progressCallback({
+                loaded: 100,
+                total: 100,
+                phase: 'complete',
+                message: 'BirdDex Datenbank erfolgreich initialisiert.',
+            });
+        }
+    } catch (error) {
+        console.error('Database initialization failed:', error);
+        throw error;
     } finally {
         isInitializing = false;
     }
 }
-
 
 // Rest of your existing query methods remain the same...
 export function queryBirdDexBatch(
@@ -624,7 +619,7 @@ export function searchBirdsByName(
                 WHERE s.latinBirDex = b.scientific_name
             ) THEN 1 ELSE 0 END AS hasBeenLogged
         FROM birddex b
-        ${whereClause}
+            ${whereClause}
         LIMIT ?
     `;
 

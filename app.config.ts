@@ -36,7 +36,8 @@ export default {
         "WRITE_EXTERNAL_STORAGE",
         "READ_MEDIA_IMAGES",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_MEDIA_LOCATION"
       ],
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
@@ -88,7 +89,7 @@ export default {
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow LogChirpy to save bird photos to your gallery",
+          "photosPermission": "Allow LogChirpy to access your photos to save bird detections",
           "savePhotosPermission": "Allow LogChirpy to save bird photos to your gallery",
           "isAccessMediaLocationEnabled": true
         }
