@@ -1,23 +1,73 @@
-import {openDatabaseSync, type SQLiteDatabase} from 'expo-sqlite';
-import {Asset} from 'expo-asset';
+// Bypass TS typings: use runtime expo-sqlite
+const SQLite: any = require('expo-sqlite');
+// Treat database handle as any for transaction support
+type SQLiteDatabase = any;
+import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
 import Papa from 'papaparse';
 
 // -----------------------------------------------------------------------------------
-// BirdDex Database Service with Category Filtering
+// Fixed BirdDex Database Service
 // -----------------------------------------------------------------------------------
 
 const ASSET_CSV = require('../assets/birds_fully_translated.csv');
 const BIRDDEX_VERSION = 'Clements-v2024-October-2024-rev-categories';
 const BATCH_SIZE = 1000;
+const MAX_CONCURRENT_ANIMATIONS = 3; // Limit concurrent animations
 
+// Async SQLite helper using runtime openDatabase
 let db: SQLiteDatabase | null = null;
 export function DB(): SQLiteDatabase {
-    if (!db) db = openDatabaseSync('logchirpy.db');
+    if (!db) db = SQLite.openDatabaseSync('logchirpy.db');
     return db;
 }
 
-// Category types from your CSV
+async function execSqlAsync(
+    database: SQLiteDatabase,
+    sql: string,
+    params: any[] = []
+): Promise<any> {
+    return new Promise((resolve, reject) => {
+        database.transaction((tx: any) => {
+            tx.executeSql(
+                sql,
+                params,
+                (_txn: any, result: any) => resolve(result),
+                (_txn: any, error: any) => { reject(error); return false; }
+            );
+        });
+    });
+}
+
+// Tracking database initialization state
+let isDbInitialized = false;
+let isInitializing = false; // Prevent concurrent initialization
+export function isDbReady(): boolean {
+    return isDbInitialized;
+}
+
+// Enhanced progress data with animation control
+export interface ProgressData {
+    loaded: number;
+    total: number;
+    phase: 'parsing' | 'inserting' | 'indexing' | 'complete';
+    tables?: { [key: string]: { loaded: number; total: number } };
+    message?: string;
+    currentBird?: {
+        scientific_name: string;
+        english_name: string;
+        german_name?: string;
+        spanish_name?: string;
+        ukrainian_name?: string;
+        arabic_name?: string;
+    };
+    // Animation control
+    shouldTriggerAnimation?: boolean; // Only trigger animation when this is true
+    animationId?: string; // Unique ID to prevent duplicates
+}
+
+type ProgressCallback = (progress: ProgressData) => void;
+
 export type BirdCategory =
     | 'species'
     | 'subspecies'
@@ -50,10 +100,10 @@ export interface BirdDexRecord {
 // Get available categories from database
 export function getAvailableCategories(): { category: string; count: number }[] {
     const sql = `
-        SELECT category, COUNT(*) as count 
-        FROM birddex 
+        SELECT category, COUNT(*) as count
+        FROM birddex
         WHERE category IS NOT NULL AND category != ''
-        GROUP BY category 
+        GROUP BY category
         ORDER BY count DESC
     `;
 
@@ -66,7 +116,10 @@ export function getAvailableCategories(): { category: string; count: number }[] 
 }
 
 // Helper function to get species English name for subspecies
-function getEnglishNameForSubspecies(csvRows: Record<string, string>[], currentRow: Record<string, string>): string {
+function getEnglishNameForSubspecies(
+    csvRows: Record<string, string>[],
+    currentRow: Record<string, string>
+): string {
     const currentScientific = currentRow['scientific name']?.trim() || '';
     const currentEnglish = currentRow['English name']?.trim() || '';
 
@@ -96,164 +149,327 @@ function getEnglishNameForSubspecies(csvRows: Record<string, string>[], currentR
     return currentScientific;
 }
 
-export async function initBirdDexDB(): Promise<void> {
-    const database = DB();
-
-    database.execSync(`PRAGMA synchronous = OFF;`);
-    database.execSync(`PRAGMA journal_mode = WAL;`);
-    database.execSync(`PRAGMA temp_store = MEMORY;`);
-    database.execSync(`PRAGMA cache_size = 10000;`);
-    database.execSync(`PRAGMA locking_mode = EXCLUSIVE;`);
-
-    database.execSync(`
-        CREATE TABLE IF NOT EXISTS metadata (
-            key   TEXT PRIMARY KEY,
-            value TEXT
-        );
-    `);
-
-    database.execSync(`
-        CREATE TABLE IF NOT EXISTS birddex (
-               species_code           TEXT    PRIMARY KEY,
-               english_name           TEXT    NOT NULL,
-               scientific_name        TEXT    NOT NULL,
-               category               TEXT,
-               family                 TEXT,
-               order_                 TEXT,
-               sort_v2024             TEXT,
-               clements_v2024b_change TEXT,
-               text_for_website_v2024b TEXT,
-               range                  TEXT,
-               extinct                TEXT,
-               extinct_year           TEXT,
-               sort_v2023             TEXT,
-               german_name            TEXT,
-               spanish_name           TEXT,
-               ukrainian_name         TEXT,
-               arabic_name            TEXT
-        );
-    `);
-
-    const verRow = database
-        .prepareSync(`SELECT value FROM metadata WHERE key = 'birddex_version' LIMIT 1;`)
-        .executeSync()
-        .getAllSync();
-    const currentVersion = verRow.length ? (verRow[0] as any).value : null;
-
-    if (currentVersion === BIRDDEX_VERSION) {
-        console.log('BirdDex up-to-date; skipping CSV sync.');
-        database.execSync(`PRAGMA synchronous = NORMAL;`);
-        database.execSync(`PRAGMA locking_mode = NORMAL;`);
+export async function initBirdDexDB(
+    progressCallback?: ProgressCallback
+): Promise<void> {
+    // Prevent concurrent initialization
+    if (isInitializing) {
+        console.log('Database initialization already in progress');
         return;
     }
 
-    console.log('BirdDex version changed; importing CSV...');
-
-    database.execSync(`DROP INDEX IF EXISTS idx_birddex_english;`);
-    database.execSync(`DROP INDEX IF EXISTS idx_birddex_scientific;`);
-    database.execSync(`DROP INDEX IF EXISTS idx_birddex_category;`);
-    database.execSync(`DROP INDEX IF EXISTS idx_birddex_family;`);
-
-    database.execSync(`DELETE FROM birddex;`);
-
-    const asset = Asset.fromModule(ASSET_CSV);
-    await asset.downloadAsync();
-    const uri = asset.localUri ?? asset.uri;
-    if (!uri) throw new Error('Could not resolve birddex CSV asset URI');
-
-    const csvText = await FileSystem.readAsStringAsync(uri);
-    const parsed = Papa.parse<Record<string,string>>(csvText, {
-        header: true,
-        skipEmptyLines: true,
-        transform: (value) => value.trim()
-    });
-
-    if (parsed.errors.length > 0) {
-        console.warn('CSV parsing warnings:', parsed.errors);
+    if (isDbInitialized) {
+        console.log('Database already initialized');
+        return;
     }
 
-    const rows = parsed.data.filter(row =>
-        row.species_code && row.species_code.trim() !== '' &&
-        row.category && ['species', 'subspecies', 'family', 'group (polytypic)', 'group (monotypic)'].includes(row.category.trim())
-    );
-
-    console.log(`Processing ${rows.length} bird records...`);
+    isInitializing = true;
 
     try {
-        database.withTransactionSync(() => {
-            const insert = database.prepareSync(`
-                INSERT INTO birddex (
-                    species_code, english_name, scientific_name, category, family, order_,
-                    sort_v2024, clements_v2024b_change, text_for_website_v2024b, range,
-                    extinct, extinct_year, sort_v2023, german_name, spanish_name,
-                    ukrainian_name, arabic_name
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            `);
+        const database = DB();
+        let animationCounter = 0;
 
-            let processedCount = 0;
-            for (const r of rows) {
-                try {
-                    const englishName = getEnglishNameForSubspecies(rows, r);
+        // Helper function to send progress with controlled animations
+        const sendProgress = (
+            progress: Partial<ProgressData>,
+            shouldAnimate: boolean = false
+        ) => {
+            if (progressCallback) {
+                const fullProgress: ProgressData = {
+                    loaded: 0,
+                    total: 100,
+                    phase: 'parsing',
+                    ...progress,
+                    shouldTriggerAnimation:
+                        shouldAnimate && animationCounter < MAX_CONCURRENT_ANIMATIONS,
+                    animationId: shouldAnimate
+                        ? `anim_${Date.now()}_${Math.random()}`
+                        : undefined,
+                };
 
-                    insert.executeSync(
-                        r['species_code']?.trim() || '',
-                        englishName,
-                        r['scientific name']?.trim() || '',
-                        r['category']?.trim() || '',
-                        r['family']?.trim() || '',
-                        r['order']?.trim() || '',
-                        r['sort v2024']?.trim() || '',
-                        r['Clements v2024b change']?.trim() || '',
-                        r['text for website v2024b']?.trim() || '',
-                        r['range']?.trim() || '',
-                        r['extinct']?.trim() || '',
-                        r['extinct year']?.trim() || '',
-                        r['sort_v2023']?.trim() || '',
-                        r['de_name']?.trim() || '',
-                        r['es_name']?.trim() || '',
-                        r['ukrainian_name']?.trim() || '',
-                        r['ar_name']?.trim() || ''
-                    );
-                    processedCount++;
+                if (shouldAnimate && animationCounter < MAX_CONCURRENT_ANIMATIONS) {
+                    animationCounter++;
+                    setTimeout(() => {
+                        animationCounter = Math.max(0, animationCounter - 1);
+                    }, 8000);
+                }
 
-                    if (processedCount % BATCH_SIZE === 0) {
-                        console.log(`Processed ${processedCount}/${rows.length} records...`);
+                progressCallback(fullProgress);
+            }
+        };
+
+        // Initial progress
+        sendProgress({
+            loaded: 0,
+            total: 100,
+            phase: 'parsing',
+            message: 'Öffne Datenbank...',
+        });
+
+        // Database optimization
+        await execSqlAsync(database, 'PRAGMA synchronous = OFF;');
+        await execSqlAsync(database, 'PRAGMA journal_mode = WAL;');
+        await execSqlAsync(database, 'PRAGMA temp_store = MEMORY;');
+        await execSqlAsync(database, 'PRAGMA cache_size = 10000;');
+        await execSqlAsync(database, 'PRAGMA locking_mode = EXCLUSIVE;');
+
+        // Create tables
+        await execSqlAsync(
+            database,
+            `
+                CREATE TABLE IF NOT EXISTS metadata (
+                                                        key   TEXT PRIMARY KEY,
+                                                        value TEXT
+                );
+            `
+        );
+
+        await execSqlAsync(
+            database,
+            `
+                CREATE TABLE IF NOT EXISTS birddex (
+                                                       species_code           TEXT    PRIMARY KEY,
+                                                       english_name           TEXT    NOT NULL,
+                                                       scientific_name        TEXT    NOT NULL,
+                                                       category               TEXT,
+                                                       family                 TEXT,
+                                                       order_                 TEXT,
+                                                       sort_v2024             TEXT,
+                                                       clements_v2024b_change TEXT,
+                                                       text_for_website_v2024b TEXT,
+                                                       range                  TEXT,
+                                                       extinct                TEXT,
+                                                       extinct_year           TEXT,
+                                                       sort_v2023             TEXT,
+                                                       german_name            TEXT,
+                                                       spanish_name           TEXT,
+                                                       ukrainian_name         TEXT,
+                                                       arabic_name            TEXT
+                );
+            `
+        );
+
+        // Check version
+        const verRes = await execSqlAsync(
+            database,
+            `SELECT value FROM metadata WHERE key = 'birddex_version' LIMIT 1;`
+        );
+        const currentVersion = verRes.rows.length > 0 ? verRes.rows.item(0).value : null;
+
+        if (currentVersion === BIRDDEX_VERSION) {
+            console.log('BirdDex up-to-date; skipping CSV sync.');
+            await execSqlAsync(database, 'PRAGMA synchronous = NORMAL;');
+            await execSqlAsync(database, 'PRAGMA locking_mode = NORMAL;');
+            isDbInitialized = true;
+
+            sendProgress({
+                loaded: 100,
+                total: 100,
+                phase: 'complete',
+                message: 'BirdDex ist bereits auf dem neuesten Stand.',
+            });
+
+            return;
+        }
+
+        sendProgress({
+            loaded: 5,
+            total: 100,
+            phase: 'parsing',
+            message: 'CSV-Datei wird geladen...',
+        });
+
+        console.log('BirdDex version changed; importing CSV...');
+
+        // Drop indexes to prevent conflicts
+        await execSqlAsync(database, 'DROP INDEX IF EXISTS idx_birddex_english;');
+        await execSqlAsync(database, 'DROP INDEX IF EXISTS idx_birddex_scientific;');
+        await execSqlAsync(database, 'DROP INDEX IF EXISTS idx_birddex_category;');
+        await execSqlAsync(database, 'DROP INDEX IF EXISTS idx_birddex_family;');
+
+        // CRITICAL: Clear existing data to prevent UNIQUE constraint conflicts
+        await execSqlAsync(database, 'DELETE FROM birddex;');
+
+        // Also clear any orphaned data
+        await execSqlAsync(database, 'VACUUM;');
+
+        const asset = Asset.fromModule(ASSET_CSV);
+        await asset.downloadAsync();
+        const uri = asset.localUri ?? asset.uri;
+        if (!uri) throw new Error('Could not resolve birddex CSV asset URI');
+
+        sendProgress({
+            loaded: 10,
+            total: 100,
+            phase: 'parsing',
+            message: 'CSV-Datei wird geparst...',
+        });
+
+        const csvText = await FileSystem.readAsStringAsync(uri);
+        const rows: Record<string, string>[] = [];
+        // Chunked parsing
+        await new Promise<void>((resolve, reject) => {
+            Papa.parse<Record<string, string>>(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                transform: v => v.trim(),
+                step: async ({ data }) => {
+                    rows.push(data);
+                    if (rows.length % 100 === 0) {
+                        await new Promise(r => setTimeout(r, 0));
+                        sendProgress({
+                            loaded: 10 + Math.min(10, (rows.length / 1000) * 10),
+                            total: 100,
+                            phase: 'parsing',
+                            message: `Parsed ${rows.length} rows…`,
+                        });
                     }
-                } catch (rowError) {
-                    console.error(`Error inserting row ${processedCount + 1}:`, rowError);
+                },
+                complete: () => resolve(),
+                error: (err: any) => reject(err),
+            });
+        });
+
+        const filtered = rows.filter(
+            row => row.species_code?.trim() &&
+                ['species', 'subspecies', 'family', 'group (polytypic)', 'group (monotypic)'].includes(
+                    row.category?.trim() || ''
+                )
+        );
+
+        console.log(`Processing ${filtered.length} bird records...`);
+
+        try {
+            sendProgress({
+                loaded: 25,
+                total: 100,
+                phase: 'inserting',
+                message: 'Datensätze werden in die Datenbank eingefügt...',
+                tables: { birddex: { loaded: 0, total: filtered.length } },
+            });
+
+            const insertSql = `
+                INSERT OR REPLACE INTO birddex (
+          species_code, english_name, scientific_name, category, family, order_,
+          sort_v2024, clements_v2024b_change, text_for_website_v2024b, range,
+          extinct, extinct_year, sort_v2023, german_name, spanish_name,
+          ukrainian_name, arabic_name
+        ) VALUES (?,?,...17 placeholders?)
+            `;
+
+            for (let i = 0; i < filtered.length; i++) {
+                const r = filtered[i];
+                const englishName = getEnglishNameForSubspecies(filtered, r);
+                const speciesCode = r['species_code']?.trim() || '';
+                if (!speciesCode) continue;
+
+                const params = [
+                    speciesCode,
+                    englishName,
+                    r['scientific name']?.trim() || '',
+                    r['category']?.trim() || '',
+                    r['family']?.trim() || '',
+                    r['order']?.trim() || '',
+                    r['sort_v2024']?.trim() || '',
+                    r['clements_v2024b_change']?.trim() || '',
+                    r['text_for_website_v2024b']?.trim() || '',
+                    r['range']?.trim() || '',
+                    r['extinct']?.trim() || '',
+                    r['extinct_year']?.trim() || '',
+                    r['sort_v2023']?.trim() || '',
+                    r['german_name']?.trim() || '',
+                    r['spanish_name']?.trim() || '',
+                    r['ukrainian_name']?.trim() || '',
+                    r['arabic_name']?.trim() || ''
+                ];
+
+                await execSqlAsync(database, insertSql, params);
+
+                if (i % 50 === 0) {
+                    await new Promise(res => setTimeout(res, 0));
+                    const overall = 25 + (i / filtered.length) * 60;
+                    sendProgress(
+                        {
+                            loaded: Math.round(overall),
+                            total: 100,
+                            phase: 'inserting',
+                            message: `${i} von ${filtered.length} Vogelarten verarbeitet…`,
+                            tables: { birddex: { loaded: i, total: filtered.length } },
+                            currentBird: {
+                                scientific_name: r['scientific name']!,
+                                english_name: englishName,
+                                german_name: r['german_name'],
+                                spanish_name: r['spanish_name'],
+                                ukrainian_name: r['ukrainian_name'],
+                                arabic_name: r['arabic_name'],
+                            },
+                        },
+                        true
+                    );
                 }
             }
-            insert.finalizeSync();
-            console.log(`Successfully imported ${processedCount} birddex rows.`);
+        } catch (err) {
+            console.error('Bulk insert failed:', err);
+            throw err;
+        }
+
+        sendProgress({
+            loaded: 85,
+            total: 100,
+            phase: 'indexing',
+            message: 'Indices werden erstellt...',
         });
-    } catch (err) {
-        console.error('Bulk insert failed:', err);
-        throw err;
+
+        await execSqlAsync(
+            database,
+            'CREATE INDEX IF NOT EXISTS idx_birddex_english ON birddex(english_name COLLATE NOCASE);'
+        );
+        await execSqlAsync(
+            database,
+            'CREATE INDEX IF NOT EXISTS idx_birddex_scientific ON birddex(scientific_name COLLATE NOCASE);'
+        );
+        await execSqlAsync(
+            database,
+            'CREATE INDEX IF NOT EXISTS idx_birddex_category ON birddex(category);'
+        );
+        await execSqlAsync(
+            database,
+            'CREATE INDEX IF NOT EXISTS idx_birddex_family ON birddex(family);'
+        );
+
+        sendProgress({
+            loaded: 95,
+            total: 100,
+            phase: 'indexing',
+            message: 'Metadaten werden aktualisiert...',
+        });
+
+        await execSqlAsync(
+            database,
+            'INSERT OR REPLACE INTO metadata(key,value) VALUES(?,?);',
+            ['birddex_version', BIRDDEX_VERSION]
+        );
+
+        await execSqlAsync(database, 'PRAGMA synchronous = NORMAL;');
+        await execSqlAsync(database, 'PRAGMA locking_mode = NORMAL;');
+        await execSqlAsync(database, 'PRAGMA optimize;');
+
+        console.log('BirdDex database initialization complete.');
+        isDbInitialized = true;
+
+        sendProgress({
+            loaded: 100,
+            total: 100,
+            phase: 'complete',
+            message: 'BirdDex Datenbank erfolgreich initialisiert.',
+        });
+    } finally {
+        isInitializing = false;
     }
-
-    console.log('Creating indexes...');
-    database.execSync(`CREATE INDEX idx_birddex_english ON birddex(english_name COLLATE NOCASE);`);
-    database.execSync(`CREATE INDEX idx_birddex_scientific ON birddex(scientific_name COLLATE NOCASE);`);
-    database.execSync(`CREATE INDEX idx_birddex_category ON birddex(category);`);
-    database.execSync(`CREATE INDEX idx_birddex_family ON birddex(family);`);
-
-    database.withTransactionSync(() => {
-        const stmt = database.prepareSync(`INSERT OR REPLACE INTO metadata(key,value) VALUES(?,?);`);
-        stmt.executeSync('birddex_version', BIRDDEX_VERSION);
-        stmt.finalizeSync();
-    });
-
-    database.execSync(`PRAGMA synchronous = NORMAL;`);
-    database.execSync(`PRAGMA locking_mode = NORMAL;`);
-    database.execSync(`PRAGMA optimize;`);
-
-    console.log('BirdDex database initialization complete.');
 }
 
-// -----------------------------------------------------------------------------------
-// Enhanced Query Methods with Category Filtering
-// -----------------------------------------------------------------------------------
 
+// Rest of your existing query methods remain the same...
 export function queryBirdDexBatch(
     filter: string,
     sortKey: keyof BirdDexRecord,
@@ -272,7 +488,6 @@ export function queryBirdDexBatch(
 
     const dir = sortAscending ? 'ASC' : 'DESC';
 
-    // Build WHERE clause
     const conditions: string[] = [];
     if (filter) {
         conditions.push(`(b.english_name LIKE ? COLLATE NOCASE OR b.scientific_name LIKE ? COLLATE NOCASE)`);
@@ -358,7 +573,6 @@ export function getBirdDexRowCount(filter: string, categoryFilter: BirdCategory 
     }
 }
 
-// Utility functions (unchanged but with category support)
 export function getBirdBySpeciesCode(speciesCode: string): BirdDexRecord | null {
     const sql = `
         SELECT

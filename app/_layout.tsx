@@ -97,7 +97,6 @@ export default function RootLayout() {
         (async () => {
             try {
                 await initDB(); // creates bird_spottings table
-                await initBirdDexDB(); // upserts birddex table
             } catch (e) {
                 console.error('DB init error', e);
             } finally {

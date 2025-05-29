@@ -280,7 +280,6 @@ export default function SmartSearch() {
                     placeholderTextColor={pal.colors.text.secondary}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
-                    autoFocus
                 />
                 {searchQuery.length > 0 && (
                     <Pressable onPress={() => setSearchQuery('')}>
