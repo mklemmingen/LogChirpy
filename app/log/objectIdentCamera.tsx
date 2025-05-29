@@ -77,43 +77,23 @@ const persistToMediaLibraryAlbum = async (localUri: string, filename: string): P
             }
         }
 
-        // For iOS, we can create the asset directly
-        if (Platform.OS === 'ios') {
-            const asset = await MediaLibrary.createAssetAsync(localUri);
-
-            const album = await MediaLibrary.getAlbumAsync("LogChirpy");
-            if (album) {
-                await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-            } else {
-                await MediaLibrary.createAlbumAsync("LogChirpy", asset, false);
-            }
-
-            console.log("Saved image to LogChirpy album:", asset.uri);
-            return true;
-        }
-
-        // For Android, use the copy approach
-        const destUri = `${FileSystem.cacheDirectory}${filename}`;
-        await FileSystem.copyAsync({ from: localUri, to: destUri });
-
-        const fileInfo = await FileSystem.getInfoAsync(destUri);
-        if (!fileInfo.exists) throw new Error("Copied file not found");
-
-        const asset = await MediaLibrary.createAssetAsync(destUri);
+        // IMPORTANT: Create asset directly from the source URI
+        // This avoids the "modify" permission dialog on Android
+        const asset = await MediaLibrary.createAssetAsync(localUri);
         console.log("Asset created:", asset);
 
-        const album = await MediaLibrary.getAlbumAsync("LogChirpy");
+        // Create or get the album
+        let album = await MediaLibrary.getAlbumAsync("LogChirpy");
+
         if (album) {
+            // Add to existing album
             await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
         } else {
-            await MediaLibrary.createAlbumAsync("LogChirpy", asset, false);
+            // Create new album with the asset
+            album = await MediaLibrary.createAlbumAsync("LogChirpy", asset, false);
         }
 
         console.log("Saved image to LogChirpy album:", asset.uri);
-
-        // Clean up the temp file
-        await FileSystem.deleteAsync(destUri, { idempotent: true });
-
         return true;
     } catch (e) {
         console.error("Failed to save to media library:", e);
@@ -146,18 +126,22 @@ async function handleClassifiedSave(
     prefix: 'bird' | 'full',
     showSnackbar: (key: string, options?: any) => void,
     setDebugText: (txt: string) => void
-): Promise<void>  {
+): Promise<void> {
     if (label.confidence < threshold) return;
 
     const filename = generateFilename(prefix, label.text);
     try {
-        const savedUri = await persistToMediaLibraryAlbum(fileUri, filename);
-        console.log(`${prefix} classified image saved successfully:`, savedUri);
-        showSnackbar('camera.bird_detected', {
-            bird: label.text,
-            confidence: Math.round(label.confidence * 100),
-        });
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Save directly without intermediate steps
+        const saved = await persistToMediaLibraryAlbum(fileUri, filename);
+
+        if (saved) {
+            console.log(`${prefix} classified image saved successfully`);
+            showSnackbar('camera.bird_detected', {
+                bird: label.text,
+                confidence: Math.round(label.confidence * 100),
+            });
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
     } catch (error) {
         console.error('Failed to save image to media library:', error);
         const message = error instanceof Error ? error.message : String(error);
