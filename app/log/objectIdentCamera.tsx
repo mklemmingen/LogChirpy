@@ -67,27 +67,53 @@ function getBoxStyle(confidence: number) {
 
 const persistToMediaLibraryAlbum = async (localUri: string, filename: string): Promise<boolean> => {
     try {
+        // First ensure we have media library permissions
+        const { status } = await MediaLibrary.getPermissionsAsync();
+        if (status !== 'granted') {
+            const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
+            if (newStatus !== 'granted') {
+                console.error("Media library permission denied");
+                return false;
+            }
+        }
+
+        // For iOS, we can create the asset directly
+        if (Platform.OS === 'ios') {
+            const asset = await MediaLibrary.createAssetAsync(localUri);
+
+            const album = await MediaLibrary.getAlbumAsync("LogChirpy");
+            if (album) {
+                await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+            } else {
+                await MediaLibrary.createAlbumAsync("LogChirpy", asset, false);
+            }
+
+            console.log("Saved image to LogChirpy album:", asset.uri);
+            return true;
+        }
+
+        // For Android, use the copy approach
         const destUri = `${FileSystem.cacheDirectory}${filename}`;
         await FileSystem.copyAsync({ from: localUri, to: destUri });
 
-        // Ensure file was copied
         const fileInfo = await FileSystem.getInfoAsync(destUri);
         if (!fileInfo.exists) throw new Error("Copied file not found");
 
-        // Convert to content URI on Android
-        let uriToSave = destUri;
-        if (Platform.OS === 'android') {
-            uriToSave = await FileSystem.getContentUriAsync(destUri);
+        const asset = await MediaLibrary.createAssetAsync(destUri);
+        console.log("Asset created:", asset);
+
+        const album = await MediaLibrary.getAlbumAsync("LogChirpy");
+        if (album) {
+            await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+        } else {
+            await MediaLibrary.createAlbumAsync("LogChirpy", asset, false);
         }
 
-        // console.log("Saving to library:", uriToSave);
-        // const asset = await MediaLibrary.createAssetAsync(uriToSave);
-        // console.log("Asset saved:", asset);
-        // await MediaLibrary.createAlbumAsync("LogChirpy", asset, false);
+        console.log("Saved image to LogChirpy album:", asset.uri);
 
-        await MediaLibrary.saveToLibraryAsync(uriToSave);
+        // Clean up the temp file
+        await FileSystem.deleteAsync(destUri, { idempotent: true });
 
-        console.log("Saved image to media library:", uriToSave);
         return true;
     } catch (e) {
         console.error("Failed to save to media library:", e);
@@ -192,6 +218,15 @@ function ObjectIdentCameraContent() {
 
     const device = useCameraDevice('back');
 
+    // Add this check
+    if (!device) {
+        return (
+            <View style={styles.centered}>
+                <Text>No camera device found</Text>
+            </View>
+        );
+    }
+
     // i18n (internationalization)
     const { t } = useTranslation();
 
@@ -232,6 +267,9 @@ function ObjectIdentCameraContent() {
     const isFocused = useIsFocused();
     const appState = useAppState();
     const isCameraActive = isFocused && appState === 'active';
+
+    // Permissions
+    const [hasMediaPermission, setHasMediaPermission] = useState(false);
 
     // Snackbar notification logic
     const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -286,20 +324,30 @@ function ObjectIdentCameraContent() {
     // Ask for permissions once, also for layout
     useEffect(() => {
         (async () => {
-
             if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
                 UIManager.setLayoutAnimationEnabledExperimental(true);
             }
 
-            await ensureMediaPermission();
+            const hasPermission = await ensureMediaPermission();
+            setHasMediaPermission(hasPermission);
         })();
     }, []);
 
-    const ensureMediaPermission = async () => {
-        let { status } = await MediaLibrary.getPermissionsAsync();
-        if (status !== 'granted') {
-            const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
-            if (newStatus !== 'granted') throw new Error("Media permission denied");
+    const ensureMediaPermission = async (): Promise<boolean> => {
+        try {
+            let { status } = await MediaLibrary.getPermissionsAsync();
+            if (status !== 'granted') {
+                const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
+                if (newStatus !== 'granted') {
+                    console.error("Media permission denied");
+                    showSnackbar('errors.media_permission_denied');
+                    return false;
+                }
+            }
+            return true;
+        } catch (error) {
+            console.error("Error checking media permissions:", error);
+            return false;
         }
     };
 
@@ -772,7 +820,7 @@ function ObjectIdentCameraContent() {
                 <Camera
                     style={styles.camera}
                     ref={cameraRef}
-                    device={device}
+                    device={device!}
                     isActive={isCameraActive}
                     photo={true}
                     zoom={zoom}
@@ -902,6 +950,20 @@ function ObjectIdentCameraContent() {
                     onHide={() => setSnackbarVisible(false)}
                 />
             </View>
+            {!hasMediaPermission && (
+                <View style={styles.permissionWarning}>
+                    <Text style={styles.permissionWarningText}>
+                        {t('warnings.media_permission_required')}
+                    </Text>
+                    <Button
+                        title={t('buttons.grant_permission')}
+                        onPress={async () => {
+                            const granted = await ensureMediaPermission();
+                            setHasMediaPermission(granted);
+                        }}
+                    />
+                </View>
+            )}
             {modalVisible && modalPhotoUri && (
                 <Modal
                     visible={modalVisible}
@@ -1089,6 +1151,24 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '400',
         marginBottom: 4,
+    },
+    permissionWarning: {
+        position: 'absolute',
+        bottom: 100,
+        left: 20,
+        right: 20,
+        backgroundColor: 'rgba(255, 0, 0, 0.9)',
+        padding: 15,
+        borderRadius: 10,
+        zIndex: 25, // Higher than other UI elements
+        alignItems: 'center',
+    },
+    permissionWarningText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginBottom: 10,
     },
 });
 

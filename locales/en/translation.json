@@ -179,7 +179,8 @@
     "back_to_account": "Back to Account",
     "cancel": "Cancel",
     "save": "Save",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "grant_permission": "Grant Permission"
   },
   "auth": {
     "login_title": "Welcome Back",
@@ -223,7 +224,8 @@
     "no_photo_path": "Error: No photo path.",
     "save_photo_failed": "Failed to save photo: {{message}}",
     "capture_failed": "Photo capture failed: {{message}}",
-    "detection_failed": "Detection error: {{message}}"
+    "detection_failed": "Detection error: {{message}}",
+    "media_permission_denied": "Media access denied. Please enable camera and microphone permissions in settings."
   },
   "account": {
     "title": "Account Details",
@@ -327,5 +329,8 @@
     "confirm": "Confirm",
     "save": "Save",
     "cancel": "Cancel"
+  },
+  "warnings": {
+    "media_permission_required": "Media access is required to save photos and recordings. Please enable access in settings."
   }
 }
