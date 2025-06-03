@@ -14,7 +14,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 
 import {HelloWave} from '@/components/HelloWave';
-import BirdAnimation from '@/components/BirdAnimation';
+import BirdAnimation from '@/components/BirdAnimationJS';
 import {ModernCard} from '@/components/ModernCard';
 import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 
@@ -85,7 +85,6 @@ export default function ModernIndex() {
             icon: 'zap',
             route: '/log/objectIdentCamera',
             colorScheme: 'primary',
-            featured: true,
         },
         {
             id: 'photo',
@@ -123,7 +122,7 @@ export default function ModernIndex() {
                 };
             case 'accent':
                 return {
-                    background: variants.accentSubtle,
+                    background: variants.primarySubtle,
                     icon: semanticColors.accent,
                     border: variants.accentMuted,
                 };
@@ -136,7 +135,7 @@ export default function ModernIndex() {
             case 'neutral':
             default:
                 return {
-                    background: semanticColors.backgroundSecondary,
+                    background: variants.primarySubtle,
                     icon: semanticColors.textSecondary,
                     border: semanticColors.border,
                 };
@@ -237,22 +236,6 @@ export default function ModernIndex() {
             {/* Background animations */}
             <BirdAnimation numberOfBirds={8} />
 
-            {/* Multi-layer background for depth without gradients */}
-            <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-                <View style={[
-                    styles.backgroundLayer1,
-                    { backgroundColor: semanticColors.background }
-                ]} />
-                <View style={[
-                    styles.backgroundLayer2,
-                    { backgroundColor: variants.primarySubtle }
-                ]} />
-                <View style={[
-                    styles.backgroundLayer3,
-                    { backgroundColor: semanticColors.background }
-                ]} />
-            </View>
-
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
@@ -292,22 +275,6 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
 
-    },
-
-    // Background layers for depth
-    backgroundLayer1: {
-        ...StyleSheet.absoluteFillObject,
-        opacity: 1,
-    },
-    backgroundLayer2: {
-        ...StyleSheet.absoluteFillObject,
-        opacity: 0.05,
-        top: height * 0.1,
-    },
-    backgroundLayer3: {
-        ...StyleSheet.absoluteFillObject,
-        opacity: 0.9,
-        top: height * 0.7,
     },
 
     // Hero Section
