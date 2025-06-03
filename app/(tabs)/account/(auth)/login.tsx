@@ -403,7 +403,6 @@ export default function ModernLoginScreen() {
                     <Animated.View style={cardStyle}>
                         <ModernCard
                             variant="glass"
-                            style={[styles.loginCard, { borderColor: variants.primaryMuted }]}
                         >
                             <View style={styles.formContainer}>
                                 <ModernTextInput

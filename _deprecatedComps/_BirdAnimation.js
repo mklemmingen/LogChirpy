@@ -1,7 +1,16 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { View, StyleSheet, Animated, Easing, Dimensions, TouchableWithoutFeedback, Platform } from 'react-native';
+import { View, StyleSheet, Animated, Dimensions, TouchableWithoutFeedback, Platform } from 'react-native';
 import { Audio } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
+import {
+    useSharedValue,
+    withRepeat,
+    withTiming,
+    withSequence,
+    useAnimatedStyle,
+    runOnJS,
+    Easing,
+} from 'react-native-reanimated';
 
 const birdSprites = [
     require('@/assets/birds/spritesheet_magpie.png'),
@@ -53,18 +62,23 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
     const [birds, setBirds] = useState([]);
     const [sounds, setSounds] = useState([]);
-    const [windOffset, setWindOffset] = useState(0);
+    const [forceUpdateCounter, setForceUpdateCounter] = useState(0);
 
     const animationsRef = useRef([]);
     const frameIntervalsRef = useRef([]);
-    const windAnimationRef = useRef();
     const isComponentMounted = useRef(true);
     const isScreenFocused = useRef(true);
     const birdsRef = useRef([]);
     const touchPositionsRef = useRef([]);
 
-    // Wind effect for subtle environmental influence
-    const windStrength = useRef(new Animated.Value(0)).current;
+    // Wind effect using reanimated at component level (not inside dynamic creation)
+    const windStrength = useSharedValue(0);
+    const [windOffset, setWindOffset] = useState(0);
+
+    // Force update function for frame animations
+    const forceUpdate = useCallback(() => {
+        setForceUpdateCounter(prev => prev + 1);
+    }, []);
 
     // Load sounds on mount
     useEffect(() => {
@@ -91,41 +105,30 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
         };
     }, []);
 
-    // Wind animation for environmental effects
+    // Wind animation using reanimated at component level
     useEffect(() => {
         const animateWind = () => {
-            windAnimationRef.current = Animated.loop(
-                Animated.sequence([
-                    Animated.timing(windStrength, {
-                        toValue: 1,
+            windStrength.value = withRepeat(
+                withSequence(
+                    withTiming(1, {
                         duration: 8000,
                         easing: Easing.inOut(Easing.sin),
-                        useNativeDriver: false,
                     }),
-                    Animated.timing(windStrength, {
-                        toValue: -1,
+                    withTiming(-1, {
                         duration: 6000,
                         easing: Easing.inOut(Easing.sin),
-                        useNativeDriver: false,
                     }),
-                    Animated.timing(windStrength, {
-                        toValue: 0,
+                    withTiming(0, {
                         duration: 4000,
                         easing: Easing.inOut(Easing.sin),
-                        useNativeDriver: false,
                     }),
-                ])
+                )
             );
-            windAnimationRef.current.start();
         };
 
         if (isScreenFocused.current) {
             animateWind();
         }
-
-        return () => {
-            windAnimationRef.current?.stop();
-        };
     }, []);
 
     // Handle screen focus for optimization
@@ -141,7 +144,7 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
                         if (isComponentMounted.current && isScreenFocused.current) {
                             moveBird(bird);
                         }
-                    }, index * 800); // Stagger bird starts
+                    }, index * 800);
                 }
             });
 
@@ -149,7 +152,6 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
                 console.log("[BirdAnimation] Screen unfocused, stopping animations");
                 isScreenFocused.current = false;
                 animationsRef.current.forEach(anim => anim?.stop?.());
-                windAnimationRef.current?.stop();
             };
         }, [])
     );
@@ -161,7 +163,7 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
         return SPECIES_CONFIG[speciesKey];
     };
 
-    // Enhanced bird creation with realistic characteristics
+    // Enhanced bird creation using react-native Animated (not reanimated hooks)
     const createEnhancedBird = useCallback((index) => {
         const spriteIndex = Math.floor(Math.random() * birdSprites.length);
         const config = getSpeciesConfig(spriteIndex);
@@ -176,20 +178,26 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
         const depth = Math.random(); // 0 = far, 1 = near
         const opacity = 0.3 + depth * 0.7; // Atmospheric perspective
         const finalScale = scale * (0.6 + depth * 0.4); // Size perspective
+        const baseY = 50 + Math.random() * (screenHeight - 150);
 
         return {
             id: Math.random().toString(36).substring(7),
             sprite: birdSprites[spriteIndex],
             spriteIndex,
-            x: new Animated.Value(-64 * finalScale),
-            y: 50 + Math.random() * (screenHeight - 150), // Base Y position
-            animatedY: new Animated.Value(0), // For wave movement
             frameIndex: 0,
             speed,
             scale: finalScale,
             opacity,
             depth,
             zIndex: Math.floor(depth * 10), // 0-9 for layering
+            baseY,
+
+            // Use react-native Animated.Value instead of reanimated hooks
+            animatedValues: {
+                x: new Animated.Value(-64 * finalScale),
+                y: new Animated.Value(baseY),
+                waveY: new Animated.Value(0),
+            },
 
             // Flight characteristics
             waveAmplitude,
@@ -202,35 +210,65 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
 
             // Animation state
             startTime: 0,
-            animationFrame: null,
+            isAnimating: false,
         };
     }, []);
 
-    // Enhanced bird movement with natural flight paths
+    // Enhanced bird movement using react-native Animated
     const moveBird = useCallback((bird) => {
-        if (!isComponentMounted.current || !isScreenFocused.current) return;
+        if (!isComponentMounted.current || !isScreenFocused.current || bird.isAnimating) return;
 
         console.log(`[BirdAnimation] Starting enhanced flight for bird ${bird.id}`);
-
+        bird.isAnimating = true;
         bird.startTime = Date.now();
-        bird.x.setValue(-64 * bird.scale);
-        bird.animatedY.setValue(0);
 
-        const animateNaturalFlight = () => {
-            if (!isComponentMounted.current || !isScreenFocused.current) return;
+        const duration = (15000 / bird.speed);
+        const totalDistance = screenWidth + 128 * bird.scale;
 
-            const elapsed = Date.now() - bird.startTime;
-            const duration = (15000 / bird.speed);
-            const progress = elapsed / duration;
+        // Reset position
+        bird.animatedValues.x.setValue(-64 * bird.scale);
+        bird.animatedValues.waveY.setValue(0);
 
-            if (progress >= 1) {
-                // Flight complete, restart
+        // Main flight animation using react-native Animated
+        const flightAnimation = Animated.timing(bird.animatedValues.x, {
+            toValue: totalDistance,
+            duration: duration,
+            easing: Easing.linear,
+            useNativeDriver: true,
+        });
+
+        // Wave animation using react-native Animated
+        const waveAnimation = Animated.loop(
+            Animated.sequence([
+                Animated.timing(bird.animatedValues.waveY, {
+                    toValue: bird.waveAmplitude,
+                    duration: 2000,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(bird.animatedValues.waveY, {
+                    toValue: -bird.waveAmplitude,
+                    duration: 2000,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+
+        // Start animations
+        waveAnimation.start();
+        flightAnimation.start((finished) => {
+            bird.isAnimating = false;
+            waveAnimation.stop();
+
+            if (finished && isComponentMounted.current && isScreenFocused.current) {
+                // Update bird reference for new Y position
                 const newY = 50 + Math.random() * (screenHeight - 150);
-
-                // Update bird reference
                 const birdIndex = birdsRef.current.findIndex(b => b && b.id === bird.id);
+
                 if (birdIndex !== -1) {
-                    birdsRef.current[birdIndex].y = newY;
+                    birdsRef.current[birdIndex].baseY = newY;
+                    birdsRef.current[birdIndex].animatedValues.y.setValue(newY);
 
                     // Update state
                     setBirds(prevBirds => {
@@ -239,7 +277,7 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
                         if (stateBirdIndex !== -1) {
                             newBirds[stateBirdIndex] = {
                                 ...newBirds[stateBirdIndex],
-                                y: newY
+                                baseY: newY
                             };
                         }
                         return newBirds;
@@ -252,46 +290,21 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
                         }
                     }, 1000 + Math.random() * 3000);
                 }
-                return;
             }
-
-            // Calculate natural flight path
-            const baseX = -64 * bird.scale + (screenWidth + 128 * bird.scale) * progress;
-
-            // Sine wave flight pattern
-            const wavePhase = progress * Math.PI * 6 + bird.waveOffset;
-            const waveY = Math.sin(wavePhase) * bird.waveAmplitude * Math.sin(progress * Math.PI); // Fade wave at ends
-
-            // Wind effect
-            const windInfluence = windOffset * bird.windSensitivity * 15;
-
-            // Subtle random drift for realism
-            const randomDrift = Math.sin(elapsed * 0.003 + bird.id.charCodeAt(0)) * 5;
-
-            // Apply transforms
-            bird.x.setValue(baseX + windInfluence + randomDrift);
-            bird.animatedY.setValue(waveY);
-
-            // Continue animation
-            bird.animationFrame = requestAnimationFrame(animateNaturalFlight);
-        };
-
-        // Start the animation
-        animateNaturalFlight();
+        });
 
         // Store animation reference for cleanup
         const birdIndex = birdsRef.current.findIndex(b => b && b.id === bird.id);
         if (birdIndex !== -1) {
             animationsRef.current[birdIndex] = {
                 stop: () => {
-                    if (bird.animationFrame) {
-                        cancelAnimationFrame(bird.animationFrame);
-                        bird.animationFrame = null;
-                    }
+                    flightAnimation.stop();
+                    waveAnimation.stop();
+                    bird.isAnimating = false;
                 }
             };
         }
-    }, [windOffset]);
+    }, []);
 
     // Setup birds with enhanced characteristics
     useEffect(() => {
@@ -321,7 +334,7 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
                         if (isComponentMounted.current && isScreenFocused.current) {
                             moveBird(bird);
                         }
-                    }, index * 1200); // Staggered start times
+                    }, index * 1200);
                 });
             }
         }, 100);
@@ -346,23 +359,14 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
         const intervals = birds.map((bird) => {
             return setInterval(() => {
                 if (isComponentMounted.current && isScreenFocused.current) {
-                    setBirds(prevBirds => {
-                        const newBirds = [...prevBirds];
-                        const birdIndex = newBirds.findIndex(b => b.id === bird.id);
-                        if (birdIndex !== -1) {
-                            const newFrameIndex = (newBirds[birdIndex].frameIndex + 1) % 4;
-                            newBirds[birdIndex] = {
-                                ...newBirds[birdIndex],
-                                frameIndex: newFrameIndex
-                            };
+                    const birdIndex = birdsRef.current.findIndex(b => b && b.id === bird.id);
+                    if (birdIndex !== -1) {
+                        const newFrameIndex = (birdsRef.current[birdIndex].frameIndex + 1) % 4;
+                        birdsRef.current[birdIndex].frameIndex = newFrameIndex;
 
-                            // Update ref
-                            if (birdsRef.current[birdIndex]) {
-                                birdsRef.current[birdIndex].frameIndex = newFrameIndex;
-                            }
-                        }
-                        return newBirds;
-                    });
+                        // Force re-render for frame updates
+                        forceUpdate();
+                    }
                 }
             }, bird.frameRate);
         });
@@ -372,9 +376,9 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
         return () => {
             intervals.forEach(clearInterval);
         };
-    }, [birds.length]);
+    }, [birds.length, forceUpdate]);
 
-    // Wind effect listener
+    // Wind effect listener using reanimated
     useEffect(() => {
         const listener = windStrength.addListener(({ value }) => {
             setWindOffset(value);
@@ -383,7 +387,7 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
         return () => {
             windStrength.removeListener(listener);
         };
-    }, []);
+    }, [windStrength]);
 
     // Enhanced sound playback with bird-specific audio
     const playRandomSound = useCallback(async (bird) => {
@@ -446,8 +450,16 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
                                 styles.bird,
                                 {
                                     transform: [
-                                        { translateX: bird.x },
-                                        { translateY: bird.y + bird.animatedY },
+                                        { translateX: bird.animatedValues.x },
+                                        {
+                                            translateY: Animated.add(
+                                                bird.animatedValues.y,
+                                                Animated.add(
+                                                    bird.animatedValues.waveY,
+                                                    windOffset * bird.windSensitivity * 15
+                                                )
+                                            )
+                                        },
                                         { scale: bird.scale },
                                     ],
                                     opacity: bird.opacity,
@@ -489,7 +501,7 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
                     </TouchableWithoutFeedback>
                 );
             });
-    }, [birds, handleBirdTouch]);
+    }, [birds, forceUpdateCounter, handleBirdTouch, windOffset]);
 
     return (
         <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
@@ -501,11 +513,9 @@ const EnhancedBirdAnimation = ({ numberOfBirds = 5 }) => {
 const styles = StyleSheet.create({
     bird: {
         position: 'absolute',
-        // Dynamic sizing handled in component
     },
     frame: {
         overflow: 'hidden',
-        // Dynamic sizing handled in component
     },
 });
 
