@@ -1,46 +1,345 @@
-import React,{ PropsWithChildren, useState } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import React, { PropsWithChildren, useState } from 'react';
+import { Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  interpolate,
+  Layout,
+  FadeInDown,
+  FadeOutUp,
+} from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { theme } from '@/constants/theme';
-import { useColorScheme } from 'react-native';
+import {
+  useSemanticColors,
+  useColorVariants,
+  useTypography,
+  useTheme,
+  useMotionValues,
+} from '@/hooks/useThemeColor';
 
-export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const colorScheme = useColorScheme() ?? 'light';
-  const currentTheme = theme[colorScheme].colors;
+interface CollapsibleProps extends PropsWithChildren {
+  title: string;
+  subtitle?: string;
+  defaultOpen?: boolean;
+  variant?: 'default' | 'card' | 'outlined' | 'subtle';
+  size?: 'small' | 'medium' | 'large';
+  style?: ViewStyle;
+  disabled?: boolean;
+  icon?: string;
+  onToggle?: (isOpen: boolean) => void;
+}
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+export function Collapsible({
+                              children,
+                              title,
+                              subtitle,
+                              defaultOpen = false,
+                              variant = 'default',
+                              size = 'medium',
+                              style,
+                              disabled = false,
+                              icon,
+                              onToggle,
+                            }: CollapsibleProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const semanticColors = useSemanticColors();
+  const variants = useColorVariants();
+  const typography = useTypography();
+  const theme = useTheme();
+  const motion = useMotionValues();
+
+  // Animation values
+  const rotation = useSharedValue(defaultOpen ? 180 : 0);
+  const scale = useSharedValue(1);
+  const backgroundOpacity = useSharedValue(0);
+
+  // Get variant-specific styling
+  const getVariantStyle = () => {
+    switch (variant) {
+      case 'card':
+        return {
+          backgroundColor: semanticColors.backgroundElevated,
+          borderRadius: theme.borderRadius.lg,
+          borderWidth: 0,
+          ...theme.shadows.sm,
+        };
+      case 'outlined':
+        return {
+          backgroundColor: 'transparent',
+          borderRadius: theme.borderRadius.md,
+          borderWidth: 1,
+          borderColor: semanticColors.border,
+        };
+      case 'subtle':
+        return {
+          backgroundColor: variants.surfaceHover,
+          borderRadius: theme.borderRadius.md,
+          borderWidth: 0,
+        };
+      default:
+        return {
+          backgroundColor: 'transparent',
+          borderRadius: 0,
+          borderWidth: 0,
+        };
+    }
+  };
+
+  // Get size-specific spacing
+  const getSizeSpacing = () => {
+    switch (size) {
+      case 'small':
+        return {
+          headerPadding: theme.spacing.sm,
+          contentPadding: theme.spacing.sm,
+          iconSize: 16,
+          gap: theme.spacing.xs,
+        };
+      case 'large':
+        return {
+          headerPadding: theme.spacing.lg,
+          contentPadding: theme.spacing.lg,
+          iconSize: 24,
+          gap: theme.spacing.md,
+        };
+      default:
+        return {
+          headerPadding: theme.spacing.md,
+          contentPadding: theme.spacing.md,
+          iconSize: 20,
+          gap: theme.spacing.sm,
+        };
+    }
+  };
+
+  const variantStyle = getVariantStyle();
+  const sizeConfig = getSizeSpacing();
+
+  // Handle toggle
+  const handleToggle = () => {
+    if (disabled) return;
+
+    const newState = !isOpen;
+    setIsOpen(newState);
+    onToggle?.(newState);
+
+    // Haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // Animate chevron rotation
+    rotation.value = withSpring(newState ? 180 : 0, {
+      damping: 15,
+      stiffness: 300,
+    });
+
+    // Subtle background highlight on interaction
+    backgroundOpacity.value = withTiming(0.5, { duration: 100 }, () => {
+      backgroundOpacity.value = withTiming(0, { duration: 200 });
+    });
+  };
+
+  // Handle press animations
+  const handlePressIn = () => {
+    if (!disabled) {
+      scale.value = withSpring(0.98, { damping: 15, stiffness: 300 });
+    }
+  };
+
+  const handlePressOut = () => {
+    if (!disabled) {
+      scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    }
+  };
+
+  // Animated styles
+  const headerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const chevronAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  const backgroundAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: backgroundOpacity.value,
+  }));
+
+  const rippleColor = variant === 'card'
+      ? variants.surfacePressed
+      : variants.primarySubtle;
 
   return (
-      <ThemedView>
-        <TouchableOpacity
-            style={styles.heading}
-            onPress={() => setIsOpen((value) => !value)}
-            activeOpacity={0.8}>
-          <IconSymbol
-              name="x"
-              size={18}
-              color={currentTheme.primary}
+      <ThemedView style={[styles.container, variantStyle, style]}>
+        {/* Header */}
+        <AnimatedPressable
+            style={[
+              styles.header,
+              { padding: sizeConfig.headerPadding },
+              headerAnimatedStyle,
+            ]}
+            onPress={handleToggle}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            disabled={disabled}
+            android_ripple={{ color: rippleColor }}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isOpen }}
+            accessibilityHint={`${isOpen ? 'Collapse' : 'Expand'} ${title} section`}
+        >
+          {/* Background highlight overlay */}
+          <Animated.View
+              style={[
+                StyleSheet.absoluteFillObject,
+                {
+                  backgroundColor: variants.surfaceHover,
+                  borderRadius: variant === 'default' ? 0 : theme.borderRadius.md,
+                },
+                backgroundAnimatedStyle,
+              ]}
+              pointerEvents="none"
           />
-          <ThemedText type="default" style={styles.title}>{title}</ThemedText>
-        </TouchableOpacity>
-        {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
+
+          <ThemedView surface="transparent" style={styles.headerContent}>
+            {/* Leading icon (optional) */}
+            {icon && (
+                <ThemedView style={[
+                  styles.leadingIcon,
+                  { backgroundColor: variants.primarySubtle }
+                ]}>
+                  <Feather
+                      name={icon as any}
+                      size={sizeConfig.iconSize - 4}
+                      color={semanticColors.primary}
+                  />
+                </ThemedView>
+            )}
+
+            {/* Title and subtitle */}
+            <ThemedView surface="transparent" style={styles.titleContainer}>
+              <ThemedText
+                  variant={size === 'large' ? 'headlineSmall' : 'bodyLarge'}
+                  style={[
+                    styles.title,
+                    { color: semanticColors.text },
+                    disabled && { opacity: 0.5 }
+                  ]}
+                  numberOfLines={1}
+              >
+                {title}
+              </ThemedText>
+              {subtitle && (
+                  <ThemedText
+                      variant={size === 'large' ? 'bodyMedium' : 'bodySmall'}
+                      color="secondary"
+                      style={[
+                        styles.subtitle,
+                        disabled && { opacity: 0.5 }
+                      ]}
+                      numberOfLines={2}
+                  >
+                    {subtitle}
+                  </ThemedText>
+              )}
+            </ThemedView>
+
+            {/* Chevron icon */}
+            <Animated.View style={chevronAnimatedStyle}>
+              <Feather
+                  name="chevron-down"
+                  size={sizeConfig.iconSize}
+                  color={disabled ? semanticColors.disabled : semanticColors.textSecondary}
+              />
+            </Animated.View>
+          </ThemedView>
+        </AnimatedPressable>
+
+        {/* Content */}
+        {isOpen && (
+            <Animated.View
+                entering={FadeInDown.duration(motion.duration.medium).springify()}
+                exiting={FadeOutUp.duration(motion.duration.fast).springify()}
+                layout={Layout.springify()}
+                style={[
+                  styles.content,
+                  {
+                    padding: sizeConfig.contentPadding,
+                    paddingTop: variant === 'default' ? sizeConfig.gap : 0,
+                  }
+                ]}
+            >
+              {/* Subtle separator for default variant */}
+              {variant === 'default' && (
+                  <ThemedView
+                      style={[
+                        styles.separator,
+                        { backgroundColor: semanticColors.border }
+                      ]}
+                  />
+              )}
+
+              {children}
+            </Animated.View>
+        )}
       </ThemedView>
   );
 }
 
+// Specialized variants for common use cases
+export function CollapsibleCard({ children, ...props }: Omit<CollapsibleProps, 'variant'>) {
+  return <Collapsible variant="card" {...props}>{children}</Collapsible>;
+}
+
+export function CollapsibleSection({ children, ...props }: Omit<CollapsibleProps, 'variant'>) {
+  return <Collapsible variant="outlined" size="large" {...props}>{children}</Collapsible>;
+}
+
 const styles = StyleSheet.create({
-  heading: {
+  container: {
+    overflow: 'hidden',
+  },
+  header: {
+    position: 'relative',
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 12,
+  },
+  leadingIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  titleContainer: {
+    flex: 1,
+    gap: 2,
   },
   title: {
-    fontWeight: '600', // This makes it semi-bold
+    fontWeight: '600',
+  },
+  subtitle: {
+    lineHeight: 18,
   },
   content: {
-    marginTop: 6,
-    marginLeft: 24,
+    position: 'relative',
+  },
+  separator: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    opacity: 0.3,
   },
 });

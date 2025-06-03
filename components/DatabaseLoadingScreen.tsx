@@ -2,156 +2,145 @@ import React, { useEffect, useRef } from 'react';
 import {
     View,
     Text,
-    ActivityIndicator,
-    Pressable,
     StyleSheet,
-    useColorScheme,
-    Animated,
-    Dimensions
+    Dimensions,
+    SafeAreaView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '@/constants/theme';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withTiming,
+    withSpring,
+    interpolate,
+    Easing,
+} from 'react-native-reanimated';
+
+import { ModernCard } from '@/components/ModernCard';
+import { ThemedPressable } from '@/components/ThemedPressable';
 import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
+import {
+    useTheme,
+    useSemanticColors,
+    useColorVariants,
+    useTypography,
+    useMotionValues
+} from '@/hooks/useThemeColor';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-// Animated Bird Component
-function AnimatedBird({ delay = 0 }: { delay?: number }) {
-    const translateY = useRef(new Animated.Value(0)).current;
-    const opacity = useRef(new Animated.Value(0.7)).current;
-    const colorScheme = useColorScheme() ?? 'light';
-    const pal = theme[colorScheme];
+// Floating Bird Animation Component
+function FloatingBird({ delay = 0, index = 0 }: { delay?: number; index?: number }) {
+    const semanticColors = useSemanticColors();
+    const floatAnimation = useSharedValue(0);
 
-    useEffect(() => {
-        const animateBird = () => {
-            Animated.parallel([
-                Animated.sequence([
-                    Animated.timing(translateY, {
-                        toValue: -20,
-                        duration: 2000,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(translateY, {
-                        toValue: 0,
-                        duration: 2000,
-                        useNativeDriver: true,
-                    }),
-                ]),
-                Animated.sequence([
-                    Animated.timing(opacity, {
-                        toValue: 1,
-                        duration: 1000,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(opacity, {
-                        toValue: 0.7,
-                        duration: 1000,
-                        useNativeDriver: true,
-                    }),
-                ]),
-            ]).start(() => animateBird());
-        };
+    React.useEffect(() => {
+        floatAnimation.value = withRepeat(
+            withTiming(1, { duration: 3000 + (index * 200), easing: Easing.inOut(Easing.ease) }),
+            -1,
+            true
+        );
+    }, [index]);
 
-        const timer = setTimeout(animateBird, delay);
-        return () => clearTimeout(timer);
-    }, [translateY, opacity, delay]);
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(
+                    floatAnimation.value,
+                    [0, 1],
+                    [0, -12]
+                ) * Math.sin(Date.now() / 1000 + delay),
+            },
+        ],
+        opacity: interpolate(floatAnimation.value, [0, 1], [0.6, 1]),
+    }));
 
     return (
-        <Animated.View
-            style={[
-                styles.bird,
-                {
-                    transform: [{ translateY }],
-                    opacity,
-                },
-            ]}
-        >
-            <Feather name="feather" size={16} color={pal.colors.primary} />
+        <Animated.View style={[styles.floatingBird, animatedStyle]}>
+            <Feather name="feather" size={16} color={semanticColors.primary} />
         </Animated.View>
     );
 }
 
-// Progress Ring Component
-function ProgressRing({ progress, size = 120 }: { progress: number; size?: number }) {
-    const colorScheme = useColorScheme() ?? 'light';
-    const pal = theme[colorScheme];
-    const strokeWidth = 8;
-    const radius = (size - strokeWidth) / 2;
-    const circumference = radius * 2 * Math.PI;
-    const strokeDasharray = circumference;
-    const strokeDashoffset = circumference - (progress / 100) * circumference;
+// Enhanced Progress Bar Component
+function ModernProgressBar({ progress }: { progress: number }) {
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const theme = useTheme();
+
+    const progressAnimation = useSharedValue(0);
+
+    React.useEffect(() => {
+        progressAnimation.value = withSpring(progress / 100, {
+            damping: 20,
+            stiffness: 100,
+        });
+    }, [progress]);
+
+    const progressStyle = useAnimatedStyle(() => ({
+        width: `${progressAnimation.value * 100}%`,
+    }));
 
     return (
-        <View style={[styles.progressRing, { width: size, height: size }]}>
-            <View style={styles.progressRingInner}>
-                <Text style={[styles.progressPercentage, { color: pal.colors.primary }]}>
+        <View style={styles.progressContainer}>
+            <View style={[styles.progressTrack, { backgroundColor: variants.primarySubtle }]}>
+                <Animated.View
+                    style={[
+                        styles.progressFill,
+                        { backgroundColor: semanticColors.primary },
+                        progressStyle,
+                    ]}
+                />
+            </View>
+            <View style={styles.progressLabels}>
+                <Text style={[styles.progressText, { color: semanticColors.primary }]}>
                     {progress}%
                 </Text>
             </View>
-            {/* We'll use a simulated ring with Views since SVG might be complex */}
-            <View
-                style={[
-                    styles.progressCircle,
-                    {
-                        width: size,
-                        height: size,
-                        borderRadius: size / 2,
-                        borderWidth: strokeWidth,
-                        borderColor: pal.colors.border,
-                    },
-                ]}
-            />
-            <View
-                style={[
-                    styles.progressCircleActive,
-                    {
-                        width: size,
-                        height: size,
-                        borderRadius: size / 2,
-                        borderWidth: strokeWidth,
-                        borderColor: pal.colors.primary,
-                        transform: [{ rotate: `${(progress / 100) * 360 - 90}deg` }],
-                    },
-                ]}
-            />
         </View>
     );
 }
 
-// Main Loading Screen Component
 export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
     const { isReady, isLoading, hasError, progress, loadedRecords, totalRecords, error, retry } = useBirdDexDatabase();
-    const colorScheme = useColorScheme() ?? 'light';
-    const pal = theme[colorScheme];
-    const insets = useSafeAreaInsets();
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const typography = useTypography();
+    const theme = useTheme();
+    const motion = useMotionValues();
 
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(50)).current;
+    // Main animation values
+    const fadeAnim = useSharedValue(0);
+    const slideAnim = useSharedValue(30);
+    const logoAnimation = useSharedValue(1);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (isReady) {
-            Animated.timing(fadeAnim, {
-                toValue: 0,
-                duration: 300,
-                useNativeDriver: true,
-            }).start(() => onReady());
+            fadeAnim.value = withTiming(0, { duration: motion.duration.medium });
+            setTimeout(onReady, motion.duration.medium);
         } else {
-            Animated.parallel([
-                Animated.timing(fadeAnim, {
-                    toValue: 1,
-                    duration: 500,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(slideAnim, {
-                    toValue: 0,
-                    duration: 500,
-                    useNativeDriver: true,
-                }),
-            ]).start();
+            fadeAnim.value = withTiming(1, { duration: motion.duration.medium });
+            slideAnim.value = withSpring(0, { damping: 20, stiffness: 300 });
         }
-    }, [isReady, fadeAnim, slideAnim, onReady]);
+    }, [isReady]);
+
+    React.useEffect(() => {
+        logoAnimation.value = withRepeat(
+            withTiming(1.05, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+            -1,
+            true
+        );
+    }, []);
+
+    const containerStyle = useAnimatedStyle(() => ({
+        opacity: fadeAnim.value,
+        transform: [{ translateY: slideAnim.value }],
+    }));
+
+    const logoStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: logoAnimation.value }],
+    }));
 
     const getStatusMessage = () => {
         if (progress < 20) return "Preparing nest...";
@@ -161,149 +150,152 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
         return "Almost ready to fly...";
     };
 
-    const getSpeciesMessage = () => {
-        if (loadedRecords > 0) {
-            return `${loadedRecords.toLocaleString()} species ready to explore`;
-        }
-        return "Building comprehensive species database";
+    const getFloatingStyle = (delay: number) => {
+        return useAnimatedStyle(() => ({
+            transform: [
+                {
+                    translateY: interpolate(
+                        logoAnimation.value,
+                        [1, 1.05],
+                        [0, -8]
+                    ) * Math.sin(Date.now() / 1000 + delay),
+                },
+            ],
+        }));
     };
 
     if (hasError) {
         return (
-            <View style={[styles.container, { backgroundColor: pal.colors.background }]}>
-                <BlurView
-                    intensity={colorScheme === 'dark' ? 80 : 60}
-                    tint={colorScheme === 'dark' ? 'dark' : 'light'}
-                    style={styles.errorContainer}
-                >
-                    <View style={styles.errorContent}>
-                        {/* Error Icon with Animation */}
-                        <View style={[styles.errorIconContainer, { backgroundColor: pal.colors.error + '20' }]}>
-                            <Feather name="alert-triangle" size={48} color={pal.colors.error} />
-                        </View>
-
-                        <Text style={[styles.errorTitle, { color: pal.colors.text.primary }]}>
-                            Nest Building Failed
-                        </Text>
-
-                        <Text style={[styles.errorMessage, { color: pal.colors.text.secondary }]}>
-                            {error || 'We encountered a problem setting up your bird database. This might be due to insufficient storage or a network issue.'}
-                        </Text>
-
-                        <View style={styles.errorActions}>
-                            <Pressable
-                                style={[styles.retryButton, { backgroundColor: pal.colors.primary }]}
-                                onPress={retry}
-                                android_ripple={{ color: pal.colors.primary + '20' }}
-                            >
-                                <Feather name="refresh-cw" size={20} color={pal.colors.text.onPrimary} />
-                                <Text style={[styles.retryText, { color: pal.colors.text.onPrimary }]}>
-                                    Try Again
-                                </Text>
-                            </Pressable>
-
-                            <Text style={[styles.troubleshootText, { color: pal.colors.text.tertiary }]}>
-                                Make sure you have stable internet and sufficient storage space
-                            </Text>
-                        </View>
+            <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+                <Animated.View style={[styles.content, containerStyle]}>
+                    <View style={styles.floatingBirds}>
+                        {[...Array(3)].map((_, i) => (
+                            <FloatingBird key={i} delay={i * 0.5} index={i} />
+                        ))}
                     </View>
-                </BlurView>
-            </View>
+
+                    <Animated.View style={[styles.logoContainer, logoStyle]}>
+                        <View style={[styles.logoIcon, { backgroundColor: variants.primarySubtle }]}>
+                            <Feather name="alert-triangle" size={48} color={semanticColors.error} />
+                        </View>
+                    </Animated.View>
+
+                    <Text style={[typography.displayMedium, styles.title]}>
+                        Nest Building Failed
+                    </Text>
+
+                    <Text style={[typography.bodyLarge, styles.subtitle, { color: semanticColors.textSecondary }]}>
+                        We encountered a problem setting up your bird database
+                    </Text>
+
+                    <Animated.View style={getFloatingStyle(0.5)}>
+                        <ModernCard
+                            variant="outlined"
+                            style={styles.errorCard}
+                        >
+                            <View style={styles.errorContent}>
+                                <Text style={[typography.bodyMedium, { color: semanticColors.textSecondary }]}>
+                                    {error || 'Check your storage space and network connection'}
+                                </Text>
+
+                                <ThemedPressable
+                                    variant="primary"
+                                    size="large"
+                                    onPress={retry}
+                                    style={styles.retryButton}
+                                >
+                                    <Feather name="refresh-cw" size={20} color={semanticColors.onPrimary} />
+                                    <Text style={[typography.labelLarge, { color: semanticColors.onPrimary }]}>
+                                        Try Again
+                                    </Text>
+                                </ThemedPressable>
+                            </View>
+                        </ModernCard>
+                    </Animated.View>
+                </Animated.View>
+            </SafeAreaView>
         );
     }
 
     if (isLoading) {
         return (
-            <Animated.View
-                style={[
-                    styles.container,
-                    {
-                        backgroundColor: pal.colors.background,
-                        opacity: fadeAnim,
-                        transform: [{ translateY: slideAnim }]
-                    }
-                ]}
-            >
-                <View style={[styles.loadingContainer, { paddingTop: insets.top + 40 }]}>
-
-                    {/* Animated Birds Background */}
-                    <View style={styles.birdsBackground}>
-                        <AnimatedBird delay={0} />
-                        <AnimatedBird delay={500} />
-                        <AnimatedBird delay={1000} />
+            <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+                <Animated.View style={[styles.content, containerStyle]}>
+                    {/* Floating Birds */}
+                    <View style={styles.floatingBirds}>
+                        {[...Array(5)].map((_, i) => (
+                            <FloatingBird key={i} delay={i * 0.3} index={i} />
+                        ))}
                     </View>
 
-                    {/* Main Logo and Branding */}
-                    <View style={styles.brandingSection}>
-                        <View style={[styles.logoContainer, { backgroundColor: pal.colors.primary + '15' }]}>
-                            <Feather name="feather" size={64} color={pal.colors.primary} />
-                        </View>
+                    {/* Hero Section */}
+                    <View style={styles.heroSection}>
+                        <Animated.View style={[styles.logoContainer, logoStyle]}>
+                            <View style={[styles.logoIcon, { backgroundColor: variants.primarySubtle }]}>
+                                <Feather name="feather" size={48} color={semanticColors.primary} />
+                            </View>
+                        </Animated.View>
 
-                        <Text style={[styles.appTitle, { color: pal.colors.text.primary }]}>
+                        <Text style={[typography.displayMedium, styles.title]}>
                             LogChirpy
                         </Text>
 
-                        <Text style={[styles.tagline, { color: pal.colors.text.secondary }]}>
-                            Your Digital Birding Companion
+                        <Text style={[typography.bodyLarge, styles.subtitle, { color: semanticColors.textSecondary }]}>
+                            Building your bird database
                         </Text>
                     </View>
 
                     {/* Progress Section */}
-                    <BlurView
-                        intensity={colorScheme === 'dark' ? 40 : 60}
-                        tint={colorScheme === 'dark' ? 'dark' : 'light'}
-                        style={[styles.progressSection, { borderColor: pal.colors.border }]}
-                    >
-                        <Text style={[styles.progressTitle, { color: pal.colors.text.primary }]}>
-                            Building Your Bird Database
-                        </Text>
-
-                        <Text style={[styles.statusMessage, { color: pal.colors.primary }]}>
-                            {getStatusMessage()}
-                        </Text>
-
-                        {/* Progress Ring */}
-                        <View style={styles.progressContainer}>
-                            <ProgressRing progress={Math.max(5, progress)} />
-                        </View>
-
-                        {/* Species Counter */}
-                        <View style={styles.statsContainer}>
-                            <View style={styles.statItem}>
-                                <Text style={[styles.statNumber, { color: pal.colors.primary }]}>
-                                    {loadedRecords.toLocaleString()}
+                    <Animated.View style={getFloatingStyle(0.8)}>
+                        <ModernCard
+                            variant="glass"
+                            style={{
+                                ...styles.progressCard,
+                                borderColor: variants.primaryMuted,
+                            }}
+                        >
+                            <View style={styles.progressContent}>
+                                <Text style={[typography.headlineSmall, { color: semanticColors.text }]}>
+                                    {getStatusMessage()}
                                 </Text>
-                                <Text style={[styles.statLabel, { color: pal.colors.text.secondary }]}>
-                                    Species Loaded
-                                </Text>
-                            </View>
 
-                            {totalRecords > 0 && (
-                                <View style={styles.statItem}>
-                                    <Text style={[styles.statNumber, { color: pal.colors.accent }]}>
-                                        {totalRecords.toLocaleString()}
-                                    </Text>
-                                    <Text style={[styles.statLabel, { color: pal.colors.text.secondary }]}>
-                                        Total Species
-                                    </Text>
+                                <ModernProgressBar progress={Math.max(5, progress)} />
+
+                                {/* Stats */}
+                                <View style={styles.statsContainer}>
+                                    <View style={styles.statItem}>
+                                        <Text style={[typography.headlineMedium, { color: semanticColors.primary }]}>
+                                            {loadedRecords.toLocaleString()}
+                                        </Text>
+                                        <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
+                                            Species Loaded
+                                        </Text>
+                                    </View>
+
+                                    {totalRecords > 0 && (
+                                        <>
+                                            <View style={[styles.statDivider, { backgroundColor: variants.primaryMuted }]} />
+                                            <View style={styles.statItem}>
+                                                <Text style={[typography.headlineMedium, { color: semanticColors.accent }]}>
+                                                    {totalRecords.toLocaleString()}
+                                                </Text>
+                                                <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
+                                                    Total Species
+                                                </Text>
+                                            </View>
+                                        </>
+                                    )}
                                 </View>
-                            )}
-                        </View>
+                            </View>
+                        </ModernCard>
+                    </Animated.View>
 
-                        <Text style={[styles.speciesMessage, { color: pal.colors.text.tertiary }]}>
-                            {getSpeciesMessage()}
-                        </Text>
-                    </BlurView>
-
-                    {/* Loading Indicator */}
-                    <View style={styles.loadingIndicator}>
-                        <ActivityIndicator size="small" color={pal.colors.primary} />
-                        <Text style={[styles.loadingText, { color: pal.colors.text.tertiary }]}>
-                            This may take a moment on first launch
-                        </Text>
-                    </View>
-                </View>
-            </Animated.View>
+                    {/* Loading Hint */}
+                    <Text style={[typography.labelMedium, styles.hint, { color: semanticColors.textTertiary }]}>
+                        This may take a moment on first launch
+                    </Text>
+                </Animated.View>
+            </SafeAreaView>
         );
     }
 
@@ -314,205 +306,127 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-
-    // Loading State Styles
-    loadingContainer: {
+    content: {
         flex: 1,
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: theme.spacing.xl,
-        paddingBottom: theme.spacing.xxl,
+        paddingHorizontal: 24,
+        paddingBottom: 40,
     },
 
-    // Birds Animation
-    birdsBackground: {
+    // Floating Birds
+    floatingBirds: {
         position: 'absolute',
         top: 60,
         left: 0,
         right: 0,
         height: 200,
+        flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
-        flexDirection: 'row',
         opacity: 0.6,
     },
-    bird: {
+    floatingBird: {
         position: 'absolute',
     },
 
-    // Branding Section
-    brandingSection: {
+    // Hero Section
+    heroSection: {
         alignItems: 'center',
-        marginTop: theme.spacing.xxl,
+        marginBottom: 40,
     },
     logoContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: theme.spacing.lg,
-        ...theme.shadows.md,
+        marginBottom: 24,
     },
-    appTitle: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        marginBottom: theme.spacing.xs,
-        letterSpacing: 1,
-    },
-    tagline: {
-        fontSize: 16,
-        textAlign: 'center',
-        fontStyle: 'italic',
-    },
-
-    // Progress Section
-    progressSection: {
-        width: width * 0.9,
-        maxWidth: 400,
-        paddingVertical: theme.spacing.xl,
-        paddingHorizontal: theme.spacing.lg,
-        borderRadius: theme.borderRadius.xl,
-        borderWidth: 1,
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        ...theme.shadows.md,
-    },
-    progressTitle: {
-        fontSize: 20,
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-    statusMessage: {
-        fontSize: 16,
-        fontWeight: '500',
-        textAlign: 'center',
-    },
-    progressContainer: {
-        marginVertical: theme.spacing.md,
-    },
-
-    // Progress Ring
-    progressRing: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        position: 'relative',
-    },
-    progressRingInner: {
-        position: 'absolute',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 2,
-    },
-    progressPercentage: {
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    progressCircle: {
-        position: 'absolute',
-    },
-    progressCircleActive: {
-        position: 'absolute',
-        borderLeftColor: 'transparent',
-        borderBottomColor: 'transparent',
-        borderRightColor: 'transparent',
-    },
-
-    // Stats
-    statsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        width: '100%',
-        marginTop: theme.spacing.md,
-    },
-    statItem: {
-        alignItems: 'center',
-        flex: 1,
-    },
-    statNumber: {
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    statLabel: {
-        fontSize: 12,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginTop: 2,
-    },
-    speciesMessage: {
-        fontSize: 14,
-        textAlign: 'center',
-        marginTop: theme.spacing.sm,
-    },
-
-    // Loading Indicator
-    loadingIndicator: {
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-    },
-    loadingText: {
-        fontSize: 12,
-        textAlign: 'center',
-        fontStyle: 'italic',
-    },
-
-    // Error State Styles
-    errorContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        margin: theme.spacing.lg,
-        borderRadius: theme.borderRadius.xl,
-    },
-    errorContent: {
-        alignItems: 'center',
-        padding: theme.spacing.xl,
-        maxWidth: 350,
-    },
-    errorIconContainer: {
+    logoIcon: {
         width: 96,
         height: 96,
         borderRadius: 48,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: theme.spacing.lg,
     },
-    errorTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: theme.spacing.md,
+    title: {
+        marginBottom: 8,
         textAlign: 'center',
     },
-    errorMessage: {
-        fontSize: 16,
+    subtitle: {
         textAlign: 'center',
         lineHeight: 24,
-        marginBottom: theme.spacing.xl,
+        maxWidth: width * 0.8,
     },
-    errorActions: {
+
+    // Progress Section
+    progressCard: {
+        width: width * 0.9,
+        maxWidth: 400,
+        borderWidth: 1,
+        marginBottom: 24,
+    },
+    progressContent: {
+        padding: 24,
         alignItems: 'center',
+        gap: 20,
+    },
+    progressContainer: {
         width: '100%',
-        gap: theme.spacing.md,
+        gap: 12,
     },
-    retryButton: {
+    progressTrack: {
+        width: '100%',
+        height: 8,
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        borderRadius: 4,
+    },
+    progressLabels: {
         flexDirection: 'row',
-        alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.xl,
-        borderRadius: theme.borderRadius.lg,
-        gap: theme.spacing.sm,
-        minWidth: 140,
-        ...theme.shadows.sm,
     },
-    retryText: {
+    progressText: {
         fontSize: 16,
         fontWeight: '600',
     },
-    troubleshootText: {
-        fontSize: 12,
+
+    // Stats
+    statsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        justifyContent: 'center',
+    },
+    statItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    statDivider: {
+        width: 1,
+        height: 40,
+        marginHorizontal: 16,
+    },
+
+    // Error State
+    errorCard: {
+        width: width * 0.9,
+        maxWidth: 350,
+        marginTop: 20,
+    },
+    errorContent: {
+        padding: 24,
+        alignItems: 'center',
+        gap: 20,
+    },
+    retryButton: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+
+    // Misc
+    hint: {
         textAlign: 'center',
-        lineHeight: 18,
+        fontStyle: 'italic',
         maxWidth: 280,
     },
 });
