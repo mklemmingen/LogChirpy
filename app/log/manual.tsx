@@ -1,51 +1,43 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
     ActivityIndicator,
     Alert,
+    BackHandler,
     Dimensions,
     Image,
+    Linking,
     Modal,
     Platform,
-    SafeAreaView,
     ScrollView,
+    StatusBar,
     StyleSheet,
-    Text,
     TextInput,
-    TouchableOpacity,
     useColorScheme,
     View,
-    StatusBar,
-    Linking,
-    BackHandler,
 } from 'react-native';
-import { router, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Audio } from 'expo-av';
+import {router, Stack, useFocusEffect, useLocalSearchParams} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Audio} from 'expo-av';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import {Feather} from '@expo/vector-icons';
+import {BlurView} from 'expo-blur';
 
-import { useLogDraft } from '../context/LogDraftContext';
-import { BirdSpotting, insertBirdSpotting } from '@/services/database';
-import { useVideoPlayer, VideoSource, VideoView } from 'expo-video';
+import {useLogDraft} from '../context/LogDraftContext';
+import {BirdSpotting, insertBirdSpotting} from '@/services/database';
+import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 
 // Modern components
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable, PrimaryButton } from '@/components/ThemedPressable';
-import { ModernCard } from '@/components/ModernCard';
-import { useSnackbar } from '@/components/ThemedSnackbar';
-import { GlassSection } from '@/components/Section';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {PrimaryButton, ThemedPressable} from '@/components/ThemedPressable';
+import {ModernCard} from '@/components/ModernCard';
+import {useSnackbar} from '@/components/ThemedSnackbar';
+import {GlassSection} from '@/components/Section';
 
 // Theme hooks
-import {
-    useTheme,
-    useSemanticColors,
-    useTypography,
-    useColorVariants,
-} from '@/hooks/useThemeColor';
+import {useColorVariants, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

@@ -1,26 +1,12 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
-import {
-    View,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useColorScheme,
-    SafeAreaView,
-    Dimensions,
-    Alert,
-} from 'react-native';
-import { router, Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import {
-    Camera,
-    useCameraDevice,
-    useCameraPermission,
-    useCameraFormat,
-} from 'react-native-vision-camera';
-import { Feather } from '@expo/vector-icons';
+import React, {useEffect, useRef, useState} from 'react';
+import {Alert, Dimensions, SafeAreaView, StyleSheet, Text, TouchableOpacity, useColorScheme, View,} from 'react-native';
+import {router, Stack} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Camera, useCameraDevice, useCameraFormat, useCameraPermission,} from 'react-native-vision-camera';
+import {Feather} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
-import { theme } from '@/constants/theme';
+import {theme} from '@/constants/theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 

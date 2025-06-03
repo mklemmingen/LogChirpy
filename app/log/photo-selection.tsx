@@ -1,24 +1,15 @@
-import React, { useState } from 'react';
-import {
-    View,
-    StyleSheet,
-    ScrollView,
-    Image,
-    TouchableOpacity,
-    useColorScheme,
-    Text,
-    Dimensions,
-} from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Feather } from '@expo/vector-icons';
+import React, {useState} from 'react';
+import {Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, useColorScheme, View,} from 'react-native';
+import {router, useLocalSearchParams} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Feather} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { theme } from '@/constants/theme';
-import { useLogDraft } from '../context/LogDraftContext';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {theme} from '@/constants/theme';
+import {useLogDraft} from '../context/LogDraftContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_SIZE = (SCREEN_WIDTH - 48) / 2;

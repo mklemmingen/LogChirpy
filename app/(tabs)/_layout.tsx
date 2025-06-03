@@ -1,25 +1,19 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
-import { Platform, View, Pressable } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import { BlurView } from 'expo-blur';
+import {Tabs} from 'expo-router';
+import {Platform, View} from 'react-native';
+import {Feather} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
+import {BlurView} from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import Animated, {
+    interpolate,
     useAnimatedStyle,
     useSharedValue,
     withSpring,
     withTiming,
-    interpolate,
 } from 'react-native-reanimated';
 
-import {
-    useSemanticColors,
-    useTheme,
-    useTypography,
-    useColorVariants,
-    useMotionValues
-} from '@/hooks/useThemeColor';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 
 // Enhanced Tab Icon Component
 function EnhancedTabIcon({

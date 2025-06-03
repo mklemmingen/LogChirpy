@@ -1,34 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    SafeAreaView,
-    ScrollView,
-    Pressable,
-    Alert,
-} from 'react-native';
-import { signOut } from 'firebase/auth';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Feather } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
+import React, {useEffect, useState} from 'react';
+import {Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View,} from 'react-native';
+import {signOut} from 'firebase/auth';
+import {router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Feather} from '@expo/vector-icons';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
-import { ModernCard } from '@/components/ModernCard';
-import { auth } from '@/firebase/config';
-import {
-    useSemanticColors,
-    useTheme,
-    useTypography,
-    useColorVariants,
-    useMotionValues,
-} from '@/hooks/useThemeColor';
+import {ModernCard} from '@/components/ModernCard';
+import {auth} from '@/firebase/config';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

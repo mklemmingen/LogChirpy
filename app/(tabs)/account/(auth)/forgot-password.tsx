@@ -1,44 +1,25 @@
-import React, { useState, useRef } from 'react';
-import {
-    View,
-    Text,
-    TextInput,
-    StyleSheet,
-    SafeAreaView,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Alert,
-} from 'react-native';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import React, {useRef, useState} from 'react';
+import {KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, TextInput, View,} from 'react-native';
+import {router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Feather} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, {
+    FadeInDown,
+    FadeOutUp,
     useAnimatedStyle,
     useSharedValue,
     withSpring,
     withTiming,
-    interpolate,
-    FadeInDown,
-    FadeOutUp,
 } from 'react-native-reanimated';
 
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { ModernCard } from '@/components/ModernCard';
-import { useSnackbar } from '@/components/ThemedSnackbar';
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues,
-} from '@/hooks/useThemeColor';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '@/firebase/config';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedText} from '@/components/ThemedText';
+import {ModernCard} from '@/components/ModernCard';
+import {useSnackbar} from '@/components/ThemedSnackbar';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {sendPasswordResetEmail} from 'firebase/auth';
+import {auth} from '@/firebase/config';
 
 // Validation helper
 const validateEmail = (email: string): boolean => {

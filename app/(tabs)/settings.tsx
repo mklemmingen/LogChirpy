@@ -1,42 +1,26 @@
-import React, { useEffect, useState } from "react";
-import {
-    I18nManager,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    SafeAreaView,
-    View,
-    useColorScheme,
-} from "react-native";
-import { useTranslation } from "react-i18next";
-import { Feather } from '@expo/vector-icons';
+import React, {useEffect, useState} from "react";
+import {I18nManager, SafeAreaView, ScrollView, StyleSheet, Switch, Text, useColorScheme, View,} from "react-native";
+import {useTranslation} from "react-i18next";
+import {Feather} from '@expo/vector-icons';
 import Animated, {
+    FadeInDown,
+    interpolate,
+    Layout,
     useAnimatedStyle,
     useSharedValue,
     withSpring,
     withTiming,
-    interpolate,
-    FadeInDown,
-    Layout,
 } from 'react-native-reanimated';
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
-import { languages } from "@/i18n/languages";
-import { Config } from "@/constants/config";
-import { ThemedPressable } from "@/components/ThemedPressable";
-import { ModernCard } from "@/components/ModernCard";
+import {languages} from "@/i18n/languages";
+import {Config} from "@/constants/config";
+import {ModernCard} from "@/components/ModernCard";
 import SettingsSection from "@/components/SettingsSection";
-import { ThemedText } from "@/components/ThemedText";
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues
-} from "@/hooks/useThemeColor";
+import {ThemedText} from "@/components/ThemedText";
+import {useColorVariants, useSemanticColors, useTheme, useTypography} from "@/hooks/useThemeColor";
 
 // Enhanced Language Selection Card
 function LanguageCard({

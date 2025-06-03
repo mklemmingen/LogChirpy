@@ -24,7 +24,6 @@ import Animated, {
     useAnimatedStyle,
     useSharedValue,
     withSpring,
-    withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -33,13 +32,7 @@ import {ModernCard} from '@/components/ModernCard';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedView} from '@/components/ThemedView';
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues
-} from '@/hooks/useThemeColor';
+import {useColorVariants, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 
 type SpottingDetail = BirdSpotting | null;
 

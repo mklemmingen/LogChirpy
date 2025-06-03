@@ -18,7 +18,7 @@ import {BlurView} from 'expo-blur';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {theme} from '@/constants/theme';
-import {getBirdBySpeciesCode, type BirdDexRecord} from '@/services/databaseBirDex';
+import {type BirdDexRecord, getBirdBySpeciesCode} from '@/services/databaseBirDex';
 import {hasSpottingForLatin} from '@/services/database';
 
 type DetailRecord = BirdDexRecord & {
