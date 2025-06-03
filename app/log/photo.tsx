@@ -2,7 +2,7 @@ import React from 'react';
 import {StyleSheet, useColorScheme, View} from 'react-native';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import * as ImagePicker from 'expo-image-picker';
+import {launchImageLibrary, ImagePickerResponse, MediaType, ImageLibraryOptions} from 'react-native-image-picker';
 import * as Haptics from 'expo-haptics';
 import {Feather} from '@expo/vector-icons';
 
@@ -20,19 +20,31 @@ export default function PhotoCapture() {
 
   const handleGalleryPick = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-        allowsMultipleSelection: false,
-      });
+      const options: ImageLibraryOptions = {
+        mediaType: 'photo',
+        maxWidth: 2048,
+        maxHeight: 2048,
+        includeBase64: false,
+        selectionLimit: 1,
+      };
 
-      if (!result.canceled && result.assets[0]) {
-        update({ imageUri: result.assets[0].uri });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.back();
-      }
+      launchImageLibrary(options, (response: ImagePickerResponse) => {
+        if (response.didCancel || response.errorMessage) {
+          if (response.errorMessage) {
+            console.error('Image picker error:', response.errorMessage);
+          }
+          return;
+        }
+
+        if (response.assets && response.assets[0]) {
+          const asset = response.assets[0];
+          if (asset.uri) {
+            update({ imageUri: asset.uri });
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            router.back();
+          }
+        }
+      });
     } catch (error) {
       console.error('Gallery picker error:', error);
     }
