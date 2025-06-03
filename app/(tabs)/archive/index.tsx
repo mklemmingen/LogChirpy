@@ -126,7 +126,7 @@ function SearchHeader({
     switch (sortOrder) {
       case 'newest': return 'arrow-down';
       case 'oldest': return 'arrow-up';
-      case 'alphabetical': return 'a-z';
+      case 'alphabetical': return 'type';
       default: return 'arrow-down';
     }
   };
@@ -239,8 +239,8 @@ function SearchHeader({
   );
 }
 
-export default function ArchiveScreen() {
-  const { t } = useTranslation();
+export function ArchiveScreen() {
+  const {t} = useTranslation();
   const semanticColors = useSemanticColors();
   const variants = useColorVariants();
   const typography = useTypography();
@@ -319,7 +319,7 @@ export default function ArchiveScreen() {
   // Handle spotting press
   const handleSpottingPress = useCallback((spotting: BirdSpotting) => {
     Haptics.selectionAsync();
-    router.push(`/archive/${spotting.id}`);
+    router.push(`/archive/detail/${spotting.id}`);
   }, []);
 
   // Navigation handlers
@@ -353,18 +353,18 @@ export default function ArchiveScreen() {
   };
 
   // Render spotting card
-  const renderSpotting = useCallback(({ item, index }: { item: BirdSpotting; index: number }) => (
+  const renderSpotting = useCallback(({item, index}: { item: BirdSpotting; index: number }) => (
       <Animated.View
           entering={FadeInDown.delay(index * 50).springify()}
           layout={Layout.springify()}
-          style={[styles.cardContainer, { width: CARD_WIDTH }]}
+          style={[styles.cardContainer, {width: CARD_WIDTH}]}
       >
         <BirdSpottingCard
             birdName={item.birdType || t('archive.unknown_bird')}
             scientificName={item.latinBirDex}
             date={formatDate(item.date)}
             location={formatLocation(item.gpsLat, item.gpsLng)}
-            image={item.imageUri ? { uri: item.imageUri } : undefined}
+            image={item.imageUri ? {uri: item.imageUri} : undefined}
             hasAudio={!!item.audioUri}
             hasVideo={!!item.videoUri}
             onPress={() => handleSpottingPress(item)}
@@ -375,9 +375,9 @@ export default function ArchiveScreen() {
   // Loading state
   if (loading) {
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+        <SafeAreaView style={[styles.container, {backgroundColor: semanticColors.background}]}>
           <View style={styles.loadingContainer}>
-            <Feather name="archive" size={48} color={semanticColors.primary} />
+            <Feather name="archive" size={48} color={semanticColors.primary}/>
             <ThemedText variant="bodyMedium" color="secondary" style={styles.loadingText}>
               {t('archive.loading')}
             </ThemedText>
@@ -387,14 +387,14 @@ export default function ArchiveScreen() {
   }
 
   return (
-      <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+      <SafeAreaView style={[styles.container, {backgroundColor: semanticColors.background}]}>
         {/* Header */}
         <View style={styles.header}>
           <ThemedText variant="displaySmall" style={styles.title}>
             {t('archive.title')}
           </ThemedText>
           <ThemedText variant="bodyMedium" color="secondary" style={styles.subtitle}>
-            {t('archive.subtitle', { count: filteredSpottings.length })}
+            {t('archive.subtitle', {count: filteredSpottings.length})}
           </ThemedText>
         </View>
 
@@ -412,7 +412,7 @@ export default function ArchiveScreen() {
         {filteredSpottings.length === 0 ? (
             searchQuery ? (
                 <View style={styles.noResultsContainer}>
-                  <Feather name="search" size={48} color={semanticColors.textSecondary} />
+                  <Feather name="search" size={48} color={semanticColors.textSecondary}/>
                   <ThemedText variant="headlineSmall" color="secondary">
                     {t('archive.no_search_results')}
                   </ThemedText>
@@ -421,7 +421,7 @@ export default function ArchiveScreen() {
                   </ThemedText>
                 </View>
             ) : (
-                <EnhancedEmptyState onStartLogging={handleStartLogging} />
+                <EnhancedEmptyState onStartLogging={handleStartLogging}/>
             )
         ) : (
             <FlatList
@@ -440,7 +440,7 @@ export default function ArchiveScreen() {
                       colors={[semanticColors.primary]}
                   />
                 }
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
+                ItemSeparatorComponent={() => <View style={styles.separator}/>}
             />
         )}
       </SafeAreaView>

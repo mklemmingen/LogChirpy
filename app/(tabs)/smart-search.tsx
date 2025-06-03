@@ -5,9 +5,7 @@ import {
     Pressable,
     SafeAreaView,
     StyleSheet,
-    Text,
     TextInput,
-    useColorScheme,
     View
 } from 'react-native';
 import {useTranslation} from 'react-i18next';
@@ -15,8 +13,27 @@ import {useRouter} from 'expo-router';
 import {Feather} from '@expo/vector-icons';
 import {BlurView} from 'expo-blur';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import Animated, {
+    FadeInDown,
+    FadeOutUp,
+    Layout,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
-import {theme} from '@/constants/theme';
+import { ModernCard } from '@/components/ModernCard';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import {
+    useTheme,
+    useSemanticColors,
+    useColorVariants,
+    useTypography,
+    useMotionValues
+} from '@/hooks/useThemeColor';
 import {type BirdDexRecord, searchBirdsByName} from '@/services/databaseBirDex';
 
 type SmartSearchResult = BirdDexRecord & {
@@ -25,11 +42,166 @@ type SmartSearchResult = BirdDexRecord & {
     confidence: number;
 };
 
+// Enhanced search result card component
+function SearchResultCard({
+                              item,
+                              index,
+                              onPress
+                          }: {
+    item: SmartSearchResult;
+    index: number;
+    onPress: () => void;
+}) {
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const typography = useTypography();
+    const { t } = useTranslation();
+
+    const scale = useSharedValue(1);
+
+    const handlePressIn = () => {
+        scale.value = withSpring(0.98, { damping: 15, stiffness: 300 });
+    };
+
+    const handlePressOut = () => {
+        scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    };
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
+    const getConfidenceColor = (confidence: number) => {
+        if (confidence >= 80) return semanticColors.success;
+        if (confidence >= 60) return semanticColors.primary;
+        return semanticColors.textSecondary;
+    };
+
+    const getConfidenceText = (confidence: number) => {
+        if (confidence >= 90) return t('smartSearch.exactMatch');
+        if (confidence >= 80) return t('smartSearch.veryClose');
+        if (confidence >= 60) return t('smartSearch.closeMatch');
+        return t('smartSearch.possibleMatch');
+    };
+
+    return (
+        <Animated.View
+            entering={FadeInDown.delay(index * 50).springify()}
+            exiting={FadeOutUp.springify()}
+            layout={Layout.springify()}
+            style={animatedStyle}
+        >
+            <ModernCard
+                variant="elevated"
+                onPress={onPress}
+                // Remove these lines:
+                // onPressIn={handlePressIn}
+                // onPressOut={handlePressOut}
+                // animateOnPress={false}
+                style={styles.resultCard}
+            >
+                {/* Header with matched name and confidence */}
+                <View style={styles.resultHeader}>
+                    <View style={styles.matchInfo}>
+                        <ThemedText
+                            variant="headlineSmall"
+                            style={[styles.matchedName, { color: getConfidenceColor(item.confidence) }]}
+                            numberOfLines={1}
+                        >
+                            {item.matchedValue}
+                        </ThemedText>
+                        <ThemedText variant="labelMedium" color="secondary">
+                            {item.matchedField} • {getConfidenceText(item.confidence)}
+                        </ThemedText>
+                    </View>
+
+                    <View style={[
+                        styles.confidenceBadge,
+                        { backgroundColor: variants.primarySubtle }
+                    ]}>
+                        <ThemedText
+                            variant="labelSmall"
+                            style={[styles.confidenceText, { color: semanticColors.primary }]}
+                        >
+                            {Math.round(item.confidence)}%
+                        </ThemedText>
+                    </View>
+                </View>
+
+                {/* All available names */}
+                <View style={styles.allNames}>
+                    {item.english_name && (
+                        <View style={styles.nameRow}>
+                            <ThemedText variant="labelSmall" style={styles.nameLabel}>🇬🇧</ThemedText>
+                            <ThemedText variant="bodyMedium" numberOfLines={1}>
+                                {item.english_name}
+                            </ThemedText>
+                        </View>
+                    )}
+                    {item.scientific_name && (
+                        <View style={styles.nameRow}>
+                            <ThemedText variant="labelSmall" style={styles.nameLabel}>🔬</ThemedText>
+                            <ThemedText
+                                variant="bodyMedium"
+                                color="secondary"
+                                style={styles.scientific}
+                                numberOfLines={1}
+                            >
+                                {item.scientific_name}
+                            </ThemedText>
+                        </View>
+                    )}
+                    {item.de_name && (
+                        <View style={styles.nameRow}>
+                            <ThemedText variant="labelSmall" style={styles.nameLabel}>🇩🇪</ThemedText>
+                            <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
+                                {item.de_name}
+                            </ThemedText>
+                        </View>
+                    )}
+                    {item.es_name && (
+                        <View style={styles.nameRow}>
+                            <ThemedText variant="labelSmall" style={styles.nameLabel}>🇪🇸</ThemedText>
+                            <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
+                                {item.es_name}
+                            </ThemedText>
+                        </View>
+                    )}
+                    {item.ukrainian_name && (
+                        <View style={styles.nameRow}>
+                            <ThemedText variant="labelSmall" style={styles.nameLabel}>🇺🇦</ThemedText>
+                            <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
+                                {item.ukrainian_name}
+                            </ThemedText>
+                        </View>
+                    )}
+                    {item.ar_name && (
+                        <View style={styles.nameRow}>
+                            <ThemedText variant="labelSmall" style={styles.nameLabel}>🇸🇦</ThemedText>
+                            <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
+                                {item.ar_name}
+                            </ThemedText>
+                        </View>
+                    )}
+                </View>
+
+                {/* Chevron indicator */}
+                <View style={styles.chevronContainer}>
+                    <Feather name="chevron-right" size={20} color={semanticColors.textSecondary} />
+                </View>
+            </ModernCard>
+        </Animated.View>
+    );
+}
+
 export default function SmartSearch() {
     const { t } = useTranslation();
     const router = useRouter();
-    const scheme = useColorScheme() ?? 'light';
-    const pal = theme[scheme];
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const typography = useTypography();
+    const theme = useTheme();
+    const motion = useMotionValues();
     const insets = useSafeAreaInsets();
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -81,7 +253,7 @@ export default function SmartSearch() {
         return Math.max(0, similarity * 60);
     }, []);
 
-    // Simple Levenshtein distance implementation, thanks INF3!
+    // Simple Levenshtein distance implementation
     const levenshteinDistance = (str1: string, str2: string): number => {
         const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
 
@@ -173,148 +345,122 @@ export default function SmartSearch() {
         return () => clearTimeout(timeoutId);
     }, [searchQuery, performSmartSearch]);
 
-    const getConfidenceColor = (confidence: number) => {
-        if (confidence >= 80) return pal.colors.primary;
-        if (confidence >= 60) return pal.colors.accent;
-        return pal.colors.text.secondary;
-    };
+    const handleResultPress = useCallback((item: SmartSearchResult) => {
+        Haptics.selectionAsync();
+        router.push(`/birdex/details/${item.species_code}`);
+    }, [router]);
 
-    const getConfidenceText = (confidence: number) => {
-        if (confidence >= 90) return t('smartSearch.exactMatch');
-        if (confidence >= 80) return t('smartSearch.veryClose');
-        if (confidence >= 60) return t('smartSearch.closeMatch');
-        return t('smartSearch.possibleMatch');
-    };
-
-    const renderSearchResult = useCallback(({ item }: { item: SmartSearchResult }) => (
-        <BlurView
-            intensity={60}
-            tint={scheme === "dark" ? "dark" : "light"}
-            style={[styles.resultCard, { borderColor: pal.colors.border }]}
-        >
-            <Pressable
-                style={styles.resultContent}
-                onPress={() => router.push(`/birdex/details/${item.species_code}`)}
-                android_ripple={{ color: pal.colors.primary + '20' }}
-            >
-                <View style={styles.resultHeader}>
-                    <View style={styles.matchInfo}>
-                        <Text style={[styles.matchedName, { color: getConfidenceColor(item.confidence) }]}>
-                            {item.matchedValue}
-                        </Text>
-                        <Text style={[styles.matchField, { color: pal.colors.text.secondary }]}>
-                            {item.matchedField} • {getConfidenceText(item.confidence)}
-                        </Text>
-                    </View>
-                    <View style={[styles.confidenceBadge, { backgroundColor: getConfidenceColor(item.confidence) }]}>
-                        <Text style={[styles.confidenceText, { color: pal.colors.text.primary }]}>
-                            {Math.round(item.confidence)}%
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.allNames}>
-                    {item.english_name && (
-                        <Text style={[styles.nameRow, { color: pal.colors.text.primary }]}>
-                            <Text style={styles.nameLabel}>🇬🇧 </Text>{item.english_name}
-                        </Text>
-                    )}
-                    {item.scientific_name && (
-                        <Text style={[styles.nameRow, styles.scientific, { color: pal.colors.text.secondary }]}>
-                            <Text style={styles.nameLabel}>🔬 </Text>{item.scientific_name}
-                        </Text>
-                    )}
-                    {item.de_name && (
-                        <Text style={[styles.nameRow, { color: pal.colors.text.secondary }]}>
-                            <Text style={styles.nameLabel}>🇩🇪 </Text>{item.de_name}
-                        </Text>
-                    )}
-                    {item.es_name && (
-                        <Text style={[styles.nameRow, { color: pal.colors.text.secondary }]}>
-                            <Text style={styles.nameLabel}>🇪🇸 </Text>{item.es_name}
-                        </Text>
-                    )}
-                    {item.ukrainian_name && (
-                        <Text style={[styles.nameRow, { color: pal.colors.text.secondary }]}>
-                            <Text style={styles.nameLabel}>🇺🇦 </Text>{item.ukrainian_name}
-                        </Text>
-                    )}
-                    {item.ar_name && (
-                        <Text style={[styles.nameRow, { color: pal.colors.text.secondary }]}>
-                            <Text style={styles.nameLabel}>🇸🇦 </Text>{item.ar_name}
-                        </Text>
-                    )}
-                </View>
-
-                <Feather name="chevron-right" size={20} color={pal.colors.text.secondary} style={styles.chevron} />
-            </Pressable>
-        </BlurView>
-    ), [pal.colors, router, scheme, t, getConfidenceColor, getConfidenceText]);
+    const renderSearchResult = useCallback(({ item, index }: { item: SmartSearchResult, index: number }) => (
+        <SearchResultCard
+            item={item}
+            index={index}
+            onPress={() => handleResultPress(item)}
+        />
+    ), [handleResultPress]);
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
             {/* Header */}
-            <View style={[styles.header, { marginTop: insets.top }]}>
-                <Pressable
-                    style={styles.backButton}
+            <Animated.View
+                entering={FadeInDown.springify()}
+                style={[styles.header, { marginTop: insets.top }]}
+            >
+                <ThemedPressable
+                    variant="ghost"
+                    size="small"
                     onPress={() => router.back()}
+                    style={styles.backButton}
                 >
-                    <Feather name="arrow-left" size={24} color={pal.colors.text.primary} />
-                </Pressable>
+                    <Feather name="arrow-left" size={24} color={semanticColors.text} />
+                </ThemedPressable>
+
                 <View style={styles.headerText}>
-                    <Text style={[styles.headerTitle, { color: pal.colors.text.primary }]}>
+                    <ThemedText variant="displaySmall" style={styles.headerTitle}>
                         {t('smartSearch.title')}
-                    </Text>
-                    <Text style={[styles.headerSubtitle, { color: pal.colors.text.secondary }]}>
+                    </ThemedText>
+                    <ThemedText variant="bodyMedium" color="secondary">
                         {t('smartSearch.subtitle')}
-                    </Text>
+                    </ThemedText>
                 </View>
-            </View>
+            </Animated.View>
 
             {/* Search Input */}
-            <View style={[styles.searchContainer, { borderColor: pal.colors.border }]}>
-                <Feather name="search" size={20} color={pal.colors.text.secondary} />
-                <TextInput
-                    style={[styles.searchInput, { color: pal.colors.text.primary }]}
-                    placeholder={t('smartSearch.placeholder')}
-                    placeholderTextColor={pal.colors.text.secondary}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                />
-                {searchQuery.length > 0 && (
-                    <Pressable onPress={() => setSearchQuery('')}>
-                        <Feather name="x" size={20} color={pal.colors.text.secondary} />
-                    </Pressable>
-                )}
-            </View>
+            <Animated.View
+                entering={FadeInDown.delay(100).springify()}
+                style={styles.searchSection}
+            >
+                <BlurView
+                    intensity={60}
+                    tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+                    style={[styles.searchContainer, { borderColor: variants.primaryMuted }]}
+                >
+                    <Feather name="search" size={20} color={semanticColors.textSecondary} />
+                    <TextInput
+                        style={[styles.searchInput, typography.bodyLarge, { color: semanticColors.text }]}
+                        placeholder={t('smartSearch.placeholder')}
+                        placeholderTextColor={semanticColors.textSecondary}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        returnKeyType="search"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                    />
+                    {searchQuery.length > 0 && (
+                        <Pressable onPress={() => setSearchQuery('')}>
+                            <Feather name="x" size={20} color={semanticColors.textSecondary} />
+                        </Pressable>
+                    )}
+                </BlurView>
+            </Animated.View>
 
-            {/* Search Tips */}
-            {!hasSearched && (
-                <View style={styles.tipsContainer}>
-                    <Text style={[styles.tipsTitle, { color: pal.colors.text.primary }]}>
-                        {t('smartSearch.tipsTitle')}
-                    </Text>
-                    <Text style={[styles.tipText, { color: pal.colors.text.secondary }]}>
-                        • {t('smartSearch.tip1')}
-                    </Text>
-                    <Text style={[styles.tipText, { color: pal.colors.text.secondary }]}>
-                        • {t('smartSearch.tip2')}
-                    </Text>
-                    <Text style={[styles.tipText, { color: pal.colors.text.secondary }]}>
-                        • {t('smartSearch.tip3')}
-                    </Text>
-                </View>
-            )}
+            {/* Content */}
+            {!hasSearched ? (
+                // Search Tips
+                <Animated.View
+                    entering={FadeInDown.delay(200).springify()}
+                    style={styles.tipsContainer}
+                >
+                    <ModernCard variant="glass" style={styles.tipsCard}>
+                        <View style={[styles.tipsIcon, { backgroundColor: variants.primarySubtle }]}>
+                            <Feather name="help-circle" size={24} color={semanticColors.primary} />
+                        </View>
 
-            {/* Results */}
-            {loading ? (
+                        <ThemedText variant="headlineSmall" style={styles.tipsTitle}>
+                            {t('smartSearch.tipsTitle')}
+                        </ThemedText>
+
+                        <View style={styles.tipsList}>
+                            <View style={styles.tipItem}>
+                                <Feather name="check" size={16} color={semanticColors.success} />
+                                <ThemedText variant="bodyMedium" color="secondary" style={styles.tipText}>
+                                    {t('smartSearch.tip1')}
+                                </ThemedText>
+                            </View>
+                            <View style={styles.tipItem}>
+                                <Feather name="check" size={16} color={semanticColors.success} />
+                                <ThemedText variant="bodyMedium" color="secondary" style={styles.tipText}>
+                                    {t('smartSearch.tip2')}
+                                </ThemedText>
+                            </View>
+                            <View style={styles.tipItem}>
+                                <Feather name="check" size={16} color={semanticColors.success} />
+                                <ThemedText variant="bodyMedium" color="secondary" style={styles.tipText}>
+                                    {t('smartSearch.tip3')}
+                                </ThemedText>
+                            </View>
+                        </View>
+                    </ModernCard>
+                </Animated.View>
+            ) : loading ? (
+                // Loading state
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={pal.colors.primary} />
-                    <Text style={[styles.loadingText, { color: pal.colors.text.secondary }]}>
+                    <ActivityIndicator size="large" color={semanticColors.primary} />
+                    <ThemedText variant="bodyMedium" color="secondary" style={styles.loadingText}>
                         {t('smartSearch.searching')}
-                    </Text>
+                    </ThemedText>
                 </View>
             ) : (
+                // Results
                 <FlatList
                     data={results}
                     keyExtractor={item => item.species_code}
@@ -322,17 +468,17 @@ export default function SmartSearch() {
                     contentContainerStyle={styles.resultsContainer}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
-                        hasSearched ? (
-                            <View style={styles.emptyContainer}>
-                                <Feather name="search" size={48} color={pal.colors.text.secondary} />
-                                <Text style={[styles.emptyText, { color: pal.colors.text.secondary }]}>
-                                    {t('smartSearch.noResults')}
-                                </Text>
-                                <Text style={[styles.emptySubtext, { color: pal.colors.text.secondary }]}>
-                                    {t('smartSearch.tryDifferent')}
-                                </Text>
+                        <View style={styles.emptyContainer}>
+                            <View style={[styles.emptyIcon, { backgroundColor: variants.surfaceHover }]}>
+                                <Feather name="search" size={48} color={semanticColors.textSecondary} />
                             </View>
-                        ) : null
+                            <ThemedText variant="headlineSmall" color="secondary" style={styles.emptyText}>
+                                {t('smartSearch.noResults')}
+                            </ThemedText>
+                            <ThemedText variant="bodyMedium" color="tertiary" style={styles.emptySubtext}>
+                                {t('smartSearch.tryDifferent')}
+                            </ThemedText>
+                        </View>
                     }
                 />
             )}
@@ -349,146 +495,160 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        gap: theme.spacing.md,
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        gap: 16,
     },
     backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
+        alignSelf: 'flex-start',
     },
     headerText: {
         flex: 1,
+        gap: 4,
     },
     headerTitle: {
-        fontSize: 24,
         fontWeight: 'bold',
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        marginTop: 2,
     },
 
     // Search
+    searchSection: {
+        paddingHorizontal: 20,
+        marginBottom: 24,
+    },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginHorizontal: theme.spacing.md,
-        marginBottom: theme.spacing.md,
-        paddingHorizontal: theme.spacing.md,
+        paddingHorizontal: 20,
         height: 56,
-        borderWidth: 2,
-        borderRadius: theme.borderRadius.lg,
-        gap: theme.spacing.sm,
+        borderWidth: 1,
+        borderRadius: 28,
+        gap: 12,
     },
     searchInput: {
         flex: 1,
-        fontSize: 18,
     },
 
     // Tips
     tipsContainer: {
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.lg,
+        flex: 1,
+        paddingHorizontal: 20,
+        paddingTop: 40,
+    },
+    tipsCard: {
+        padding: 32,
+        alignItems: 'center',
+        gap: 24,
+    },
+    tipsIcon: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     tipsTitle: {
-        fontSize: 16,
+        textAlign: 'center',
         fontWeight: '600',
-        marginBottom: theme.spacing.sm,
+    },
+    tipsList: {
+        alignSelf: 'stretch',
+        gap: 16,
+    },
+    tipItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
     },
     tipText: {
-        fontSize: 14,
-        marginBottom: 4,
-        lineHeight: 20,
+        flex: 1,
+        lineHeight: 22,
+    },
+
+    // Loading
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 16,
+    },
+    loadingText: {
+        textAlign: 'center',
     },
 
     // Results
     resultsContainer: {
-        padding: theme.spacing.md,
+        paddingHorizontal: 20,
+        paddingBottom: 24,
+        gap: 16,
     },
     resultCard: {
-        marginBottom: theme.spacing.md,
-        borderRadius: theme.borderRadius.lg,
-        borderWidth: 1,
-        overflow: 'hidden',
-    },
-    resultContent: {
-        padding: theme.spacing.md,
+        position: 'relative',
     },
     resultHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: theme.spacing.sm,
+        marginBottom: 16,
     },
     matchInfo: {
         flex: 1,
-        marginRight: theme.spacing.sm,
+        marginRight: 12,
+        gap: 4,
     },
     matchedName: {
-        fontSize: 18,
         fontWeight: '600',
-        marginBottom: 2,
-    },
-    matchField: {
-        fontSize: 12,
-        textTransform: 'uppercase',
     },
     confidenceBadge: {
         paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: theme.borderRadius.sm,
+        borderRadius: 12,
     },
     confidenceText: {
-        fontSize: 12,
         fontWeight: '600',
+        textTransform: 'uppercase',
     },
     allNames: {
-        gap: 4,
+        gap: 8,
+        marginBottom: 8,
     },
     nameRow: {
-        fontSize: 14,
-        lineHeight: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     nameLabel: {
-        fontSize: 12,
+        minWidth: 20,
     },
     scientific: {
         fontStyle: 'italic',
+        flex: 1,
     },
-    chevron: {
+    chevronContainer: {
         position: 'absolute',
-        right: theme.spacing.md,
+        right: 20,
         top: '50%',
         marginTop: -10,
     },
 
-    // Loading & Empty
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: theme.spacing.xxl,
-    },
-    loadingText: {
-        fontSize: 16,
-        marginTop: theme.spacing.md,
-    },
+    // Empty state
     emptyContainer: {
         alignItems: 'center',
-        paddingVertical: theme.spacing.xxl,
+        paddingVertical: 60,
+        gap: 24,
+    },
+    emptyIcon: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     emptyText: {
-        fontSize: 18,
-        fontWeight: '500',
-        marginTop: theme.spacing.md,
         textAlign: 'center',
+        fontWeight: '500',
     },
     emptySubtext: {
-        fontSize: 14,
-        marginTop: theme.spacing.sm,
         textAlign: 'center',
+        lineHeight: 20,
     },
 });
