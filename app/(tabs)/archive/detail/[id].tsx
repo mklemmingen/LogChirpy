@@ -9,38 +9,293 @@ import {
     ScrollView,
     Share,
     StyleSheet,
-    Text,
-    useColorScheme,
     View
 } from 'react-native';
 import {Audio} from 'expo-av';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {Feather} from '@expo/vector-icons';
-import {BlurView} from 'expo-blur';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as MediaLibrary from 'expo-media-library';
+import Animated, {
+    FadeInDown,
+    FadeInUp,
+    Layout,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import {type BirdSpotting, getSpottingById} from '@/services/database';
-import {theme} from '@/constants/theme';
+import {ModernCard} from '@/components/ModernCard';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedView} from '@/components/ThemedView';
+import {
+    useTheme,
+    useSemanticColors,
+    useColorVariants,
+    useTypography,
+    useMotionValues
+} from '@/hooks/useThemeColor';
 
 type SpottingDetail = BirdSpotting | null;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function ArchiveDetailScreen() {
+// Enhanced Header Component
+function DetailHeader({
+                          entry,
+                          onBack,
+                          onShare
+                      }: {
+    entry: BirdSpotting;
+    onBack: () => void;
+    onShare: () => void;
+}) {
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const typography = useTypography();
+    const theme = useTheme();
+    const insets = useSafeAreaInsets();
+    const { t } = useTranslation();
+
+    const scale = useSharedValue(1);
+
+    const handleBackPress = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        scale.value = withSpring(0.95, { damping: 15, stiffness: 300 }, () => {
+            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+        });
+        onBack();
+    };
+
+    const backButtonStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
+    return (
+        <Animated.View
+            entering={FadeInUp.springify()}
+            style={[styles.header, { marginTop: insets.top }]}
+        >
+            <Animated.View style={backButtonStyle}>
+                <ThemedPressable
+                    variant="secondary"
+                    size="medium"
+                    onPress={handleBackPress}
+                    style={styles.backButton}
+                >
+                    <Feather name="arrow-left" size={20} color={semanticColors.text} />
+                </ThemedPressable>
+            </Animated.View>
+
+            <ThemedView surface="transparent" style={styles.headerInfo}>
+                <ThemedText
+                    variant="headlineLarge"
+                    style={styles.headerTitle}
+                    numberOfLines={2}
+                >
+                    {entry.birdType || t('archive.unknown_bird')}
+                </ThemedText>
+                <ThemedText
+                    variant="bodyMedium"
+                    color="secondary"
+                    style={styles.headerDate}
+                >
+                    {new Date(entry.date).toLocaleDateString()}
+                </ThemedText>
+            </ThemedView>
+
+            <ThemedPressable
+                variant="ghost"
+                size="medium"
+                onPress={onShare}
+                style={styles.shareButton}
+            >
+                <Feather name="share" size={18} color={semanticColors.text} />
+            </ThemedPressable>
+        </Animated.View>
+    );
+}
+
+// Enhanced Media Section
+function MediaSection({
+                          entry,
+                          onImageSave,
+                          onAudioPlay,
+                          audioLoading,
+                          currentSound
+                      }: {
+    entry: BirdSpotting;
+    onImageSave: (uri: string) => void;
+    onAudioPlay: (uri: string) => void;
+    audioLoading: boolean;
+    currentSound: Audio.Sound | null;
+}) {
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const { t } = useTranslation();
+
+    if (!entry.imageUri && !entry.videoUri && !entry.audioUri) return null;
+
+    return (
+        <Animated.View entering={FadeInDown.delay(100).springify()} layout={Layout.springify()}>
+            <ModernCard variant="elevated" style={styles.section}>
+                <ThemedView surface="transparent" style={styles.sectionHeader}>
+                    <Feather name="camera" size={20} color={semanticColors.primary} />
+                    <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
+                        {t('archive.media')}
+                    </ThemedText>
+                </ThemedView>
+
+                <ThemedView surface="transparent" style={styles.mediaContainer}>
+                    {/* Image */}
+                    {entry.imageUri && (
+                        <Pressable
+                            style={styles.mediaItem}
+                            onLongPress={() => onImageSave(entry.imageUri)}
+                            android_ripple={{ color: variants.surfacePressed }}
+                        >
+                            <Image source={{ uri: entry.imageUri }} style={styles.mediaImage} />
+                            <ThemedView surface="overlay" style={styles.mediaOverlay}>
+                                <Feather name="maximize-2" size={20} color="white" />
+                            </ThemedView>
+                        </Pressable>
+                    )}
+
+                    {/* Video */}
+                    {entry.videoUri && (
+                        <Pressable style={styles.mediaItem} android_ripple={null}>
+                            <Image source={{ uri: entry.videoUri }} style={styles.mediaImage} />
+                            <ThemedView surface="overlay" style={[styles.mediaOverlay, styles.videoOverlay]}>
+                                <Feather name="play" size={24} color="white" />
+                            </ThemedView>
+                        </Pressable>
+                    )}
+
+                    {/* Audio */}
+                    {entry.audioUri && (
+                        <ThemedPressable
+                            variant="primary"
+                            onPress={() => onAudioPlay(entry.audioUri)}
+                            disabled={audioLoading}
+                            style={styles.audioButton}
+                        >
+                            {audioLoading ? (
+                                <ActivityIndicator size="small" color={semanticColors.onPrimary} />
+                            ) : (
+                                <Feather
+                                    name={currentSound ? "pause" : "play"}
+                                    size={18}
+                                    color={semanticColors.onPrimary}
+                                />
+                            )}
+                            <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
+                                {t('archive.play_audio')}
+                            </ThemedText>
+                        </ThemedPressable>
+                    )}
+                </ThemedView>
+            </ModernCard>
+        </Animated.View>
+    );
+}
+
+// Enhanced Info Section
+function InfoSection({
+                         title,
+                         icon,
+                         children,
+                         delay = 0
+                     }: {
+    title: string;
+    icon: string;
+    children: React.ReactNode;
+    delay?: number;
+}) {
+    const semanticColors = useSemanticColors();
+
+    return (
+        <Animated.View
+            entering={FadeInDown.delay(delay).springify()}
+            layout={Layout.springify()}
+        >
+            <ModernCard variant="elevated" style={styles.section}>
+                <ThemedView surface="transparent" style={styles.sectionHeader}>
+                    <Feather name={icon as any} size={20} color={semanticColors.primary} />
+                    <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
+                        {title}
+                    </ThemedText>
+                </ThemedView>
+                <ThemedView surface="transparent" style={styles.sectionContent}>
+                    {children}
+                </ThemedView>
+            </ModernCard>
+        </Animated.View>
+    );
+}
+
+// Info Row Component
+function InfoRow({
+                     label,
+                     value,
+                     icon,
+                     onPress,
+                     style
+                 }: {
+    label: string;
+    value: string;
+    icon?: string;
+    onPress?: () => void;
+    style?: any;
+}) {
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+
+    const Component = onPress ? Pressable : View;
+
+    return (
+        <Component
+            style={[styles.infoRow, onPress && styles.pressableRow]}
+            onPress={onPress}
+            android_ripple={onPress ? { color: variants.surfacePressed } : null}
+        >
+            <ThemedText variant="labelMedium" color="secondary" style={styles.infoLabel}>
+                {label}
+            </ThemedText>
+            <ThemedView surface="transparent" style={styles.infoValueContainer}>
+                {icon && (
+                    <Feather name={icon as any} size={14} color={semanticColors.accent} />
+                )}
+                <ThemedText variant="bodyMedium" style={[styles.infoValue, style]}>
+                    {value}
+                </ThemedText>
+                {onPress && (
+                    <Feather name="external-link" size={14} color={semanticColors.textSecondary} />
+                )}
+            </ThemedView>
+        </Component>
+    );
+}
+
+export default function ModernArchiveDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const { t } = useTranslation();
     const router = useRouter();
-    const scheme = useColorScheme() ?? 'light';
-    const pal = theme[scheme];
-    const insets = useSafeAreaInsets();
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const typography = useTypography();
+    const theme = useTheme();
 
     const [entry, setEntry] = useState<SpottingDetail>(null);
     const [loading, setLoading] = useState(true);
     const [audioLoading, setAudioLoading] = useState(false);
     const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
 
+    // Load spotting data
     useEffect(() => {
         const loadSpotting = async () => {
             try {
@@ -70,11 +325,12 @@ export default function ArchiveDetailScreen() {
         };
     }, [currentSound]);
 
+    // Audio playback
     const playAudio = useCallback(async (uri: string) => {
         try {
             setAudioLoading(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-            // Unload previous sound
             if (currentSound) {
                 await currentSound.unloadAsync();
             }
@@ -86,7 +342,6 @@ export default function ArchiveDetailScreen() {
 
             setCurrentSound(sound);
 
-            // Auto cleanup when finished
             sound.setOnPlaybackStatusUpdate((status) => {
                 if (status.isLoaded && status.didJustFinish) {
                     sound.unloadAsync();
@@ -101,6 +356,7 @@ export default function ArchiveDetailScreen() {
         }
     }, [currentSound, t]);
 
+    // Navigation and actions
     const openLocation = useCallback(() => {
         if (entry?.gpsLat && entry?.gpsLng) {
             const url = `https://maps.google.com/?q=${entry.gpsLat},${entry.gpsLng}`;
@@ -112,6 +368,7 @@ export default function ArchiveDetailScreen() {
         if (!entry) return;
 
         try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             const message = t('archive.share_message', {
                 bird: entry.birdType || t('archive.unknown_bird'),
                 date: new Date(entry.date).toLocaleDateString(),
@@ -131,6 +388,7 @@ export default function ArchiveDetailScreen() {
 
     const saveImageToLibrary = useCallback(async (uri: string) => {
         try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             const { status } = await MediaLibrary.requestPermissionsAsync();
             if (status !== 'granted') {
                 Alert.alert(t('archive.permission_needed'), t('archive.media_permission_message'));
@@ -145,333 +403,133 @@ export default function ArchiveDetailScreen() {
         }
     }, [t]);
 
-    const renderMediaSection = () => {
-        if (!entry?.imageUri && !entry?.videoUri && !entry?.audioUri) return null;
-
-        return (
-            <BlurView
-                intensity={60}
-                tint={scheme === "dark" ? "dark" : "light"}
-                style={[styles.mediaCard, { borderColor: pal.colors.border }]}
-            >
-                <View style={[styles.cardHeader, { borderBottomColor: pal.colors.border }]}>
-                    <Feather name="camera" size={20} color={pal.colors.primary} />
-                    <Text style={[styles.cardTitle, { color: pal.colors.text.primary }]}>
-                        {t('archive.media')}
-                    </Text>
-                </View>
-
-                <View style={styles.mediaContainer}>
-                    {/* Image */}
-                    {entry.imageUri && (
-                        <Pressable
-                            style={({ pressed }) => [
-                                styles.mediaItem,
-                                pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
-                            ]}
-                            onLongPress={() => saveImageToLibrary(entry.imageUri)}
-                            android_ripple={null}
-                        >
-                            <Image source={{ uri: entry.imageUri }} style={styles.mediaImage} />
-                            <View style={styles.mediaOverlay}>
-                                <Feather name="maximize-2" size={20} color="white" />
-                            </View>
-                        </Pressable>
-                    )}
-
-                    {/* Video */}
-                    {entry.videoUri && (
-                        <Pressable
-                            style={({ pressed }) => [
-                                styles.mediaItem,
-                                pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
-                            ]}
-                            android_ripple={null}
-                        >
-                            <Image source={{ uri: entry.videoUri }} style={styles.mediaImage} />
-                            <View style={[styles.mediaOverlay, styles.videoOverlay]}>
-                                <Feather name="play" size={24} color="white" />
-                            </View>
-                        </Pressable>
-                    )}
-
-                    {/* Audio */}
-                    {entry.audioUri && (
-                        <Pressable
-                            style={({ pressed }) => [
-                                styles.audioButton,
-                                { backgroundColor: pal.colors.primary },
-                                pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
-                            ]}
-                            onPress={() => playAudio(entry.audioUri)}
-                            disabled={audioLoading}
-                            android_ripple={null}
-                        >
-                            {audioLoading ? (
-                                <ActivityIndicator size="small" color={pal.colors.text.primary} />
-                            ) : (
-                                <Feather
-                                    name={currentSound ? "pause" : "play"}
-                                    size={20}
-                                    color={pal.colors.text.primary}
-                                />
-                            )}
-                            <Text style={[styles.audioButtonText, { color: pal.colors.text.primary }]}>
-                                {t('archive.play_audio')}
-                            </Text>
-                        </Pressable>
-                    )}
-                </View>
-            </BlurView>
-        );
-    };
-
-    const renderInfoCard = (title: string, icon: string, children: React.ReactNode) => (
-        <BlurView
-            intensity={60}
-            tint={scheme === "dark" ? "dark" : "light"}
-            style={[styles.infoCard, { borderColor: pal.colors.border }]}
-        >
-            <View style={[styles.cardHeader, { borderBottomColor: pal.colors.border }]}>
-                <Feather name={icon as any} size={20} color={pal.colors.primary} />
-                <Text style={[styles.cardTitle, { color: pal.colors.text.primary }]}>
-                    {title}
-                </Text>
-            </View>
-            <View style={styles.cardContent}>
-                {children}
-            </View>
-        </BlurView>
-    );
-
+    // Loading state
     if (loading) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: pal.colors.background }]}>
-                <ActivityIndicator size="large" color={pal.colors.primary} />
-                <Text style={[styles.loadingText, { color: pal.colors.text.secondary }]}>
+            <ThemedView surface="primary" style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={semanticColors.primary} />
+                <ThemedText variant="bodyMedium" color="secondary" style={styles.loadingText}>
                     {t('archive.loading_detail')}
-                </Text>
-            </View>
+                </ThemedText>
+            </ThemedView>
         );
     }
 
+    // Error state
     if (!entry) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: pal.colors.background }]}>
-                <Feather name="alert-triangle" size={48} color={pal.colors.error} />
-                <Text style={[styles.errorText, { color: pal.colors.text.primary }]}>
+            <ThemedView surface="primary" style={styles.loadingContainer}>
+                <Feather name="alert-triangle" size={48} color={semanticColors.error} />
+                <ThemedText variant="headlineMedium" style={styles.errorText}>
                     {t('archive.not_found')}
-                </Text>
-            </View>
+                </ThemedText>
+            </ThemedView>
         );
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: pal.colors.background }]}>
+        <ThemedView surface="primary" style={styles.container}>
             {/* Header */}
-            <View style={[styles.header, { marginTop: insets.top }]}>
-                <Pressable
-                    style={({ pressed }) => [
-                        styles.backButton,
-                        { backgroundColor: pal.colors.background},
-                        pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] }
-                    ]}
-                    onPress={() => router.back()}
-                    android_ripple={null}
-                >
-                    <Feather name="arrow-left" size={24} color={pal.colors.text.primary} />
-                </Pressable>
+            <DetailHeader
+                entry={entry}
+                onBack={() => router.back()}
+                onShare={shareSpotting}
+            />
 
-                <View style={styles.headerInfo}>
-                    <Text style={[styles.headerTitle, { color: pal.colors.text.primary }]} numberOfLines={2}>
-                        {entry.birdType || t('archive.unknown_bird')}
-                    </Text>
-                    <Text style={[styles.headerDate, { color: pal.colors.text.secondary }]}>
-                        {new Date(entry.date).toLocaleDateString()}
-                    </Text>
-                </View>
-
-                <Pressable
-                    style={({ pressed }) => [
-                        styles.shareButton,
-                        { backgroundColor: pal.colors.statusBar },
-                        pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] }
-                    ]}
-                    onPress={shareSpotting}
-                    android_ripple={null}
-                >
-                    <Feather name="share" size={20} color={pal.colors.text.primary} />
-                </Pressable>
-            </View>
-
+            {/* Content */}
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Media Section */}
-                {renderMediaSection()}
+                <MediaSection
+                    entry={entry}
+                    onImageSave={saveImageToLibrary}
+                    onAudioPlay={playAudio}
+                    audioLoading={audioLoading}
+                    currentSound={currentSound}
+                />
 
                 {/* Basic Information */}
-                {renderInfoCard(t('archive.details'), 'info', (
-                    <View style={styles.infoGrid}>
-                        <View style={styles.infoRow}>
-                            <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                {t('archive.species')}
-                            </Text>
-                            <Text style={[styles.infoValue, { color: pal.colors.text.primary }]}>
-                                {entry.birdType || t('archive.unknown_bird')}
-                            </Text>
-                        </View>
-
-                        <View style={styles.infoRow}>
-                            <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                {t('archive.date_time')}
-                            </Text>
-                            <Text style={[styles.infoValue, { color: pal.colors.text.primary }]}>
-                                {new Date(entry.date).toLocaleString()}
-                            </Text>
-                        </View>
-
-                        {entry.textNote && (
-                            <View style={styles.infoRow}>
-                                <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                    {t('archive.notes')}
-                                </Text>
-                                <Text style={[styles.infoValue, styles.noteText, { color: pal.colors.text.primary }]}>
-                                    {entry.textNote}
-                                </Text>
-                            </View>
-                        )}
-
-                        {entry.latinBirDex && (
-                            <View style={styles.infoRow}>
-                                <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                    {t('archive.latin_name')}
-                                </Text>
-                                <Text style={[styles.infoValue, styles.latinText, { color: pal.colors.accent }]}>
-                                    {entry.latinBirDex}
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-                ))}
+                <InfoSection title={t('archive.details')} icon="info" delay={200}>
+                    <InfoRow
+                        label={t('archive.species')}
+                        value={entry.birdType || t('archive.unknown_bird')}
+                    />
+                    <InfoRow
+                        label={t('archive.date_time')}
+                        value={new Date(entry.date).toLocaleString()}
+                    />
+                    {entry.textNote && (
+                        <InfoRow
+                            label={t('archive.notes')}
+                            value={entry.textNote}
+                            style={styles.noteText}
+                        />
+                    )}
+                    {entry.latinBirDex && (
+                        <InfoRow
+                            label={t('archive.latin_name')}
+                            value={entry.latinBirDex}
+                            style={[styles.latinText, { color: semanticColors.accent }]}
+                        />
+                    )}
+                </InfoSection>
 
                 {/* Location Section */}
-                {(entry.gpsLat && entry.gpsLng) && renderInfoCard(t('archive.location'), 'map-pin', (
-                    <View style={styles.locationSection}>
-                        <View style={styles.coordinatesContainer}>
-                            <Text style={[styles.coordinatesText, { color: pal.colors.text.primary }]}>
-                                {entry.gpsLat.toFixed(6)}, {entry.gpsLng.toFixed(6)}
-                            </Text>
-                            <Pressable
-                                style={({ pressed }) => [
-                                    styles.mapButton,
-                                    { backgroundColor: pal.colors.primary },
-                                    theme.shadows.sm,
-                                    pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
-                                ]}
-                                onPress={openLocation}
-                                android_ripple={null}
-                            >
-                                <Feather name="external-link" size={16} color={pal.colors.text.primary} />
-                                <Text style={[styles.mapButtonText, { color: pal.colors.text.primary }]}>
-                                    {t('archive.view_on_map')}
-                                </Text>
-                            </Pressable>
-                        </View>
-                    </View>
-                ))}
+                {(entry.gpsLat && entry.gpsLng) && (
+                    <InfoSection title={t('archive.location')} icon="map-pin" delay={300}>
+                        <InfoRow
+                            label={t('archive.coordinates')}
+                            value={`${entry.gpsLat.toFixed(6)}, ${entry.gpsLng.toFixed(6)}`}
+                            icon="map-pin"
+                            onPress={openLocation}
+                            style={styles.coordinatesText}
+                        />
+                    </InfoSection>
+                )}
 
                 {/* AI Predictions */}
-                {(entry.imagePrediction || entry.audioPrediction) && renderInfoCard(t('archive.ai_analysis'), 'cpu', (
-                    <View style={styles.infoGrid}>
+                {(entry.imagePrediction || entry.audioPrediction) && (
+                    <InfoSection title={t('archive.ai_analysis')} icon="cpu" delay={400}>
                         {entry.imagePrediction && (
-                            <View style={styles.infoRow}>
-                                <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                    {t('archive.image_ai')}
-
-
-
-                                </Text>
-                                <View style={styles.predictionContainer}>
-                                    <Feather name="camera" size={14} color={pal.colors.accent} />
-                                    <Text style={[styles.predictionText, { color: pal.colors.text.primary }]}>
-                                        {entry.imagePrediction}
-                                    </Text>
-                                </View>
-                            </View>
+                            <InfoRow
+                                label={t('archive.image_ai')}
+                                value={entry.imagePrediction}
+                                icon="camera"
+                            />
                         )}
-
                         {entry.audioPrediction && (
-                            <View style={styles.infoRow}>
-                                <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                    {t('archive.audio_ai')}
-                                </Text>
-                                <View style={styles.predictionContainer}>
-                                    <Feather name="mic" size={14} color={pal.colors.accent} />
-                                    <Text style={[styles.predictionText, { color: pal.colors.text.primary }]}>
-                                        {entry.audioPrediction}
-                                    </Text>
-                                </View>
-                            </View>
+                            <InfoRow
+                                label={t('archive.audio_ai')}
+                                value={entry.audioPrediction}
+                                icon="mic"
+                            />
                         )}
-                    </View>
-                ))}
+                    </InfoSection>
+                )}
 
                 {/* Technical Details */}
-                {renderInfoCard(t('archive.technical'), 'database', (
-                    <View style={styles.infoGrid}>
-                        <View style={styles.infoRow}>
-                            <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                {t('archive.entry_id')}
-                            </Text>
-                            <Text style={[styles.infoValue, styles.technicalText, { color: pal.colors.text.primary }]}>
-                                #{entry.id}
-                            </Text>
-                        </View>
-
-                        <View style={styles.infoRow}>
-                            <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                {t('archive.sync_status')}
-                            </Text>
-                            <View style={styles.syncStatusContainer}>
-                                <Feather
-                                    name={entry.synced ? "check-circle" : "upload-cloud"}
-                                    size={16}
-                                    color={entry.synced ? pal.colors.primary : pal.colors.text.secondary}
-                                />
-                                <Text style={[styles.infoValue, { color: pal.colors.text.primary }]}>
-                                    {entry.synced ? t('archive.synced') : t('archive.local_only')}
-                                </Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.infoRow}>
-                            <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                {t('archive.created')}
-                            </Text>
-                            <Text style={[styles.infoValue, styles.technicalText, { color: pal.colors.text.primary }]}>
-                                {new Date(entry.date).toLocaleDateString()}
-                            </Text>
-                        </View>
-
-                        {(entry.imageUri || entry.videoUri || entry.audioUri) && (
-                            <View style={styles.infoRow}>
-                                <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                    {t('archive.has_media')}
-                                </Text>
-                                <View style={styles.mediaIndicators}>
-                                    {entry.imageUri && <Feather name="image" size={16} color={pal.colors.primary} />}
-                                    {entry.videoUri && <Feather name="video" size={16} color={pal.colors.primary} />}
-                                    {entry.audioUri && <Feather name="mic" size={16} color={pal.colors.primary} />}
-                                </View>
-                            </View>
-                        )}
-                    </View>
-                ))}
+                <InfoSection title={t('archive.technical')} icon="database" delay={500}>
+                    <InfoRow
+                        label={t('archive.entry_id')}
+                        value={`#${entry.id}`}
+                        style={styles.technicalText}
+                    />
+                    <InfoRow
+                        label={t('archive.sync_status')}
+                        value={entry.synced ? t('archive.synced') : t('archive.local_only')}
+                        icon={entry.synced ? "check-circle" : "upload-cloud"}
+                    />
+                    <InfoRow
+                        label={t('archive.created')}
+                        value={new Date(entry.date).toLocaleDateString()}
+                        style={styles.technicalText}
+                    />
+                </InfoSection>
             </ScrollView>
-        </View>
+        </ThemedView>
     );
 }
 
@@ -483,57 +541,40 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: theme.spacing.xl,
+        gap: 16,
     },
     loadingText: {
-        fontSize: theme.typography.body.fontSize,
-        marginTop: theme.spacing.md,
         textAlign: 'center',
     },
     errorText: {
-        fontSize: 18,
-        fontWeight: '500',
-        marginTop: theme.spacing.md,
         textAlign: 'center',
+        marginTop: 16,
     },
 
     // Header
     header: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        gap: theme.spacing.md,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        gap: 16,
     },
     backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: theme.borderRadius.md,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 4,
-        ...theme.shadows.sm,
+        minWidth: 44,
     },
     headerInfo: {
         flex: 1,
     },
     headerTitle: {
-        fontSize: theme.typography.h2.fontSize,
-        fontWeight: theme.typography.h2.fontWeight as any,
-        lineHeight: 30,
+        fontWeight: '600',
+        lineHeight: 28,
         marginBottom: 4,
     },
     headerDate: {
-        fontSize: theme.typography.small.fontSize,
+        opacity: 0.8,
     },
     shareButton: {
-        width: 44,
-        height: 44,
-        borderRadius: theme.borderRadius.md,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 4,
-        ...theme.shadows.sm,
+        minWidth: 44,
     },
 
     // Scroll View
@@ -541,51 +582,36 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        padding: theme.spacing.md,
-        paddingBottom: theme.spacing.xxl,
+        padding: 20,
+        paddingBottom: 40,
+        gap: 20,
     },
 
-    // Cards
-    mediaCard: {
-        marginBottom: theme.spacing.lg,
-        borderRadius: theme.borderRadius.lg,
-        borderWidth: 1,
+    // Sections
+    section: {
         overflow: 'hidden',
-        ...theme.shadows.sm,
     },
-    infoCard: {
-        marginBottom: theme.spacing.lg,
-        borderRadius: theme.borderRadius.lg,
-        borderWidth: 1,
-        overflow: 'hidden',
-        ...theme.shadows.sm,
-    },
-    cardHeader: {
+    sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        gap: theme.spacing.sm,
-        borderBottomWidth: 1,
+        gap: 12,
+        marginBottom: 16,
     },
-    cardTitle: {
-        fontSize: 18,
+    sectionTitle: {
         fontWeight: '600',
     },
-    cardContent: {
-        padding: theme.spacing.md,
+    sectionContent: {
+        gap: 16,
     },
 
-    // Media Section
+    // Media
     mediaContainer: {
-        padding: theme.spacing.md,
-        gap: theme.spacing.md,
+        gap: 16,
     },
     mediaItem: {
-        position: 'relative',
-        borderRadius: theme.borderRadius.md,
+        borderRadius: 12,
         overflow: 'hidden',
-        ...theme.shadows.sm,
+        position: 'relative',
     },
     mediaImage: {
         width: '100%',
@@ -594,103 +620,56 @@ const styles = StyleSheet.create({
     },
     mediaOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.3)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     videoOverlay: {
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.3)',
     },
     audioButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: theme.spacing.md,
-        borderRadius: theme.borderRadius.md,
-        gap: theme.spacing.sm,
-        ...theme.shadows.sm,
-    },
-    audioButtonText: {
-        fontSize: theme.typography.body.fontSize,
-        fontWeight: '600',
+        gap: 8,
+        paddingVertical: 16,
     },
 
-    // Info Sections
-    infoGrid: {
-        gap: theme.spacing.md,
-    },
+    // Info Rows
     infoRow: {
-        gap: theme.spacing.sm,
+        gap: 8,
+        paddingVertical: 8,
+    },
+    pressableRow: {
+        borderRadius: 8,
+        marginHorizontal: -8,
+        paddingHorizontal: 8,
     },
     infoLabel: {
-        fontSize: theme.typography.small.fontSize,
-        fontWeight: '600',
         textTransform: 'uppercase',
+        fontWeight: '600',
         letterSpacing: 0.5,
     },
+    infoValueContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+    },
     infoValue: {
-        fontSize: theme.typography.body.fontSize,
+        flex: 1,
         lineHeight: 22,
     },
     noteText: {
         lineHeight: 24,
     },
-    technicalText: {
-        fontFamily: 'monospace',
-        fontSize: theme.typography.small.fontSize,
-    },
     latinText: {
         fontStyle: 'italic',
-        fontSize: theme.typography.body.fontSize,
     },
-
-    // Location Section
-    locationSection: {
-        gap: theme.spacing.md,
-    },
-    coordinatesContainer: {
-        gap: theme.spacing.sm,
+    technicalText: {
+        fontFamily: 'monospace',
+        fontSize: 14,
     },
     coordinatesText: {
-        fontSize: theme.typography.body.fontSize,
         fontFamily: 'monospace',
-    },
-    mapButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.borderRadius.md,
-        gap: theme.spacing.sm,
-        alignSelf: 'flex-start',
-    },
-    mapButtonText: {
-        fontSize: theme.typography.small.fontSize,
-        fontWeight: '600',
-    },
-
-    // AI Predictions
-    predictionContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-    },
-    predictionText: {
-        fontSize: theme.typography.body.fontSize,
-        flex: 1,
-    },
-
-    // Sync Status
-    syncStatusContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-    },
-
-    // Media Indicators
-    mediaIndicators: {
-        flexDirection: 'row',
-        gap: theme.spacing.sm,
     },
 });

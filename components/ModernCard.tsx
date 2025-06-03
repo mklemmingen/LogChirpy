@@ -263,7 +263,7 @@ export function BirdSpottingCard({
                                      ...props
                                  }: {
     birdName: string;
-    scientificName?: string;
+    scientificName?: string | null;
     date: string;
     location?: string;
     image?: ImageSource;
@@ -282,7 +282,7 @@ export function BirdSpottingCard({
             image={image}
             imageAspectRatio={4 / 3}
             title={birdName}
-            subtitle={scientificName}
+            subtitle={scientificName || ''}
             onPress={onPress}
             isSelected={isLogged}
             glowOnHover

@@ -1,33 +1,343 @@
-import React from 'react';
-import {Link, Stack} from 'expo-router';
-import {StyleSheet} from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import { Link, Stack } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  withRepeat,
+  withSequence,
+  interpolate,
+  Easing,
+} from 'react-native-reanimated';
 
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedView} from '@/components/ThemedView';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ModernCard } from '@/components/ModernCard';
+import {
+  useTheme,
+  useSemanticColors,
+  useColorVariants,
+  useTypography,
+  useMotionValues,
+} from '@/hooks/useThemeColor';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Animated Bird Icon Component
+function LostBirdIcon() {
+  const semanticColors = useSemanticColors();
+  const variants = useColorVariants();
+
+  const rotation = useSharedValue(0);
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.7);
+
+  useEffect(() => {
+    // Gentle swaying motion
+    rotation.value = withRepeat(
+        withSequence(
+            withTiming(-10, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+            withTiming(10, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false
+    );
+
+    // Breathing scale animation
+    scale.value = withRepeat(
+        withTiming(1.1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+    );
+
+    // Fade in
+    opacity.value = withTiming(1, { duration: 1000 });
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { rotate: `${rotation.value}deg` },
+      { scale: scale.value },
+    ],
+    opacity: opacity.value,
+  }));
+
+  return (
+      <Animated.View
+          style={[
+            {
+              width: 120,
+              height: 120,
+              borderRadius: 60,
+              backgroundColor: variants.primarySubtle,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 32,
+            },
+            animatedStyle,
+          ]}
+      >
+        <Feather name="help-circle" size={48} color={semanticColors.primary} />
+      </Animated.View>
+  );
+}
+
+// Floating Elements Background
+function FloatingElements() {
+  const variants = useColorVariants();
+
+  const elements = [
+    { icon: 'feather', delay: 0 },
+    { icon: 'map-pin', delay: 500 },
+    { icon: 'camera', delay: 1000 },
+    { icon: 'mic', delay: 1500 },
+  ];
+
+  return (
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        {elements.map((element, index) => {
+          const FloatingElement = () => {
+            const translateY = useSharedValue(50);
+            const opacity = useSharedValue(0);
+            const scale = useSharedValue(0.8);
+
+            useEffect(() => {
+              setTimeout(() => {
+                translateY.value = withRepeat(
+                    withSequence(
+                        withTiming(-20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
+                        withTiming(20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
+                    ),
+                    -1,
+                    false
+                );
+
+                opacity.value = withTiming(0.15, { duration: 1000 });
+                scale.value = withTiming(1, { duration: 1000 });
+              }, element.delay);
+            }, []);
+
+            const animatedStyle = useAnimatedStyle(() => ({
+              transform: [
+                { translateY: translateY.value },
+                { scale: scale.value },
+              ],
+              opacity: opacity.value,
+            }));
+
+            return (
+                <Animated.View
+                    style={[
+                      {
+                        position: 'absolute',
+                        left: (index % 2 === 0 ? 30 : SCREEN_WIDTH - 80) + (index * 20),
+                        top: 100 + (index * 80),
+                      },
+                      animatedStyle,
+                    ]}
+                >
+                  <View
+                      style={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: 25,
+                        backgroundColor: variants.primarySubtle,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                  >
+                    <Feather
+                        name={element.icon as any}
+                        size={20}
+                        color={variants.primaryMuted}
+                    />
+                  </View>
+                </Animated.View>
+            );
+          };
+
+          return <FloatingElement key={index} />;
+        })}
+      </View>
+  );
+}
 
 export default function NotFoundScreen() {
+  const theme = useTheme();
+  const semanticColors = useSemanticColors();
+  const variants = useColorVariants();
+  const typography = useTypography();
+  const motion = useMotionValues();
+
+  // Animation values for the main content
+  const contentOpacity = useSharedValue(0);
+  const contentTranslateY = useSharedValue(30);
+
+  useEffect(() => {
+    // Staggered entrance animation
+    setTimeout(() => {
+      contentOpacity.value = withTiming(1, {
+        duration: motion.duration.medium
+      });
+      contentTranslateY.value = withSpring(0, {
+        damping: 20,
+        stiffness: 300,
+      });
+    }, 200);
+  }, []);
+
+  const contentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
+    transform: [{ translateY: contentTranslateY.value }],
+  }));
+
   return (
-    <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <ThemedView style={styles.container}>
-        <ThemedText type="title">This screen doesn't exist.</ThemedText>
-        <Link href="/" style={styles.link}>
-          <ThemedText type="title">Go to the bird logging home screen!</ThemedText>
-        </Link>
+      <ThemedView surface="primary" style={styles.container}>
+        <Stack.Screen options={{
+          title: 'Page Not Found',
+          headerShown: false
+        }} />
+
+        {/* Floating background elements */}
+        <FloatingElements />
+
+        {/* Main content */}
+        <Animated.View style={[styles.content, contentAnimatedStyle]}>
+          <ModernCard
+              variant="glass"
+              style={styles.card}
+              glowOnHover={false}
+          >
+            {/* Lost bird illustration */}
+            <View style={styles.illustration}>
+              <LostBirdIcon />
+            </View>
+
+            {/* Error message */}
+            <View style={styles.messageContainer}>
+              <ThemedText
+                  variant="displayMedium"
+                  style={[styles.title, { textAlign: 'center' }]}
+              >
+                Nest Not Found
+              </ThemedText>
+
+              <ThemedText
+                  variant="bodyLarge"
+                  color="secondary"
+                  style={[styles.subtitle, { textAlign: 'center' }]}
+              >
+                This bird seems to have flown away! The page you're looking for doesn't exist in our aviary.
+              </ThemedText>
+            </View>
+
+            {/* Action buttons */}
+            <View style={styles.actions}>
+              <Link href="/" asChild>
+                <ThemedPressable
+                    variant="primary"
+                    size="large"
+                    style={styles.primaryAction}
+                    glowOnHover
+                >
+                  <Feather name="home" size={20} color={semanticColors.onPrimary} />
+                  <ThemedText
+                      variant="labelLarge"
+                      style={{ color: semanticColors.onPrimary }}
+                  >
+                    Return to Nest
+                  </ThemedText>
+                </ThemedPressable>
+              </Link>
+
+              <Link href="/(tabs)" asChild>
+                <ThemedPressable
+                    variant="secondary"
+                    size="large"
+                    style={styles.secondaryAction}
+                >
+                  <Feather name="map" size={20} color={semanticColors.text} />
+                  <ThemedText variant="labelLarge">
+                    Explore BirdDex
+                  </ThemedText>
+                </ThemedPressable>
+              </Link>
+            </View>
+
+            {/* Fun fact */}
+            <View style={[styles.funFact, { backgroundColor: variants.primarySubtle }]}>
+              <Feather name="info" size={16} color={semanticColors.primary} />
+              <ThemedText
+                  variant="labelMedium"
+                  color="primary"
+                  style={{ flex: 1, lineHeight: 18 }}
+              >
+                Did you know? Migratory birds can navigate using Earth's magnetic field!
+              </ThemedText>
+            </View>
+          </ModernCard>
+        </Animated.View>
       </ThemedView>
-    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
   },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+  },
+  card: {
+    padding: 32,
+    alignItems: 'center',
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  illustration: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  messageContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+    gap: 12,
+  },
+  title: {
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  subtitle: {
+    lineHeight: 24,
+    maxWidth: 300,
+  },
+  actions: {
+    width: '100%',
+    gap: 16,
+    marginBottom: 24,
+  },
+  primaryAction: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  secondaryAction: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  funFact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+    width: '100%',
   },
 });

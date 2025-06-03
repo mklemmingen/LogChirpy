@@ -330,12 +330,12 @@ export default function ModernLoginScreen() {
     // Navigation handlers
     const handleForgotPassword = () => {
         Haptics.selectionAsync();
-        router.push('/(auth)/forgot-password');
+        router.push('/account/forgot-password');
     };
 
     const handleSignUp = () => {
         Haptics.selectionAsync();
-        router.push('/(auth)/signup');
+        router.push('/account/signup');
     };
 
     // Animation styles
