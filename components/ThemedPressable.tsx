@@ -180,7 +180,7 @@ export const ThemedPressable = forwardRef<
         },
         // Animation styles
         animatedStyle,
-        glowOnHover && glowStyle,
+        ...(glowOnHover ? [glowStyle] : []),
         // Custom styles
         style,
     ];
