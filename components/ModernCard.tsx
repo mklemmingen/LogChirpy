@@ -26,6 +26,7 @@ import {
     useTypography,
     useMotionValues
 } from '@/hooks/useThemeColor';
+import {ImageSource} from "expo-image";
 
 // Card variants
 type CardVariant = 'default' | 'elevated' | 'outlined' | 'filled' | 'primary' | 'accent' | 'glass';

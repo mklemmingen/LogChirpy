@@ -549,3 +549,5 @@ const styles = StyleSheet.create({
         minWidth: 120,
     },
 });
+
+export type MyModelsConfig = typeof MODELS_OBJECT;

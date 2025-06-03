@@ -1,31 +1,196 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     FlatList,
-    Pressable,
     SafeAreaView,
-    StyleSheet,
-    Text,
     TextInput,
-    useColorScheme,
     View,
 } from 'react-native';
-import {useTranslation} from 'react-i18next';
-import {useLocalSearchParams, useRouter} from 'expo-router';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {theme} from '@/constants/theme';
-import {type BirdSpotting, getBirdSpottings, updateLatinBirDex,} from '@/services/database';
+import { useTranslation } from 'react-i18next';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+    Layout,
+    FadeInDown,
+} from 'react-native-reanimated';
 
-/**
- * Selection screen to assign a Latin name to an existing spotting.
- * Receives `latin` via route params.
- * Allows the user to go back, search, sort, and choose an entry.
- */
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ModernCard } from '@/components/ModernCard';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import {
+    useTheme,
+    useSemanticColors,
+    useColorVariants,
+    useTypography,
+    useMotionValues,
+} from '@/hooks/useThemeColor';
+import { type BirdSpotting, getBirdSpottings, updateLatinBirDex } from '@/services/database';
+
+interface SpottingCardProps {
+    spotting: BirdSpotting;
+    onSelect: (id: number) => void;
+    delay: number;
+}
+
+function SpottingCard({ spotting, onSelect, delay }: SpottingCardProps) {
+    const semanticColors = useSemanticColors();
+    const typography = useTypography();
+    const variants = useColorVariants();
+    const motion = useMotionValues();
+
+    const opacity = useSharedValue(0);
+    const translateY = useSharedValue(20);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            opacity.value = withTiming(1, { duration: motion.duration.medium });
+            translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+        }, delay * 50);
+
+        return () => clearTimeout(timer);
+    }, [delay]);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: opacity.value,
+        transform: [{ translateY: translateY.value }],
+    }));
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        });
+    };
+
+    const hasMedia = spotting.imageUri || spotting.videoUri || spotting.audioUri;
+
+    return (
+        <Animated.View style={animatedStyle} layout={Layout.springify()}>
+            <ThemedPressable
+                variant="ghost"
+                onPress={() => onSelect(spotting.id)}
+                style={{ marginBottom: 12 }}
+                animateOnPress
+            >
+                <ModernCard variant="outlined" style={{ marginHorizontal: 0 }}>
+                    <View style={{ padding: 16 }}>
+                        {/* Header */}
+                        <View style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            marginBottom: 12
+                        }}>
+                            <View style={{ flex: 1, marginRight: 12 }}>
+                                <ThemedText
+                                    variant="bodyLarge"
+                                    style={{ fontWeight: '600', marginBottom: 4 }}
+                                >
+                                    {spotting.birdType || 'Unknown Species'}
+                                </ThemedText>
+                                <ThemedText
+                                    variant="bodySmall"
+                                    color="secondary"
+                                >
+                                    {formatDate(spotting.date)}
+                                </ThemedText>
+                            </View>
+
+                            <ThemedIcon name="chevron-right" size={20} color="tertiary" />
+                        </View>
+
+                        {/* Media indicators */}
+                        {hasMedia && (
+                            <View style={{
+                                flexDirection: 'row',
+                                gap: 8,
+                                marginBottom: 8
+                            }}>
+                                {spotting.imageUri && (
+                                    <View style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 4,
+                                        backgroundColor: variants.primarySubtle,
+                                        borderRadius: 12,
+                                        gap: 4
+                                    }}>
+                                        <ThemedIcon name="camera" size={12} color="primary" />
+                                        <ThemedText variant="labelSmall" color="primary">
+                                            Photo
+                                        </ThemedText>
+                                    </View>
+                                )}
+                                {spotting.videoUri && (
+                                    <View style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 4,
+                                        backgroundColor: variants.accentSubtle,
+                                        borderRadius: 12,
+                                        gap: 4
+                                    }}>
+                                        <ThemedIcon name="video" size={12} color="accent" />
+                                        <ThemedText variant="labelSmall" color="accent">
+                                            Video
+                                        </ThemedText>
+                                    </View>
+                                )}
+                                {spotting.audioUri && (
+                                    <View style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 4,
+                                        backgroundColor: variants.primarySubtle,
+                                        borderRadius: 12,
+                                        gap: 4
+                                    }}>
+                                        <ThemedIcon name="mic" size={12} color="primary" />
+                                        <ThemedText variant="labelSmall" color="primary">
+                                            Audio
+                                        </ThemedText>
+                                    </View>
+                                )}
+                            </View>
+                        )}
+
+                        {/* Notes preview */}
+                        {spotting.textNote && (
+                            <ThemedText
+                                variant="bodySmall"
+                                color="tertiary"
+                                numberOfLines={2}
+                                style={{ fontStyle: 'italic' }}
+                            >
+                                "{spotting.textNote}"
+                            </ThemedText>
+                        )}
+                    </View>
+                </ModernCard>
+            </ThemedPressable>
+        </Animated.View>
+    );
+}
+
 export default function SelectSpottingScreen() {
     const { t } = useTranslation();
-    const scheme = useColorScheme() ?? 'light';
-    const pal = theme[scheme];
+    const theme = useTheme();
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const typography = useTypography();
+    const motion = useMotionValues();
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { latin } = useLocalSearchParams<{ latin: string }>();
@@ -34,6 +199,18 @@ export default function SelectSpottingScreen() {
     const [query, setQuery] = useState('');
     const [sortDir, setSortDir] = useState<'DESC' | 'ASC'>('DESC');
     const [loading, setLoading] = useState(true);
+
+    // Animation values
+    const headerOpacity = useSharedValue(0);
+    const searchOpacity = useSharedValue(0);
+
+    useEffect(() => {
+        // Entrance animations
+        headerOpacity.value = withTiming(1, { duration: motion.duration.medium });
+        setTimeout(() => {
+            searchOpacity.value = withTiming(1, { duration: motion.duration.medium });
+        }, 150);
+    }, []);
 
     // Load and filter data
     const loadData = useCallback(() => {
@@ -45,7 +222,8 @@ export default function SelectSpottingScreen() {
                 data = data.filter(
                     (r) =>
                         r.birdType.toLowerCase().includes(q) ||
-                        r.date.toLowerCase().includes(q)
+                        r.date.toLowerCase().includes(q) ||
+                        (r.textNote && r.textNote.toLowerCase().includes(q))
                 );
             }
             setRows(data);
@@ -63,13 +241,14 @@ export default function SelectSpottingScreen() {
 
     // Confirm and update DB
     const handleSelect = (id: number) => {
+        const selectedSpotting = rows.find((r) => r.id === id);
+        if (!selectedSpotting) return;
+
         Alert.alert(
             t('select.confirmTitle'),
             t('select.confirmMessage', {
                 latin,
-                date: new Date(
-                    rows.find((r) => r.id === id)?.date || ''
-                ).toLocaleDateString(),
+                date: new Date(selectedSpotting.date).toLocaleDateString(),
             }),
             [
                 { text: t('select.cancel'), style: 'cancel' },
@@ -95,131 +274,186 @@ export default function SelectSpottingScreen() {
         setSortDir((prev) => (prev === 'DESC' ? 'ASC' : 'DESC'));
     };
 
-    // Row renderer
-    const renderItem = ({ item }: { item: BirdSpotting }) => (
-        <Pressable
-            style={[styles.row, { borderColor: pal.colors.border }]}
-            onPress={() => handleSelect(item.id)}
-        >
-            <Text style={[styles.cell, { color: pal.colors.text.primary }]}>
-                {item.birdType || t('select.unknown')}
-            </Text>
-            <Text style={[styles.cell, { color: pal.colors.text.secondary }]}>
-                {new Date(item.date).toLocaleDateString()}
-            </Text>
-            <Text style={styles.chooseText}>{t('select.choose')}</Text>
-        </Pressable>
-    );
+    const headerAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: headerOpacity.value,
+        transform: [{ translateY: (1 - headerOpacity.value) * -20 }],
+    }));
 
-    // While loading
+    const searchAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: searchOpacity.value,
+        transform: [{ translateY: (1 - searchOpacity.value) * 20 }],
+    }));
+
     if (loading) {
         return (
-            <SafeAreaView
-                style={[
-                    styles.container,
-                    { paddingTop: insets.top, backgroundColor: pal.colors.background },
-                ]}
-            >
-                <ActivityIndicator size="large" color={pal.colors.primary} />
-            </SafeAreaView>
+            <ThemedView style={{ flex: 1, paddingTop: insets.top }}>
+                <View style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 16
+                }}>
+                    <ActivityIndicator size="large" color={semanticColors.primary} />
+                    <ThemedText variant="bodyLarge" color="secondary">
+                        Loading spottings...
+                    </ThemedText>
+                </View>
+            </ThemedView>
         );
     }
 
     return (
-        <SafeAreaView
-            style={[
-                styles.container,
-                { paddingTop: insets.top, backgroundColor: pal.colors.background },
-            ]}
-        >
-            {/* Header with back button and instructions */}
-            <View style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.backButton}>
-                    <Text style={[styles.backText, { color: pal.colors.primary }]}>
-                        ← {t('select.back')}
-                    </Text>
-                </Pressable>
-                <Text style={[styles.instructions, { color: pal.colors.text.primary }]}>
-                    {t('select.instructions')}
-                </Text>
-            </View>
+        <ThemedView style={{ flex: 1, paddingTop: insets.top }}>
+            {/* Header */}
+            <Animated.View style={[
+                {
+                    paddingHorizontal: theme.spacing.lg,
+                    paddingVertical: theme.spacing.md,
+                    borderBottomWidth: 1,
+                    borderBottomColor: semanticColors.border
+                },
+                headerAnimatedStyle
+            ]}>
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: theme.spacing.sm
+                }}>
+                    <ThemedPressable
+                        variant="ghost"
+                        onPress={() => router.back()}
+                        style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 8,
+                            marginRight: theme.spacing.md
+                        }}
+                    >
+                        <ThemedIcon name="arrow-left" size={20} />
+                        <ThemedText variant="bodyLarge" color="primary">
+                            {t('select.back')}
+                        </ThemedText>
+                    </ThemedPressable>
+                </View>
+
+                <ThemedText variant="headlineMedium" style={{ marginBottom: 4 }}>
+                    Assign Species
+                </ThemedText>
+                <ThemedText variant="bodyMedium" color="secondary">
+                    Select a spotting to assign "{latin}" to
+                </ThemedText>
+            </Animated.View>
 
             {/* Search & Sort */}
-            <View style={[styles.searchWrap, { borderColor: pal.colors.border }]}>
-                <TextInput
-                    style={[styles.input, { color: pal.colors.text.primary }]}
-                    placeholder={t('select.searchPlaceholder')}
-                    placeholderTextColor={pal.colors.text.secondary}
-                    value={query}
-                    onChangeText={setQuery}
-                />
-                <Pressable style={styles.sortButton} onPress={toggleSort}>
-                    <Text style={[styles.sortText, { color: pal.colors.primary }]}>
-                        {sortDir === 'DESC' ? t('select.sortNewest') : t('select.sortOldest')}
-                    </Text>
-                </Pressable>
-            </View>
+            <Animated.View style={[
+                {
+                    paddingHorizontal: theme.spacing.lg,
+                    paddingVertical: theme.spacing.md
+                },
+                searchAnimatedStyle
+            ]}>
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: semanticColors.backgroundSecondary,
+                    borderRadius: theme.borderRadius.lg,
+                    borderWidth: 1,
+                    borderColor: semanticColors.border,
+                    paddingHorizontal: theme.spacing.md,
+                    gap: 12
+                }}>
+                    <ThemedIcon name="search" size={20} color="tertiary" />
+                    <TextInput
+                        style={[
+                            typography.bodyMedium,
+                            {
+                                flex: 1,
+                                color: semanticColors.text,
+                                paddingVertical: theme.spacing.sm
+                            }
+                        ]}
+                        placeholder={t('select.searchPlaceholder')}
+                        placeholderTextColor={semanticColors.textSecondary}
+                        value={query}
+                        onChangeText={setQuery}
+                    />
 
-            {/* List of spot entries to choose from */}
+                    <ThemedPressable
+                        variant="ghost"
+                        onPress={toggleSort}
+                        style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 6,
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            borderRadius: theme.borderRadius.sm
+                        }}
+                    >
+                        <ThemedIcon
+                            name={sortDir === 'DESC' ? 'arrow-down' : 'arrow-up'}
+                            size={14}
+                            color="tertiary"
+                        />
+                        <ThemedText variant="labelMedium" color="tertiary">
+                            {sortDir === 'DESC' ? t('select.sortNewest') : t('select.sortOldest')}
+                        </ThemedText>
+                    </ThemedPressable>
+                </View>
+            </Animated.View>
+
+            {/* List */}
             <FlatList
                 data={rows}
                 keyExtractor={(item) => item.id.toString()}
-                renderItem={renderItem}
-                contentContainerStyle={
-                    rows.length === 0 ? styles.emptyWrapper : undefined
-                }
-                ListEmptyComponent={
-                    <Text
-                        style={[styles.emptyText, { color: pal.colors.text.secondary }]}
+                renderItem={({ item, index }) => (
+                    <SpottingCard
+                        spotting={item}
+                        onSelect={handleSelect}
+                        delay={index}
+                    />
+                )}
+                contentContainerStyle={{
+                    paddingHorizontal: theme.spacing.lg,
+                    paddingBottom: theme.spacing.xl + insets.bottom
+                }}
+                ListEmptyComponent={() => (
+                    <ThemedView
+                        style={{
+                            flex: 1,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            paddingVertical: theme.spacing.xxxl
+                        }}
                     >
-                        {t('select.empty')}
-                    </Text>
-                }
+                        <View style={{
+                            width: 80,
+                            height: 80,
+                            borderRadius: 40,
+                            backgroundColor: variants.primarySubtle,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginBottom: theme.spacing.lg
+                        }}>
+                            <ThemedIcon name="search" size={32} color="primary" />
+                        </View>
+                        <ThemedText variant="headlineSmall" style={{ marginBottom: 8 }}>
+                            No Spottings Found
+                        </ThemedText>
+                        <ThemedText
+                            variant="bodyMedium"
+                            color="secondary"
+                            style={{ textAlign: 'center', maxWidth: 280 }}
+                        >
+                            {query.trim()
+                                ? 'Try adjusting your search terms'
+                                : 'Create your first bird spotting to get started'
+                            }
+                        </ThemedText>
+                    </ThemedView>
+                )}
+                showsVerticalScrollIndicator={false}
             />
-        </SafeAreaView>
+        </ThemedView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    header: {
-        flexDirection: 'column',
-        paddingHorizontal: 16,
-        paddingBottom: 8,
-    },
-    backButton: { alignSelf: 'flex-start', marginBottom: 8 },
-    backText: { fontSize: 16, fontWeight: '600' },
-    instructions: { fontSize: 14, marginBottom: 12 },
-    searchWrap: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderRadius: theme.borderRadius.md,
-        marginHorizontal: 16,
-        paddingHorizontal: 12,
-        height: 44,
-        marginBottom: 8,
-    },
-    input: { flex: 1, fontSize: 16, marginRight: 8 },
-    sortButton: {
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: theme.borderRadius.sm,
-        backgroundColor: theme.dark.colors.background,
-    },
-    sortText: { fontSize: 14, fontWeight: '600' },
-    row: {
-        flexDirection: 'row',
-        paddingVertical: 12,
-        marginHorizontal: 16,
-        borderBottomWidth: 1,
-    },
-    cell: { flex: 1, paddingHorizontal: 4 },
-    chooseText: {
-        color: theme.dark.colors.primary,
-        fontWeight: '500',
-        paddingHorizontal: 8,
-    },
-    emptyWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    emptyText: { fontSize: 16, textAlign: 'center' },
-});

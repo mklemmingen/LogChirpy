@@ -1,178 +1,93 @@
-import {useEffect, useRef, useState} from "react";
-import {ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, useColorScheme, View,} from "react-native";
-import {Camera, CameraView, useCameraPermissions} from "expo-camera";
-import {useRouter} from "expo-router";
-import {useTranslation} from "react-i18next";
-import {theme} from '@/constants/theme';
-import {CameraControls} from '@/components/CameraControls';
+import React from 'react';
+import { View, StyleSheet, useColorScheme, Text } from 'react-native';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
+
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedText } from '@/components/ThemedText';
+import { theme } from '@/constants/theme';
+import { useLogDraft } from '../context/LogDraftContext';
 
 export default function PhotoCapture() {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme() as 'light' | 'dark';
-  const currentTheme = theme[colorScheme];
-  const [permission, requestPermission] = useCameraPermissions();
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [cameraReady, setCameraReady] = useState(false);
-  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
-  const [permissionCheckNeeded, setPermissionCheckNeeded] = useState(false);
-  const [facing, setFacing] = useState<'back' | 'front'>('back');
-  const cameraRef = useRef<CameraView>(null);
-  const router = useRouter();
+  const colorScheme = useColorScheme() ?? 'light';
+  const pal = theme[colorScheme];
+  const { update } = useLogDraft();
 
-  useEffect(() => {
-    let checkInterval: NodeJS.Timeout | null = null;
-
-    if (permissionCheckNeeded) {
-      checkInterval = setInterval(async () => {
-        try {
-          const { status } = await Camera.getCameraPermissionsAsync();
-          if (status === "granted" || status === "denied") {
-            setPermissionCheckNeeded(false);
-            requestPermission();
-          }
-        } catch (error) {
-          console.error("Error checking permission status:", error);
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (checkInterval) clearInterval(checkInterval);
-    };
-  }, [permissionCheckNeeded, requestPermission]);
-
-  const requestPermissionHandler = async () => {
+  const handleGalleryPick = async () => {
     try {
-      setIsRequestingPermission(true);
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setPermissionCheckNeeded(true);
-      if (status !== "granted") {
-        Alert.alert(
-          t("camera.permission_required"),
-          t("camera.permission_message"),
-          [{ text: t("common.ok") }]
-        );
-      }
-      router.replace("/log/photo");
-    } catch (error) {
-      console.error("Error requesting camera permission:", error);
-      Alert.alert(t("common.error"), t("camera.permission_error"));
-    } finally {
-      setIsRequestingPermission(false);
-    }
-  };
-
-  const takePicture = async () => {
-    if (cameraRef.current && cameraReady) {
-      try {
-        const photoData = await cameraRef.current.takePictureAsync();
-        if (photoData && photoData.uri) {
-          setPhoto(photoData.uri);
-        }
-      } catch (error) {
-        console.error("Error taking picture:", error);
-        Alert.alert(t("common.error"), t("camera.take_photo_error"));
-      }
-    } else {
-      Alert.alert(t("camera.not_ready"), t("camera.wait_ready"));
-    }
-  };
-
-  const confirmPhoto = () => {
-    if (photo) {
-      router.push({
-        pathname: "/log/manual",
-        params: { imageUri: photo },
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        allowsMultipleSelection: false,
       });
+
+      if (!result.canceled && result.assets[0]) {
+        update({ imageUri: result.assets[0].uri });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.back();
+      }
+    } catch (error) {
+      console.error('Gallery picker error:', error);
     }
   };
 
-  const flipCamera = () => {
-    setFacing(prev => prev === 'back' ? 'front' : 'back');
+  const handleCameraLaunch = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/log/camera');
   };
-
-  if (isRequestingPermission) {
-    return (
-      <View style={styles.permissionContainer}>
-        <ActivityIndicator size="large" color={currentTheme.colors.primary} />
-        <Text style={[styles.permissionText, { color: currentTheme.colors.text.primary }]}>
-          {t("camera.requesting_access")}
-        </Text>
-      </View>
-    );
-  }
-
-  if (permission === null || permissionCheckNeeded) {
-    return (
-      <View style={styles.permissionContainer}>
-        <Text style={[styles.permissionText, { color: currentTheme.colors.text.primary }]}>
-          {t("camera.checking_access")}
-        </Text>
-        <ActivityIndicator size="small" color={currentTheme.colors.primary} />
-      </View>
-    );
-  }
-
-  if (!permission.granted) {
-    return (
-      <View style={styles.permissionContainer}>
-        <Text style={[styles.permissionText, { color: currentTheme.colors.text.primary }]}>
-          {t("camera.need_permission")}
-        </Text>
-        <TouchableOpacity
-          onPress={requestPermissionHandler}
-          disabled={isRequestingPermission}
-          style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
-        >
-          <Text style={[styles.buttonText, { color: currentTheme.colors.secondary }]}>
-            {t("camera.allow_access")}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   return (
-    <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-      {!photo ? (
-        <CameraView
-          style={styles.camera}
-          facing={facing}
-          ref={cameraRef}
-          onCameraReady={() => setCameraReady(true)}
-        >
-          <View style={styles.controlBar}>
-            <CameraControls
-              onCapture={takePicture}
-              onFlip={flipCamera}
-              isFlipDisabled={!cameraReady}
-            />
+      <ThemedView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <View style={[styles.iconContainer, { backgroundColor: pal.colors.primary + '20' }]}>
+              <Feather name="camera" size={48} color={pal.colors.primary} />
+            </View>
+
+            <ThemedText variant="displaySmall" style={styles.title}>
+              {t('photo.add_photo')}
+            </ThemedText>
+
+            <ThemedText variant="bodyLarge" color="secondary" style={styles.subtitle}>
+              {t('photo.capture_description')}
+            </ThemedText>
           </View>
-        </CameraView>
-      ) : (
-        <View style={styles.previewContainer}>
-          <Image source={{ uri: photo }} style={styles.preview} />
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              onPress={() => setPhoto(null)}
-              style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
+
+          <View style={styles.actions}>
+            <ThemedPressable
+                variant="primary"
+                size="large"
+                onPress={handleCameraLaunch}
+                style={styles.actionButton}
+                glowOnHover
             >
-              <Text style={[styles.buttonText, { color: currentTheme.colors.secondary }]}>
-                {t("camera.retake")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={confirmPhoto}
-              style={[styles.button, { backgroundColor: currentTheme.colors.primary }]}
+              <Feather name="camera" size={24} color={pal.colors.content.inverse} />
+              <ThemedText variant="labelLarge" style={{ color: pal.colors.content.inverse }}>
+                {t('photo.take_photos')}
+              </ThemedText>
+            </ThemedPressable>
+
+            <ThemedPressable
+                variant="secondary"
+                size="large"
+                onPress={handleGalleryPick}
+                style={styles.actionButton}
             >
-              <Text style={[styles.buttonText, { color: currentTheme.colors.secondary }]}>
-                {t("common.confirm")}
-              </Text>
-            </TouchableOpacity>
+              <Feather name="image" size={24} color={pal.colors.content.primary} />
+              <ThemedText variant="labelLarge" style={{ color: pal.colors.content.primary }}>
+                {t('photo.choose_existing')}
+              </ThemedText>
+            </ThemedPressable>
           </View>
         </View>
-      )}
-    </View>
+      </ThemedView>
   );
 }
 
@@ -180,49 +95,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  camera: {
+  content: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    gap: 48,
   },
-  controlBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  previewContainer: {
-    flex: 1,
-  },
-  preview: {
-    flex: 1,
-    marginBottom: theme.spacing.md,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingBottom: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.md,
-  },
-  button: {
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    minWidth: 120,
+  header: {
     alignItems: 'center',
-    ...theme.shadows.sm,
+    gap: 16,
   },
-  buttonText: {
-    fontSize: theme.typography.body.fontSize,
-    fontWeight: 'bold',
+  iconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  permissionContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: theme.spacing.lg,
+  title: {
+    textAlign: 'center',
   },
-  permissionText: {
-    marginBottom: theme.spacing.md,
-    textAlign: "center",
-    fontSize: theme.typography.body.fontSize,
+  subtitle: {
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  actions: {
+    gap: 16,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    gap: 12,
   },
 });
