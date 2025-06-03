@@ -36,12 +36,6 @@ export default function DatabaseLoadingSplash({ onComplete, onError }: DatabaseL
     useEffect(() => {
         let isMounted = true;
 
-        // Check if already initialized
-        if (isDbReady()) {
-            onComplete();
-            return;
-        }
-
         const initializeDatabase = async () => {
             try {
                 await initBirdDexDB((progressData: ProgressData) => {
@@ -49,11 +43,10 @@ export default function DatabaseLoadingSplash({ onComplete, onError }: DatabaseL
                     setProgress(progressData);
 
                     if (progressData.phase === 'complete') {
-                        setTimeout(() => {
-                            if (isMounted) {
-                                onComplete();
-                            }
-                        }, 500); // Reduced delay
+                        // Remove setTimeout - call immediately
+                        if (isMounted) {
+                            onComplete();
+                        }
                     }
                 });
             } catch (err) {

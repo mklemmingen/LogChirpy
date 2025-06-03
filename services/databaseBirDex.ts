@@ -236,6 +236,15 @@ export async function initBirdDexDB(
 
     if (isDbInitialized) {
         console.log('Database already initialized');
+        // CRITICAL FIX: Call the progress callback even when already initialized
+        if (progressCallback) {
+            progressCallback({
+                loaded: 100,
+                total: 100,
+                phase: 'complete',
+                message: 'BirdDex database already ready.',
+            });
+        }
         return;
     }
 
