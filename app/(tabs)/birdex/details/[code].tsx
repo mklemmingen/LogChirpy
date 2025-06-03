@@ -129,10 +129,10 @@ export default function BirdDexDetail() {
     // Get localized display name
     const lang = i18n.language.split('-')[0];
     const localizedName = {
-        de: rec.german_name,
-        es: rec.spanish_name,
+        de: rec.de_name,
+        es: rec.es_name,
         uk: rec.ukrainian_name,
-        ar: rec.arabic_name
+        ar: rec.ar_name
     }[lang] || '';
     const displayName = localizedName || rec.english_name;
 
@@ -140,11 +140,12 @@ export default function BirdDexDetail() {
     const nameFields: NameField[] = [
         { label: t('birddex.english'), value: rec.english_name, flag: '🇬🇧', isPrimary: true },
         { label: t('birddex.scientific'), value: rec.scientific_name, flag: '🔬', isPrimary: true },
-        { label: t('birddex.german'), value: rec.german_name, flag: '🇩🇪' },
-        { label: t('birddex.spanish'), value: rec.spanish_name, flag: '🇪🇸' },
+        { label: t('birddex.german'), value: rec.de_name, flag: '🇩🇪' },
+        { label: t('birddex.spanish'), value: rec.es_name, flag: '🇪🇸' },
         { label: t('birddex.ukrainian'), value: rec.ukrainian_name, flag: '🇺🇦' },
-        { label: t('birddex.arabic'), value: rec.arabic_name, flag: '🇸🇦' },
+        { label: t('birddex.arabic'), value: rec.ar_name, flag: '🇸🇦' },
     ].filter(field => field.value && field.value.trim() !== '');
+
 
     const renderInfoCard = (title: string, children: React.ReactNode, icon?: string) => (
         <BlurView

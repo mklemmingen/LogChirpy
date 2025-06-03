@@ -437,27 +437,28 @@ export default function BirdDexIndex() {
             const searchTerm = searchText.trim();
             const raw = queryBirdDexPage(searchTerm, sortKey, asc, PAGE_SIZE, target, categoryFilter);
 
-            // Pick translation column based on locale
+            // Updated language column mapping to match CSV structure
             const lang = i18n.language.split('-')[0];
-            const colMap: Record<string, NameKey> = {
+            const colMap: Record<string, keyof BirdDexRecord> = {
                 en: 'english_name',
-                de: 'german_name',
-                es: 'spanish_name',
-                uk: 'ukrainian_name',
-                ar: 'arabic_name',
+                de: 'de_name',        // Changed from 'german_name'
+                es: 'es_name',        // Changed from 'spanish_name'
+                uk: 'ukrainian_name', // Unchanged
+                ar: 'ar_name',        // Changed from 'arabic_name'
             };
 
-            const langCol: NameKey = colMap[lang] || 'english_name';
+            const langCol = colMap[lang] || 'english_name';
 
             const rows: DisplayRecord[] = raw.map(r => {
-                let displayName = r[langCol];
+                // Safely convert to string and handle potential null/undefined values
+                let displayName = String(r[langCol] || '').trim();
 
-                if (!displayName || displayName.trim() === '') {
-                    displayName = r.english_name;
+                if (!displayName) {
+                    displayName = String(r.english_name || '').trim();
                 }
 
-                if (!displayName || displayName.trim() === '') {
-                    displayName = r.scientific_name;
+                if (!displayName) {
+                    displayName = String(r.scientific_name || '').trim();
                 }
 
                 return {

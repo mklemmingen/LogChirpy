@@ -1,6 +1,5 @@
-// Bypass TS typings: use runtime expo-sqlite
+// services/databaseBirDex.ts - Fixed version
 const SQLite: any = require('expo-sqlite');
-// Treat database handle as any for transaction support
 type SQLiteDatabase = any;
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
@@ -15,7 +14,7 @@ const BIRDDEX_VERSION = 'Clements-v2024-October-2024-rev-categories';
 const BATCH_SIZE = 100; // Smaller batch size for better progress updates
 const MAX_CONCURRENT_ANIMATIONS = 3;
 
-// Async SQLite helper using runtime openDatabase
+// SQLite helper using modern expo-sqlite API
 let db: SQLiteDatabase | null = null;
 export function DB(): SQLiteDatabase {
     if (!db) db = SQLite.openDatabaseSync('logchirpy.db');
@@ -39,10 +38,10 @@ export interface ProgressData {
     currentBird?: {
         scientific_name: string;
         english_name: string;
-        german_name?: string;
-        spanish_name?: string;
+        de_name?: string;
+        es_name?: string;
         ukrainian_name?: string;
-        arabic_name?: string;
+        ar_name?: string;
     };
     shouldTriggerAnimation?: boolean;
     animationId?: string;
@@ -58,6 +57,7 @@ export type BirdCategory =
     | 'group (monotypic)'
     | 'all';
 
+// Updated BirdDexRecord interface to match CSV columns
 export interface BirdDexRecord {
     sort_v2024: string;
     species_code: string;
@@ -72,10 +72,10 @@ export interface BirdDexRecord {
     extinct_year: string;
     sort_v2023: string;
     english_name: string;
-    german_name: string;
-    spanish_name: string;
-    ukrainian_name: string;
-    arabic_name: string;
+    de_name: string;        // German
+    es_name: string;        // Spanish
+    ukrainian_name: string; // Ukrainian
+    ar_name: string;        // Arabic
     hasBeenLogged: 0 | 1;
 }
 
@@ -137,13 +137,22 @@ async function processBatch(
     rows: any[],
     startIdx: number,
     batchSize: number,
-    insertSql: string,
     totalRows: number,
     progressCallback?: ProgressCallback,
     animationCounter?: { count: number }
 ): Promise<void> {
     return new Promise((resolve) => {
         const endIdx = Math.min(startIdx + batchSize, rows.length);
+
+        const insertSql = `
+            INSERT OR REPLACE INTO birddex (
+                species_code, english_name, scientific_name, category, family, order_,
+                sort_v2024, clements_v2024b_change, text_for_website_v2024b, range,
+                extinct, extinct_year, sort_v2023, de_name, es_name,
+                ukrainian_name, ar_name
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        `;
+
         const stmt = database.prepareSync(insertSql);
 
         try {
@@ -160,17 +169,17 @@ async function processBatch(
                     r['category']?.trim() || '',
                     r['family']?.trim() || '',
                     r['order']?.trim() || '',
-                    r['sort_v2024']?.trim() || '',
-                    r['clements_v2024b_change']?.trim() || '',
-                    r['text_for_website_v2024b']?.trim() || '',
+                    r['sort v2024']?.trim() || '',
+                    r['Clements v2024b change']?.trim() || '',
+                    r['text for website v2024b']?.trim() || '',
                     r['range']?.trim() || '',
                     r['extinct']?.trim() || '',
-                    r['extinct_year']?.trim() || '',
+                    r['extinct year']?.trim() || '',
                     r['sort_v2023']?.trim() || '',
-                    r['german_name']?.trim() || '',
-                    r['spanish_name']?.trim() || '',
+                    r['de_name']?.trim() || '',
+                    r['es_name']?.trim() || '',
                     r['ukrainian_name']?.trim() || '',
-                    r['arabic_name']?.trim() || ''
+                    r['ar_name']?.trim() || ''
                 ];
 
                 stmt.executeSync(params);
@@ -198,10 +207,10 @@ async function processBatch(
                         currentBird: {
                             scientific_name: r['scientific name']!,
                             english_name: englishName,
-                            german_name: r['german_name'],
-                            spanish_name: r['spanish_name'],
+                            de_name: r['de_name'],
+                            es_name: r['es_name'],
                             ukrainian_name: r['ukrainian_name'],
-                            arabic_name: r['arabic_name'],
+                            ar_name: r['ar_name'],
                         },
                         shouldTriggerAnimation: shouldAnimate,
                         animationId: shouldAnimate ? `anim_${Date.now()}_${Math.random()}` : undefined
@@ -278,10 +287,10 @@ export async function initBirdDexDB(
                 extinct                TEXT,
                 extinct_year           TEXT,
                 sort_v2023             TEXT,
-                german_name            TEXT,
-                spanish_name           TEXT,
+                de_name                TEXT,
+                es_name                TEXT,
                 ukrainian_name         TEXT,
-                arabic_name            TEXT
+                ar_name                TEXT
             );
         `);
 
@@ -388,15 +397,6 @@ export async function initBirdDexDB(
             });
         }
 
-        const insertSql = `
-            INSERT OR REPLACE INTO birddex (
-                species_code, english_name, scientific_name, category, family, order_,
-                sort_v2024, clements_v2024b_change, text_for_website_v2024b, range,
-                extinct, extinct_year, sort_v2023, german_name, spanish_name,
-                ukrainian_name, arabic_name
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        `;
-
         // Process in batches
         for (let i = 0; i < filtered.length; i += BATCH_SIZE) {
             await processBatch(
@@ -404,7 +404,6 @@ export async function initBirdDexDB(
                 filtered,
                 i,
                 BATCH_SIZE,
-                insertSql,
                 filtered.length,
                 progressCallback,
                 animationCounter
@@ -464,7 +463,7 @@ export async function initBirdDexDB(
     }
 }
 
-// Rest of your existing query methods remain the same...
+// Query methods
 export function queryBirdDexBatch(
     filter: string,
     sortKey: keyof BirdDexRecord,
@@ -599,10 +598,10 @@ export function searchBirdsByName(
     conditions.push(`(
         b.english_name LIKE ? COLLATE NOCASE
         OR b.scientific_name LIKE ? COLLATE NOCASE
-        OR b.german_name LIKE ? COLLATE NOCASE
-        OR b.spanish_name LIKE ? COLLATE NOCASE
+        OR b.de_name LIKE ? COLLATE NOCASE
+        OR b.es_name LIKE ? COLLATE NOCASE
         OR b.ukrainian_name LIKE ? COLLATE NOCASE
-        OR b.arabic_name LIKE ? COLLATE NOCASE
+        OR b.ar_name LIKE ? COLLATE NOCASE
     )`);
 
     if (categoryFilter !== 'all') {
