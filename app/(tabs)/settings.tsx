@@ -125,13 +125,6 @@ function LanguageCard({
                 onPress={handlePress}
                 animateOnPress
                 glowOnHover={isActive}
-                style={[
-                    styles.languageCard,
-                    isActive ? {
-                        borderColor: semanticColors.primary,
-                        borderWidth: 2,
-                    } : {}
-                ]}
             >
                 <View style={styles.languageContent}>
                     <Text style={styles.languageFlag}>
@@ -228,13 +221,6 @@ function GPSToggleCard({
         >
             <ModernCard
                 variant="elevated"
-                style={[
-                    styles.gpsCard,
-                    enabled ? {
-                        borderColor: variants.primaryMuted,
-                        borderWidth: 1,
-                    } : {}
-                ]}
             >
                 <View style={styles.gpsContent}>
                     <View style={styles.gpsInfo}>

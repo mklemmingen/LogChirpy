@@ -283,96 +283,15 @@ export default function ModernIndex() {
                             {t('start_logging')}
                         </Text>
                     </Animated.View>
-
-                    {/* Quick stats */}
-                    <BlurView
-                        intensity={40}
-                        tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
-                        style={[styles.statsContainer, { borderColor: variants.primaryMuted }]}
-                    >
-                        <View style={styles.statItem}>
-                            <Text style={[typography.headlineLarge, { color: semanticColors.primary }]}>
-                                15K+
-                            </Text>
-                            <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
-                                Bird Species
-                            </Text>
-                        </View>
-                        <View style={[styles.statDivider, { backgroundColor: variants.primaryMuted }]} />
-                        <View style={styles.statItem}>
-                            <Text style={[typography.headlineLarge, { color: semanticColors.accent }]}>
-                                AI
-                            </Text>
-                            <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
-                                Recognition
-                            </Text>
-                        </View>
-                        <View style={[styles.statDivider, { backgroundColor: variants.primaryMuted }]} />
-                        <View style={styles.statItem}>
-                            <Text style={[typography.headlineLarge, { color: semanticColors.primary }]}>
-                                5
-                            </Text>
-                            <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
-                                Languages
-                            </Text>
-                        </View>
-                    </BlurView>
                 </View>
 
                 {/* Features Section */}
                 <View style={styles.featuresSection}>
-                    <Text style={[typography.headlineLarge, styles.sectionTitle]}>
-                        Start Birding
-                    </Text>
-                    <Text style={[typography.bodyMedium, styles.sectionSubtitle, { color: semanticColors.textSecondary }]}>
-                        Choose how you'd like to log your bird observations
-                    </Text>
-
                     <View style={styles.featuresGrid}>
                         {features.map((feature, index) => renderFeatureCard(feature, index))}
                     </View>
                 </View>
 
-                {/* Quick Access Section */}
-                <View style={styles.quickAccessSection}>
-                    <Text style={[typography.headlineLarge, styles.sectionTitle]}>
-                        Quick Access
-                    </Text>
-
-                    <View style={styles.quickAccessGrid}>
-                        <Animated.View style={getFloatingStyle(0.8)}>
-                            <ModernCard
-                                variant="outlined"
-                                onPress={() => router.push('/archive')}
-                                animateOnPress
-                                style={styles.quickAccessCard}
-                            >
-                                <View style={styles.quickAccessContent}>
-                                    <Feather name="archive" size={24} color={semanticColors.primary} />
-                                    <Text style={[typography.labelLarge, { color: semanticColors.text }]}>
-                                        My Archive
-                                    </Text>
-                                </View>
-                            </ModernCard>
-                        </Animated.View>
-
-                        <Animated.View style={getFloatingStyle(1.2)}>
-                            <ModernCard
-                                variant="outlined"
-                                onPress={() => router.push('/birdex')}
-                                animateOnPress
-                                style={styles.quickAccessCard}
-                            >
-                                <View style={styles.quickAccessContent}>
-                                    <Feather name="book-open" size={24} color={semanticColors.accent} />
-                                    <Text style={[typography.labelLarge, { color: semanticColors.text }]}>
-                                        Bird Guide
-                                    </Text>
-                                </View>
-                            </ModernCard>
-                        </Animated.View>
-                    </View>
-                </View>
             </ScrollView>
         </SafeAreaView>
     );
@@ -386,7 +305,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: 100,
+
     },
 
     // Background layers for depth
@@ -408,15 +327,15 @@ const styles = StyleSheet.create({
     // Hero Section
     heroSection: {
         paddingHorizontal: 24,
-        paddingTop: 40,
-        paddingBottom: 32,
+        paddingTop: 80,
+        paddingBottom: 2,
         alignItems: 'center',
         minHeight: height * 0.4,
         justifyContent: 'center',
     },
     heroContent: {
         alignItems: 'center',
-        marginBottom: 32,
+        marginBottom: 12,
     },
     heroTitle: {
         textAlign: 'center',
@@ -429,33 +348,12 @@ const styles = StyleSheet.create({
         maxWidth: width * 0.8,
     },
 
-    // Stats
-    statsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 20,
-        borderWidth: 1,
-        paddingVertical: 20,
-        paddingHorizontal: 24,
-        marginTop: 16,
-    },
-    statItem: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    statDivider: {
-        width: 1,
-        height: 40,
-        marginHorizontal: 16,
-    },
-
     // Features Section
     featuresSection: {
         paddingHorizontal: 24,
-        marginBottom: 48,
     },
     sectionTitle: {
-        marginBottom: 8,
+        marginBottom: 3,
     },
     sectionSubtitle: {
         lineHeight: 20,
@@ -470,14 +368,14 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     featuredCardInner: {
-        minHeight: 140,
+        minHeight: 70,
         borderWidth: 1,
     },
     regularCard: {
         marginBottom: 8,
     },
     regularCardInner: {
-        minHeight: 100,
+        minHeight: 60,
         borderWidth: 1,
     },
 
@@ -515,25 +413,5 @@ const styles = StyleSheet.create({
     },
     arrowContainer: {
         justifyContent: 'center',
-    },
-
-    // Quick Access
-    quickAccessSection: {
-        paddingHorizontal: 24,
-        marginBottom: 32,
-    },
-    quickAccessGrid: {
-        flexDirection: 'row',
-        gap: 16,
-    },
-    quickAccessCard: {
-        flex: 1,
-        minHeight: 80,
-    },
-    quickAccessContent: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-        gap: 8,
     },
 });
