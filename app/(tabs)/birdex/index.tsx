@@ -669,6 +669,7 @@ export default function ModernBirdDexIndex() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        overflow: 'hidden',
     },
 
     // Header
@@ -686,6 +687,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingBottom: 16,
         position: 'relative',
+        overflow: 'hidden',
     },
     searchRow: {
         marginBottom: 12,
@@ -698,10 +700,12 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         borderWidth: 1,
         gap: 12,
+        overflow: 'hidden',
     },
     searchInput: {
         flex: 1,
         fontSize: 16,
+        overflow: 'hidden',
     },
     filterRow: {
         flexDirection: 'row',

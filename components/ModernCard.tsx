@@ -26,7 +26,7 @@ import {
     useTypography,
     useMotionValues
 } from '@/hooks/useThemeColor';
-import {ImageSource} from "expo-image";
+import { ImageSource } from "expo-image";
 
 // Card variants
 type CardVariant = 'default' | 'elevated' | 'outlined' | 'filled' | 'primary' | 'accent' | 'glass';
@@ -56,6 +56,10 @@ interface ModernCardProps {
     isSelected?: boolean;
     isLoading?: boolean;
 
+    // Layout control
+    padding?: number | 'none' | 'sm' | 'md' | 'lg';
+    noPadding?: boolean; // Quick override for no padding
+
     // Animations
     animateOnPress?: boolean;
     glowOnHover?: boolean;
@@ -78,6 +82,8 @@ export function ModernCard({
                                footer,
                                isSelected = false,
                                isLoading = false,
+                               padding = 'md',
+                               noPadding = false,
                                animateOnPress = true,
                                glowOnHover = false,
                            }: ModernCardProps) {
@@ -93,9 +99,30 @@ export function ModernCard({
     const opacity = useSharedValue(1);
     const glowOpacity = useSharedValue(0);
 
-    // Get card style based on variant
+    // Get card style based on variant with improved shadows
     const getCardStyle = () => {
         const baseStyle = cardTheme[variant as keyof typeof cardTheme] || cardTheme.default;
+
+        // Enhanced shadow system
+        const getShadowStyle = () => {
+            if (variant === 'glass' || variant === 'outlined') {
+                return {}; // No shadow for glass/outlined variants
+            }
+
+            return {
+                // iOS shadows
+                shadowColor: semanticColors.text,
+                shadowOffset: {
+                    width: 0,
+                    height: variant === 'elevated' ? 4 : 2,
+                },
+                shadowOpacity: variant === 'elevated' ? 0.15 : 0.1,
+                shadowRadius: variant === 'elevated' ? 8 : 4,
+
+                // Android elevation
+                elevation: variant === 'elevated' ? 6 : 3,
+            };
+        };
 
         if (variant === 'glass') {
             return {
@@ -103,10 +130,29 @@ export function ModernCard({
                 borderColor: variants.primaryMuted,
                 borderWidth: 1,
                 overflow: 'hidden' as const,
+                ...getShadowStyle(),
             };
         }
 
-        return baseStyle;
+        return {
+            ...baseStyle,
+            ...getShadowStyle(),
+        };
+    };
+
+    // Get padding value
+    const getPaddingValue = () => {
+        if (noPadding) return 0;
+
+        if (typeof padding === 'number') return padding;
+
+        switch (padding) {
+            case 'none': return 0;
+            case 'sm': return theme.spacing.sm;
+            case 'lg': return theme.spacing.lg;
+            case 'md':
+            default: return theme.spacing.md;
+        }
     };
 
     // Animation styles
@@ -143,7 +189,9 @@ export function ModernCard({
         }
     };
 
-    // Render card content
+    const paddingValue = getPaddingValue();
+
+    // Render card content with consistent structure
     const renderCardContent = () => (
         <View style={styles.cardContainer}>
             {/* Glow effect */}
@@ -159,7 +207,7 @@ export function ModernCard({
                 />
             )}
 
-            {/* Image */}
+            {/* Image - full width, no padding */}
             {image && (
                 <View style={[styles.imageContainer, { aspectRatio: imageAspectRatio }]}>
                     <Image source={image} style={styles.image} resizeMode="cover" />
@@ -171,36 +219,56 @@ export function ModernCard({
                 </View>
             )}
 
-            {/* Header */}
-            {(title || subtitle || headerAction) && (
-                <View style={styles.header}>
-                    <View style={styles.headerContent}>
-                        {title && (
-                            <Text
-                                style={[typography.headlineSmall, styles.title]}
-                                numberOfLines={2}
-                            >
-                                {title}
-                            </Text>
-                        )}
-                        {subtitle && (
-                            <Text
-                                style={[typography.bodyMedium, styles.subtitle, { color: semanticColors.textSecondary }]}
-                                numberOfLines={1}
-                            >
-                                {subtitle}
-                            </Text>
-                        )}
+            {/* Content wrapper with consistent padding */}
+            <View style={[
+                styles.contentWrapper,
+                { padding: paddingValue }
+            ]}>
+                {/* Header */}
+                {(title || subtitle || headerAction) && (
+                    <View style={styles.header}>
+                        <View style={styles.headerContent}>
+                            {title && (
+                                <Text
+                                    style={[typography.headlineSmall, styles.title]}
+                                    numberOfLines={2}
+                                >
+                                    {title}
+                                </Text>
+                            )}
+                            {subtitle && (
+                                <Text
+                                    style={[typography.bodyMedium, styles.subtitle, { color: semanticColors.textSecondary }]}
+                                    numberOfLines={1}
+                                >
+                                    {subtitle}
+                                </Text>
+                            )}
+                        </View>
+                        {headerAction && <View style={styles.headerAction}>{headerAction}</View>}
                     </View>
-                    {headerAction && <View style={styles.headerAction}>{headerAction}</View>}
-                </View>
-            )}
+                )}
 
-            {/* Content */}
-            {children && <View style={styles.content}>{children}</View>}
+                {/* Main Content */}
+                {children && (
+                    <View style={[
+                        styles.content,
+                        (title || subtitle || headerAction) && styles.contentWithHeader
+                    ]}>
+                        {children}
+                    </View>
+                )}
 
-            {/* Footer */}
-            {footer && <View style={styles.footer}>{footer}</View>}
+                {/* Footer */}
+                {footer && (
+                    <View style={[
+                        styles.footer,
+                        (children || title || subtitle) && styles.footerWithContent
+                    ]}>
+                        {footer}
+                    </View>
+                )}
+            </View>
 
             {/* Selection indicator */}
             {isSelected && (
@@ -225,7 +293,7 @@ export function ModernCard({
             >
                 <BlurView
                     intensity={60}
-                    tint={theme.colors.surface.primary === '#FFFFFF' ? 'light' : 'dark'}
+                    tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
                     style={StyleSheet.absoluteFillObject}
                 />
                 {renderCardContent()}
@@ -249,7 +317,7 @@ export function ModernCard({
     );
 }
 
-// Specialized card components
+// Specialized card components with better defaults
 export function BirdSpottingCard({
                                      birdName,
                                      scientificName,
@@ -286,6 +354,7 @@ export function BirdSpottingCard({
             onPress={onPress}
             isSelected={isLogged}
             glowOnHover
+            padding="md" // Explicit padding
             headerAction={
                 isLogged ? (
                     <View style={[styles.badge, { backgroundColor: variants.primarySubtle }]}>
@@ -353,6 +422,7 @@ export function BirdDexCard({
             subtitle={scientificName}
             onPress={onPress}
             animateOnPress
+            padding="md" // Explicit padding
             headerAction={
                 <View style={styles.cardActions}>
                     <Pressable
@@ -403,16 +473,23 @@ const styles = StyleSheet.create({
     },
     cardContainer: {
         position: 'relative',
+        flex: 1,
     },
     glowEffect: {
         borderRadius: 16,
         zIndex: -1,
     },
 
-    // Image
+    // Content wrapper for consistent padding
+    contentWrapper: {
+        flex: 1,
+    },
+
+    // Image - full width, no padding applied here
     imageContainer: {
         position: 'relative',
         overflow: 'hidden',
+        width: '100%',
     },
     image: {
         width: '100%',
@@ -429,8 +506,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-start',
         justifyContent: 'space-between',
-        padding: 16,
-        paddingBottom: 8,
     },
     headerContent: {
         flex: 1,
@@ -441,6 +516,7 @@ const styles = StyleSheet.create({
     },
     title: {
         marginBottom: 4,
+        fontWeight: '600',
     },
     subtitle: {
         fontStyle: 'italic',
@@ -448,14 +524,18 @@ const styles = StyleSheet.create({
 
     // Content
     content: {
-        paddingHorizontal: 16,
-        paddingBottom: 8,
+        // No additional padding - handled by contentWrapper
+    },
+    contentWithHeader: {
+        marginTop: 12, // Spacing between header and content
     },
 
     // Footer
     footer: {
-        padding: 16,
-        paddingTop: 8,
+        // No additional padding - handled by contentWrapper
+    },
+    footerWithContent: {
+        marginTop: 12, // Spacing between content and footer
     },
 
     // Selection indicator

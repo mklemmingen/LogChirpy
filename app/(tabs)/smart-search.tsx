@@ -508,6 +508,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 28,
         gap: 12,
+        overflow: 'hidden',
     },
     searchInput: {
         flex: 1,
@@ -515,16 +516,15 @@ const styles = StyleSheet.create({
 
     // Tips
     tipsContainer: {
-        flex: 1,
         paddingHorizontal: 20,
-        paddingVertical: 60, // Increased and made symmetric
-        justifyContent: 'center', // Center the card in available space
+        paddingTop: 40, // Remove flex: 1 and justifyContent: 'center'
+        paddingBottom: 20,
     },
     tipsCard: {
-        padding: 40, // Increased from 32
+        padding: 32,
         alignItems: 'center',
-        gap: 32, // Increased from 24
-        minHeight: 400, // Ensure minimum height
+        gap: 24,
+        // Remove minHeight: 400
     },
     tipsIcon: {
         width: 80, // Increased from 64
