@@ -1,60 +1,383 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
-    Animated,
     Alert,
     BackHandler,
-    Pressable,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    useColorScheme,
-    View,
+    Dimensions,
     StatusBar,
     Linking,
 } from 'react-native';
 import { Audio } from 'expo-av';
-import {router, Stack, useFocusEffect, useRouter} from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+    withRepeat,
+    interpolate,
+    Easing,
+} from 'react-native-reanimated';
 
-import { theme } from '@/constants/theme';
 import { useLogDraft } from '../context/LogDraftContext';
+import { ModernCard } from '@/components/ModernCard';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import {
+    useTheme,
+    useSemanticColors,
+    useColorVariants,
+    useTypography,
+    useMotionValues,
+} from '@/hooks/useThemeColor';
 
 type RecordingStatus = 'idle' | 'recording' | 'stopping' | 'playback';
 
-interface AudioQuality {
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const AnimatedPressable = Animated.createAnimatedComponent(ThemedPressable);
+
+// Enhanced Audio Quality Configuration
+const AUDIO_QUALITY = {
     android: {
-        extension: string;
-        outputFormat: number;
-        audioEncoder: number;
-        sampleRate: number;
-        numberOfChannels: number;
-        bitRate: number;
-    };
+        extension: '.m4a',
+        outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+        audioEncoder: Audio.AndroidAudioEncoder.AAC,
+        sampleRate: 44100,
+        numberOfChannels: 2,
+        bitRate: 128000,
+    },
     ios: {
-        extension: string;
-        outputFormat: string;
-        audioQuality: number;
-        sampleRate: number;
-        numberOfChannels: number;
-        bitRate: number;
-        linearPCMBitDepth: number;
-        linearPCMIsBigEndian: boolean;
-        linearPCMIsFloat: boolean;
-    };
+        extension: '.m4a',
+        outputFormat: Audio.IOSOutputFormat.MPEG4AAC.toString(),
+        audioQuality: Audio.IOSAudioQuality.HIGH,
+        sampleRate: 44100,
+        numberOfChannels: 2,
+        bitRate: 128000,
+        linearPCMBitDepth: 16,
+        linearPCMIsBigEndian: false,
+        linearPCMIsFloat: false,
+    },
+};
+
+// Animated Wave Visualization Component
+function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
+    const semanticColors = useSemanticColors();
+    const waveAnim = useSharedValue(0);
+
+    useEffect(() => {
+        if (isRecording) {
+            waveAnim.value = withRepeat(
+                withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+                -1,
+                true
+            );
+        } else {
+            waveAnim.value = withTiming(0, { duration: 300 });
+        }
+    }, [isRecording]);
+
+    return (
+        <ThemedView style={{ flexDirection: 'row', alignItems: 'center', gap: 4, height: 60 }}>
+            {[...Array(7)].map((_, index) => {
+                const animatedStyle = useAnimatedStyle(() => {
+                    const delay = index * 0.1;
+                    const height = interpolate(
+                        waveAnim.value,
+                        [0, 1],
+                        [4, 30 + Math.sin(delay * 4) * 15]
+                    );
+                    return {
+                        height: Math.max(4, height),
+                        opacity: interpolate(waveAnim.value, [0, 1], [0.3, 1]),
+                    };
+                });
+
+                return (
+                    <Animated.View
+                        key={index}
+                        style={[
+                            {
+                                width: 4,
+                                backgroundColor: semanticColors.primary,
+                                borderRadius: 2,
+                            },
+                            animatedStyle,
+                        ]}
+                    />
+                );
+            })}
+        </ThemedView>
+    );
 }
 
-export default function AudioCapture() {
-    const router = useRouter();
+// Recording Button Component
+function RecordingButton({
+                             status,
+                             onPress,
+                             duration,
+                         }: {
+    status: RecordingStatus;
+    onPress: () => void;
+    duration: number;
+}) {
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const theme = useTheme();
+
+    const scale = useSharedValue(1);
+    const glowOpacity = useSharedValue(0);
+
+    useEffect(() => {
+        if (status === 'recording') {
+            scale.value = withRepeat(
+                withTiming(1.05, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+                -1,
+                true
+            );
+            glowOpacity.value = withRepeat(
+                withTiming(0.8, { duration: 1500 }),
+                -1,
+                true
+            );
+        } else {
+            scale.value = withSpring(1);
+            glowOpacity.value = withTiming(0);
+        }
+    }, [status]);
+
+    const buttonStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
+    const glowStyle = useAnimatedStyle(() => ({
+        opacity: glowOpacity.value,
+        transform: [{ scale: scale.value * 1.2 }],
+    }));
+
+    const isRecording = status === 'recording';
+    const buttonColor = isRecording ? semanticColors.error : semanticColors.primary;
+
+    return (
+        <ThemedView style={{ alignItems: 'center', gap: 16 }}>
+            <ThemedView style={{ position: 'relative' }}>
+                {/* Glow Effect */}
+                <Animated.View
+                    style={[
+                        {
+                            position: 'absolute',
+                            width: 160,
+                            height: 160,
+                            borderRadius: 80,
+                            backgroundColor: buttonColor,
+                        },
+                        glowStyle,
+                    ]}
+                />
+
+                {/* Main Button */}
+                <AnimatedPressable
+                    variant="ghost"
+                    style={[
+                        {
+                            width: 140,
+                            height: 140,
+                            borderRadius: 70,
+                            backgroundColor: buttonColor,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            ...theme.shadows.lg,
+                        },
+                        buttonStyle,
+                    ]}
+                    onPress={onPress}
+                    disabled={status === 'stopping'}
+                >
+                    <Feather
+                        name={isRecording ? 'square' : 'mic'}
+                        size={48}
+                        color={semanticColors.onPrimary}
+                    />
+                </AnimatedPressable>
+            </ThemedView>
+
+            <ThemedText
+                variant="bodyLarge"
+                color="secondary"
+                style={{ textAlign: 'center' }}
+            >
+                {isRecording ? 'Tap to stop recording' : 'Tap to start recording'}
+            </ThemedText>
+
+            {/* Duration Display */}
+            {(isRecording || duration > 0) && (
+                <ThemedView
+                    surface="elevated"
+                    rounded="pill"
+                    style={{ paddingHorizontal: 20, paddingVertical: 8 }}
+                >
+                    <ThemedText variant="headlineSmall" color="primary">
+                        {formatDuration(duration)}
+                    </ThemedText>
+                </ThemedView>
+            )}
+        </ThemedView>
+    );
+}
+
+// Permission Error Component
+function PermissionError({
+                             onRetry,
+                             onSettings,
+                             isRequesting,
+                         }: {
+    onRetry: () => void;
+    onSettings: () => void;
+    isRequesting: boolean;
+}) {
+    const { t } = useTranslation();
+    const semanticColors = useSemanticColors();
+
+    return (
+        <ThemedView surface="primary" style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
+            <ModernCard variant="glass" style={{ alignItems: 'center', padding: 32 }}>
+                <ThemedView
+                    style={{
+                        width: 80,
+                        height: 80,
+                        borderRadius: 40,
+                        backgroundColor: semanticColors.errorContainer,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginBottom: 24,
+                    }}
+                >
+                    <Feather name="mic-off" size={32} color={semanticColors.error} />
+                </ThemedView>
+
+                <ThemedText variant="headlineMedium" style={{ textAlign: 'center', marginBottom: 12 }}>
+                    {t('audio.permission_required')}
+                </ThemedText>
+
+                <ThemedText
+                    variant="bodyLarge"
+                    color="secondary"
+                    style={{ textAlign: 'center', marginBottom: 32, lineHeight: 24 }}
+                >
+                    {t('audio.permission_explanation')}
+                </ThemedText>
+
+                <ThemedView style={{ flexDirection: 'row', gap: 16, width: '100%' }}>
+                    <ThemedPressable
+                        variant="secondary"
+                        style={{ flex: 1 }}
+                        onPress={() => router.back()}
+                    >
+                        <ThemedText>{t('common.cancel')}</ThemedText>
+                    </ThemedPressable>
+
+                    <ThemedPressable
+                        variant="primary"
+                        style={{ flex: 1 }}
+                        onPress={onRetry}
+                        disabled={isRequesting}
+                    >
+                        {isRequesting ? (
+                            <ActivityIndicator size="small" color="white" />
+                        ) : (
+                            <ThemedText color="inverse">{t('audio.grant_permission')}</ThemedText>
+                        )}
+                    </ThemedPressable>
+                </ThemedView>
+
+                <ThemedPressable
+                    variant="ghost"
+                    onPress={onSettings}
+                    style={{ marginTop: 16 }}
+                >
+                    <ThemedText color="accent">{t('common.settings')}</ThemedText>
+                </ThemedPressable>
+            </ModernCard>
+        </ThemedView>
+    );
+}
+
+// Playback Controls Component
+function PlaybackControls({
+                              isPlaying,
+                              onPlay,
+                              onRetake,
+                              onConfirm,
+                          }: {
+    isPlaying: boolean;
+    onPlay: () => void;
+    onRetake: () => void;
+    onConfirm: () => void;
+}) {
+    const { t } = useTranslation();
+
+    return (
+        <BlurView
+            intensity={80}
+            style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                paddingBottom: 40,
+                paddingTop: 20,
+                paddingHorizontal: 24,
+            }}
+        >
+            <ThemedView style={{ flexDirection: 'row', gap: 16 }}>
+                <ThemedPressable
+                    variant="secondary"
+                    style={{ flex: 1, flexDirection: 'row', gap: 8 }}
+                    onPress={onPlay}
+                >
+                    <Feather name={isPlaying ? 'pause' : 'play'} size={20} />
+                    <ThemedText>{isPlaying ? t('audio.pause') : t('audio.play')}</ThemedText>
+                </ThemedPressable>
+
+                <ThemedPressable
+                    variant="outline"
+                    style={{ paddingHorizontal: 20 }}
+                    onPress={onRetake}
+                >
+                    <Feather name="refresh-cw" size={20} />
+                </ThemedPressable>
+
+                <ThemedPressable
+                    variant="primary"
+                    style={{ flex: 1, flexDirection: 'row', gap: 8 }}
+                    onPress={onConfirm}
+                >
+                    <Feather name="check" size={20} color="white" />
+                    <ThemedText color="inverse">{t('common.confirm')}</ThemedText>
+                </ThemedPressable>
+            </ThemedView>
+        </BlurView>
+    );
+}
+
+// Helper function
+const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+export default function EnhancedAudioCapture() {
     const { t } = useTranslation();
     const { update } = useLogDraft();
-    const colorScheme = useColorScheme() ?? 'light';
-    const pal = theme[colorScheme];
+    const semanticColors = useSemanticColors();
+    const theme = useTheme();
 
-    // Recording state
+    // State management
     const [status, setStatus] = useState<RecordingStatus>('idle');
     const [duration, setDuration] = useState(0);
     const [recordedUri, setRecordedUri] = useState<string | null>(null);
@@ -65,39 +388,14 @@ export default function AudioCapture() {
     // Refs
     const recordingRef = useRef<Audio.Recording | null>(null);
     const durationInterval = useRef<NodeJS.Timeout | null>(null);
-    const pulseAnim = useRef(new Animated.Value(1)).current;
-    const waveAnim = useRef(new Animated.Value(0)).current;
 
-    // Custom audio quality for bird recordings
-    const audioQuality: AudioQuality = {
-        android: {
-            extension: '.m4a',
-            outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-            audioEncoder: Audio.AndroidAudioEncoder.AAC,
-            sampleRate: 44100,
-            numberOfChannels: 2,
-            bitRate: 128000,
-        },
-        ios: {
-            extension: '.m4a',
-            outputFormat: Audio.IOSOutputFormat.MPEG4AAC.toString(),
-            audioQuality: Audio.IOSAudioQuality.HIGH,
-            sampleRate: 44100,
-            numberOfChannels: 2,
-            bitRate: 128000,
-            linearPCMBitDepth: 16,
-            linearPCMIsBigEndian: false,
-            linearPCMIsFloat: false,
-        },
-    };
-
-    // Initialize component
+    // Initialize permissions
     useEffect(() => {
         checkPermissions();
         return cleanup;
     }, []);
 
-    // Handle back button when recording
+    // Handle back button during recording
     useFocusEffect(
         useCallback(() => {
             const onBackPress = () => {
@@ -114,61 +412,15 @@ export default function AudioCapture() {
                             },
                         ]
                     );
-                    return true; // Prevent default back
+                    return true;
                 }
-                return false; // Allow normal back
+                return false;
             };
 
             const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
             return () => subscription.remove();
         }, [status, t])
     );
-
-    // Pulse animation for recording button
-    useEffect(() => {
-        if (status === 'recording') {
-            const pulse = Animated.loop(
-                Animated.sequence([
-                    Animated.timing(pulseAnim, {
-                        toValue: 1.15,
-                        duration: 1000,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(pulseAnim, {
-                        toValue: 1,
-                        duration: 1000,
-                        useNativeDriver: true,
-                    }),
-                ])
-            );
-            pulse.start();
-            return () => pulse.stop();
-        } else {
-            pulseAnim.setValue(1);
-        }
-    }, [status, pulseAnim]);
-
-    // Wave animation for visual feedback
-    useEffect(() => {
-        if (status === 'recording') {
-            const wave = Animated.loop(
-                Animated.sequence([
-                    Animated.timing(waveAnim, {
-                        toValue: 1,
-                        duration: 1500,
-                        useNativeDriver: false,
-                    }),
-                    Animated.timing(waveAnim, {
-                        toValue: 0,
-                        duration: 1500,
-                        useNativeDriver: false,
-                    }),
-                ])
-            );
-            wave.start();
-            return () => wave.stop();
-        }
-    }, [status, waveAnim]);
 
     const cleanup = useCallback(() => {
         if (durationInterval.current) {
@@ -244,7 +496,6 @@ export default function AudioCapture() {
             setStatus('recording');
             setDuration(0);
 
-            // Configure audio mode for recording
             await Audio.setAudioModeAsync({
                 allowsRecordingIOS: true,
                 playsInSilentModeIOS: true,
@@ -254,11 +505,10 @@ export default function AudioCapture() {
             });
 
             const recording = new Audio.Recording();
-            await recording.prepareToRecordAsync({ ...audioQuality, web: {} } as any);
+            await recording.prepareToRecordAsync({ ...AUDIO_QUALITY, web: {} } as any);
             await recording.startAsync();
             recordingRef.current = recording;
 
-            // Start duration counter
             durationInterval.current = setInterval(() => {
                 setDuration(prev => prev + 1);
             }, 1000);
@@ -267,11 +517,7 @@ export default function AudioCapture() {
         } catch (error) {
             console.error('Recording failed:', error);
             setStatus('idle');
-            Alert.alert(
-                t('common.error'),
-                t('audio.recording_failed'),
-                [{ text: t('common.ok') }]
-            );
+            Alert.alert(t('common.error'), t('audio.recording_failed'));
         }
     };
 
@@ -280,7 +526,6 @@ export default function AudioCapture() {
 
         setStatus('stopping');
 
-        // Clear duration interval
         if (durationInterval.current) {
             clearInterval(durationInterval.current);
             durationInterval.current = null;
@@ -300,11 +545,7 @@ export default function AudioCapture() {
         } catch (error) {
             console.error('Stop recording failed:', error);
             setStatus('idle');
-            Alert.alert(
-                t('common.error'),
-                t('audio.save_failed'),
-                [{ text: t('common.ok') }]
-            );
+            Alert.alert(t('common.error'), t('audio.save_failed'));
         }
     };
 
@@ -336,11 +577,7 @@ export default function AudioCapture() {
         } catch (error) {
             console.error('Playback failed:', error);
             setStatus('idle');
-            Alert.alert(
-                t('common.error'),
-                t('audio.playback_failed'),
-                [{ text: t('common.ok') }]
-            );
+            Alert.alert(t('common.error'), t('audio.playback_failed'));
         }
     };
 
@@ -370,386 +607,137 @@ export default function AudioCapture() {
         router.back();
     }, []);
 
-    const formatDuration = useCallback((seconds: number): string => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }, []);
+    const handleRecordingToggle = () => {
+        if (status === 'recording') {
+            stopRecording();
+        } else {
+            startRecording();
+        }
+    };
 
     // Permission denied state
     if (hasPermission === false) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
-                <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+            <>
+                <StatusBar barStyle="dark-content" />
                 <Stack.Screen options={{ headerShown: false }} />
-
-                <View style={styles.permissionContainer}>
-                    <View style={[styles.permissionIcon, { backgroundColor: pal.colors.error + '20' }]}>
-                        <Feather name="mic-off" size={48} color={pal.colors.error} />
-                    </View>
-
-                    <Text style={[styles.permissionTitle, { color: pal.colors.text.primary }]}>
-                        {t('audio.permission_required')}
-                    </Text>
-
-                    <Text style={[styles.permissionMessage, { color: pal.colors.text.secondary }]}>
-                        {t('audio.permission_explanation')}
-                    </Text>
-
-                    <View style={styles.permissionButtons}>
-                        <Pressable
-                            style={[styles.permissionButton, { backgroundColor: pal.colors.border }]}
-                            onPress={() => router.back()}
-                        >
-                            <Text style={[styles.permissionButtonText, { color: pal.colors.text.primary }]}>
-                                {t('common.cancel')}
-                            </Text>
-                        </Pressable>
-
-                        <Pressable
-                            style={[styles.permissionButton, { backgroundColor: pal.colors.primary }]}
-                            onPress={isRequestingPermission ? undefined : requestPermission}
-                            disabled={isRequestingPermission}
-                        >
-                            {isRequestingPermission ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                                <Text style={[styles.permissionButtonText, { color: '#fff' }]}>
-                                    {t('audio.grant_permission')}
-                                </Text>
-                            )}
-                        </Pressable>
-                    </View>
-                </View>
-            </SafeAreaView>
+                <PermissionError
+                    onRetry={requestPermission}
+                    onSettings={openAppSettings}
+                    isRequesting={isRequestingPermission}
+                />
+            </>
         );
     }
 
-    // Stopping state
+    // Processing state
     if (status === 'stopping') {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
-                <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+            <ThemedView surface="primary" style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <StatusBar barStyle="dark-content" />
                 <Stack.Screen options={{ headerShown: false }} />
 
-                <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color={pal.colors.primary} />
-                    <Text style={[styles.statusText, { color: pal.colors.text.primary }]}>
-                        {t('audio.processing')}
-                    </Text>
-                </View>
-            </SafeAreaView>
+                <ThemedView style={{ alignItems: 'center', gap: 24 }}>
+                    <ActivityIndicator size="large" color={semanticColors.primary} />
+                    <ThemedText variant="headlineSmall">{t('audio.processing')}</ThemedText>
+                </ThemedView>
+            </ThemedView>
         );
     }
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
-            <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+        <ThemedView surface="primary" style={{ flex: 1 }}>
+            <StatusBar barStyle="dark-content" />
             <Stack.Screen options={{ headerShown: false }} />
 
             {/* Header */}
-            <View style={[styles.header, { backgroundColor: pal.colors.surface }]}>
-                <Pressable
-                    style={styles.backButton}
+            <ThemedView
+                surface="elevated"
+                style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: semanticColors.border,
+                }}
+            >
+                <ThemedPressable
+                    variant="ghost"
+                    style={{ padding: 8 }}
                     onPress={() => router.back()}
                 >
-                    <Feather name="arrow-left" size={24} color={pal.colors.text.primary} />
-                </Pressable>
+                    <Feather name="arrow-left" size={24} color={semanticColors.text} />
+                </ThemedPressable>
 
-                <Text style={[styles.headerTitle, { color: pal.colors.text.primary }]}>
+                <ThemedText variant="headlineSmall" style={{ marginLeft: 16 }}>
                     {t('audio.record_audio')}
-                </Text>
-
-                <View style={styles.headerSpacer} />
-            </View>
+                </ThemedText>
+            </ThemedView>
 
             {/* Main Content */}
-            <View style={styles.mainContent}>
-                {/* Duration Display */}
-                <View style={styles.durationContainer}>
-                    <Text style={[styles.duration, { color: pal.colors.text.primary }]}>
-                        {formatDuration(duration)}
-                    </Text>
-
+            <ThemedView style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
+                <ModernCard
+                    variant="glass"
+                    style={{
+                        alignItems: 'center',
+                        padding: 40,
+                        maxWidth: SCREEN_WIDTH - 48,
+                        alignSelf: 'center',
+                    }}
+                >
+                    {/* Recording Status */}
                     {status === 'recording' && (
-                        <View style={styles.recordingIndicator}>
-                            <View style={[styles.recordingDot, { backgroundColor: pal.colors.error }]} />
-                            <Text style={[styles.recordingText, { color: pal.colors.error }]}>
-                                {t('audio.recording')}
-                            </Text>
-                        </View>
+                        <ThemedView style={{ alignItems: 'center', marginBottom: 32 }}>
+                            <ThemedView
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    paddingHorizontal: 16,
+                                    paddingVertical: 8,
+                                    backgroundColor: semanticColors.errorContainer,
+                                    borderRadius: theme.borderRadius.pill,
+                                }}
+                            >
+                                <ThemedView
+                                    style={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: 4,
+                                        backgroundColor: semanticColors.error,
+                                    }}
+                                />
+                                <ThemedText variant="labelMedium" color="error">
+                                    {t('audio.recording').toUpperCase()}
+                                </ThemedText>
+                            </ThemedView>
+                        </ThemedView>
                     )}
-                </View>
 
-                {/* Visual Wave Effect */}
-                {status === 'recording' && (
-                    <View style={styles.waveContainer}>
-                        {[...Array(5)].map((_, index) => (
-                            <Animated.View
-                                key={index}
-                                style={[
-                                    styles.waveBar,
-                                    {
-                                        backgroundColor: pal.colors.primary,
-                                        height: waveAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [4, 40 + Math.random() * 30],
-                                        }),
-                                        opacity: waveAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [0.3, 1],
-                                        }),
-                                    },
-                                ]}
-                            />
-                        ))}
-                    </View>
-                )}
+                    {/* Wave Visualization */}
+                    <ThemedView style={{ marginBottom: 32 }}>
+                        <WaveVisualizer isRecording={status === 'recording'} />
+                    </ThemedView>
 
-                {/* Recording Button */}
-                <View style={styles.recordButtonContainer}>
-                    <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                        <Pressable
-                            style={[
-                                styles.recordButton,
-                                {
-                                    backgroundColor: status === 'recording' ? pal.colors.error : pal.colors.primary,
-                                    shadowColor: status === 'recording' ? pal.colors.error : pal.colors.primary,
-                                },
-                            ]}
-                            onPress={status === 'recording' ? stopRecording : startRecording}
-                            disabled={status === 'stopping' as RecordingStatus}
-                        >
-                            <Feather
-                                name={status === 'recording' ? 'square' : 'mic'}
-                                size={40}
-                                color="#fff"
-                            />
-                        </Pressable>
-                    </Animated.View>
+                    {/* Recording Button */}
+                    <RecordingButton
+                        status={status}
+                        onPress={handleRecordingToggle}
+                        duration={duration}
+                    />
+                </ModernCard>
+            </ThemedView>
 
-                    <Text style={[styles.recordButtonText, { color: pal.colors.text.secondary }]}>
-                        {status === 'recording'
-                            ? t('audio.tap_to_stop')
-                            : t('audio.tap_to_record')
-                        }
-                    </Text>
-                </View>
-            </View>
-
-            {/* Controls (when recording exists) */}
+            {/* Playback Controls */}
             {recordedUri && (
-                <BlurView intensity={80} style={styles.controlsContainer}>
-                    <View style={styles.controls}>
-                        <Pressable
-                            style={[styles.controlButton, { backgroundColor: pal.colors.surface }]}
-                            onPress={playRecording}
-                            disabled={status === 'stopping' as RecordingStatus}
-                        >
-                            <Feather
-                                name={status === 'playback' && sound ? 'pause' : 'play'}
-                                size={20}
-                                color={pal.colors.primary}
-                            />
-                            <Text style={[styles.controlText, { color: pal.colors.primary }]}>
-                                {status === 'playback' && sound ? t('audio.pause') : t('audio.play')}
-                            </Text>
-                        </Pressable>
-
-                        <Pressable
-                            style={[styles.controlButton, { backgroundColor: pal.colors.border }]}
-                            onPress={retakeRecording}
-                            disabled={status === 'stopping' as RecordingStatus}
-                        >
-                            <Feather name="refresh-cw" size={20} color={pal.colors.text.primary} />
-                            <Text style={[styles.controlText, { color: pal.colors.text.primary }]}>
-                                {t('audio.retake')}
-                            </Text>
-                        </Pressable>
-
-                        <Pressable
-                            style={[styles.controlButton, { backgroundColor: pal.colors.primary }]}
-                            onPress={confirmRecording}
-                            disabled={status === 'stopping' as RecordingStatus}
-                        >
-                            <Feather name="check" size={20} color="#fff" />
-                            <Text style={[styles.controlText, { color: '#fff' }]}>
-                                {t('common.confirm')}
-                            </Text>
-                        </Pressable>
-                    </View>
-                </BlurView>
+                <PlaybackControls
+                    isPlaying={status === 'playback' && !!sound}
+                    onPlay={playRecording}
+                    onRetake={retakeRecording}
+                    onConfirm={confirmRecording}
+                />
             )}
-        </SafeAreaView>
+        </ThemedView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    permissionContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 24,
-    },
-    permissionIcon: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    permissionTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    permissionMessage: {
-        fontSize: 16,
-        textAlign: 'center',
-        lineHeight: 24,
-        marginBottom: 32,
-        paddingHorizontal: 16,
-    },
-    permissionButtons: {
-        flexDirection: 'row',
-        gap: 16,
-    },
-    permissionButton: {
-        flex: 1,
-        paddingVertical: 16,
-        paddingHorizontal: 24,
-        borderRadius: theme.borderRadius.lg,
-        alignItems: 'center',
-        ...theme.shadows.md,
-    },
-    permissionButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    centerContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 16,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.light.colors.border,
-    },
-    backButton: {
-        padding: 8,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        marginLeft: 16,
-    },
-    headerSpacer: {
-        flex: 1,
-    },
-    mainContent: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 24,
-    },
-    durationContainer: {
-        alignItems: 'center',
-        marginBottom: 40,
-    },
-    duration: {
-        fontSize: 56,
-        fontWeight: '200',
-        fontVariant: ['tabular-nums'],
-        letterSpacing: 2,
-    },
-    recordingIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 8,
-        gap: 8,
-    },
-    recordingDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-    },
-    recordingText: {
-        fontSize: 14,
-        fontWeight: '500',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    waveContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-        height: 60,
-        marginBottom: 40,
-    },
-    waveBar: {
-        width: 4,
-        borderRadius: 2,
-    },
-    recordButtonContainer: {
-        alignItems: 'center',
-        gap: 16,
-    },
-    recordButton: {
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-        elevation: 8,
-    },
-    recordButtonText: {
-        fontSize: 16,
-        textAlign: 'center',
-    },
-    controlsContainer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        paddingBottom: 40,
-    },
-    controls: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-    },
-    controlButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: theme.borderRadius.lg,
-        gap: 8,
-        minWidth: 100,
-        justifyContent: 'center',
-        ...theme.shadows.sm,
-    },
-    controlText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    statusText: {
-        fontSize: 18,
-        textAlign: 'center',
-    },
-});

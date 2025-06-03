@@ -33,7 +33,7 @@ import {useTranslation} from 'react-i18next';
 
 import Slider from '@react-native-community/slider';
 
-import {ThemedSnackbar} from "@/components/ThemedSnackbar";
+import {ModernSnackbar} from "@/components/ThemedSnackbar";
 
 import * as Haptics from 'expo-haptics';
 
@@ -77,8 +77,7 @@ const persistToMediaLibraryAlbum = async (localUri: string, filename: string): P
             }
         }
 
-        // IMPORTANT: Create asset directly from the source URI
-        // This avoids the "modify" permission dialog on Android
+        // asset directly from the source URI
         const asset = await MediaLibrary.createAssetAsync(localUri);
         console.log("Asset created:", asset);
 
@@ -928,7 +927,7 @@ function ObjectIdentCameraContent() {
                         {debugText}
                     </Text>
                 </View>
-                <ThemedSnackbar
+                <ModernSnackbar
                     visible={snackbarVisible}
                     message={snackbarMessage}
                     onHide={() => setSnackbarVisible(false)}

@@ -29,44 +29,43 @@ import { BlurView } from 'expo-blur';
 
 import { useLogDraft } from '../context/LogDraftContext';
 import { BirdSpotting, insertBirdSpotting } from '@/services/database';
-import { theme } from '@/constants/theme';
 import { useVideoPlayer, VideoSource, VideoView } from 'expo-video';
 
+// Modern components
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedPressable, PrimaryButton } from '@/components/ThemedPressable';
+import { ModernCard } from '@/components/ModernCard';
+import { useSnackbar } from '@/components/ThemedSnackbar';
+import { GlassSection } from '@/components/Section';
+
+// Theme hooks
+import {
+    useTheme,
+    useSemanticColors,
+    useTypography,
+    useColorVariants,
+} from '@/hooks/useThemeColor';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TILE_PADDING = 16;
-const TILE_GAP = 12;
-const CONTENT_PADDING = 16;
-const TILE_WIDTH = (SCREEN_WIDTH - CONTENT_PADDING * 2 - TILE_GAP) / 2;
-const FULL_TILE_WIDTH = SCREEN_WIDTH - CONTENT_PADDING * 2;
-
-type TileType = 'image' | 'video' | 'audio' | 'text' | 'date' | 'location' | 'prediction' | 'add-button';
-
-interface TileConfig {
-    id: string;
-    type: TileType;
-    label: string;
-    span: 'half' | 'full';
-    required?: boolean;
-    editable?: boolean;
-    value?: string | number;
-    placeholder?: string;
-    onPress?: () => void;
-    onTextChange?: (text: string) => void;
-    icon?: keyof typeof Feather.glyphMap;
-    status?: 'empty' | 'filled' | 'loading' | 'error';
-}
 
 interface ValidationError {
     field: string;
     message: string;
 }
 
-export default function Manual() {
+export default function EnhancedManual() {
     const params = useLocalSearchParams();
     const { t } = useTranslation();
     const { draft, update, clear } = useLogDraft();
     const colorScheme = useColorScheme() ?? 'light';
-    const pal = theme[colorScheme];
+
+    // Theme system
+    const theme = useTheme();
+    const semanticColors = useSemanticColors();
+    const typography = useTypography();
+    const variants = useColorVariants();
+    const { SnackbarComponent, showSuccess, showError } = useSnackbar();
 
     // State management
     const [isSaving, setIsSaving] = useState(false);
@@ -131,7 +130,7 @@ export default function Manual() {
         }
     }, [isVideoModalVisible, draft.videoUri, previewPlayer, fullscreenPlayer]);
 
-    // Navigation guard for unsaved changes (Android back button)
+    // Navigation guard for unsaved changes
     useFocusEffect(
         useCallback(() => {
             const hasUnsavedChanges = Object.values(draft).some(value =>
@@ -156,12 +155,10 @@ export default function Manual() {
                         },
                     ]
                 );
-                return true; // Prevent default back action
+                return true;
             };
 
-            // Handle Android back button
             const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
             return () => subscription.remove();
         }, [draft, clear, t])
     );
@@ -234,9 +231,9 @@ export default function Manual() {
             }
         } catch (error) {
             console.error('Audio playback error:', error);
-            Alert.alert(t('common.error'), t('audio.playback_failed'));
+            showError(t('audio.playback_failed'));
         }
-    }, [draft.audioUri, sound, t]);
+    }, [draft.audioUri, sound, t, showError]);
 
     const handleGetLocation = useCallback(async () => {
         setIsLoadingLocation(true);
@@ -266,18 +263,17 @@ export default function Manual() {
             });
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            showSuccess(t('location.success'));
         } catch (error) {
             console.error('Location error:', error);
-            Alert.alert(t('common.error'), t('location.failed_to_get'));
+            showError(t('location.failed_to_get'));
         } finally {
             setIsLoadingLocation(false);
         }
-    }, [update, t]);
+    }, [update, t, showSuccess, showError]);
 
     const handleTextChange = useCallback((key: string, value: string) => {
         update({ [key]: value });
-
-        // Clear validation errors for this field
         setValidationErrors(prev => prev.filter(error => error.field !== key));
     }, [update]);
 
@@ -291,22 +287,6 @@ export default function Manual() {
             update({ date: date.toISOString() });
         }
     }, [update]);
-
-    // Video modal handlers
-    const openVideoModal = useCallback(() => {
-        setIsVideoModalVisible(true);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, []);
-
-    const closeVideoModal = useCallback(() => {
-        setIsVideoModalVisible(false);
-        fullscreenPlayer?.pause();
-    }, [fullscreenPlayer]);
-
-    const handleVideoRetake = useCallback(() => {
-        closeVideoModal();
-        router.push('/log/video');
-    }, [closeVideoModal]);
 
     // Navigation handlers
     const handleMediaNavigation = useCallback((route: string) => {
@@ -336,29 +316,17 @@ export default function Manual() {
 
             clear();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            showSuccess(t('log.entry_saved_successfully'));
 
-            // Navigate with success feedback
             router.replace('/(tabs)');
-
-            // Show success message
-            setTimeout(() => {
-                Alert.alert(
-                    t('log.save_success'),
-                    t('log.entry_saved_successfully')
-                );
-            }, 500);
-
         } catch (error) {
             console.error('Save error:', error);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert(
-                t('errors.save_failed_title'),
-                t('errors.save_failed_message')
-            );
+            showError(t('errors.save_failed_message'));
         } finally {
             setIsSaving(false);
         }
-    }, [draft, clear, t]);
+    }, [draft, clear, t, showSuccess, showError]);
 
     const handleSave = useCallback(async () => {
         const errors = validateEntry();
@@ -366,11 +334,7 @@ export default function Manual() {
 
         if (errors.length > 0) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            Alert.alert(
-                t('validation.incomplete_entry'),
-                errors.map(e => e.message).join('\n'),
-                [{ text: t('common.ok') }]
-            );
+            showError(errors.map(e => e.message).join('\n'));
             return;
         }
 
@@ -387,362 +351,242 @@ export default function Manual() {
                 { text: t('common.save'), onPress: performSave },
             ]
         );
-    }, [validateEntry, completionPercentage, performSave, t]);
+    }, [validateEntry, completionPercentage, performSave, t, showError]);
 
-    // Tile generation
-    const tiles = useMemo((): TileConfig[] => {
-        const tileList: TileConfig[] = [];
-
-        // Media tiles
-        if (draft.imageUri) {
-            tileList.push({
-                id: 'image',
-                type: 'image',
-                label: t('log.image'),
-                span: 'half',
-                status: 'filled',
-                onPress: () => handleMediaNavigation('/log/photo'),
-            });
-        } else {
-            tileList.push({
-                id: 'add-image',
-                type: 'add-button',
-                label: t('log.add_image'),
-                span: 'half',
-                icon: 'camera',
-                status: 'empty',
-                onPress: () => handleMediaNavigation('/log/photo'),
-            });
-        }
-
-        if (draft.videoUri) {
-            tileList.push({
-                id: 'video',
-                type: 'video',
-                label: t('log.video'),
-                span: 'half',
-                status: 'filled',
-                onPress: openVideoModal,
-            });
-        } else {
-            tileList.push({
-                id: 'add-video',
-                type: 'add-button',
-                label: t('log.add_video'),
-                span: 'half',
-                icon: 'video',
-                status: 'empty',
-                onPress: () => handleMediaNavigation('/log/video'),
-            });
-        }
-
-        if (draft.audioUri) {
-            tileList.push({
-                id: 'audio',
-                type: 'audio',
-                label: t('log.audio'),
-                span: 'half',
-                status: 'filled',
-                onPress: handlePlayAudio,
-            });
-        } else {
-            tileList.push({
-                id: 'add-audio',
-                type: 'add-button',
-                label: t('log.add_audio'),
-                span: 'half',
-                icon: 'mic',
-                status: 'empty',
-                onPress: () => handleMediaNavigation('/log/audio'),
-            });
-        }
-
-        // Text input tiles
-        tileList.push({
-            id: 'birdType',
-            type: 'text',
-            label: t('log.bird_type'),
-            span: 'half',
-            required: true,
-            editable: true,
-            value: draft.birdType || '',
-            placeholder: t('log.bird_type_placeholder'),
-            onTextChange: (text) => handleTextChange('birdType', text),
-            status: draft.birdType?.trim() ? 'filled' : 'empty',
-        });
-
-        tileList.push({
-            id: 'notes',
-            type: 'text',
-            label: t('log.notes'),
-            span: 'full',
-            editable: true,
-            value: draft.textNote || '',
-            placeholder: t('log.notes_placeholder'),
-            onTextChange: (text) => handleTextChange('textNote', text),
-            status: draft.textNote?.trim() ? 'filled' : 'empty',
-        });
-
-        // Date and location tiles
-        tileList.push({
-            id: 'date',
-            type: 'date',
-            label: t('log.date'),
-            span: 'half',
-            value: draft.date ? new Date(draft.date).toLocaleDateString() : new Date().toLocaleDateString(),
-            onPress: () => {
-                setSelectedDate(draft.date ? new Date(draft.date) : new Date());
-                setIsDatePickerVisible(true);
-            },
-            status: 'filled',
-        });
-
-        const hasLocation = draft.gpsLat && draft.gpsLng;
-        tileList.push({
-            id: 'location',
-            type: 'location',
-            label: t('log.location'),
-            span: 'half',
-            value: hasLocation
-                ? `${draft.gpsLat!.toFixed(6)}, ${draft.gpsLng!.toFixed(6)}`
-                : t('log.no_location'),
-            onPress: handleGetLocation,
-            status: isLoadingLocation ? 'loading' : (hasLocation ? 'filled' : 'empty'),
-        });
-
-        // Prediction tiles (only show if they exist)
-        if (draft.imagePrediction) {
-            tileList.push({
-                id: 'image-prediction',
-                type: 'prediction',
-                label: t('log.image_prediction'),
-                span: 'half',
-                value: draft.imagePrediction,
-                status: 'filled',
-            });
-        }
-
-        if (draft.audioPrediction) {
-            tileList.push({
-                id: 'audio-prediction',
-                type: 'prediction',
-                label: t('log.audio_prediction'),
-                span: 'half',
-                value: draft.audioPrediction,
-                status: 'filled',
-            });
-        }
-
-        return tileList;
-    }, [draft, t, handlePlayAudio, handleGetLocation, handleTextChange, openVideoModal, handleMediaNavigation, isLoadingLocation]);
-
-    // Tile rendering
-    const renderTile = useCallback((tile: TileConfig) => {
-        const isHalfTile = tile.span === 'half';
-        const width = isHalfTile ? TILE_WIDTH : FULL_TILE_WIDTH;
-        const hasError = validationErrors.some(error => error.field === tile.id);
-
-        const baseTileStyle = [
-            styles.tile,
-            {
-                width,
-                backgroundColor: pal.colors.surface,
-                borderColor: hasError ? pal.colors.error : 'transparent',
-                borderWidth: hasError ? 2 : 0,
-            }
-        ];
-
-        switch (tile.type) {
-            case 'image':
-                return (
-                    <TouchableOpacity
-                        key={tile.id}
-                        style={[...baseTileStyle, styles.mediaTile]}
-                        onPress={tile.onPress}
-                        activeOpacity={0.8}
-                    >
-                        <Image
-                            source={{ uri: draft.imageUri! }}
-                            style={styles.mediaPreview}
-                            resizeMode="cover"
-                        />
-                        <View style={styles.mediaOverlay}>
-                            <Text style={[styles.mediaLabel, { color: '#fff' }]}>
-                                {tile.label}
-                            </Text>
-                            <Feather name="edit-2" size={16} color="#fff" />
+    // Media Cards Components
+    const MediaSection = () => (
+        <GlassSection title={t('log.media_section')} spacing="comfortable">
+            <View style={styles.mediaGrid}>
+                {/* Image Card */}
+                <ModernCard
+                    variant={draft.imageUri ? "primary" : "outlined"}
+                    style={styles.mediaCard}
+                    onPress={() => handleMediaNavigation('/log/photo')}
+                    glowOnHover={!draft.imageUri}
+                >
+                    {draft.imageUri ? (
+                        <Image source={{ uri: draft.imageUri }} style={styles.mediaPreview} />
+                    ) : (
+                        <View style={styles.addMediaContent}>
+                            <Feather name="camera" size={32} color={semanticColors.primary} />
+                            <ThemedText variant="labelLarge" color="primary">
+                                {t('log.add_image')}
+                            </ThemedText>
                         </View>
-                    </TouchableOpacity>
-                );
+                    )}
+                </ModernCard>
 
-            case 'video':
-                return (
-                    <TouchableOpacity
-                        key={tile.id}
-                        style={[...baseTileStyle, styles.mediaTile]}
-                        onPress={tile.onPress}
-                        activeOpacity={0.8}
-                    >
-                        {previewPlayer && (
-                            <VideoView
-                                player={previewPlayer}
-                                style={styles.mediaPreview}
-                                contentFit="cover"
-                            />
-                        )}
-                        <View style={styles.mediaOverlay}>
-                            <Text style={[styles.mediaLabel, { color: '#fff' }]}>
-                                {tile.label}
-                            </Text>
-                            <Feather name="play" size={16} color="#fff" />
-                        </View>
-                    </TouchableOpacity>
-                );
-
-            case 'audio':
-                return (
-                    <TouchableOpacity
-                        key={tile.id}
-                        style={[...baseTileStyle, styles.audioTile]}
-                        onPress={tile.onPress}
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.audioContent}>
-                            <View style={[styles.audioIcon, { backgroundColor: pal.colors.primary + '20' }]}>
-                                <Feather
-                                    name={sound ? 'pause' : 'play'}
-                                    size={24}
-                                    color={pal.colors.primary}
+                {/* Video Card */}
+                <ModernCard
+                    variant={draft.videoUri ? "primary" : "outlined"}
+                    style={styles.mediaCard}
+                    onPress={() => draft.videoUri ? setIsVideoModalVisible(true) : handleMediaNavigation('/log/video')}
+                    glowOnHover
+                >
+                    {draft.videoUri ? (
+                        <>
+                            {previewPlayer && (
+                                <VideoView
+                                    player={previewPlayer}
+                                    style={styles.mediaPreview}
+                                    contentFit="cover"
                                 />
+                            )}
+                            <View style={styles.videoOverlay}>
+                                <Feather name="play" size={24} color="#fff" />
                             </View>
-                            <Text style={[styles.tileLabel, { color: pal.colors.text.secondary }]}>
-                                {tile.label}
-                            </Text>
-                            <Text style={[styles.audioStatus, { color: pal.colors.text.primary }]}>
-                                {sound ? t('log.playing') : t('log.tap_to_play')}
-                            </Text>
+                        </>
+                    ) : (
+                        <View style={styles.addMediaContent}>
+                            <Feather name="video" size={32} color={semanticColors.primary} />
+                            <ThemedText variant="labelLarge" color="primary">
+                                {t('log.add_video')}
+                            </ThemedText>
                         </View>
-                    </TouchableOpacity>
-                );
+                    )}
+                </ModernCard>
 
-            case 'text':
-                return (
-                    <View key={tile.id} style={baseTileStyle}>
-                        <Text style={[styles.tileLabel, { color: pal.colors.text.secondary }]}>
-                            {tile.label}
-                            {tile.required && <Text style={{ color: pal.colors.error }}>*</Text>}
-                        </Text>
+                {/* Audio Card */}
+                <ModernCard
+                    variant={draft.audioUri ? "primary" : "outlined"}
+                    style={styles.mediaCard}
+                    onPress={() => draft.audioUri ? handlePlayAudio() : handleMediaNavigation('/log/audio')}
+                    glowOnHover
+                >
+                    <View style={styles.addMediaContent}>
+                        <Feather
+                            name={draft.audioUri ? (sound ? "pause" : "play") : "mic"}
+                            size={32}
+                            color={semanticColors.primary}
+                        />
+                        <ThemedText variant="labelLarge" color="primary">
+                            {draft.audioUri
+                                ? (sound ? t('log.playing') : t('log.tap_to_play'))
+                                : t('log.add_audio')
+                            }
+                        </ThemedText>
+                    </View>
+                </ModernCard>
+            </View>
+        </GlassSection>
+    );
+
+    const DetailsSection = () => (
+        <GlassSection title={t('log.details_section')} spacing="comfortable">
+            <View style={styles.detailsGrid}>
+                {/* Bird Type - Required */}
+                <ModernCard
+                    variant="filled"
+                >
+                    <View style={styles.inputContainer}>
+                        <ThemedText variant="labelLarge" style={styles.inputLabel}>
+                            {t('log.bird_type')} *
+                        </ThemedText>
                         <TextInput
-                            style={[
-                                styles.textInput,
-                                tile.span === 'full' && styles.multilineInput,
-                                {
-                                    color: pal.colors.text.primary,
-                                    borderColor: pal.colors.border,
-                                }
-                            ]}
-                            value={tile.value as string}
-                            onChangeText={tile.onTextChange}
-                            multiline={tile.span === 'full'}
-                            placeholder={tile.placeholder}
-                            placeholderTextColor={pal.colors.text.secondary + '80'}
-                            textAlignVertical={tile.span === 'full' ? 'top' : 'center'}
+                            style={[styles.textInput, { color: semanticColors.text }]}
+                            value={draft.birdType || ''}
+                            onChangeText={(text) => handleTextChange('birdType', text)}
+                            placeholder={t('log.bird_type_placeholder')}
+                            placeholderTextColor={semanticColors.textSecondary}
                         />
                     </View>
-                );
+                </ModernCard>
 
-            case 'date':
-            case 'location':
-                return (
-                    <TouchableOpacity
-                        key={tile.id}
-                        style={baseTileStyle}
-                        onPress={tile.onPress}
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.infoTileHeader}>
-                            <Text style={[styles.tileLabel, { color: pal.colors.text.secondary }]}>
-                                {tile.label}
-                            </Text>
-                            {tile.status === 'loading' && (
-                                <ActivityIndicator size="small" color={pal.colors.primary} />
-                            )}
-                            {tile.status !== 'loading' && (
-                                <Feather
-                                    name={tile.type === 'date' ? 'calendar' : 'map-pin'}
-                                    size={16}
-                                    color={pal.colors.primary}
-                                />
-                            )}
-                        </View>
-                        <Text style={[styles.infoValue, { color: pal.colors.text.primary }]}>
-                            {tile.value as string}
-                        </Text>
-                    </TouchableOpacity>
-                );
-
-            case 'prediction':
-                return (
-                    <View key={tile.id} style={[...baseTileStyle, styles.predictionTile]}>
-                        <View style={styles.predictionHeader}>
-                            <Feather name="zap" size={16} color={pal.colors.primary} />
-                            <Text style={[styles.tileLabel, { color: pal.colors.text.secondary }]}>
-                                {tile.label}
-                            </Text>
-                        </View>
-                        <Text style={[styles.predictionValue, { color: pal.colors.text.primary }]}>
-                            {tile.value as string}
-                        </Text>
+                {/* Notes */}
+                <ModernCard variant="filled" style={styles.notesCard}>
+                    <View style={styles.inputContainer}>
+                        <ThemedText variant="labelLarge" style={styles.inputLabel}>
+                            {t('log.notes')}
+                        </ThemedText>
+                        <TextInput
+                            style={[styles.textInput, styles.notesInput, { color: semanticColors.text }]}
+                            value={draft.textNote || ''}
+                            onChangeText={(text) => handleTextChange('textNote', text)}
+                            placeholder={t('log.notes_placeholder')}
+                            placeholderTextColor={semanticColors.textSecondary}
+                            multiline
+                            textAlignVertical="top"
+                        />
                     </View>
-                );
+                </ModernCard>
+            </View>
+        </GlassSection>
+    );
 
-            case 'add-button':
-                return (
-                    <TouchableOpacity
-                        key={tile.id}
-                        style={[...baseTileStyle, styles.addButtonTile, { borderColor: pal.colors.primary }]}
-                        onPress={tile.onPress}
-                        activeOpacity={0.8}
-                    >
-                        <Feather name={tile.icon!} size={24} color={pal.colors.primary} />
-                        <Text style={[styles.addButtonText, { color: pal.colors.primary }]}>
-                            {tile.label}
-                        </Text>
-                    </TouchableOpacity>
-                );
+    const MetadataSection = () => (
+        <GlassSection title={t('log.metadata_section')} spacing="comfortable">
+            <View style={styles.metadataGrid}>
+                {/* Date Card */}
+                <ModernCard
+                    variant="outlined"
+                    style={styles.metadataCard}
+                    onPress={() => {
+                        setSelectedDate(draft.date ? new Date(draft.date) : new Date());
+                        setIsDatePickerVisible(true);
+                    }}
+                >
+                    <View style={styles.metadataContent}>
+                        <Feather name="calendar" size={20} color={semanticColors.primary} />
+                        <View style={styles.metadataText}>
+                            <ThemedText variant="labelMedium" color="secondary">
+                                {t('log.date')}
+                            </ThemedText>
+                            <ThemedText variant="bodyMedium">
+                                {draft.date ? new Date(draft.date).toLocaleDateString() : new Date().toLocaleDateString()}
+                            </ThemedText>
+                        </View>
+                    </View>
+                </ModernCard>
 
-            default:
-                return null;
-        }
-    }, [draft, pal, validationErrors, sound, previewPlayer, t]);
+                {/* Location Card */}
+                <ModernCard
+                    variant="outlined"
+                    style={styles.metadataCard}
+                    onPress={handleGetLocation}
+                    disabled={isLoadingLocation}
+                >
+                    <View style={styles.metadataContent}>
+                        {isLoadingLocation ? (
+                            <ActivityIndicator size="small" color={semanticColors.primary} />
+                        ) : (
+                            <Feather name="map-pin" size={20} color={semanticColors.primary} />
+                        )}
+                        <View style={styles.metadataText}>
+                            <ThemedText variant="labelMedium" color="secondary">
+                                {t('log.location')}
+                            </ThemedText>
+                            <ThemedText variant="bodySmall" numberOfLines={2}>
+                                {draft.gpsLat && draft.gpsLng
+                                    ? `${draft.gpsLat.toFixed(6)}, ${draft.gpsLng.toFixed(6)}`
+                                    : t('log.no_location')
+                                }
+                            </ThemedText>
+                        </View>
+                    </View>
+                </ModernCard>
+            </View>
+
+            {/* Predictions */}
+            {(draft.imagePrediction || draft.audioPrediction) && (
+                <View style={styles.predictionsContainer}>
+                    <ThemedText variant="labelLarge" style={styles.sectionSubtitle}>
+                        {t('log.ai_predictions')}
+                    </ThemedText>
+
+                    {draft.imagePrediction && (
+                        <ModernCard variant="accent" style={styles.predictionCard}>
+                            <View style={styles.predictionContent}>
+                                <Feather name="camera" size={16} color={semanticColors.accent} />
+                                <ThemedText variant="bodySmall" style={styles.predictionText}>
+                                    {draft.imagePrediction}
+                                </ThemedText>
+                            </View>
+                        </ModernCard>
+                    )}
+
+                    {draft.audioPrediction && (
+                        <ModernCard variant="accent" style={styles.predictionCard}>
+                            <View style={styles.predictionContent}>
+                                <Feather name="mic" size={16} color={semanticColors.accent} />
+                                <ThemedText variant="bodySmall" style={styles.predictionText}>
+                                    {draft.audioPrediction}
+                                </ThemedText>
+                            </View>
+                        </ModernCard>
+                    )}
+                </View>
+            )}
+        </GlassSection>
+    );
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+        <ThemedView style={styles.container}>
             <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
             <Stack.Screen options={{ headerShown: false }} />
 
             {/* Progress Header */}
-            <View style={[styles.header, { backgroundColor: pal.colors.surface }]}>
-                <Text style={[styles.headerTitle, { color: pal.colors.text.primary }]}>
+            <ThemedView surface="elevated" style={styles.header}>
+                <ThemedText variant="headlineMedium" style={styles.headerTitle}>
                     {t('log.manual_entry')}
-                </Text>
+                </ThemedText>
+
                 <View style={styles.progressContainer}>
-                    <Text style={[styles.progressText, { color: pal.colors.text.secondary }]}>
+                    <ThemedText variant="labelMedium" color="secondary">
                         {completionPercentage}% {t('log.complete')}
-                    </Text>
-                    <View style={[styles.progressBar, { backgroundColor: pal.colors.border }]}>
+                    </ThemedText>
+                    <View style={[styles.progressBar, { backgroundColor: variants.primarySubtle }]}>
                         <View
                             style={[
                                 styles.progressFill,
                                 {
-                                    backgroundColor: pal.colors.primary,
+                                    backgroundColor: semanticColors.primary,
                                     width: `${completionPercentage}%`
                                 }
                             ]}
                         />
                     </View>
                 </View>
-            </View>
+            </ThemedView>
 
             {/* Scrollable Content */}
             <ScrollView
@@ -750,13 +594,33 @@ export default function Manual() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={styles.tilesContainer}>
-                    {tiles.map(renderTile)}
-                </View>
+                <MediaSection />
+                <DetailsSection />
+                <MetadataSection />
 
                 {/* Bottom spacing for save button */}
                 <View style={styles.bottomSpacer} />
             </ScrollView>
+
+            {/* Save Button */}
+            <ThemedView surface="elevated" style={styles.saveButtonContainer}>
+                <PrimaryButton
+                    onPress={handleSave}
+                    disabled={isSaving}
+                    size="large"
+                    fullWidth
+                    style={styles.saveButton}
+                >
+                    {isSaving ? (
+                        <ActivityIndicator size="small" color={semanticColors.onPrimary} />
+                    ) : (
+                        <Feather name="save" size={20} color={semanticColors.onPrimary} />
+                    )}
+                    <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
+                        {isSaving ? t('common.saving') : t('common.save')}
+                    </ThemedText>
+                </PrimaryButton>
+            </ThemedView>
 
             {/* Date Picker Modal */}
             {isDatePickerVisible && (
@@ -767,10 +631,10 @@ export default function Manual() {
                     onRequestClose={() => setIsDatePickerVisible(false)}
                 >
                     <BlurView intensity={80} style={styles.modalContainer}>
-                        <View style={[styles.datePickerContainer, { backgroundColor: pal.colors.surface }]}>
-                            <Text style={[styles.modalTitle, { color: pal.colors.text.primary }]}>
+                        <ModernCard variant="glass" style={styles.datePickerCard}>
+                            <ThemedText variant="headlineSmall" style={styles.modalTitle}>
                                 {t('log.select_date')}
-                            </Text>
+                            </ThemedText>
                             <DateTimePicker
                                 value={selectedDate}
                                 mode="date"
@@ -780,28 +644,30 @@ export default function Manual() {
                             />
                             {Platform.OS === 'ios' && (
                                 <View style={styles.datePickerButtons}>
-                                    <TouchableOpacity
-                                        style={[styles.dateButton, { backgroundColor: pal.colors.border }]}
+                                    <ThemedPressable
+                                        variant="secondary"
                                         onPress={() => setIsDatePickerVisible(false)}
+                                        style={styles.dateButton}
                                     >
-                                        <Text style={[styles.dateButtonText, { color: pal.colors.text.primary }]}>
+                                        <ThemedText variant="labelLarge">
                                             {t('common.cancel')}
-                                        </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[styles.dateButton, { backgroundColor: pal.colors.primary }]}
+                                        </ThemedText>
+                                    </ThemedPressable>
+                                    <ThemedPressable
+                                        variant="primary"
                                         onPress={() => {
                                             handleDateChange(null, selectedDate);
                                             setIsDatePickerVisible(false);
                                         }}
+                                        style={styles.dateButton}
                                     >
-                                        <Text style={[styles.dateButtonText, { color: '#fff' }]}>
+                                        <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
                                             {t('common.confirm')}
-                                        </Text>
-                                    </TouchableOpacity>
+                                        </ThemedText>
+                                    </ThemedPressable>
                                 </View>
                             )}
-                        </View>
+                        </ModernCard>
                     </BlurView>
                 </Modal>
             )}
@@ -811,7 +677,7 @@ export default function Manual() {
                 visible={isVideoModalVisible}
                 transparent
                 animationType="fade"
-                onRequestClose={closeVideoModal}
+                onRequestClose={() => setIsVideoModalVisible(false)}
             >
                 <View style={styles.videoModalContainer}>
                     {fullscreenPlayer && (
@@ -823,65 +689,35 @@ export default function Manual() {
                         />
                     )}
                     <View style={styles.videoModalControls}>
-                        <TouchableOpacity
-                            style={[styles.videoButton, { backgroundColor: pal.colors.surface }]}
-                            onPress={closeVideoModal}
+                        <ThemedPressable
+                            variant="secondary"
+                            onPress={() => setIsVideoModalVisible(false)}
+                            style={styles.videoButton}
                         >
-                            <Feather name="x" size={20} color={pal.colors.text.primary} />
-                            <Text style={[styles.videoButtonText, { color: pal.colors.text.primary }]}>
+                            <Feather name="x" size={20} color={semanticColors.text} />
+                            <ThemedText variant="labelLarge">
                                 {t('common.close')}
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.videoButton, { backgroundColor: pal.colors.primary }]}
-                            onPress={handleVideoRetake}
+                            </ThemedText>
+                        </ThemedPressable>
+                        <ThemedPressable
+                            variant="primary"
+                            onPress={() => {
+                                setIsVideoModalVisible(false);
+                                handleMediaNavigation('/log/video');
+                            }}
+                            style={styles.videoButton}
                         >
-                            <Feather name="refresh-cw" size={20} color="#fff" />
-                            <Text style={[styles.videoButtonText, { color: '#fff' }]}>
+                            <Feather name="refresh-cw" size={20} color={semanticColors.onPrimary} />
+                            <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
                                 {t('camera.retake')}
-                            </Text>
-                        </TouchableOpacity>
+                            </ThemedText>
+                        </ThemedPressable>
                     </View>
                 </View>
             </Modal>
 
-            {/* Save Button */}
-            <View style={[styles.saveButtonContainer, { backgroundColor: pal.colors.background }]}>
-                <TouchableOpacity
-                    style={[
-                        styles.saveButton,
-                        { backgroundColor: pal.colors.primary },
-                        (isSaving) && styles.disabledButton
-                    ]}
-                    onPress={handleSave}
-                    disabled={isSaving}
-                    activeOpacity={0.8}
-                >
-                    {isSaving ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                        <Feather name="save" size={20} color="#fff" />
-                    )}
-                    <Text style={[styles.saveButtonText, { color: '#fff' }]}>
-                        {isSaving ? t('common.saving') : t('common.save')}
-                    </Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* Loading Overlay */}
-            {isSaving && (
-                <View style={styles.loadingOverlay}>
-                    <BlurView intensity={80} style={StyleSheet.absoluteFillObject}>
-                        <View style={styles.loadingContent}>
-                            <ActivityIndicator size="large" color={pal.colors.primary} />
-                            <Text style={[styles.loadingText, { color: pal.colors.text.primary }]}>
-                                {t('log.saving_entry')}
-                            </Text>
-                        </View>
-                    </BlurView>
-                </View>
-            )}
-        </SafeAreaView>
+            <SnackbarComponent />
+        </ThemedView>
     );
 }
 
@@ -889,199 +725,183 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 24,
-    },
-    loadingText: {
-        marginTop: 12,
-        fontSize: 16,
-        textAlign: 'center',
-    },
     header: {
-        paddingHorizontal: CONTENT_PADDING,
+        paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: theme.light.colors.border,
+        borderBottomColor: 'rgba(255,255,255,0.1)',
     },
     headerTitle: {
-        fontSize: 24,
         fontWeight: '700',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     progressContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-    },
-    progressText: {
-        fontSize: 14,
-        fontWeight: '500',
-        minWidth: 80,
+        gap: 16,
     },
     progressBar: {
         flex: 1,
-        height: 4,
-        borderRadius: 2,
+        height: 6,
+        borderRadius: 3,
         overflow: 'hidden',
     },
     progressFill: {
         height: '100%',
-        borderRadius: 2,
+        borderRadius: 3,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        padding: CONTENT_PADDING,
-    },
-    tilesContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: TILE_GAP,
+        padding: 20,
+        gap: 24,
     },
     bottomSpacer: {
-        height: 100, // Space for save button
+        height: 100,
     },
-    tile: {
-        borderRadius: theme.borderRadius.lg,
-        padding: TILE_PADDING,
-        marginBottom: TILE_GAP,
-        ...theme.shadows.md,
+
+    // Media Section
+    mediaGrid: {
+        gap: 16,
     },
-    mediaTile: {
-        padding: 0,
+    mediaCard: {
+        height: 120,
+        justifyContent: 'center',
+        alignItems: 'center',
         overflow: 'hidden',
     },
     mediaPreview: {
         width: '100%',
-        height: 120,
+        height: '100%',
     },
-    mediaOverlay: {
+    addMediaContent: {
+        alignItems: 'center',
+        gap: 12,
+        padding: 20,
+    },
+    videoOverlay: {
         position: 'absolute',
-        bottom: 0,
+        top: 0,
         left: 0,
         right: 0,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 12,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    },
-    mediaLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    audioTile: {
+        bottom: 0,
         justifyContent: 'center',
         alignItems: 'center',
-        minHeight: 120,
+        backgroundColor: 'rgba(0,0,0,0.3)',
     },
-    audioContent: {
-        alignItems: 'center',
-        gap: 8,
+
+    // Details Section
+    detailsGrid: {
+        gap: 16,
     },
-    audioIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 4,
+    inputCard: {
+        padding: 0,
+        overflow: 'hidden',
     },
-    audioStatus: {
-        fontSize: 12,
-        textAlign: 'center',
+    notesCard: {
+        padding: 0,
+        overflow: 'hidden',
     },
-    tileLabel: {
-        fontSize: 14,
-        fontWeight: '600',
+    errorCard: {
+        borderColor: 'red',
+        borderWidth: 2,
+    },
+    inputContainer: {
+        padding: 16,
+    },
+    inputLabel: {
         marginBottom: 8,
+        fontWeight: '600',
     },
     textInput: {
-        borderWidth: 1,
-        borderRadius: theme.borderRadius.md,
-        padding: 12,
         fontSize: 16,
         minHeight: 44,
+        padding: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
-    multilineInput: {
+    notesInput: {
         height: 88,
         textAlignVertical: 'top',
     },
-    infoTileHeader: {
+
+    // Metadata Section
+    metadataGrid: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
+        gap: 12,
     },
-    infoValue: {
-        fontSize: 15,
-        fontWeight: '500',
+    metadataCard: {
+        flex: 1,
+        padding: 16,
     },
-    predictionTile: {
-        borderLeftWidth: 3,
-        borderLeftColor: theme.light.colors.primary,
-    },
-    predictionHeader: {
+    metadataContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 12,
+    },
+    metadataText: {
+        flex: 1,
+        gap: 4,
+    },
+    sectionSubtitle: {
+        marginTop: 16,
+        marginBottom: 12,
+        fontWeight: '600',
+    },
+    predictionsContainer: {
+        marginTop: 16,
+    },
+    predictionCard: {
         marginBottom: 8,
+        padding: 12,
     },
-    predictionValue: {
-        fontSize: 15,
-        fontWeight: '500',
-        fontStyle: 'italic',
-    },
-    addButtonTile: {
-        justifyContent: 'center',
+    predictionContent: {
+        flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 2,
-        borderStyle: 'dashed',
-        minHeight: 120,
         gap: 8,
     },
-    addButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-        textAlign: 'center',
+    predictionText: {
+        flex: 1,
+        fontStyle: 'italic',
     },
+
+    // Save Button
+    saveButtonContainer: {
+        padding: 20,
+        paddingBottom: 32,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.1)',
+    },
+    saveButton: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+
+    // Modals
     modalContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingHorizontal: 20,
     },
-    datePickerContainer: {
-        margin: 20,
-        borderRadius: theme.borderRadius.xl,
+    datePickerCard: {
         padding: 24,
         alignItems: 'center',
         minWidth: 300,
-        ...theme.shadows.md,
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 16,
+        marginBottom: 20,
+        textAlign: 'center',
     },
     datePickerButtons: {
         flexDirection: 'row',
-        gap: 12,
-        marginTop: 16,
+        gap: 16,
+        marginTop: 20,
     },
     dateButton: {
         flex: 1,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: theme.borderRadius.md,
-        alignItems: 'center',
-    },
-    dateButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
     },
     videoModalContainer: {
         flex: 1,
@@ -1099,50 +919,7 @@ const styles = StyleSheet.create({
     },
     videoButton: {
         flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
+        gap: 8,
         paddingHorizontal: 20,
-        borderRadius: theme.borderRadius.md,
-        gap: 8,
-    },
-    videoButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    saveButtonContainer: {
-        paddingHorizontal: CONTENT_PADDING,
-        paddingVertical: 16,
-        paddingBottom: 32,
-        borderTopWidth: 1,
-        borderTopColor: theme.light.colors.border,
-    },
-    saveButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        borderRadius: theme.borderRadius.lg,
-        gap: 8,
-        ...theme.shadows.md,
-    },
-    disabledButton: {
-        opacity: 0.6,
-    },
-    saveButtonText: {
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    loadingOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-    },
-    loadingContent: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 16,
     },
 });
