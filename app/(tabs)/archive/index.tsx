@@ -1,368 +1,448 @@
-import {useCallback, useEffect, useState} from "react";
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Pressable,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  useColorScheme,
   View,
-} from "react-native";
-import NetInfo from "@react-native-community/netinfo";
-import {useTranslation} from "react-i18next";
-import {router} from "expo-router";
-import {Feather} from "@expo/vector-icons";
-import * as MediaLibrary from "expo-media-library";
-import {BlurView} from "expo-blur";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  SafeAreaView,
+  Pressable,
+  RefreshControl,
+  Alert,
+  Dimensions,
+} from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Feather } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { router } from 'expo-router';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  FadeInDown,
+  FadeOutUp,
+  Layout,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
-import {theme} from "@/constants/theme";
-import {type BirdSpotting, getBirdSpottings} from "@/services/database";
-import {auth} from "@/firebase/config";
-import {ThemedSnackbar} from "@/components/ThemedSnackbar";
-import {syncDatabase} from "@/services/sync_layer";
+import { BirdSpottingCard } from '@/components/ModernCard';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import {
+  useTheme,
+  useSemanticColors,
+  useColorVariants,
+  useTypography,
+  useMotionValues,
+} from '@/hooks/useThemeColor';
+import { getBirdSpottings, type BirdSpotting } from '@/services/database';
+import { syncDatabase } from '@/services/sync_layer';
 
-// Use the BirdSpotting type from your database service
-type Spotting = BirdSpotting;
+const { width } = Dimensions.get('window');
+const CARD_MARGIN = 16;
+const CARDS_PER_ROW = 2;
+const CARD_WIDTH = (width - (CARD_MARGIN * 3)) / CARDS_PER_ROW;
 
-type SortOption = 'newest' | 'oldest' | 'alphabetical';
+// Enhanced empty state component
+function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) {
+  const semanticColors = useSemanticColors();
+  const variants = useColorVariants();
+  const typography = useTypography();
+  const theme = useTheme();
+  const { t } = useTranslation();
+
+  const floatAnimation = useSharedValue(0);
+
+  React.useEffect(() => {
+    floatAnimation.value = withSpring(1, { damping: 15, stiffness: 300 });
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: (floatAnimation.value - 0.5) * 10 }],
+    opacity: floatAnimation.value,
+  }));
+
+  return (
+      <Animated.View style={[styles.emptyState, animatedStyle]}>
+        <View style={[styles.emptyIcon, { backgroundColor: variants.primarySubtle }]}>
+          <Feather name="archive" size={48} color={semanticColors.primary} />
+        </View>
+
+        <ThemedText variant="headlineMedium" style={styles.emptyTitle}>
+          {t('archive.empty')}
+        </ThemedText>
+
+        <ThemedText
+            variant="bodyMedium"
+            color="secondary"
+            style={styles.emptyDescription}
+        >
+          Start your birding journey by logging your first sighting
+        </ThemedText>
+
+        <ThemedPressable
+            variant="primary"
+            size="large"
+            onPress={onStartLogging}
+            style={styles.startButton}
+            glowOnHover
+        >
+          <Feather name="plus" size={20} color={semanticColors.onPrimary} />
+          <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
+            {t('archive.start_logging')}
+          </ThemedText>
+        </ThemedPressable>
+      </Animated.View>
+  );
+}
+
+// Search header component
+function SearchHeader({
+                        searchQuery,
+                        onSearchChange,
+                        sortOrder,
+                        onSortChange,
+                        onSync,
+                        isLoading
+                      }: {
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  sortOrder: 'newest' | 'oldest' | 'alphabetical';
+  onSortChange: (order: 'newest' | 'oldest' | 'alphabetical') => void;
+  onSync: () => void;
+  isLoading: boolean;
+}) {
+  const semanticColors = useSemanticColors();
+  const variants = useColorVariants();
+  const typography = useTypography();
+  const theme = useTheme();
+  const { t } = useTranslation();
+
+  const [showSortMenu, setShowSortMenu] = useState(false);
+
+  const getSortIcon = () => {
+    switch (sortOrder) {
+      case 'newest': return 'arrow-down';
+      case 'oldest': return 'arrow-up';
+      case 'alphabetical': return 'a-z';
+      default: return 'arrow-down';
+    }
+  };
+
+  const getSortLabel = () => {
+    switch (sortOrder) {
+      case 'newest': return t('archive.sort_newest');
+      case 'oldest': return t('archive.sort_oldest');
+      case 'alphabetical': return t('archive.sort_alphabetical');
+      default: return t('archive.sort_newest');
+    }
+  };
+
+  return (
+      <View style={styles.searchHeader}>
+        {/* Search Bar */}
+        <BlurView
+            intensity={60}
+            tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+            style={[styles.searchContainer, { borderColor: variants.primaryMuted }]}
+        >
+          <Feather name="search" size={20} color={semanticColors.textSecondary} />
+          <TextInput
+              style={[styles.searchInput, typography.bodyMedium, { color: semanticColors.text }]}
+              placeholder={t('archive.search_placeholder')}
+              placeholderTextColor={semanticColors.textSecondary}
+              value={searchQuery}
+              onChangeText={onSearchChange}
+          />
+          {searchQuery.length > 0 && (
+              <Pressable onPress={() => onSearchChange('')}>
+                <Feather name="x" size={18} color={semanticColors.textSecondary} />
+              </Pressable>
+          )}
+        </BlurView>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          {/* Sort Button */}
+          <Pressable
+              style={[styles.actionButton, { backgroundColor: variants.surfaceHover }]}
+              onPress={() => setShowSortMenu(!showSortMenu)}
+              android_ripple={{ color: variants.surfacePressed }}
+          >
+            <Feather name={getSortIcon()} size={18} color={semanticColors.text} />
+          </Pressable>
+
+          {/* Sync Button */}
+          <Pressable
+              style={[styles.actionButton, { backgroundColor: variants.surfaceHover }]}
+              onPress={onSync}
+              disabled={isLoading}
+              android_ripple={{ color: variants.surfacePressed }}
+          >
+            <Feather
+                name="refresh-cw"
+                size={18}
+                color={isLoading ? semanticColors.disabled : semanticColors.text}
+            />
+          </Pressable>
+        </View>
+
+        {/* Sort Menu */}
+        {showSortMenu && (
+            <Animated.View
+                entering={FadeInDown.duration(200)}
+                exiting={FadeOutUp.duration(150)}
+                style={styles.sortMenu}
+            >
+              <BlurView
+                  intensity={80}
+                  tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+                  style={[styles.sortMenuContent, { borderColor: variants.primaryMuted }]}
+              >
+                {[
+                  { key: 'newest', label: t('archive.sort_newest'), icon: 'arrow-down' },
+                  { key: 'oldest', label: t('archive.sort_oldest'), icon: 'arrow-up' },
+                  { key: 'alphabetical', label: t('archive.sort_alphabetical'), icon: 'a-z' },
+                ].map((option) => (
+                    <Pressable
+                        key={option.key}
+                        style={[
+                          styles.sortOption,
+                          sortOrder === option.key && { backgroundColor: variants.primarySubtle }
+                        ]}
+                        onPress={() => {
+                          onSortChange(option.key as any);
+                          setShowSortMenu(false);
+                          Haptics.selectionAsync();
+                        }}
+                        android_ripple={{ color: variants.surfacePressed }}
+                    >
+                      <Feather
+                          name={option.icon as any}
+                          size={16}
+                          color={sortOrder === option.key ? semanticColors.primary : semanticColors.textSecondary}
+                      />
+                      <ThemedText
+                          variant="bodyMedium"
+                          color={sortOrder === option.key ? 'primary' : 'secondary'}
+                      >
+                        {option.label}
+                      </ThemedText>
+                    </Pressable>
+                ))}
+              </BlurView>
+            </Animated.View>
+        )}
+      </View>
+  );
+}
 
 export default function ArchiveScreen() {
   const { t } = useTranslation();
-  const scheme = useColorScheme() ?? "light";
-  const pal = theme[scheme];
-  const insets = useSafeAreaInsets();
+  const semanticColors = useSemanticColors();
+  const variants = useColorVariants();
+  const typography = useTypography();
+  const theme = useTheme();
+  const motion = useMotionValues();
 
-  const [rows, setRows] = useState<Spotting[]>([]);
-  const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [showSortMenu, setShowSortMenu] = useState(false);
-
+  // State management
+  const [spottings, setSpottings] = useState<BirdSpotting[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [status, setStatus] = useState<string>("");
-  const [online, setOnline] = useState(false);
-  const [snackbar, setSnackbar] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'alphabetical'>('newest');
+  const [syncing, setSyncing] = useState(false);
 
-  const snackbarMsg = t("archive.not_logged_in");
-
-  const sortOptions: { key: SortOption; label: string; icon: string }[] = [
-    { key: 'newest', label: t('archive.sort_newest'), icon: 'arrow-down' },
-    { key: 'oldest', label: t('archive.sort_oldest'), icon: 'arrow-up' },
-    { key: 'alphabetical', label: t('archive.sort_alphabetical'), icon: 'type' },
-  ];
-
-  // Network connection monitoring
-  useEffect(() => {
-    const unsub = NetInfo.addEventListener((s) =>
-        setOnline(s.isConnected ?? false)
-    );
-    return () => unsub();
-  }, []);
-
-  // Media permissions
-  useEffect(() => {
-    (async () => {
-      const { status } = await MediaLibrary.getPermissionsAsync();
-      if (status !== "granted") {
-        await MediaLibrary.requestPermissionsAsync(true);
-      }
-    })();
-  }, []);
-
-  // Load and filter data
-  const loadData = useCallback(async (showLoader = true) => {
+  // Load spottings from database
+  const loadSpottings = useCallback(async (showRefresh = false) => {
     try {
-      if (showLoader) setLoading(true);
-      setStatus(t("archive.loading"));
+      if (showRefresh) setRefreshing(true);
+      else setLoading(true);
 
-      // Get sort direction based on selection
-      const sortDirection = sortBy === 'oldest' ? 'ASC' : 'DESC';
-      let data = getBirdSpottings(100, sortDirection);
-
-      // Apply search filter - using correct camelCase property names
-      if (query.trim()) {
-        const q = query.trim().toLowerCase();
-        data = data.filter(
-            (r) =>
-                r.birdType?.toLowerCase().includes(q) ||
-                r.date?.toLowerCase().includes(q) ||
-                r.textNote?.toLowerCase().includes(q)
-        );
-      }
-
-      // Apply alphabetical sort if selected - using correct camelCase property name
-      if (sortBy === 'alphabetical') {
-        data = data.sort((a, b) =>
-            (a.birdType || '').localeCompare(b.birdType || '')
-        );
-      }
-
-      setRows(data);
-      setStatus("");
-    } catch (e) {
-      console.error(e);
-      setStatus(t("archive.load_error"));
+      const data = getBirdSpottings(100, sortOrder === 'oldest' ? 'ASC' : 'DESC');
+      setSpottings(data);
+    } catch (error) {
+      console.error('Failed to load spottings:', error);
+      Alert.alert(t('archive.error'), t('archive.load_error'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [query, sortBy, t]);
+  }, [sortOrder, t]);
 
-  // Initial load and reload on dependencies change
-  useEffect(() => {
-    const timeoutId = setTimeout(() => loadData(), 300); // Debounce search
-    return () => clearTimeout(timeoutId);
-  }, [loadData]);
+  // Filter and sort spottings
+  const filteredSpottings = useMemo(() => {
+    let filtered = spottings;
 
-  // Sync database
-  const handleSync = async () => {
-    if (!online) return;
-    if (!auth.currentUser) {
-      setSnackbar(true);
-      return;
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(spotting =>
+          spotting.birdType?.toLowerCase().includes(query) ||
+          spotting.textNote?.toLowerCase().includes(query) ||
+          spotting.date?.toLowerCase().includes(query)
+      );
     }
+
+    // Apply sorting
+    return filtered.sort((a, b) => {
+      switch (sortOrder) {
+        case 'alphabetical':
+          return (a.birdType || '').localeCompare(b.birdType || '');
+        case 'oldest':
+          return new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime();
+        case 'newest':
+        default:
+          return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+      }
+    });
+  }, [spottings, searchQuery, sortOrder]);
+
+  // Sync with cloud
+  const handleSync = useCallback(async () => {
     try {
-      setStatus(t("archive.syncing"));
+      setSyncing(true);
       await syncDatabase();
-      setStatus(t("archive.sync_ok"));
-      await loadData(false);
-    } catch (e) {
-      console.error(e);
-      setStatus(t("archive.sync_failed"));
+      await loadSpottings();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Sync failed:', error);
+      Alert.alert(t('archive.sync_failed'), error instanceof Error ? error.message : 'Unknown error');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setSyncing(false);
+    }
+  }, [loadSpottings, t]);
+
+  // Handle spotting press
+  const handleSpottingPress = useCallback((spotting: BirdSpotting) => {
+    Haptics.selectionAsync();
+    router.push(`/archive/${spotting.id}`);
+  }, []);
+
+  // Navigation handlers
+  const handleStartLogging = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push('/');
+  }, []);
+
+  // Load data on mount and when sort changes
+  useEffect(() => {
+    loadSpottings();
+  }, [loadSpottings]);
+
+  // Format date helper
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
     }
   };
 
-  // Refresh handler
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadData(false);
-  };
-
-  // Sort handler
-  const handleSort = (option: SortOption) => {
-    setSortBy(option);
-    setShowSortMenu(false);
+  // Format location helper
+  const formatLocation = (lat?: number, lng?: number) => {
+    if (!lat || !lng) return undefined;
+    return `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
   };
 
   // Render spotting card
-  const renderSpottingCard = useCallback(
-      ({ item }: { item: Spotting }) => (
-          <BlurView
-              intensity={60}
-              tint={scheme === "dark" ? "dark" : "light"}
-              style={[styles.spottingCard, { borderColor: pal.colors.border }]}
-          >
-            <Pressable
-                style={styles.cardContent}
-                onPress={() =>
-                    router.push({
-                      pathname: "/archive/detail/[id]",
-                      params: { id: item.id },
-                    })
-                }
-                android_ripple={{ color: pal.colors.primary + '20' }}
-            >
-              {/* Image - using correct camelCase property name */}
-              {item.imageUri ? (
-                  <Image source={{ uri: item.imageUri }} style={styles.cardImage} />
-              ) : (
-                  <View style={[styles.cardImagePlaceholder, { backgroundColor: pal.colors.statusBar }]}>
-                    <Feather name="camera" size={24} color={pal.colors.text.secondary} />
-                  </View>
-              )}
-
-              {/* Content */}
-              <View style={styles.cardInfo}>
-                <View style={styles.cardHeader}>
-                  <Text style={[styles.cardTitle, { color: pal.colors.text.primary }]} numberOfLines={1}>
-                    {item.birdType || t("archive.unknown_bird")}
-                  </Text>
-                  <Text style={[styles.cardDate, { color: pal.colors.text.secondary }]}>
-                    {new Date(item.date).toLocaleDateString()}
-                  </Text>
-                </View>
-
-                {item.textNote && (
-                    <Text
-                        style={[styles.cardNote, { color: pal.colors.text.secondary }]}
-                        numberOfLines={2}
-                    >
-                      {item.textNote}
-                    </Text>
-                )}
-
-                {/* Location indicator - using correct camelCase property names */}
-                {item.gpsLat && item.gpsLng && (
-                    <View style={styles.locationContainer}>
-                      <Feather name="map-pin" size={12} color={pal.colors.text.secondary} />
-                      <Text style={[styles.locationText, { color: pal.colors.text.secondary }]}>
-                        {t('archive.hasLocation')}
-                      </Text>
-                    </View>
-                )}
-
-                {/* Media indicators - using correct camelCase property names */}
-                <View style={styles.mediaIndicators}>
-                  {item.imageUri && <Feather name="image" size={14} color={pal.colors.primary} />}
-                  {item.videoUri && <Feather name="video" size={14} color={pal.colors.primary} />}
-                  {item.audioUri && <Feather name="mic" size={14} color={pal.colors.primary} />}
-                </View>
-              </View>
-
-              {/* Chevron */}
-              <Feather name="chevron-right" size={20} color={pal.colors.text.secondary} />
-            </Pressable>
-          </BlurView>
-      ),
-      [pal, t, scheme]
-  );
-
-  // Render sort menu
-  const renderSortMenu = () => (
-      showSortMenu && (
-          <BlurView
-              intensity={80}
-              tint={scheme === "dark" ? "dark" : "light"}
-              style={[styles.sortMenu, { borderColor: pal.colors.border }]}
-          >
-            {sortOptions.map((option) => (
-                <Pressable
-                    key={option.key}
-                    style={[
-                      styles.sortOption,
-                      { borderBottomColor: pal.colors.border },
-                      sortBy === option.key && { backgroundColor: pal.colors.primary + '20' }
-                    ]}
-                    onPress={() => handleSort(option.key)}
-                >
-                  <Feather name={option.icon as any} size={16} color={pal.colors.text.secondary} />
-                  <Text style={[styles.sortOptionText, { color: pal.colors.text.primary }]}>
-                    {option.label}
-                  </Text>
-                  {sortBy === option.key && (
-                      <Feather name="check" size={16} color={pal.colors.primary} />
-                  )}
-                </Pressable>
-            ))}
-          </BlurView>
-      )
-  );
+  const renderSpotting = useCallback(({ item, index }: { item: BirdSpotting; index: number }) => (
+      <Animated.View
+          entering={FadeInDown.delay(index * 50).springify()}
+          layout={Layout.springify()}
+          style={[styles.cardContainer, { width: CARD_WIDTH }]}
+      >
+        <BirdSpottingCard
+            birdName={item.birdType || t('archive.unknown_bird')}
+            scientificName={item.latinBirDex}
+            date={formatDate(item.date)}
+            location={formatLocation(item.gpsLat, item.gpsLng)}
+            image={item.imageUri ? { uri: item.imageUri } : undefined}
+            hasAudio={!!item.audioUri}
+            hasVideo={!!item.videoUri}
+            onPress={() => handleSpottingPress(item)}
+        />
+      </Animated.View>
+  ), [handleSpottingPress, t]);
 
   // Loading state
   if (loading) {
     return (
-        <SafeAreaView style={[styles.loadingContainer, { backgroundColor: pal.colors.background }]}>
-          <ActivityIndicator size="large" color={pal.colors.primary} />
-          {status && (
-              <Text style={[styles.loadingText, { color: pal.colors.text.secondary }]}>
-                {status}
-              </Text>
-          )}
+        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+          <View style={styles.loadingContainer}>
+            <Feather name="archive" size={48} color={semanticColors.primary} />
+            <ThemedText variant="bodyMedium" color="secondary" style={styles.loadingText}>
+              {t('archive.loading')}
+            </ThemedText>
+          </View>
         </SafeAreaView>
     );
   }
 
   return (
-      <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
         {/* Header */}
-        <View style={[styles.header, { marginTop: insets.top }]}>
-          <Text style={[styles.headerTitle, { color: pal.colors.text.primary }]}>
+        <View style={styles.header}>
+          <ThemedText variant="displaySmall" style={styles.title}>
             {t('archive.title')}
-          </Text>
-          <Text style={[styles.headerSubtitle, { color: pal.colors.text.secondary }]}>
-            {t('archive.subtitle', { count: rows.length })}
-          </Text>
+          </ThemedText>
+          <ThemedText variant="bodyMedium" color="secondary" style={styles.subtitle}>
+            {t('archive.subtitle', { count: filteredSpottings.length })}
+          </ThemedText>
         </View>
 
-        {/* Search and controls */}
-        <View style={styles.controlsContainer}>
-          <View style={[styles.searchContainer, { borderColor: pal.colors.border }]}>
-            <Feather name="search" size={18} color={pal.colors.text.secondary} />
-            <TextInput
-                style={[styles.searchInput, { color: pal.colors.text.primary }]}
-                placeholder={t("archive.search_placeholder")}
-                placeholderTextColor={pal.colors.text.secondary}
-                value={query}
-                onChangeText={setQuery}
+        {/* Search and Actions */}
+        <SearchHeader
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            sortOrder={sortOrder}
+            onSortChange={setSortOrder}
+            onSync={handleSync}
+            isLoading={syncing}
+        />
+
+        {/* Content */}
+        {filteredSpottings.length === 0 ? (
+            searchQuery ? (
+                <View style={styles.noResultsContainer}>
+                  <Feather name="search" size={48} color={semanticColors.textSecondary} />
+                  <ThemedText variant="headlineSmall" color="secondary">
+                    {t('archive.no_search_results')}
+                  </ThemedText>
+                  <ThemedText variant="bodyMedium" color="tertiary">
+                    {t('archive.try_different_search')}
+                  </ThemedText>
+                </View>
+            ) : (
+                <EnhancedEmptyState onStartLogging={handleStartLogging} />
+            )
+        ) : (
+            <FlatList
+                data={filteredSpottings}
+                renderItem={renderSpotting}
+                keyExtractor={(item) => item.id.toString()}
+                numColumns={CARDS_PER_ROW}
+                contentContainerStyle={styles.listContent}
+                columnWrapperStyle={styles.row}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={() => loadSpottings(true)}
+                      tintColor={semanticColors.primary}
+                      colors={[semanticColors.primary]}
+                  />
+                }
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
             />
-            {query.length > 0 && (
-                <Pressable onPress={() => setQuery('')}>
-                  <Feather name="x" size={18} color={pal.colors.text.secondary} />
-                </Pressable>
-            )}
-          </View>
-
-          <Pressable
-              style={[styles.sortButton, { backgroundColor: pal.colors.statusBar, borderColor: pal.colors.border }]}
-              onPress={() => setShowSortMenu(!showSortMenu)}
-          >
-            <Feather name="filter" size={18} color={pal.colors.text.primary} />
-          </Pressable>
-
-          {online && (
-              <Pressable
-                  style={[styles.syncButton, { backgroundColor: pal.colors.primary }]}
-                  onPress={handleSync}
-              >
-                <Feather name="refresh-cw" size={18} color={pal.colors.text.primary} />
-              </Pressable>
-          )}
-        </View>
-
-        {/* Sort Menu */}
-        {renderSortMenu()}
-
-        {/* Status */}
-        {status && (
-            <Text style={[styles.statusText, { color: pal.colors.text.secondary }]}>
-              {status}
-            </Text>
         )}
-
-        {/* Spottings List */}
-        <FlatList
-            data={rows}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderSpottingCard}
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            contentContainerStyle={styles.listContainer}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Feather name="eye" size={48} color={pal.colors.text.secondary} />
-                <Text style={[styles.emptyText, { color: pal.colors.text.secondary }]}>
-                  {query ? t('archive.no_search_results') : t('archive.empty')}
-                </Text>
-                {query && (
-                    <Text style={[styles.emptySubtext, { color: pal.colors.text.secondary }]}>
-                      {t('archive.try_different_search')}
-                    </Text>
-                )}
-                {!query && (
-                    <Pressable
-                        style={[styles.emptyAction, { backgroundColor: pal.colors.primary }]}
-                        onPress={() => router.push('/log/manual')}
-                    >
-                      <Text style={[styles.emptyActionText, { color: pal.colors.text.primary }]}>
-                        {t('archive.start_logging')}
-                      </Text>
-                    </Pressable>
-                )}
-              </View>
-            }
-        />
-
-        {/* Snackbar */}
-        <ThemedSnackbar
-            visible={snackbar}
-            message={snackbarMsg}
-            onHide={() => setSnackbar(false)}
-        />
       </SafeAreaView>
   );
 }
@@ -371,191 +451,138 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing.xl,
-  },
-  loadingText: {
-    fontSize: 16,
-    marginTop: theme.spacing.md,
-    textAlign: 'center',
-  },
 
   // Header
   header: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
-  headerTitle: {
-    fontSize: 28,
+  title: {
     fontWeight: 'bold',
+    marginBottom: 4,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    marginTop: 2,
+  subtitle: {
+    opacity: 0.8,
   },
 
-  // Controls
-  controlsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-    gap: theme.spacing.sm,
+  // Search Header
+  searchHeader: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+    position: 'relative',
   },
   searchContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.md,
-    height: 48,
-    gap: theme.spacing.sm,
+    marginBottom: 12,
+    gap: 12,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
   },
-  sortButton: {
-    width: 48,
-    height: 48,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
   },
-  syncButton: {
-    width: 48,
-    height: 48,
-    borderRadius: theme.borderRadius.lg,
+  actionButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    ...theme.shadows.sm,
   },
 
   // Sort Menu
   sortMenu: {
     position: 'absolute',
-    top: 120,
-    right: theme.spacing.md,
-    zIndex: 1000,
-    borderRadius: theme.borderRadius.lg,
+    top: '100%',
+    right: 0,
+    zIndex: 10,
+    marginTop: 8,
+  },
+  sortMenuContent: {
+    borderRadius: 12,
     borderWidth: 1,
     overflow: 'hidden',
-    minWidth: 200,
+    minWidth: 160,
   },
   sortOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    gap: theme.spacing.sm,
-    borderBottomWidth: 1,
-  },
-  sortOptionText: {
-    flex: 1,
-    fontSize: 15,
-  },
-
-  // Status
-  statusText: {
-    textAlign: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-    fontSize: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
   },
 
   // List
-  listContainer: {
-    padding: theme.spacing.md,
-    paddingTop: theme.spacing.sm,
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
   },
-  spottingCard: {
-    marginBottom: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
+  row: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
   },
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: theme.spacing.md,
-    gap: theme.spacing.md,
+  cardContainer: {
+    marginBottom: 16,
   },
-  cardImage: {
-    width: 80,
-    height: 80,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: '#ccc',
-  },
-  cardImagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: theme.borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardInfo: {
-    flex: 1,
-    gap: theme.spacing.sm,
-  },
-  cardHeader: {
-    gap: 2,
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  cardDate: {
-    fontSize: 14,
-  },
-  cardNote: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  locationText: {
-    fontSize: 12,
+  separator: {
+    height: 8,
   },
 
-  // Media Indicators
-  mediaIndicators: {
-    flexDirection: 'row',
-    gap: 4,
-    marginTop: 4,
-  },
-
-  // Empty State
-  emptyContainer: {
+  // Empty States
+  emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: theme.spacing.xxl,
-    gap: theme.spacing.md,
+    paddingHorizontal: 32,
+    gap: 24,
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '500',
+  emptyIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  emptyTitle: {
     textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  emptyAction: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    marginTop: theme.spacing.sm,
-  },
-  emptyActionText: {
-    fontSize: 16,
     fontWeight: '600',
+  },
+  emptyDescription: {
+    textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 280,
+  },
+  startButton: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    gap: 16,
+  },
+
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    textAlign: 'center',
   },
 });
