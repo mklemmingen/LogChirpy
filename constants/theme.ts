@@ -1,202 +1,298 @@
-import {TextStyle} from "react-native";
+import { TextStyle } from "react-native";
 
-// Font weights for React Native Text components
-const baseFonts = {
-    regular: 'normal' as TextStyle['fontWeight'],
-    medium: '500' as TextStyle['fontWeight'],
-    light: '300' as TextStyle['fontWeight'],
-    thin: '100' as TextStyle['fontWeight'],
-    bold: 'bold' as TextStyle['fontWeight'],
-    heavy: '800' as TextStyle['fontWeight'],
+// Enhanced font system with better hierarchy
+const typography = {
+    // Display styles for hero sections
+    display: {
+        large: { fontSize: 32, fontWeight: '800' as TextStyle['fontWeight'], lineHeight: 40 },
+        medium: { fontSize: 28, fontWeight: '700' as TextStyle['fontWeight'], lineHeight: 36 },
+        small: { fontSize: 24, fontWeight: '600' as TextStyle['fontWeight'], lineHeight: 32 },
+    },
+
+    // Headline styles for section headers
+    headline: {
+        large: { fontSize: 22, fontWeight: '600' as TextStyle['fontWeight'], lineHeight: 28 },
+        medium: { fontSize: 18, fontWeight: '600' as TextStyle['fontWeight'], lineHeight: 24 },
+        small: { fontSize: 16, fontWeight: '600' as TextStyle['fontWeight'], lineHeight: 22 },
+    },
+
+    // Body text for content
+    body: {
+        large: { fontSize: 16, fontWeight: '400' as TextStyle['fontWeight'], lineHeight: 24 },
+        medium: { fontSize: 14, fontWeight: '400' as TextStyle['fontWeight'], lineHeight: 20 },
+        small: { fontSize: 12, fontWeight: '400' as TextStyle['fontWeight'], lineHeight: 16 },
+    },
+
+    // Label text for UI elements
+    label: {
+        large: { fontSize: 14, fontWeight: '500' as TextStyle['fontWeight'], lineHeight: 20 },
+        medium: { fontSize: 12, fontWeight: '500' as TextStyle['fontWeight'], lineHeight: 16 },
+        small: { fontSize: 10, fontWeight: '500' as TextStyle['fontWeight'], lineHeight: 14 },
+    },
+
+    // Special purpose
+    caption: { fontSize: 12, fontWeight: '400' as TextStyle['fontWeight'], lineHeight: 16 },
+    overline: { fontSize: 10, fontWeight: '600' as TextStyle['fontWeight'], lineHeight: 16, letterSpacing: 1.5 },
 };
 
-const baseSpacing = {
+// Enhanced spacing system
+const spacing = {
     xs: 4,
     sm: 8,
     md: 16,
     lg: 24,
     xl: 32,
     xxl: 48,
+    xxxl: 64,
+    // Component-specific spacing
+    cardPadding: 20,
+    sectionGap: 32,
+    listItemGap: 12,
 };
 
-const baseBorderRadius = {
+// Modern border radius system
+const borderRadius = {
+    xs: 4,
     sm: 8,
     md: 12,
     lg: 16,
     xl: 24,
+    xxl: 32,
+    // Special cases
+    pill: 9999,
+    card: 16,
+    sheet: 24,
 };
 
-const baseTypography = {
-    h1: {
-        fontSize: 32,
-        fontWeight: 'bold' as TextStyle['fontWeight'],
+// Enhanced shadow system
+const shadows = {
+    none: {
+        shadowColor: 'transparent',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
     },
-    h2: {
-        fontSize: 24,
-        fontWeight: 'bold' as TextStyle['fontWeight'],
-    },
-    body: {
-        fontSize: 16,
-    },
-    small: {
-        fontSize: 14,
-    },
-};
-
-const baseShadows = {
-    sm: {
+    xs: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.05,
         shadowRadius: 2,
+        elevation: 1,
+    },
+    sm: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
         elevation: 2,
     },
     md: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
-        shadowRadius: 4,
+        shadowRadius: 8,
         elevation: 4,
     },
+    lg: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        elevation: 8,
+    },
+    xl: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.25,
+        shadowRadius: 24,
+        elevation: 12,
+    },
+};
+
+// Motion values for animations
+const motion = {
+    duration: {
+        fast: 200,
+        medium: 300,
+        slow: 500,
+    },
+    easing: {
+        ease: 'ease',
+        easeIn: 'ease-in',
+        easeOut: 'ease-out',
+        easeInOut: 'ease-in-out',
+    },
+};
+
+// Enhanced color system with better semantic naming
+const createColorSystem = (isDark: boolean) => {
+    const baseColors = {
+        // Core brand colors
+        brand: {
+            50: '#E8F5E8',
+            100: '#C8E6C8',
+            200: '#A5D6A5',
+            300: '#82C582',
+            400: '#66BB6A',
+            500: '#4CAF50', // Primary green
+            600: '#43A047',
+            700: '#388E3C',
+            800: '#2E7D32',
+            900: '#1B5E20',
+        },
+
+        // Accent colors (warm orange for contrast)
+        accent: {
+            50: '#FFF3E0',
+            100: '#FFE0B2',
+            200: '#FFCC80',
+            300: '#FFB74D',
+            400: '#FFA726',
+            500: '#FF9800', // Primary orange
+            600: '#FB8C00',
+            700: '#F57C00',
+            800: '#EF6C00',
+            900: '#E65100',
+        },
+
+        // Neutral grays
+        neutral: {
+            0: '#FFFFFF',
+            50: '#FAFAFA',
+            100: '#F5F5F5',
+            200: '#EEEEEE',
+            300: '#E0E0E0',
+            400: '#BDBDBD',
+            500: '#9E9E9E',
+            600: '#757575',
+            700: '#616161',
+            800: '#424242',
+            850: '#303030',
+            900: '#212121',
+            950: '#0F0F0F',
+        },
+
+        // Semantic colors
+        success: '#4CAF50',
+        warning: '#FF9800',
+        error: '#F44336',
+        info: '#2196F3',
+    };
+
+    return {
+        // Surface colors
+        surface: {
+            primary: isDark ? baseColors.neutral[900] : baseColors.neutral[0],
+            secondary: isDark ? baseColors.neutral[800] : baseColors.neutral[50],
+            tertiary: isDark ? baseColors.neutral[700] : baseColors.neutral[100],
+            elevated: isDark ? baseColors.neutral[850] : baseColors.neutral[0],
+            overlay: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.4)',
+        },
+
+        // Content colors
+        content: {
+            primary: isDark ? baseColors.neutral[50] : baseColors.neutral[900],
+            secondary: isDark ? baseColors.neutral[300] : baseColors.neutral[600],
+            tertiary: isDark ? baseColors.neutral[400] : baseColors.neutral[500],
+            inverse: isDark ? baseColors.neutral[900] : baseColors.neutral[50],
+            disabled: isDark ? baseColors.neutral[600] : baseColors.neutral[400],
+        },
+
+        // Brand colors
+        brand: {
+            primary: baseColors.brand[500],
+            primaryContainer: isDark ? baseColors.brand[800] : baseColors.brand[100],
+            onPrimary: baseColors.neutral[0],
+            onPrimaryContainer: isDark ? baseColors.brand[100] : baseColors.brand[800],
+        },
+
+        // Accent colors
+        accent: {
+            primary: baseColors.accent[500],
+            primaryContainer: isDark ? baseColors.accent[800] : baseColors.accent[100],
+            onPrimary: baseColors.neutral[0],
+            onPrimaryContainer: isDark ? baseColors.accent[100] : baseColors.accent[800],
+        },
+
+        // Interactive states
+        interactive: {
+            primary: baseColors.brand[500],
+            hover: isDark ? baseColors.brand[400] : baseColors.brand[600],
+            pressed: isDark ? baseColors.brand[300] : baseColors.brand[700],
+            disabled: isDark ? baseColors.neutral[700] : baseColors.neutral[300],
+            focus: baseColors.brand[500],
+        },
+
+        // Border colors
+        border: {
+            primary: isDark ? baseColors.neutral[700] : baseColors.neutral[200],
+            secondary: isDark ? baseColors.neutral[600] : baseColors.neutral[300],
+            focus: baseColors.brand[500],
+            error: baseColors.error,
+        },
+
+        // Semantic colors
+        semantic: {
+            success: baseColors.success,
+            warning: baseColors.warning,
+            error: baseColors.error,
+            info: baseColors.info,
+            successContainer: isDark ? '#1B5E20' : '#E8F5E8',
+            warningContainer: isDark ? '#E65100' : '#FFF3E0',
+            errorContainer: isDark ? '#B71C1C' : '#FFEBEE',
+            infoContainer: isDark ? '#0D47A1' : '#E3F2FD',
+        },
+
+        // Legacy mappings for backward compatibility
+        background: isDark ? baseColors.neutral[900] : baseColors.neutral[0],
+        primary: baseColors.brand[500],
+        secondary: baseColors.accent[500],
+        text: {
+            primary: isDark ? baseColors.neutral[50] : baseColors.neutral[900],
+            secondary: isDark ? baseColors.neutral[300] : baseColors.neutral[600],
+            tertiary: isDark ? baseColors.neutral[400] : baseColors.neutral[500],
+        },
+    };
 };
 
 export const theme = {
-    spacing: baseSpacing,
-    borderRadius: baseBorderRadius,
-    typography: baseTypography,
-    shadows: baseShadows,
     light: {
-        colors: {
-            // Nature-inspired greens with good contrast
-            primary: '#2E7D32',        // Forest green - better contrast
-            secondary: '#388E3C',      // Lighter forest green
-            tertiary: '#4CAF50',       // Fresh green accent
-
-            // Warm earth tones for accents
-            accent: '#D84315',         // Burnt orange (like robin breast)
-            accentSoft: '#FF8A65',     // Soft orange
-
-            // Neutral grays with better contrast
-            background: '#FAFAFA',     // Very light gray (not pure white)
-            surface: '#FFFFFF',        // Pure white for cards
-            surfaceVariant: '#F5F5F5', // Light gray for secondary surfaces
-
-            // Border and dividers
-            border: '#E0E0E0',         // Light gray borders
-            divider: '#EEEEEE',        // Very light dividers
-
-            // Text with proper contrast ratios
-            text: {
-                primary: '#212121',     // Almost black (WCAG AA compliant)
-                secondary: '#757575',   // Medium gray
-                tertiary: '#9E9E9E',    // Light gray
-                inverse: '#FFFFFF',     // White text for dark backgrounds
-                onPrimary: '#FFFFFF',   // White text on primary color
-            },
-
-            // Status colors
-            success: '#4CAF50',        // Green for success states
-            warning: '#FF9800',        // Orange for warnings
-            error: '#F44336',          // Red for errors
-            info: '#2196F3',           // Blue for information
-
-            // Interactive states
-            ripple: 'rgba(46, 125, 50, 0.12)',  // Primary with 12% opacity
-            hover: 'rgba(46, 125, 50, 0.08)',   // Primary with 8% opacity
-            pressed: 'rgba(46, 125, 50, 0.16)', // Primary with 16% opacity
-
-            // Special UI elements
-            tabBarBackground: '#FFFFFF',
-            statusBar: 'dark-content',
-            backdrop: 'rgba(0, 0, 0, 0.5)',
-        },
-        fonts: baseFonts,
+        colors: createColorSystem(false),
+        typography,
+        spacing,
+        borderRadius,
+        shadows,
+        motion,
     },
     dark: {
-        colors: {
-            // Sophisticated dark greens inspired by night forest
-            primary: '#66BB6A',        // Bright green that pops on dark
-            secondary: '#4CAF50',      // Vibrant green
-            tertiary: '#81C784',       // Light green accent
-
-            // Warm accents that work well in dark mode
-            accent: '#FF7043',         // Warm orange (like sunset)
-            accentSoft: '#FFAB91',     // Soft peach
-
-            // Dark theme backgrounds with subtle contrast
-            background: '#0F1419',     // Deep dark blue-gray (like pre-dawn sky)
-            surface: '#1A1F24',        // Slightly lighter for cards
-            surfaceVariant: '#242A30', // Medium dark for secondary surfaces
-
-            // Borders that aren't too harsh
-            border: '#2D3339',         // Subtle dark borders
-            divider: '#1E2328',        // Very subtle dividers
-
-            // High contrast text for dark mode
-            text: {
-                primary: '#FFFFFF',     // Pure white for main text
-                secondary: '#B0BEC5',   // Light blue-gray
-                tertiary: '#78909C',    // Medium blue-gray
-                inverse: '#000000',     // Black text for light backgrounds
-                onPrimary: '#000000',   // Black text on bright primary
-            },
-
-            // Status colors adjusted for dark mode
-            success: '#4CAF50',        // Bright green
-            warning: '#FFB74D',        // Warm orange
-            error: '#EF5350',          // Bright red
-            info: '#42A5F5',           // Light blue
-
-            // Dark mode interactive states
-            ripple: 'rgba(102, 187, 106, 0.16)',  // Brighter primary with opacity
-            hover: 'rgba(102, 187, 106, 0.12)',   // Subtle hover
-            pressed: 'rgba(102, 187, 106, 0.20)', // More pronounced press
-
-            // Special UI elements for dark mode
-            tabBarBackground: 'rgba(26, 31, 36, 0.95)',
-            statusBar: 'light-content',
-            backdrop: 'rgba(0, 0, 0, 0.7)',
-        },
-        fonts: baseFonts,
+        colors: createColorSystem(true),
+        typography,
+        spacing,
+        borderRadius,
+        shadows,
+        motion,
     },
 } as const;
 
-export type Theme = typeof theme;
+export type Theme = typeof theme.light;
+export type ColorSystem = Theme['colors'];
 
-export const createStyles = <T extends Record<string, any>>(styles: (theme: Theme) => T) => styles;
+// Helper function to create responsive spacing
+export const responsiveSpacing = (base: number) => ({
+    mobile: base,
+    tablet: base * 1.2,
+    desktop: base * 1.5,
+});
 
-// Helper function to get color with opacity
-export const withOpacity = (color: string, opacity: number): string => {
-    // Convert hex to rgba
-    const hex = color.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-};
-
-// Semantic color helpers
-export const getSemanticColors = (isDark: boolean) => {
-    const colors = isDark ? theme.dark.colors : theme.light.colors;
-    return {
-        // Card backgrounds with proper contrast
-        cardPrimary: colors.surface,
-        cardSecondary: colors.surfaceVariant,
-        cardTertiary: isDark ? colors.background : colors.surfaceVariant,
-
-        // Button variants
-        buttonPrimary: colors.primary,
-        buttonSecondary: colors.surfaceVariant,
-        buttonGhost: 'transparent',
-
-        // Input fields
-        inputBackground: colors.surfaceVariant,
-        inputBorder: colors.border,
-        inputFocusBorder: colors.primary,
-
-        // List items
-        listItemBackground: colors.surface,
-        listItemPressed: colors.pressed,
-        listItemBorder: colors.divider,
-    };
+// Helper for creating color variants
+export const createColorVariant = (baseColor: string, opacity: number) => {
+    if (baseColor.startsWith('#')) {
+        const hex = baseColor.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    return baseColor;
 };
