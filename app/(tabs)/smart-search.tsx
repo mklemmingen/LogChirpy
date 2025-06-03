@@ -123,10 +123,10 @@ export default function SmartSearch() {
                 const nameFields = [
                     { field: 'english_name', value: bird.english_name, label: t('smartSearch.english') },
                     { field: 'scientific_name', value: bird.scientific_name, label: t('smartSearch.scientific') },
-                    { field: 'german_name', value: bird.german_name, label: t('smartSearch.german') },
-                    { field: 'spanish_name', value: bird.spanish_name, label: t('smartSearch.spanish') },
+                    { field: 'de_name', value: bird.de_name, label: t('smartSearch.german') },
+                    { field: 'es_name', value: bird.es_name, label: t('smartSearch.spanish') },
                     { field: 'ukrainian_name', value: bird.ukrainian_name, label: t('smartSearch.ukrainian') },
-                    { field: 'arabic_name', value: bird.arabic_name, label: t('smartSearch.arabic') }
+                    { field: 'ar_name', value: bird.ar_name, label: t('smartSearch.arabic') }
                 ];
 
                 let bestMatch = { score: 0, field: '', value: '', label: '' };
@@ -224,14 +224,14 @@ export default function SmartSearch() {
                             <Text style={styles.nameLabel}>🔬 </Text>{item.scientific_name}
                         </Text>
                     )}
-                    {item.german_name && (
+                    {item.de_name && (
                         <Text style={[styles.nameRow, { color: pal.colors.text.secondary }]}>
-                            <Text style={styles.nameLabel}>🇩🇪 </Text>{item.german_name}
+                            <Text style={styles.nameLabel}>🇩🇪 </Text>{item.de_name}
                         </Text>
                     )}
-                    {item.spanish_name && (
+                    {item.es_name && (
                         <Text style={[styles.nameRow, { color: pal.colors.text.secondary }]}>
-                            <Text style={styles.nameLabel}>🇪🇸 </Text>{item.spanish_name}
+                            <Text style={styles.nameLabel}>🇪🇸 </Text>{item.es_name}
                         </Text>
                     )}
                     {item.ukrainian_name && (
@@ -239,9 +239,9 @@ export default function SmartSearch() {
                             <Text style={styles.nameLabel}>🇺🇦 </Text>{item.ukrainian_name}
                         </Text>
                     )}
-                    {item.arabic_name && (
+                    {item.ar_name && (
                         <Text style={[styles.nameRow, { color: pal.colors.text.secondary }]}>
-                            <Text style={styles.nameLabel}>🇸🇦 </Text>{item.arabic_name}
+                            <Text style={styles.nameLabel}>🇸🇦 </Text>{item.ar_name}
                         </Text>
                     )}
                 </View>
