@@ -18,7 +18,8 @@ import {BlurView} from 'expo-blur';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {theme} from '@/constants/theme';
-import {type BirdDexRecord, DB} from '@/services/databaseBirDex';
+import {getBirdBySpeciesCode, type BirdDexRecord} from '@/services/databaseBirDex';
+import {hasSpottingForLatin} from '@/services/database';
 
 type DetailRecord = BirdDexRecord & {
     hasBeenLogged: 0 | 1;
@@ -44,41 +45,39 @@ export default function BirdDexDetail() {
 
     useEffect(() => {
         const loadBirdDetail = async () => {
+            if (!code) {
+                Alert.alert(t('birddex.error'), 'No species code provided');
+                router.back();
+                return;
+            }
+
             try {
                 setLoading(true);
-                const db = DB();
-                const stmt = db.prepareSync(`
-                    SELECT
-                        b.*,
-                        CASE WHEN EXISTS(
-                            SELECT 1 FROM bird_spottings s
-                            WHERE s.latinBirDex = b.scientific_name
-                        ) THEN 1 ELSE 0 END AS hasBeenLogged
-                    FROM birddex b
-                    WHERE b.species_code = ?
-                    LIMIT 1;
-                `);
-                const rows = stmt.executeSync(code).getAllSync() as DetailRecord[];
-                stmt.finalizeSync();
 
-                if (rows.length) {
-                    setRec(rows[0]);
+                // Use the service function instead of direct DB access
+                const bird = getBirdBySpeciesCode(code);
+
+                if (bird) {
+                    // Add logging status
+                    const detailRecord: DetailRecord = {
+                        ...bird,
+                        hasBeenLogged: hasSpottingForLatin(bird.scientific_name) ? 1 : 0
+                    };
+                    setRec(detailRecord);
                 } else {
-                    Alert.alert(t('birddex.error'), t('birddex.notFound'));
+                    Alert.alert(t('birddex.error'), 'Bird not found');
                     router.back();
                 }
             } catch (e) {
-                console.error(e);
-                Alert.alert(t('birddex.error'), t('birddex.loadDetailFailed'));
+                console.error('Load bird detail error:', e);
+                Alert.alert(t('birddex.error'), 'Failed to load bird details');
                 router.back();
             } finally {
                 setLoading(false);
             }
         };
 
-        if (code) {
-            loadBirdDetail();
-        }
+        loadBirdDetail();
     }, [code, t, router]);
 
     const openWikipedia = useCallback(() => {
@@ -189,6 +188,19 @@ export default function BirdDexDetail() {
             </Text>
         </Pressable>
     );
+
+    if (loading) {
+        return (
+            <SafeAreaView style={[styles.loadingContainer, { backgroundColor: pal.colors.background }]}>
+                <ActivityIndicator size="large" color={pal.colors.primary} />
+                <Text style={[styles.loadingText, { color: pal.colors.text.secondary }]}>
+                    {t('birddex.loadingDetail')}
+                </Text>
+            </SafeAreaView>
+        );
+    }
+
+    if (!rec) return null;
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>

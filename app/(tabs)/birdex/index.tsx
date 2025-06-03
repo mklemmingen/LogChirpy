@@ -19,8 +19,7 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { theme, getSemanticColors } from '@/constants/theme';
-import { useProgressiveDatabase } from '@/hooks/useProgressiveDatabase';
-import BackgroundLoadingBanner from '@/components/BackgroundLoadingBanner';
+import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
 
 import {
     type BirdDexRecord,
@@ -52,8 +51,8 @@ export default function BirdDexIndex() {
     const semanticColors = getSemanticColors(scheme === 'dark');
     const insets = useSafeAreaInsets();
 
-    // Progressive database status
-    const databaseStatus = useProgressiveDatabase();
+    // Database status - no need for complex initialization since it's handled at app level
+    const { isReady, isLoading, hasError, error, retry } = useBirdDexDatabase();
 
     // Component state
     const [list, setList] = useState<DisplayRecord[]>([]);
@@ -61,12 +60,9 @@ export default function BirdDexIndex() {
     const [sortKey, setSortKey] = useState<keyof BirdDexRecord>('english_name');
     const [asc, setAsc] = useState(true);
     const [showSortMenu, setShowSortMenu] = useState(false);
-
-    // Category filtering state
     const [categoryFilter, setCategoryFilter] = useState<BirdCategory>('all');
     const [showCategoryMenu, setShowCategoryMenu] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<{ category: string; count: number }[]>([]);
-
     const [refreshing, setRefresh] = useState(false);
     const [page, setPage] = useState(1);
     const [pageCount, setPageCount] = useState(1);
@@ -96,7 +92,7 @@ export default function BirdDexIndex() {
     const getCategoryIcon = (category: string): string => {
         switch (category) {
             case 'species': return 'circle';
-            case 'subspecies': return 'circle-dot';
+            case 'subspecies': return 'target'; // Changed from 'circle-dot' to 'target'
             case 'family': return 'users';
             case 'group (polytypic)': return 'layers';
             case 'group (monotypic)': return 'square';
@@ -107,9 +103,8 @@ export default function BirdDexIndex() {
 
     // Load page data
     const loadPage = useCallback(async (target: number) => {
-        // Only proceed if core database is ready
-        if (!databaseStatus.isCoreReady) {
-            console.log('Waiting for core database to be ready...');
+        if (!isReady) {
+            console.log('Database not ready yet');
             return;
         }
 
@@ -118,7 +113,7 @@ export default function BirdDexIndex() {
             const searchTerm = searchText.trim();
             const raw = queryBirdDexPage(searchTerm, sortKey, asc, PAGE_SIZE, target, categoryFilter);
 
-            // Updated language column mapping to match CSV structure
+            // Language handling logic remains the same...
             const lang = i18n.language.split('-')[0];
             const colMap: Record<string, keyof BirdDexRecord> = {
                 en: 'english_name',
@@ -131,16 +126,9 @@ export default function BirdDexIndex() {
             const langCol = colMap[lang] || 'english_name';
 
             const rows: DisplayRecord[] = raw.map(r => {
-                // Safely convert to string and handle potential null/undefined values
                 let displayName = String(r[langCol] || '').trim();
-
-                if (!displayName) {
-                    displayName = String(r.english_name || '').trim();
-                }
-
-                if (!displayName) {
-                    displayName = String(r.scientific_name || '').trim();
-                }
+                if (!displayName) displayName = String(r.english_name || '').trim();
+                if (!displayName) displayName = String(r.scientific_name || '').trim();
 
                 return {
                     ...r,
@@ -152,7 +140,6 @@ export default function BirdDexIndex() {
             const total = getBirdDexRowCount(searchTerm, categoryFilter);
             setTotalCount(total);
             setPageCount(Math.max(1, Math.ceil(total / PAGE_SIZE)));
-
             setList(rows);
             setPage(target);
         } catch (e) {
@@ -161,11 +148,11 @@ export default function BirdDexIndex() {
         } finally {
             setRefresh(false);
         }
-    }, [searchText, sortKey, asc, categoryFilter, i18n.language, databaseStatus.isCoreReady, t]);
+    }, [searchText, sortKey, asc, categoryFilter, i18n.language, isReady, t]);
 
     // Load categories when database is ready
     useEffect(() => {
-        if (databaseStatus.isCoreReady) {
+        if (isReady) {
             try {
                 const categories = getAvailableCategories();
                 setAvailableCategories(categories);
@@ -174,15 +161,54 @@ export default function BirdDexIndex() {
                 console.error('Failed to load categories:', e);
             }
         }
-    }, [databaseStatus.isCoreReady, loadPage]);
+    }, [isReady, loadPage]);
+
+    // Show error state if database failed to initialize
+    if (hasError) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+                <View style={styles.errorContainer}>
+                    <Feather name="alert-triangle" size={64} color={pal.colors.error} />
+                    <Text style={[styles.errorTitle, { color: pal.colors.text.primary }]}>
+                        {t('birddex.error')}
+                    </Text>
+                    <Text style={[styles.errorMessage, { color: pal.colors.text.secondary }]}>
+                        {error || t('birddex.initFailed')}
+                    </Text>
+                    <Pressable
+                        style={[styles.retryButton, { backgroundColor: pal.colors.primary }]}
+                        onPress={retry}
+                    >
+                        <Text style={[styles.retryButtonText, { color: pal.colors.text.onPrimary }]}>
+                            {t('birddex.reload')}
+                        </Text>
+                    </Pressable>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    // Show simple loading state while database initializes
+    if (isLoading || !isReady) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={pal.colors.primary} />
+                    <Text style={[styles.loadingText, { color: pal.colors.text.secondary }]}>
+                        {t('birddex.loadingEntries')}
+                    </Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     // Reload on search/sort/category change
     useEffect(() => {
-        if (databaseStatus.isCoreReady) {
+        if (isReady) {
             const timeoutId = setTimeout(() => loadPage(1), 300);
             return () => clearTimeout(timeoutId);
         }
-    }, [searchText, sortKey, asc, categoryFilter, databaseStatus.isCoreReady, loadPage]);
+    }, [searchText, sortKey, asc, categoryFilter, isReady, loadPage]);
 
     const handleSort = (key: keyof BirdDexRecord) => {
         if (key === sortKey) {
@@ -223,12 +249,6 @@ export default function BirdDexIndex() {
                 <Text style={[styles.categoryText, { color: pal.colors.accent }]}>
                     {item.category}
                 </Text>
-                {/* Core species indicator */}
-                {item.is_core && (
-                    <View style={[styles.coreIndicator, { backgroundColor: pal.colors.primary }]}>
-                        <Feather name="star" size={8} color={pal.colors.text.primary} />
-                    </View>
-                )}
             </View>
 
             {/* Logged indicator */}
@@ -312,60 +332,120 @@ export default function BirdDexIndex() {
 
     const renderCategoryMenu = () => (
         showCategoryMenu && (
-            <BlurView
-                intensity={80}
-                tint={scheme === "dark" ? "dark" : "light"}
-                style={[styles.categoryMenu, { borderColor: pal.colors.border }]}
-            >
-                {/* All categories option */}
+            <>
+                {/* Backdrop overlay for better focus */}
                 <Pressable
-                    style={[
-                        styles.categoryOption,
-                        { borderBottomColor: pal.colors.border },
-                        categoryFilter === 'all' && { backgroundColor: pal.colors.primary + '20' }
-                    ]}
-                    onPress={() => handleCategoryFilter('all')}
+                    style={styles.menuBackdrop}
+                    onPress={() => setShowCategoryMenu(false)}
                     android_ripple={null}
-                >
-                    <Feather name="grid" size={16} color={pal.colors.text.secondary} />
-                    <Text style={[styles.categoryOptionText, { color: pal.colors.text.primary }]}>
-                        {getCategoryDisplayName('all')}
-                    </Text>
-                    <Text style={[styles.categoryCount, { color: pal.colors.text.secondary }]}>
-                        {totalCount}
-                    </Text>
-                    {categoryFilter === 'all' && (
-                        <Feather name="check" size={16} color={pal.colors.primary} />
-                    )}
-                </Pressable>
+                />
 
-                {/* Individual categories */}
-                {availableCategories.map((cat) => (
+                <View style={[styles.categoryMenu, { backgroundColor: pal.colors.surface }]}>
+                    {/* Menu Header */}
+                    <View style={[styles.menuHeader, { borderBottomColor: pal.colors.border }]}>
+                        <Text style={[styles.menuTitle, { color: pal.colors.text.primary }]}>
+                            Filter by Category
+                        </Text>
+                        <Pressable
+                            onPress={() => setShowCategoryMenu(false)}
+                            style={styles.closeButton}
+                            android_ripple={null}
+                        >
+                            <Feather name="x" size={20} color={pal.colors.text.secondary} />
+                        </Pressable>
+                    </View>
+
+                    {/* All categories option */}
                     <Pressable
-                        key={cat.category}
                         style={[
                             styles.categoryOption,
-                            { borderBottomColor: pal.colors.border },
-                            categoryFilter === cat.category && { backgroundColor: pal.colors.primary + '20' }
+                            { backgroundColor: categoryFilter === 'all' ? pal.colors.primary + '15' : 'transparent' }
                         ]}
-                        onPress={() => handleCategoryFilter(cat.category as BirdCategory)}
-                        android_ripple={null}
+                        onPress={() => handleCategoryFilter('all')}
+                        android_ripple={{ color: pal.colors.primary + '20' }}
                     >
-                        <Feather name={getCategoryIcon(cat.category) as any} size={16} color={pal.colors.text.secondary} />
-                        <Text style={[styles.categoryOptionText, { color: pal.colors.text.primary }]}>
-                            {getCategoryDisplayName(cat.category)}
-                        </Text>
-                        <Text style={[styles.categoryCount, { color: pal.colors.text.secondary }]}>
-                            {cat.count}
-                        </Text>
-                        {categoryFilter === cat.category && (
-                            <Feather name="check" size={16} color={pal.colors.primary} />
-                        )}
+                        <View style={styles.categoryOptionContent}>
+                            <View style={styles.categoryLeft}>
+                                <View style={[
+                                    styles.iconContainer,
+                                    { backgroundColor: pal.colors.primary + '15' }
+                                ]}>
+                                    <Feather name="grid" size={16} color={pal.colors.primary} />
+                                </View>
+                                <View style={styles.categoryTextContainer}>
+                                    <Text style={[styles.categoryOptionText, { color: pal.colors.text.primary }]}>
+                                        {getCategoryDisplayName('all')}
+                                    </Text>
+                                    <Text style={[styles.categoryDescription, { color: pal.colors.text.secondary }]}>
+                                        Show all species
+                                    </Text>
+                                </View>
+                            </View>
+                            <View style={styles.categoryRight}>
+                                <Text style={[styles.categoryCount, { color: pal.colors.text.secondary }]}>
+                                    {totalCount.toLocaleString()}
+                                </Text>
+                                {categoryFilter === 'all' && (
+                                    <Feather name="check" size={18} color={pal.colors.primary} />
+                                )}
+                            </View>
+                        </View>
                     </Pressable>
-                ))}
-            </BlurView>
+
+                    {/* Individual categories */}
+                    {availableCategories.map((cat) => (
+                        <Pressable
+                            key={cat.category}
+                            style={[
+                                styles.categoryOption,
+                                { backgroundColor: categoryFilter === cat.category ? pal.colors.primary + '15' : 'transparent' }
+                            ]}
+                            onPress={() => handleCategoryFilter(cat.category as BirdCategory)}
+                            android_ripple={{ color: pal.colors.primary + '20' }}
+                        >
+                            <View style={styles.categoryOptionContent}>
+                                <View style={styles.categoryLeft}>
+                                    <View style={[
+                                        styles.iconContainer,
+                                        { backgroundColor: pal.colors.accent + '15' }
+                                    ]}>
+                                        <Feather name={getCategoryIcon(cat.category) as any} size={16} color={pal.colors.accent} />
+                                    </View>
+                                    <View style={styles.categoryTextContainer}>
+                                        <Text style={[styles.categoryOptionText, { color: pal.colors.text.primary }]}>
+                                            {getCategoryDisplayName(cat.category)}
+                                        </Text>
+                                        <Text style={[styles.categoryDescription, { color: pal.colors.text.secondary }]}>
+                                            {getCategoryDescription(cat.category)}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View style={styles.categoryRight}>
+                                    <Text style={[styles.categoryCount, { color: pal.colors.text.secondary }]}>
+                                        {cat.count.toLocaleString()}
+                                    </Text>
+                                    {categoryFilter === cat.category && (
+                                        <Feather name="check" size={18} color={pal.colors.primary} />
+                                    )}
+                                </View>
+                            </View>
+                        </Pressable>
+                    ))}
+                </View>
+            </>
         )
     );
+
+    const getCategoryDescription = (category: string): string => {
+        switch (category) {
+            case 'species': return 'Distinct species';
+            case 'subspecies': return 'Subspecies variants';
+            case 'family': return 'Family groups';
+            case 'group (polytypic)': return 'Multi-form groups';
+            case 'group (monotypic)': return 'Single-form groups';
+            default: return '';
+        }
+    };
 
     const renderPagination = () => (
         <View style={styles.paginationContainer}>
@@ -413,25 +493,9 @@ export default function BirdDexIndex() {
         </View>
     );
 
-    // Show loading state only while waiting for core database
-    if (!databaseStatus.isCoreReady) {
-        return (
-            <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={pal.colors.primary} />
-                    <Text style={[styles.loadingText, { color: pal.colors.text.secondary }]}>
-                        {t('birddex.waitingForDatabase', 'Waiting for database to be ready...')}
-                    </Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
     // Main BirdDex interface
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
-            {/* Background Loading Banner */}
-            <BackgroundLoadingBanner databaseStatus={databaseStatus} />
 
             {/* Header */}
             <View style={[styles.header, { marginTop: insets.top }]}>
@@ -448,14 +512,6 @@ export default function BirdDexIndex() {
                             })
                         }
                     </Text>
-                    {!databaseStatus.isFullReady && (
-                        <View style={[styles.coreModeBadge, { backgroundColor: pal.colors.accent + '20' }]}>
-                            <Feather name="star" size={12} color={pal.colors.accent} />
-                            <Text style={[styles.coreModeText, { color: pal.colors.accent }]}>
-                                {t('birddex.coreMode', 'Core Species')}
-                            </Text>
-                        </View>
-                    )}
                 </View>
             </View>
 
@@ -693,35 +749,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
 
-    // Category Menu
-    categoryMenu: {
-        position: 'absolute',
-        top: 120,
-        right: 60,
-        zIndex: 1000,
-        borderRadius: theme.borderRadius.lg,
-        borderWidth: 1,
-        overflow: 'hidden',
-        minWidth: 220,
-        maxHeight: 300,
-    },
-    categoryOption: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        gap: theme.spacing.sm,
-        borderBottomWidth: 1,
-    },
-    categoryOptionText: {
-        flex: 1,
-        fontSize: 15,
-    },
-    categoryCount: {
-        fontSize: 12,
-        marginRight: theme.spacing.sm,
-    },
-
     // Bird Cards
     listContainer: {
         padding: theme.spacing.md,
@@ -858,5 +885,127 @@ const styles = StyleSheet.create({
     },
     disabledBtn: {
         opacity: 0.3,
+    },
+
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: theme.spacing.xl,
+    },
+    errorTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginTop: theme.spacing.lg,
+        marginBottom: theme.spacing.sm,
+        textAlign: 'center',
+    },
+    errorMessage: {
+        fontSize: 16,
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: theme.spacing.xl,
+    },
+    retryButton: {
+        paddingVertical: theme.spacing.md,
+        paddingHorizontal: theme.spacing.lg,
+        borderRadius: theme.borderRadius.lg,
+    },
+    retryButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    // Menu overlay
+    menuBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        zIndex: 999,
+    },
+
+    // Category Menu
+    categoryMenu: {
+        position: 'absolute',
+        top: 120,
+        right: theme.spacing.md,
+        left: theme.spacing.md, // Full width instead of min-width
+        zIndex: 1000,
+        borderRadius: theme.borderRadius.xl,
+        maxHeight: 400,
+        ...theme.shadows.md,
+        // Remove BlurView styling, use solid background
+    },
+
+    menuHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.md,
+        borderBottomWidth: 1,
+    },
+
+    menuTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+    },
+
+    closeButton: {
+        padding: theme.spacing.xs,
+    },
+
+    categoryOption: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.md,
+        // Remove border styling
+    },
+
+    categoryOptionContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+
+    categoryLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        gap: theme.spacing.md,
+    },
+
+    iconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    categoryTextContainer: {
+        flex: 1,
+        gap: 2,
+    },
+
+    categoryOptionText: {
+        fontSize: 16,
+        fontWeight: '500',
+        lineHeight: 20,
+    },
+
+    categoryDescription: {
+        fontSize: 12,
+        lineHeight: 16,
+    },
+
+    categoryRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+    },
+
+    categoryCount: {
+        fontSize: 14,
+        fontWeight: '500',
+        minWidth: 40,
+        textAlign: 'right',
     },
 });
