@@ -1,117 +1,389 @@
-import React, {useEffect, useState} from 'react';
-import {Image, StyleSheet, TouchableOpacity, useColorScheme} from 'react-native';
-import {signOut} from 'firebase/auth';
-import {router} from 'expo-router';
-import {useTranslation} from 'react-i18next';
+import React, { useEffect, useState } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    SafeAreaView,
+    ScrollView,
+    Pressable,
+    Alert,
+} from 'react-native';
+import { signOut } from 'firebase/auth';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+} from 'react-native-reanimated';
 
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedView} from '@/components/ThemedView';
-import {auth} from '@/firebase/config';
-import {theme} from '@/constants/theme';
-import ParallaxScrollView from '../../../components/ParallaxScrollView';
+import { ModernCard } from '@/components/ModernCard';
+import { auth } from '@/firebase/config';
+import {
+    useSemanticColors,
+    useTheme,
+    useTypography,
+    useColorVariants,
+    useMotionValues,
+} from '@/hooks/useThemeColor';
 
-export default function AccountScreen() {
-    const { t } = useTranslation(); // <-- Hook into translations
-    const colorScheme = useColorScheme() ?? 'light';
-    const currentTheme = theme[colorScheme];
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+export default function ModernAccountScreen() {
+    const { t } = useTranslation();
+    const semanticColors = useSemanticColors();
+    const theme = useTheme();
+    const typography = useTypography();
+    const variants = useColorVariants();
+    const motion = useMotionValues();
+    const insets = useSafeAreaInsets();
+
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
+
+    // Animation values
+    const signOutScale = useSharedValue(1);
+    const fadeInOpacity = useSharedValue(0);
 
     useEffect(() => {
-        const unsub = auth.onAuthStateChanged(user => {
+        const unsubscribe = auth.onAuthStateChanged(user => {
             setIsLoggedIn(!!user);
-            /** don’t navigate *while* we’re in the same render frame */
-            if (!user) requestAnimationFrame(() =>
-                router.replace('/(tabs)/account/(auth)/login')
-            );
+            setUserEmail(user?.email || null);
+
+            if (!user) {
+                requestAnimationFrame(() =>
+                    router.replace('/(tabs)/account/(auth)/login')
+                );
+            } else {
+                // Fade in animation when user loads
+                fadeInOpacity.value = withTiming(1, { duration: motion.duration.medium });
+            }
         });
-        return unsub;
+        return unsubscribe;
     }, []);
 
-    return (
-        <ParallaxScrollView
-            headerBackgroundColor={{
-                light: currentTheme.colors.background,
-                dark: currentTheme.colors.background,
-            }}
-            headerImage={
-                <Image
-                    source={require('../../../assets/images/avatar_placeholder.png')}
-                    style={styles.headerAvatar}
-                />
-            }>
-            <ThemedView style={styles.container}>
-                <ThemedView style={styles.section}>
-                    <ThemedText type="title" style={{ color: currentTheme.colors.text.primary }}>
-                        {t('account.title')}
-                    </ThemedText>
-                    <ThemedView style={[styles.infoContainer, { backgroundColor: currentTheme.colors.background }]}>
-                        <ThemedText style={{ color: currentTheme.colors.text.primary }} type="default">
-                            {t('account.email_label')}
-                        </ThemedText>
-                        <ThemedText style={{ color: currentTheme.colors.text.secondary }}>
-                            {auth.currentUser?.email}
-                        </ThemedText>
-                    </ThemedView>
-                </ThemedView>
+    const fadeInStyle = useAnimatedStyle(() => ({
+        opacity: fadeInOpacity.value,
+        transform: [{ translateY: withTiming(fadeInOpacity.value === 1 ? 0 : 20) }],
+    }));
 
-                <ThemedView style={styles.section}>
-                    <TouchableOpacity
-                        style={[styles.signOutButton, { backgroundColor: currentTheme.colors.primary }]}
-                        onPress={async () => {
-                            try {
-                                await signOut(auth);
-                                setIsLoggedIn(false);
-                            } catch (error) {
-                                console.error('Error signing out:', error);
-                            }
-                        }}
+    const signOutAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: signOutScale.value }],
+    }));
+
+    const handleSignOut = async () => {
+        Alert.alert(
+            t('account.signOutTitle', 'Sign Out'),
+            t('account.signOutMessage', 'Are you sure you want to sign out?'),
+            [
+                {
+                    text: t('common.cancel'),
+                    style: 'cancel',
+                },
+                {
+                    text: t('buttons.signout'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await signOut(auth);
+                            setIsLoggedIn(false);
+                        } catch (error) {
+                            console.error('Error signing out:', error);
+                            Alert.alert(
+                                t('common.error'),
+                                t('account.signOutError', 'Failed to sign out. Please try again.')
+                            );
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleSignOutPressIn = () => {
+        signOutScale.value = withSpring(0.95);
+    };
+
+    const handleSignOutPressOut = () => {
+        signOutScale.value = withSpring(1);
+    };
+
+    if (!isLoggedIn) {
+        return null; // Will redirect to login
+    }
+
+    return (
+        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+            {/* Header */}
+            <View style={[styles.header, { marginTop: insets.top }]}>
+                <Text style={[typography.displayMedium, styles.headerTitle]}>
+                    {t('account.title')}
+                </Text>
+                <Text style={[typography.bodyMedium, styles.headerSubtitle, { color: semanticColors.textSecondary }]}>
+                    {t('account.subtitle', 'Manage your LogChirpy account')}
+                </Text>
+            </View>
+
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                <Animated.View style={fadeInStyle}>
+                    {/* Profile Section */}
+                    <ModernCard
+                        variant="elevated"
+                        style={styles.profileCard}
+                        title={t('account.profileInfo', 'Profile Information')}
+                        headerAction={
+                            <View style={[styles.statusBadge, { backgroundColor: variants.primarySubtle }]}>
+                                <Feather name="check-circle" size={14} color={semanticColors.primary} />
+                                <Text style={[typography.labelSmall, { color: semanticColors.primary }]}>
+                                    {t('account.verified', 'Verified')}
+                                </Text>
+                            </View>
+                        }
                     >
-                        <ThemedText style={[styles.signOutButtonText, { color: currentTheme.colors.text.primary }]} type="default">
-                            {t('buttons.signout')}
-                        </ThemedText>
-                    </TouchableOpacity>
-                </ThemedView>
-            </ThemedView>
-        </ParallaxScrollView>
+                        <View style={styles.profileContent}>
+                            {/* Avatar */}
+                            <View style={[styles.avatarContainer, { backgroundColor: variants.primarySubtle }]}>
+                                <Feather name="user" size={32} color={semanticColors.primary} />
+                            </View>
+
+                            {/* User Info */}
+                            <View style={styles.userInfo}>
+                                <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
+                                    {t('account.email_label')}
+                                </Text>
+                                <Text style={[typography.bodyLarge, { color: semanticColors.text }]}>
+                                    {userEmail}
+                                </Text>
+                            </View>
+                        </View>
+                    </ModernCard>
+
+                    {/* Account Actions */}
+                    <ModernCard
+                        variant="outlined"
+                        style={styles.actionsCard}
+                        title={t('account.actions', 'Account Actions')}
+                    >
+                        <View style={styles.actionsList}>
+                            {/* Sync Status */}
+                            <Pressable
+                                style={styles.actionItem}
+                                onPress={() => {
+                                    // Navigate to sync settings or show sync status
+                                }}
+                                android_ripple={{ color: variants.surfacePressed }}
+                            >
+                                <View style={styles.actionLeft}>
+                                    <View style={[styles.actionIcon, { backgroundColor: variants.accentSubtle }]}>
+                                        <Feather name="refresh-cw" size={18} color={semanticColors.accent} />
+                                    </View>
+                                    <View style={styles.actionText}>
+                                        <Text style={[typography.bodyMedium, { color: semanticColors.text }]}>
+                                            {t('account.syncStatus', 'Sync Status')}
+                                        </Text>
+                                        <Text style={[typography.labelSmall, { color: semanticColors.textSecondary }]}>
+                                            {t('account.syncDescription', 'Cloud synchronization settings')}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <Feather name="chevron-right" size={18} color={semanticColors.textSecondary} />
+                            </Pressable>
+
+                            {/* Privacy Settings */}
+                            <Pressable
+                                style={styles.actionItem}
+                                onPress={() => {
+                                    // Navigate to privacy settings
+                                }}
+                                android_ripple={{ color: variants.surfacePressed }}
+                            >
+                                <View style={styles.actionLeft}>
+                                    <View style={[styles.actionIcon, { backgroundColor: variants.primarySubtle }]}>
+                                        <Feather name="shield" size={18} color={semanticColors.primary} />
+                                    </View>
+                                    <View style={styles.actionText}>
+                                        <Text style={[typography.bodyMedium, { color: semanticColors.text }]}>
+                                            {t('account.privacy', 'Privacy Settings')}
+                                        </Text>
+                                        <Text style={[typography.labelSmall, { color: semanticColors.textSecondary }]}>
+                                            {t('account.privacyDescription', 'Manage your data and privacy')}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <Feather name="chevron-right" size={18} color={semanticColors.textSecondary} />
+                            </Pressable>
+
+                            {/* Export Data */}
+                            <Pressable
+                                style={styles.actionItem}
+                                onPress={() => {
+                                    // Handle data export
+                                }}
+                                android_ripple={{ color: variants.surfacePressed }}
+                            >
+                                <View style={styles.actionLeft}>
+                                    <View style={[styles.actionIcon, { backgroundColor: variants.accentSubtle }]}>
+                                        <Feather name="download" size={18} color={semanticColors.accent} />
+                                    </View>
+                                    <View style={styles.actionText}>
+                                        <Text style={[typography.bodyMedium, { color: semanticColors.text }]}>
+                                            {t('account.exportData', 'Export Data')}
+                                        </Text>
+                                        <Text style={[typography.labelSmall, { color: semanticColors.textSecondary }]}>
+                                            {t('account.exportDescription', 'Download your bird sightings')}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <Feather name="chevron-right" size={18} color={semanticColors.textSecondary} />
+                            </Pressable>
+                        </View>
+                    </ModernCard>
+
+                    {/* Sign Out Section */}
+                    <View style={styles.signOutSection}>
+                        <AnimatedPressable
+                            style={[
+                                styles.signOutButton,
+                                { backgroundColor: semanticColors.error },
+                                signOutAnimatedStyle,
+                            ]}
+                            onPress={handleSignOut}
+                            onPressIn={handleSignOutPressIn}
+                            onPressOut={handleSignOutPressOut}
+                            android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                        >
+                            <Feather name="log-out" size={20} color={semanticColors.onPrimary} />
+                            <Text style={[typography.bodyLarge, styles.signOutText, { color: semanticColors.onPrimary }]}>
+                                {t('buttons.signout')}
+                            </Text>
+                        </AnimatedPressable>
+
+                        <Text style={[typography.labelSmall, styles.signOutWarning, { color: semanticColors.textTertiary }]}>
+                            {t('account.signOutWarning', 'You will need to sign in again to access cloud features')}
+                        </Text>
+                    </View>
+                </Animated.View>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: theme.spacing.lg,
     },
-    headerAvatar: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        position: 'absolute',
-        bottom: theme.spacing.xl,
-        alignSelf: 'center',
+
+    // Header
+    header: {
+        paddingHorizontal: 24,
+        paddingVertical: 16,
     },
-    section: {
-        marginBottom: theme.spacing.xl,
+    headerTitle: {
+        marginBottom: 4,
     },
-    infoContainer: {
-        padding: theme.spacing.lg,
-        borderRadius: theme.borderRadius.lg,
-        gap: theme.spacing.xs,
-        borderWidth: 1,
-        borderColor: theme.light.colors.border,
-        ...theme.shadows.md,
+    headerSubtitle: {
+        lineHeight: 20,
     },
-    signOutButton: {
-        height: 50,
-        borderRadius: theme.borderRadius.lg,
+
+    // Scroll View
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        padding: 24,
+        paddingBottom: 100,
+        gap: 24,
+    },
+
+    // Profile Card
+    profileCard: {
+        marginBottom: 8,
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        gap: 4,
+    },
+    profileContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+    },
+    avatarContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    signOutButtonText: {
+    userInfo: {
+        flex: 1,
+        gap: 4,
+    },
+
+    // Actions Card
+    actionsCard: {
+        marginBottom: 8,
+    },
+    actionsList: {
+        gap: 4,
+    },
+    actionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 16,
+        paddingHorizontal: 4,
+        borderRadius: 12,
+    },
+    actionLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        gap: 12,
+    },
+    actionIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    actionText: {
+        flex: 1,
+        gap: 2,
+    },
+
+    // Sign Out Section
+    signOutSection: {
+        marginTop: 16,
+        gap: 12,
+    },
+    signOutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 16,
+        gap: 8,
+    },
+    signOutText: {
         fontWeight: '600',
     },
-    linkText: {
-        fontSize: 18,
+    signOutWarning: {
         textAlign: 'center',
-        padding: 16,
+        lineHeight: 16,
+        fontStyle: 'italic',
     },
 });

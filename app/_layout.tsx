@@ -5,12 +5,28 @@ import { useFonts } from 'expo-font';
 import { Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, useColorScheme, View, Text, ActivityIndicator, Pressable } from 'react-native';
+import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+    withRepeat,
+    interpolate,
+    Easing,
+} from 'react-native-reanimated';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
 
-import { theme } from '@/constants/theme';
+import {
+    useTheme,
+    useSemanticColors,
+    useColorVariants,
+    useTypography,
+    useMotionValues
+} from '@/hooks/useThemeColor';
 import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
 
 import {
@@ -30,19 +46,10 @@ import { initDB } from '@/services/database';
 
 SplashScreen.preventAutoHideAsync();
 
-// ML Models Configuration
+// ML Models Configuration (same as before)
 const MODELS_OBJECT: ObjectDetectionConfig = {
     ssdmobilenetV1: {
         model: require('../assets/models/ssd_mobilenet_v1_metadata.tflite'),
-        options: {
-            shouldEnableMultipleObjects: true,
-            shouldEnableClassification: false,
-            classificationConfidenceThreshold: 0.3,
-            maxPerObjectLabelCount: 1
-        }
-    },
-    efficientNetlite0int8: {
-        model: require('../assets/models/efficientnet-lite0-int8.tflite'),
         options: {
             shouldEnableMultipleObjects: true,
             shouldEnableClassification: false,
@@ -66,103 +73,260 @@ const FONTS = {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
 };
 
-// Database Loading Screen Component
-function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
+// Enhanced Loading Animation Component
+function LoadingAnimation() {
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const motion = useMotionValues();
+
+    const rotation = useSharedValue(0);
+    const scale = useSharedValue(1);
+    const opacity = useSharedValue(0.7);
+
+    React.useEffect(() => {
+        rotation.value = withRepeat(
+            withTiming(360, { duration: 2000, easing: Easing.linear }),
+            -1,
+            false
+        );
+
+        scale.value = withRepeat(
+            withSpring(1.1, { damping: 15, stiffness: 300 }),
+            -1,
+            true
+        );
+
+        opacity.value = withRepeat(
+            withTiming(1, { duration: 1500 }),
+            -1,
+            true
+        );
+    }, []);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [
+            { rotate: `${rotation.value}deg` },
+            { scale: scale.value }
+        ],
+        opacity: opacity.value,
+    }));
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    width: 64,
+                    height: 64,
+                    borderRadius: 32,
+                    backgroundColor: variants.primarySubtle,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                },
+                animatedStyle,
+            ]}
+        >
+            <Feather name="feather" size={32} color={semanticColors.primary} />
+        </Animated.View>
+    );
+}
+
+// Enhanced Database Loading Screen Component
+function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
     const { isReady, isLoading, hasError, progress, loadedRecords, error, retry } = useBirdDexDatabase();
-    const colorScheme = useColorScheme() ?? 'light';
-    const pal = theme[colorScheme];
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const typography = useTypography();
+    const theme = useTheme();
+    const motion = useMotionValues();
+
+    const fadeAnim = useSharedValue(0);
+    const slideAnim = useSharedValue(30);
 
     React.useEffect(() => {
         if (isReady) {
-            onReady();
+            fadeAnim.value = withTiming(0, { duration: motion.duration.medium });
+            slideAnim.value = withTiming(30, { duration: motion.duration.medium });
+            setTimeout(onReady, motion.duration.medium);
+        } else {
+            fadeAnim.value = withTiming(1, { duration: motion.duration.medium });
+            slideAnim.value = withTiming(0, { duration: motion.duration.medium });
         }
-    }, [isReady, onReady]);
+    }, [isReady]);
+
+    const containerStyle = useAnimatedStyle(() => ({
+        opacity: fadeAnim.value,
+        transform: [{ translateY: slideAnim.value }],
+    }));
 
     if (hasError) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: pal.colors.background }]}>
-                <View style={styles.errorContainer}>
-                    <Feather name="alert-triangle" size={64} color={pal.colors.error} />
-                    <Text style={[styles.errorTitle, { color: pal.colors.text.primary }]}>
+            <View style={[styles.loadingContainer, { backgroundColor: semanticColors.background }]}>
+                <BlurView
+                    intensity={80}
+                    tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+                    style={styles.errorCard}
+                >
+                    <View style={[styles.errorIconContainer, { backgroundColor: variants.primaryHover }]}>
+                        <Feather name="alert-triangle" size={48} color={semanticColors.error} />
+                    </View>
+
+                    <Text style={[typography.headlineMedium, { color: semanticColors.text }]}>
                         Database Error
                     </Text>
-                    <Text style={[styles.errorMessage, { color: pal.colors.text.secondary }]}>
-                        {error || 'Failed to load bird database'}
+
+                    <Text style={[typography.bodyMedium, { color: semanticColors.textSecondary, textAlign: 'center' }]}>
+                        {error || 'Failed to load bird database. Check your storage and connection.'}
                     </Text>
+
                     <Pressable
-                        style={[styles.retryButton, { backgroundColor: pal.colors.primary }]}
+                        style={[styles.retryButton, { backgroundColor: semanticColors.primary }]}
                         onPress={retry}
                     >
-                        <Feather name="refresh-cw" size={18} color={pal.colors.text.onPrimary} />
-                        <Text style={[styles.retryText, { color: pal.colors.text.onPrimary }]}>
-                            Retry
+                        <Feather name="refresh-cw" size={20} color={semanticColors.onPrimary} />
+                        <Text style={[typography.labelLarge, { color: semanticColors.onPrimary }]}>
+                            Retry Loading
                         </Text>
                     </Pressable>
-                </View>
+                </BlurView>
             </View>
         );
     }
 
     if (isLoading) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: pal.colors.background }]}>
+            <Animated.View
+                style={[
+                    styles.loadingContainer,
+                    { backgroundColor: semanticColors.background },
+                    containerStyle
+                ]}
+            >
                 <View style={styles.loadingContent}>
-                    {/* App Logo */}
-                    <View style={styles.logoContainer}>
-                        <Feather name="feather" size={64} color={pal.colors.primary} />
-                    </View>
-
-                    <Text style={[styles.loadingTitle, { color: pal.colors.text.primary }]}>
-                        LogChirpy
-                    </Text>
-
-                    <Text style={[styles.loadingSubtitle, { color: pal.colors.text.secondary }]}>
-                        Loading Bird Database
-                    </Text>
-
-                    {/* Progress Indicator */}
-                    <View style={styles.progressContainer}>
-                        <ActivityIndicator size="large" color={pal.colors.primary} />
-
-                        {loadedRecords > 0 && (
-                            <Text style={[styles.progressDetail, { color: pal.colors.text.secondary }]}>
-                                {loadedRecords.toLocaleString()} species loaded
-                            </Text>
-                        )}
-
-                        {/* Progress Bar */}
-                        <View style={[styles.progressBar, { backgroundColor: pal.colors.border }]}>
-                            <View
-                                style={[
-                                    styles.progressFill,
-                                    {
-                                        backgroundColor: pal.colors.primary,
-                                        width: `${Math.max(5, progress)}%` // Minimum 5% for visual feedback
-                                    }
-                                ]}
-                            />
-                        </View>
-
-                        <Text style={[styles.progressText, { color: pal.colors.text.primary }]}>
-                            {progress}%
+                    {/* Brand Header */}
+                    <View style={styles.brandContainer}>
+                        <LoadingAnimation />
+                        <Text style={[typography.displayMedium, { color: semanticColors.text }]}>
+                            LogChirpy
+                        </Text>
+                        <Text style={[typography.bodyLarge, { color: semanticColors.textSecondary }]}>
+                            Preparing Your Bird Database
                         </Text>
                     </View>
 
-                    {/* Helpful Info */}
-                    <Text style={[styles.loadingInfo, { color: pal.colors.text.tertiary }]}>
-                        Preparing comprehensive bird species database...
+                    {/* Progress Section */}
+                    <BlurView
+                        intensity={60}
+                        tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+                        style={[styles.progressCard, { borderColor: variants.primaryMuted }]}
+                    >
+                        <Text style={[typography.headlineSmall, { color: semanticColors.text }]}>
+                            Loading Species Data
+                        </Text>
+
+                        {/* Progress Bar */}
+                        <View style={styles.progressSection}>
+                            <View style={[styles.progressTrack, { backgroundColor: semanticColors.border }]}>
+                                <Animated.View
+                                    style={[
+                                        styles.progressFill,
+                                        {
+                                            backgroundColor: semanticColors.primary,
+                                            width: `${Math.max(5, progress)}%`
+                                        }
+                                    ]}
+                                />
+                            </View>
+
+                            <View style={styles.progressStats}>
+                                <Text style={[typography.labelLarge, { color: semanticColors.primary }]}>
+                                    {progress}%
+                                </Text>
+                                {loadedRecords > 0 && (
+                                    <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
+                                        {loadedRecords.toLocaleString()} species loaded
+                                    </Text>
+                                )}
+                            </View>
+                        </View>
+
+                        <Text style={[typography.bodySmall, { color: semanticColors.textTertiary, textAlign: 'center' }]}>
+                            Building comprehensive bird identification database...
+                        </Text>
+                    </BlurView>
+
+                    {/* Loading Hint */}
+                    <Text style={[typography.labelMedium, { color: semanticColors.textTertiary, textAlign: 'center' }]}>
+                        This may take a moment on first launch
                     </Text>
                 </View>
-            </View>
+            </Animated.View>
         );
     }
 
     return null;
 }
 
-export default function RootLayout() {
-    const colorScheme = useColorScheme() ?? 'light';
-    const currentTheme = theme[colorScheme];
+// Enhanced App Initialization Loading
+function AppInitializationScreen({ message, error, onRetry }: {
+    message: string;
+    error?: string;
+    onRetry?: () => void;
+}) {
+    const semanticColors = useSemanticColors();
+    const typography = useTypography();
+    const variants = useColorVariants();
+
+    if (error) {
+        return (
+            <View style={[styles.loadingContainer, { backgroundColor: semanticColors.background }]}>
+                <View style={styles.errorContent}>
+                    <View style={[styles.errorIconContainer, { backgroundColor: variants.primaryHover }]}>
+                        <Feather name="alert-circle" size={48} color={semanticColors.error} />
+                    </View>
+
+                    <Text style={[typography.headlineMedium, { color: semanticColors.text }]}>
+                        Initialization Failed
+                    </Text>
+
+                    <Text style={[typography.bodyMedium, { color: semanticColors.textSecondary, textAlign: 'center' }]}>
+                        {error}
+                    </Text>
+
+                    {onRetry && (
+                        <Pressable
+                            style={[styles.retryButton, { backgroundColor: semanticColors.primary }]}
+                            onPress={onRetry}
+                        >
+                            <Feather name="refresh-cw" size={18} color={semanticColors.onPrimary} />
+                            <Text style={[typography.labelLarge, { color: semanticColors.onPrimary }]}>
+                                Try Again
+                            </Text>
+                        </Pressable>
+                    )}
+                </View>
+            </View>
+        );
+    }
+
+    return (
+        <View style={[styles.loadingContainer, { backgroundColor: semanticColors.background }]}>
+            <View style={styles.loadingContent}>
+                <LoadingAnimation />
+                <Text style={[typography.headlineMedium, { color: semanticColors.text }]}>
+                    LogChirpy
+                </Text>
+                <Text style={[typography.bodyMedium, { color: semanticColors.textSecondary }]}>
+                    {message}
+                </Text>
+            </View>
+        </View>
+    );
+}
+
+export default function EnhancedRootLayout() {
+    const theme = useTheme();
+    const semanticColors = useSemanticColors();
+    const typography = useTypography();
     const [loaded] = useFonts(FONTS);
     const segments = useSegments();
     const current = segments[segments.length - 1];
@@ -171,8 +335,9 @@ export default function RootLayout() {
     const [localDbReady, setLocalDbReady] = useState(false);
     const [localDbError, setLocalDbError] = useState<string | null>(null);
     const [birdDexReady, setBirdDexReady] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
 
-    // ML Models setup
+    // ML Models setup (same as before)
     const models_class = useImageLabelingModels(MODELS_CLASS);
     const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
 
@@ -187,43 +352,44 @@ export default function RootLayout() {
     }), []));
     const { ObjectDetectionProvider } = useObjectDetectionProvider(models);
 
-    // Initialize local database (bird_spottings)
+    // Initialize local database
     useEffect(() => {
         const initializeLocalDB = async () => {
             try {
                 await initDB();
                 setLocalDbReady(true);
+                setLocalDbError(null);
             } catch (error) {
                 console.error('Local DB initialization failed:', error);
                 setLocalDbError(error instanceof Error ? error.message : 'Failed to initialize local database');
-                setLocalDbReady(true); // Allow app to continue even if local DB fails
+                setLocalDbReady(true); // Allow app to continue
             }
         };
 
         initializeLocalDB();
-    }, []);
+    }, [retryCount]);
 
-    // Hide splash screen when fonts and local database are ready
+    // Hide splash screen when ready
     useEffect(() => {
         if (loaded && localDbReady) {
             SplashScreen.hideAsync();
         }
     }, [loaded, localDbReady]);
 
-    // Show loading screen while essential components are initializing
+    const handleRetry = () => {
+        setRetryCount(prev => prev + 1);
+        setLocalDbError(null);
+        setLocalDbReady(false);
+    };
+
+    // Show app initialization screen
     if (!loaded || !localDbReady) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: currentTheme.colors.background }]}>
-                <ActivityIndicator size="large" color={currentTheme.colors.primary} />
-                <Text style={[styles.initializingText, { color: currentTheme.colors.text.secondary }]}>
-                    Initializing LogChirpy...
-                </Text>
-                {localDbError && (
-                    <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
-                        Warning: {localDbError}
-                    </Text>
-                )}
-            </View>
+            <AppInitializationScreen
+                message={!loaded ? "Loading fonts and assets..." : "Initializing local database..."}
+                error={localDbError || undefined}
+                onRetry={localDbError ? handleRetry : undefined}
+            />
         );
     }
 
@@ -232,69 +398,61 @@ export default function RootLayout() {
         return (
             <ImageLabelingModelProvider>
                 <ObjectDetectionProvider>
-                    <DatabaseLoadingScreen onReady={() => setBirdDexReady(true)} />
+                    <EnhancedDatabaseLoadingScreen onReady={() => setBirdDexReady(true)} />
                     <StatusBar style="auto" />
                 </ObjectDetectionProvider>
             </ImageLabelingModelProvider>
         );
     }
 
-    // Main app is ready
+    // Main app with enhanced theming
     return (
         <ThemeProvider
             value={{
-                dark: colorScheme === 'dark',
+                dark: theme === theme,
                 colors: {
-                    notification: currentTheme.colors.secondary,
-                    background: currentTheme.colors.background,
-                    card: currentTheme.colors.accent,
-                    text: currentTheme.colors.text.primary,
-                    border: currentTheme.colors.border,
-                    primary: currentTheme.colors.primary,
+                    notification: semanticColors.accent,
+                    background: semanticColors.background,
+                    card: semanticColors.backgroundElevated,
+                    text: semanticColors.text,
+                    border: semanticColors.border,
+                    primary: semanticColors.primary,
                 },
                 fonts: {
-                    regular: {
-                        fontFamily: 'SpaceMono',
-                        fontWeight: 'normal',
-                    },
-                    medium: {
-                        fontFamily: 'SpaceMono',
-                        fontWeight: '500',
-                    },
-                    bold: {
-                        fontFamily: 'SpaceMono',
-                        fontWeight: 'bold',
-                    },
-                    heavy: {
-                        fontFamily: 'SpaceMono',
-                        fontWeight: '800',
-                    },
+                    regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
+                    medium: { fontFamily: 'SpaceMono', fontWeight: '500' },
+                    bold: { fontFamily: 'SpaceMono', fontWeight: 'bold' },
+                    heavy: { fontFamily: 'SpaceMono', fontWeight: '800' },
                 },
             }}
         >
             <ImageLabelingModelProvider>
                 <ObjectDetectionProvider>
-                    <View style={styles.container}>
-                        <View style={styles.content}>
-                            <Stack
-                                screenOptions={() => ({
-                                    headerStyle: {
-                                        backgroundColor:
-                                            current === 'photo' || current === 'video'
-                                                ? 'transparent'
-                                                : currentTheme.colors.background,
-                                    },
-                                    headerTransparent: current === 'photo' || current === 'video',
-                                    headerTintColor: currentTheme.colors.text.primary,
-                                    headerTitleStyle: {
-                                        fontWeight: 'bold',
-                                    },
-                                })}
-                            >
-                                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                                <Stack.Screen name="+not-found" />
-                            </Stack>
-                        </View>
+                    <View style={[styles.container, { backgroundColor: semanticColors.background }]}>
+                        <Stack
+                            screenOptions={() => ({
+                                headerStyle: {
+                                    backgroundColor:
+                                        current === 'photo' || current === 'video'
+                                            ? 'transparent'
+                                            : semanticColors.backgroundElevated,
+                                    ...theme.shadows.sm,
+                                },
+                                headerTransparent: current === 'photo' || current === 'video',
+                                headerTintColor: semanticColors.text,
+                                headerTitleStyle: {
+                                    ...typography.headlineMedium,
+                                    fontWeight: '600',
+                                },
+                                headerBackTitleVisible: false,
+                                headerBackImage: () => (
+                                    <Feather name="arrow-left" size={24} color={semanticColors.text} />
+                                ),
+                            })}
+                        >
+                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                            <Stack.Screen name="+not-found" />
+                        </Stack>
                     </View>
                     <StatusBar style="auto" />
                 </ObjectDetectionProvider>
@@ -307,108 +465,87 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    content: {
-        flex: 1,
-        position: 'relative',
-    },
 
     // Loading States
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: theme.spacing.xl,
+        padding: 32,
     },
     loadingContent: {
         alignItems: 'center',
-        maxWidth: 320,
+        maxWidth: 350,
         width: '100%',
-    },
-    logoContainer: {
-        marginBottom: theme.spacing.xl,
-    },
-    loadingTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: theme.spacing.sm,
-        textAlign: 'center',
-    },
-    loadingSubtitle: {
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: theme.spacing.xl,
-    },
-    initializingText: {
-        fontSize: 16,
-        marginTop: theme.spacing.md,
-        textAlign: 'center',
+        gap: 24,
     },
 
-    // Progress Indicators
-    progressContainer: {
+    // Brand Section
+    brandContainer: {
         alignItems: 'center',
-        width: '100%',
-        gap: theme.spacing.md,
+        gap: 16,
+        marginBottom: 32,
     },
-    progressDetail: {
-        fontSize: 14,
-        textAlign: 'center',
-    },
-    progressBar: {
+
+    // Progress Section
+    progressCard: {
         width: '100%',
-        height: 6,
-        borderRadius: 3,
+        padding: 24,
+        borderRadius: 20,
+        borderWidth: 1,
+        gap: 16,
+        alignItems: 'center',
+    },
+    progressSection: {
+        width: '100%',
+        gap: 12,
+    },
+    progressTrack: {
+        width: '100%',
+        height: 8,
+        borderRadius: 4,
         overflow: 'hidden',
     },
     progressFill: {
         height: '100%',
-        borderRadius: 3,
+        borderRadius: 4,
     },
-    progressText: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    loadingInfo: {
-        fontSize: 12,
-        textAlign: 'center',
-        marginTop: theme.spacing.lg,
-        fontStyle: 'italic',
+    progressStats: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
 
     // Error States
-    errorContainer: {
+    errorCard: {
+        padding: 32,
+        borderRadius: 24,
+        alignItems: 'center',
+        maxWidth: 350,
+        width: '100%',
+        gap: 20,
+    },
+    errorContent: {
         alignItems: 'center',
         maxWidth: 320,
+        gap: 20,
     },
-    errorTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginTop: theme.spacing.lg,
-        marginBottom: theme.spacing.sm,
-        textAlign: 'center',
-    },
-    errorMessage: {
-        fontSize: 16,
-        textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: theme.spacing.xl,
-    },
-    errorText: {
-        fontSize: 14,
-        marginTop: theme.spacing.sm,
-        textAlign: 'center',
+    errorIconContainer: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
     },
     retryButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.lg,
-        borderRadius: theme.borderRadius.lg,
-        gap: theme.spacing.sm,
-    },
-    retryText: {
-        fontSize: 16,
-        fontWeight: '600',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 16,
+        gap: 8,
+        minWidth: 120,
     },
 });
