@@ -1,54 +1,75 @@
 import React from 'react';
-import { Pressable, StyleSheet, useColorScheme, ViewStyle, PressableProps } from 'react-native';
-import { theme } from '@/constants/theme';
+import { Pressable, ViewStyle, PressableProps } from 'react-native';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+
+import {
+    useSemanticColors,
+    useColorVariants,
+    useButtonTheme,
+    useTypography,
+    useMotionValues,
+    useTheme,
+} from '@/hooks/useThemeColor';
+
+// Enhanced variant system matching your button theme
+type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'destructive' | 'ghost' | 'outline';
+type ButtonSize = 'small' | 'medium' | 'large';
 
 interface ThemedPressableProps extends Omit<PressableProps, 'style'> {
+    children?: React.ReactNode;
     style?: ViewStyle | ViewStyle[];
-    variant?: 'primary' | 'secondary' | 'ghost' | 'card';
-    size?: 'small' | 'medium' | 'large';
-    direction?: 'row' | 'column';
+    variant?: ButtonVariant;
+    size?: ButtonSize;
+    disabled?: boolean;
+    loading?: boolean;
+    fullWidth?: boolean;
+    // Animation controls
+    animateOnPress?: boolean;
+    hapticFeedback?: boolean;
+    glowOnHover?: boolean;
 }
+
+// Create AnimatedPressable correctly
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function ThemedPressable({
                                     children,
                                     style,
                                     variant = 'ghost',
                                     size = 'medium',
-                                    direction = 'row',
-                                    disabled,
+                                    disabled = false,
+                                    loading = false,
+                                    fullWidth = false,
+                                    animateOnPress = true,
+                                    hapticFeedback = true,
+                                    glowOnHover = false,
+                                    onPress,
+                                    onPressIn,
+                                    onPressOut,
                                     ...props
                                 }: ThemedPressableProps) {
-    const scheme = useColorScheme() ?? 'light';
-    const pal = theme[scheme];
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const buttonTheme = useButtonTheme();
+    const typography = useTypography();
+    const motion = useMotionValues();
+    const theme = useTheme();
 
-    const getVariantStyle = () => {
-        switch (variant) {
-            case 'primary':
-                return {
-                    backgroundColor: pal.colors.primary,
-                    ...theme.shadows.sm,
-                };
-            case 'secondary':
-                return {
-                    backgroundColor: pal.colors.statusBar,
-                    borderWidth: 1,
-                    borderColor: pal.colors.border,
-                };
-            case 'card':
-                return {
-                    backgroundColor: pal.colors.statusBar,
-                    borderWidth: 1,
-                    borderColor: pal.colors.border,
-                    ...theme.shadows.sm,
-                };
-            case 'ghost':
-            default:
-                return {
-                    backgroundColor: 'transparent',
-                };
-        }
-    };
+    // Animation values
+    const scale = useSharedValue(1);
+    const opacity = useSharedValue(1);
+    const glowOpacity = useSharedValue(0);
 
+    // Get variant-specific styling
+    const variantStyle = buttonTheme[variant] || buttonTheme.ghost;
+
+    // Size configurations
     const getSizeStyle = () => {
         switch (size) {
             case 'small':
@@ -56,12 +77,14 @@ export function ThemedPressable({
                     paddingHorizontal: theme.spacing.sm,
                     paddingVertical: theme.spacing.xs,
                     minHeight: 32,
+                    borderRadius: theme.borderRadius.sm,
                 };
             case 'large':
                 return {
-                    paddingHorizontal: theme.spacing.lg,
+                    paddingHorizontal: theme.spacing.xl,
                     paddingVertical: theme.spacing.md,
                     minHeight: 56,
+                    borderRadius: theme.borderRadius.lg,
                 };
             case 'medium':
             default:
@@ -69,44 +92,166 @@ export function ThemedPressable({
                     paddingHorizontal: theme.spacing.md,
                     paddingVertical: theme.spacing.sm,
                     minHeight: 44,
+                    borderRadius: theme.borderRadius.md,
                 };
         }
     };
 
-    const getPressedStyle = () => ({
-        backgroundColor: variant === 'primary'
-            ? pal.colors.hover
-            : pal.colors.primary + '10',
-        transform: [{ scale: 0.98 }],
-    });
+    // Animation styles
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+        opacity: opacity.value,
+    }));
+
+    const glowStyle = useAnimatedStyle(() => ({
+        shadowOpacity: glowOpacity.value * 0.3,
+        shadowRadius: glowOpacity.value * 8,
+        shadowOffset: {
+            width: 0,
+            height: glowOpacity.value * 4
+        },
+        elevation: glowOpacity.value * 4,
+    }));
+
+    // Interaction handlers
+    const handlePressIn = (event: any) => {
+        if (animateOnPress && !disabled && !loading) {
+            scale.value = withSpring(0.96, { damping: 15, stiffness: 300 });
+
+            if (glowOnHover) {
+                glowOpacity.value = withTiming(1, { duration: motion.duration.fast });
+            }
+
+            if (hapticFeedback) {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+        }
+        onPressIn?.(event);
+    };
+
+    const handlePressOut = (event: any) => {
+        if (animateOnPress && !disabled && !loading) {
+            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+
+            if (glowOnHover) {
+                glowOpacity.value = withTiming(0, { duration: motion.duration.medium });
+            }
+        }
+        onPressOut?.(event);
+    };
+
+    const handlePress = (event: any) => {
+        if (!disabled && !loading) {
+            if (hapticFeedback) {
+                Haptics.selectionAsync();
+            }
+            onPress?.(event);
+        }
+    };
+
+    // Combined styles
+    const combinedStyle = [
+        // Base styles
+        {
+            alignItems: 'center' as const,
+            justifyContent: 'center' as const,
+            flexDirection: 'row' as const,
+            overflow: 'hidden' as const,
+            position: 'relative' as const,
+            ...(fullWidth && { width: '100%' }),
+        },
+        // Variant styles
+        variantStyle,
+        // Size styles
+        getSizeStyle(),
+        // Disabled styles
+        disabled && {
+            opacity: 0.5,
+            ...(variant === 'primary' && {
+                backgroundColor: semanticColors.disabled,
+            }),
+        },
+        // Loading styles
+        loading && {
+            opacity: 0.7,
+        },
+        // Animation styles
+        animatedStyle,
+        glowOnHover && glowStyle,
+        // Custom styles
+        style,
+    ];
+
+    // Ripple color for Android
+    const getRippleColor = () => {
+        switch (variant) {
+            case 'primary':
+                return variants.primaryPressed;
+            case 'secondary':
+                return variants.surfacePressed;
+            case 'destructive':
+                return 'rgba(255,255,255,0.2)';
+            default:
+                return variants.surfacePressed;
+        }
+    };
 
     return (
-        <Pressable
-            {...props}
-            disabled={disabled}
-            style={({ pressed }) => [
-                styles.base,
-                { flexDirection: direction },
-                getVariantStyle(),
-                getSizeStyle(),
-                pressed && !disabled && getPressedStyle(),
-                disabled && styles.disabled,
-                style,
-            ]}
-            android_ripple={null} // Disable default Android ripple
-        >
-            {children}
-        </Pressable>
+        <>
+            {/* Glow effect background */}
+                {glowOnHover && (
+                    <Animated.View
+                        style={[
+                            {
+                                position: 'absolute',
+                                top: -2,
+                                left: -2,
+                                right: -2,
+                                bottom: -2,
+                                borderRadius: getSizeStyle().borderRadius + 2,
+                                backgroundColor: variants.primarySubtle,
+                                zIndex: -1,
+                            },
+                            useAnimatedStyle(() => ({
+                                opacity: glowOpacity.value * 0.5,
+                                transform: [{ scale: 1 + glowOpacity.value * 0.05 }],
+                            })),
+                        ]}
+                        pointerEvents="none"
+                    />
+                )}
+
+                <AnimatedPressable
+                    {...props}
+                    style={combinedStyle}
+                    onPress={handlePress}
+                    onPressIn={handlePressIn}
+                    onPressOut={handlePressOut}
+                    disabled={disabled || loading}
+                    android_ripple={{
+                        color: getRippleColor(),
+                        borderless: false,
+                    }}
+                >
+                    {children}
+                </AnimatedPressable>
+        </>
     );
 }
 
-const styles = StyleSheet.create({
-    base: {
-        borderRadius: theme.borderRadius.md,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    disabled: {
-        opacity: 0.5,
-    },
-});
+// Specialized button components for common use cases
+export function PrimaryButton(props: Omit<ThemedPressableProps, 'variant'>) {
+    return <ThemedPressable variant="primary" hapticFeedback glowOnHover {...props} />;
+}
+
+export function SecondaryButton(props: Omit<ThemedPressableProps, 'variant'>) {
+    return <ThemedPressable variant="secondary" {...props} />;
+}
+
+export function DestructiveButton(props: Omit<ThemedPressableProps, 'variant'>) {
+    return <ThemedPressable variant="destructive" hapticFeedback {...props} />;
+}
+
+export function GhostButton(props: Omit<ThemedPressableProps, 'variant'>) {
+    return <ThemedPressable variant="ghost" {...props} />;
+}
