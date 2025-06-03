@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
         paddingTop: 80,
         paddingBottom: 2,
         alignItems: 'center',
-        minHeight: height * 0.4,
+        minHeight: height * 0.3,
         justifyContent: 'center',
     },
     heroContent: {
