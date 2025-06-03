@@ -1,4 +1,4 @@
-// services/databaseBirDex.ts - React Native Optimized Progressive Loading
+// services/databaseBirDex.ts - Simplified and Reliable BirdDex Database Service
 const SQLite: any = require('expo-sqlite');
 type SQLiteDatabase = any;
 import { Asset } from 'expo-asset';
@@ -7,102 +7,30 @@ import Papa from 'papaparse';
 import { Platform } from 'react-native';
 
 // -----------------------------------------------------------------------------------
-// Mobile-Optimized Progressive BirdDex Database Service
+// Simplified BirdDex Database Service with Better UX
 // -----------------------------------------------------------------------------------
 
 const ASSET_CSV = require('../assets/birds_fully_translated.csv');
-const BIRDDEX_VERSION = 'Clements-v2024-October-2024-progressive-v1';
+const BIRDDEX_VERSION = 'Clements-v2024-simplified-v1';
 
-// Platform-specific optimizations
+// Platform-specific batch sizes for optimal performance
 const PLATFORM_CONFIG = {
-    ios: {
-        coreBatchSize: 25,      // Smaller batches for iOS
-        backgroundBatchSize: 100,
-        progressThrottle: 100,   // Update progress every 100ms max
-        yieldInterval: 5,        // Yield control every 5 batches
-    },
-    android: {
-        coreBatchSize: 50,      // Larger batches for Android
-        backgroundBatchSize: 200,
-        progressThrottle: 150,
-        yieldInterval: 3,
-    },
-    default: {
-        coreBatchSize: 30,
-        backgroundBatchSize: 150,
-        progressThrottle: 125,
-        yieldInterval: 4,
-    }
+    ios: { batchSize: 25, yieldInterval: 3 },
+    android: { batchSize: 50, yieldInterval: 2 },
+    default: { batchSize: 30, yieldInterval: 3 }
 };
 
 const config = PLATFORM_CONFIG[Platform.OS as keyof typeof PLATFORM_CONFIG] || PLATFORM_CONFIG.default;
 
-// Core species families (most commonly seen birds)
-const CORE_SPECIES_FAMILIES = [
-    'Passeridae', 'Turdidae', 'Corvidae', 'Paridae', 'Fringillidae',
-    'Columbidae', 'Picidae', 'Tyrannidae', 'Parulidae', 'Hirundinidae',
-    'Emberizidae', 'Cardinalidae', 'Icteridae', 'Mimidae', 'Sturnidae'
-];
-
-// SQLite helper with error handling
-let db: SQLiteDatabase | null = null;
-export function DB(): SQLiteDatabase {
-    if (!db) {
-        try {
-            db = SQLite.openDatabaseSync('logchirpy.db');
-        } catch (error) {
-            console.error('Failed to open database:', error);
-            throw new Error('Database initialization failed');
-        }
-    }
-    return db;
+// Types and Interfaces
+export interface DatabaseState {
+    status: 'uninitialized' | 'initializing' | 'ready' | 'error';
+    progress: number;
+    error?: string;
+    totalRecords: number;
+    loadedRecords: number;
+    currentOperation?: string;
 }
-
-// Enhanced database state with thread safety
-let isDbInitialized = false;
-let isCoreReady = false;
-let isInitializing = false;
-let isFullLoadInProgress = false;
-let initializationPromise: Promise<void> | null = null;
-
-export function isDbReady(): boolean {
-    return isDbInitialized;
-}
-
-export function isCoreDbReady(): boolean {
-    return isCoreReady;
-}
-
-export function isFullDbReady(): boolean {
-    return isDbInitialized;
-}
-
-// Progress tracking with throttling
-let lastProgressUpdate = 0;
-const throttledProgressUpdate = (callback: ProgressCallback | undefined, data: ProgressData) => {
-    const now = Date.now();
-    if (callback && now - lastProgressUpdate > config.progressThrottle) {
-        lastProgressUpdate = now;
-        // Schedule on next tick to avoid blocking
-        setTimeout(() => callback(data), 0);
-    }
-};
-
-// Enhanced progress data
-export interface ProgressData {
-    loaded: number;
-    total: number;
-    phase: 'initializing' | 'core-loading' | 'core-complete' | 'background-loading' | 'complete';
-    coreProgress?: number;
-    backgroundProgress?: number;
-    message?: string;
-    estimatedCoreTime?: number;
-    estimatedFullTime?: number;
-    currentSpecies?: string;
-    memoryUsage?: number;
-}
-
-type ProgressCallback = (progress: ProgressData) => void;
 
 export type BirdCategory =
     | 'species'
@@ -131,537 +59,442 @@ export interface BirdDexRecord {
     ukrainian_name: string;
     ar_name: string;
     hasBeenLogged: 0 | 1;
-    is_core?: boolean;
 }
 
-// Enhanced core species detection
-function isCoreSpecies(row: Record<string, string>): boolean {
-    const category = row['category']?.trim();
-    const family = row['family']?.trim();
-    const englishName = row['English name']?.trim().toLowerCase();
-    const scientificName = row['scientific name']?.trim().toLowerCase();
-
-    // Only include actual species
-    if (category !== 'species') return false;
-
-    // Include common families
-    if (family && CORE_SPECIES_FAMILIES.includes(family)) return true;
-
-    // Include commonly searched birds by name patterns
-    const commonPatterns = [
-        'robin', 'sparrow', 'crow', 'cardinal', 'blue jay', 'chickadee',
-        'woodpecker', 'hawk', 'eagle', 'owl', 'dove', 'pigeon', 'finch',
-        'warbler', 'thrush', 'wren', 'flycatcher', 'swallow', 'martin',
-        'hummingbird', 'blackbird', 'jay', 'tit', 'nuthatch', 'starling',
-        'duck', 'goose', 'swan', 'gull', 'tern', 'pelican', 'heron'
-    ];
-
-    // Check both English and scientific names
-    const hasCommonPattern = commonPatterns.some(pattern =>
-        englishName.includes(pattern) || scientificName.includes(pattern)
-    );
-
-    return hasCommonPattern;
+// SQLite database helper
+let db: SQLiteDatabase | null = null;
+export function DB(): SQLiteDatabase {
+    if (!db) {
+        try {
+            db = SQLite.openDatabaseSync('logchirpy.db');
+        } catch (error) {
+            console.error('Failed to open database:', error);
+            throw new Error('Database initialization failed');
+        }
+    }
+    return db;
 }
 
-// Memory-efficient CSV streaming parser
-async function parseCSVStream(csvText: string, progressCallback?: ProgressCallback): Promise<Record<string, string>[]> {
-    return new Promise((resolve, reject) => {
-        const rows: Record<string, string>[] = [];
-        let processedLines = 0;
-        const totalLines = csvText.split('\n').length;
+// Main Database Class with Singleton Pattern
+class BirdDexDatabase {
+    private static instance: BirdDexDatabase;
+    private state: DatabaseState = {
+        status: 'uninitialized',
+        progress: 0,
+        totalRecords: 0,
+        loadedRecords: 0
+    };
+    private subscribers: ((state: DatabaseState) => void)[] = [];
+    private initializationPromise: Promise<void> | null = null;
 
-        Papa.parse<Record<string, string>>(csvText, {
-            header: true,
-            skipEmptyLines: true,
-            transform: (value: string) => value.trim(),
-            chunk: (results: { data: any[]; }) => {
-                // Process in chunks to avoid blocking UI
-                results.data.forEach(row => {
-                    if (row.species_code?.trim()) {
-                        rows.push(row);
-                    }
-                });
+    static getInstance(): BirdDexDatabase {
+        if (!BirdDexDatabase.instance) {
+            BirdDexDatabase.instance = new BirdDexDatabase();
+        }
+        return BirdDexDatabase.instance;
+    }
 
-                processedLines += results.data.length;
+    // Observer pattern for state updates
+    subscribe(callback: (state: DatabaseState) => void): () => void {
+        this.subscribers.push(callback);
+        // Return current state immediately
+        callback({ ...this.state });
 
-                // Throttled progress update
-                if (progressCallback && processedLines % 1000 === 0) {
-                    throttledProgressUpdate(progressCallback, {
-                        loaded: Math.round((processedLines / totalLines) * 15), // 15% of total progress
-                        total: 100,
-                        phase: 'initializing',
-                        message: `Parsing CSV: ${processedLines.toLocaleString()} lines processed`
-                    });
-                }
-            },
-            complete: () => {
-                console.log(`Parsed ${rows.length} valid bird records from CSV`);
-                resolve(rows);
-            },
-            error: (error: { message: any; }) => {
-                console.error('CSV parsing error:', error);
-                reject(new Error(`CSV parsing failed: ${error.message}`));
+        return () => {
+            const index = this.subscribers.indexOf(callback);
+            if (index > -1) this.subscribers.splice(index, 1);
+        };
+    }
+
+    private notifySubscribers(): void {
+        this.subscribers.forEach(callback => {
+            try {
+                callback({ ...this.state });
+            } catch (error) {
+                console.error('Subscriber callback error:', error);
             }
         });
-    });
-}
+    }
 
-// Optimized batch processing with transactions
-async function processCoreSpeciesBatch(
-    database: SQLiteDatabase,
-    coreRows: any[],
-    startIdx: number,
-    batchSize: number,
-    totalCoreRows: number,
-    progressCallback?: ProgressCallback,
-    batchCount: number = 0
-): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const endIdx = Math.min(startIdx + batchSize, coreRows.length);
+    private updateState(updates: Partial<DatabaseState>): void {
+        this.state = { ...this.state, ...updates };
+        this.notifySubscribers();
+    }
 
-        try {
-            // Use transaction for better performance
-            database.withTransactionSync(() => {
-                const insertSql = `
-                    INSERT OR REPLACE INTO birddex (
-                        species_code, english_name, scientific_name, category, family, order_,
-                        sort_v2024, clements_v2024b_change, text_for_website_v2024b, range,
-                        extinct, extinct_year, sort_v2023, de_name, es_name,
-                        ukrainian_name, ar_name, is_core
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)
-                `;
-
-                const stmt = database.prepareSync(insertSql);
-
-                try {
-                    for (let i = startIdx; i < endIdx; i++) {
-                        const r = coreRows[i];
-                        const speciesCode = r['species_code']?.trim() || '';
-                        if (!speciesCode) continue;
-
-                        const params = [
-                            speciesCode,
-                            r['English name']?.trim() || '',
-                            r['scientific name']?.trim() || '',
-                            r['category']?.trim() || '',
-                            r['family']?.trim() || '',
-                            r['order']?.trim() || '',
-                            r['sort v2024']?.trim() || '',
-                            r['Clements v2024b change']?.trim() || '',
-                            r['text for website v2024b']?.trim() || '',
-                            r['range']?.trim() || '',
-                            r['extinct']?.trim() || '',
-                            r['extinct year']?.trim() || '',
-                            r['sort_v2023']?.trim() || '',
-                            r['de_name']?.trim() || '',
-                            r['es_name']?.trim() || '',
-                            r['ukrainian_name']?.trim() || '',
-                            r['ar_name']?.trim() || ''
-                        ];
-
-                        stmt.executeSync(params);
-                    }
-                } finally {
-                    stmt.finalizeSync();
-                }
-            });
-
-            // Progress update with throttling
-            const coreProgress = Math.round((endIdx / totalCoreRows) * 100);
-            const currentSpecies = endIdx < coreRows.length ? coreRows[endIdx]['English name'] : 'Complete';
-
-            throttledProgressUpdate(progressCallback, {
-                loaded: 15 + (coreProgress * 0.4), // 15% parsing + 40% core loading
-                total: 100,
-                phase: 'core-loading',
-                coreProgress,
-                message: `Loading core species: ${endIdx}/${totalCoreRows}`,
-                currentSpecies,
-                estimatedCoreTime: Math.max(0, ((totalCoreRows - endIdx) / batchSize) * 0.1)
-            });
-
-            // Yield control to UI periodically
-            if (batchCount % config.yieldInterval === 0) {
-                setTimeout(() => resolve(), 0);
-            } else {
-                resolve();
-            }
-
-        } catch (error) {
-            console.error('Core batch processing error:', error);
-            reject(error);
+    // Main initialization method
+    async initialize(): Promise<void> {
+        // Return existing promise if initialization is in progress
+        if (this.initializationPromise) {
+            return this.initializationPromise;
         }
-    });
-}
 
-// Background batch processing with better memory management
-async function processBackgroundSpeciesBatch(
-    database: SQLiteDatabase,
-    backgroundRows: any[],
-    startIdx: number,
-    batchSize: number,
-    totalBackgroundRows: number,
-    progressCallback?: ProgressCallback,
-    batchCount: number = 0
-): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const endIdx = Math.min(startIdx + batchSize, backgroundRows.length);
+        // Already ready
+        if (this.state.status === 'ready') {
+            return Promise.resolve();
+        }
 
-        try {
-            database.withTransactionSync(() => {
-                const insertSql = `
-                    INSERT OR REPLACE INTO birddex (
-                        species_code, english_name, scientific_name, category, family, order_,
-                        sort_v2024, clements_v2024b_change, text_for_website_v2024b, range,
-                        extinct, extinct_year, sort_v2023, de_name, es_name,
-                        ukrainian_name, ar_name, is_core
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)
-                `;
-
-                const stmt = database.prepareSync(insertSql);
-
-                try {
-                    for (let i = startIdx; i < endIdx; i++) {
-                        const r = backgroundRows[i];
-                        const speciesCode = r['species_code']?.trim() || '';
-                        if (!speciesCode) continue;
-
-                        const params = [
-                            speciesCode,
-                            r['English name']?.trim() || '',
-                            r['scientific name']?.trim() || '',
-                            r['category']?.trim() || '',
-                            r['family']?.trim() || '',
-                            r['order']?.trim() || '',
-                            r['sort v2024']?.trim() || '',
-                            r['Clements v2024b change']?.trim() || '',
-                            r['text for website v2024b']?.trim() || '',
-                            r['range']?.trim() || '',
-                            r['extinct']?.trim() || '',
-                            r['extinct year']?.trim() || '',
-                            r['sort_v2023']?.trim() || '',
-                            r['de_name']?.trim() || '',
-                            r['es_name']?.trim() || '',
-                            r['ukrainian_name']?.trim() || '',
-                            r['ar_name']?.trim() || ''
-                        ];
-
-                        stmt.executeSync(params);
+        // Already initializing, wait for completion
+        if (this.state.status === 'initializing') {
+            return new Promise((resolve, reject) => {
+                const unsubscribe = this.subscribe((state) => {
+                    if (state.status === 'ready') {
+                        unsubscribe();
+                        resolve();
+                    } else if (state.status === 'error') {
+                        unsubscribe();
+                        reject(new Error(state.error));
                     }
-                } finally {
-                    stmt.finalizeSync();
-                }
-            });
-
-            // Less frequent progress updates for background loading
-            if (endIdx % (batchSize * 2) === 0 || endIdx === backgroundRows.length) {
-                const backgroundProgress = Math.round((endIdx / totalBackgroundRows) * 100);
-
-                throttledProgressUpdate(progressCallback, {
-                    loaded: 100, // Core is complete
-                    total: 100,
-                    phase: 'background-loading',
-                    backgroundProgress,
-                    message: `Loading additional species: ${endIdx.toLocaleString()}/${totalBackgroundRows.toLocaleString()}`,
-                    estimatedFullTime: Math.max(0, ((totalBackgroundRows - endIdx) / batchSize) * 0.2)
                 });
-            }
-
-            // Yield control more frequently for background processing
-            if (batchCount % (config.yieldInterval * 2) === 0) {
-                setTimeout(() => resolve(), 10); // Longer delay for background
-            } else {
-                resolve();
-            }
-
-        } catch (error) {
-            console.error('Background batch processing error:', error);
-            reject(error);
-        }
-    });
-}
-
-// Main initialization with better error handling and recovery
-export async function initBirdDexDB(progressCallback?: ProgressCallback): Promise<void> {
-    // Prevent concurrent initializations
-    if (initializationPromise) {
-        return initializationPromise;
-    }
-
-    if (isInitializing) {
-        console.log('Database initialization already in progress');
-        return;
-    }
-
-    if (isCoreReady && isDbInitialized) {
-        console.log('Database already fully initialized');
-        if (progressCallback) {
-            progressCallback({
-                loaded: 100,
-                total: 100,
-                phase: 'complete',
-                coreProgress: 100,
-                backgroundProgress: 100,
-                message: 'Database ready'
             });
         }
-        return;
+
+        // Start initialization
+        this.initializationPromise = this.performInitialization();
+        return this.initializationPromise;
     }
 
-    isInitializing = true;
-
-    // Create initialization promise for concurrent access
-    initializationPromise = (async () => {
+    private async performInitialization(): Promise<void> {
         try {
-            const startTime = Date.now();
+            this.updateState({
+                status: 'initializing',
+                progress: 0,
+                currentOperation: 'Initializing database...'
+            });
+
             const database = DB();
 
-            // Optimize database for mobile
-            database.execSync('PRAGMA synchronous = NORMAL;'); // Better for mobile
-            database.execSync('PRAGMA journal_mode = WAL;');
-            database.execSync('PRAGMA temp_store = MEMORY;');
-            database.execSync('PRAGMA cache_size = -8000;'); // 8MB cache
-            database.execSync('PRAGMA mmap_size = 67108864;'); // 64MB mmap
+            // Optimize database settings
+            this.optimizeDatabase(database);
 
-            if (progressCallback) {
-                progressCallback({
-                    loaded: 0,
-                    total: 100,
-                    phase: 'initializing',
-                    message: 'Initializing database...'
+            // Check if database is already initialized
+            if (await this.isAlreadyInitialized(database)) {
+                const recordCount = await this.getRecordCount(database);
+                this.updateState({
+                    status: 'ready',
+                    progress: 100,
+                    totalRecords: recordCount,
+                    loadedRecords: recordCount,
+                    currentOperation: 'Database ready'
                 });
-            }
-
-            console.log('Creating database tables...');
-
-            // Create metadata table
-            database.execSync(`
-                CREATE TABLE IF NOT EXISTS metadata (
-                    key   TEXT PRIMARY KEY,
-                    value TEXT
-                );
-            `);
-
-            // Check current version
-            let currentVersion: string | null = null;
-            try {
-                const stmt = database.prepareSync(`SELECT value FROM metadata WHERE key = 'birddex_version' LIMIT 1;`);
-                const verRes = stmt.executeSync().getAllSync();
-                stmt.finalizeSync();
-                currentVersion = verRes.length > 0 ? verRes[0].value : null;
-            } catch (e) {
-                console.log('No existing version found');
-            }
-
-            // Force reload if version changed
-            const needsReload = currentVersion !== BIRDDEX_VERSION;
-
-            if (!needsReload && isCoreReady) {
-                console.log('Core database already ready');
-                if (!isDbInitialized) {
-                    loadRemainingSpeciesInBackground(progressCallback);
-                }
                 return;
             }
 
-            console.log('Database version changed or first install, rebuilding...');
+            // Create tables
+            await this.createTables(database);
 
-            // Drop and recreate table for clean schema
-            database.execSync(`DROP TABLE IF EXISTS birddex;`);
+            // Load and process CSV data
+            const csvData = await this.loadCSVData();
+            await this.processDataInChunks(csvData, database);
 
-            database.execSync(`
-                CREATE TABLE birddex (
-                    species_code           TEXT    PRIMARY KEY,
-                    english_name           TEXT    NOT NULL,
-                    scientific_name        TEXT    NOT NULL,
-                    category               TEXT,
-                    family                 TEXT,
-                    order_                 TEXT,
-                    sort_v2024             TEXT,
-                    clements_v2024b_change TEXT,
-                    text_for_website_v2024b TEXT,
-                    range                  TEXT,
-                    extinct                TEXT,
-                    extinct_year           TEXT,
-                    sort_v2023             TEXT,
-                    de_name                TEXT,
-                    es_name                TEXT,
-                    ukrainian_name         TEXT,
-                    ar_name                TEXT,
-                    is_core                INTEGER DEFAULT 0
-                );
-            `);
+            // Create indexes for performance
+            await this.createIndexes(database);
 
-            console.log('Database tables created successfully');
+            // Mark as complete
+            await this.markInitializationComplete(database);
 
-            // Load and parse CSV with progress tracking
-            if (progressCallback) {
-                progressCallback({
-                    loaded: 5,
-                    total: 100,
-                    phase: 'initializing',
-                    message: 'Loading bird species data...'
-                });
-            }
-
-            const asset = Asset.fromModule(ASSET_CSV);
-            await asset.downloadAsync();
-            const uri = asset.localUri ?? asset.uri;
-            if (!uri) throw new Error('Could not resolve CSV asset URI');
-
-            console.log('Reading CSV file...');
-            const csvText = await FileSystem.readAsStringAsync(uri);
-
-            // Parse CSV with streaming to avoid memory issues
-            const allRows = await parseCSVStream(csvText, progressCallback);
-
-            // Filter valid rows
-            const validRows = allRows.filter(row =>
-                row.species_code?.trim() &&
-                ['species', 'subspecies', 'family', 'group (polytypic)', 'group (monotypic)'].includes(
-                    row.category?.trim() || ''
-                )
-            );
-
-            // Separate core vs background species
-            const coreSpecies = validRows.filter(isCoreSpecies);
-            const backgroundSpecies = validRows.filter(row => !isCoreSpecies(row));
-
-            console.log(`Loading ${coreSpecies.length} core species first, ${backgroundSpecies.length} in background`);
-
-            // Load core species with optimized batching
-            let batchCount = 0;
-            for (let i = 0; i < coreSpecies.length; i += config.coreBatchSize) {
-                await processCoreSpeciesBatch(
-                    database,
-                    coreSpecies,
-                    i,
-                    config.coreBatchSize,
-                    coreSpecies.length,
-                    progressCallback,
-                    batchCount++
-                );
-            }
-
-            // Create essential indexes for core functionality
-            console.log('Creating core indexes...');
-            database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_core ON birddex(is_core);');
-            database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_english_core ON birddex(english_name COLLATE NOCASE) WHERE is_core = 1;');
-            database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_scientific_core ON birddex(scientific_name COLLATE NOCASE) WHERE is_core = 1;');
-            database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_category ON birddex(category);');
-
-            // Update metadata
-            const metaStmt = database.prepareSync('INSERT OR REPLACE INTO metadata(key,value) VALUES(?,?);');
-            metaStmt.executeSync(['birddex_version', BIRDDEX_VERSION]);
-            metaStmt.executeSync(['core_loaded', 'true']);
-            metaStmt.executeSync(['core_loaded_at', new Date().toISOString()]);
-            metaStmt.finalizeSync();
-
-            isCoreReady = true;
-
-            const coreLoadTime = Date.now() - startTime;
-            console.log(`Core database loaded in ${coreLoadTime}ms`);
-
-            if (progressCallback) {
-                progressCallback({
-                    loaded: 55,
-                    total: 100,
-                    phase: 'core-complete',
-                    coreProgress: 100,
-                    message: 'Core species ready! Loading additional species in background...'
-                });
-            }
-
-            // Start background loading immediately
-            loadRemainingSpeciesInBackground(progressCallback, backgroundSpecies);
+            this.updateState({
+                status: 'ready',
+                progress: 100,
+                currentOperation: 'Database ready'
+            });
 
         } catch (error) {
-            console.error('Core database initialization failed:', error);
-            isInitializing = false;
-            initializationPromise = null;
+            console.error('Database initialization failed:', error);
+            this.updateState({
+                status: 'error',
+                error: error instanceof Error ? error.message : 'Unknown initialization error'
+            });
             throw error;
         } finally {
-            isInitializing = false;
+            this.initializationPromise = null;
         }
-    })();
+    }
 
-    return initializationPromise;
-}
+    private optimizeDatabase(database: SQLiteDatabase): void {
+        try {
+            database.execSync('PRAGMA synchronous = NORMAL;');
+            database.execSync('PRAGMA journal_mode = WAL;');
+            database.execSync('PRAGMA temp_store = MEMORY;');
+            database.execSync('PRAGMA cache_size = -8000;'); // 8MB cache
+        } catch (error) {
+            console.warn('Database optimization failed:', error);
+        }
+    }
 
-// Background loading with improved error handling
-async function loadRemainingSpeciesInBackground(
-    progressCallback?: ProgressCallback,
-    backgroundSpecies?: any[]
-) {
-    if (isFullLoadInProgress || isDbInitialized) return;
+    private async isAlreadyInitialized(database: SQLiteDatabase): Promise<boolean> {
+        try {
+            // Check if metadata table exists
+            const tableExists = database.execSync(`
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='birddex'
+            `).getAllSync();
 
-    isFullLoadInProgress = true;
+            if (tableExists.length === 0) return false;
 
-    try {
-        const database = DB();
+            // Check version
+            const stmt = database.prepareSync(`
+                SELECT value FROM metadata 
+                WHERE key = 'birddex_version' LIMIT 1
+            `);
 
-        if (!backgroundSpecies) {
-            console.log('Background species not provided, skipping background load');
-            return;
+            try {
+                const result = stmt.executeSync().getAllSync();
+                const currentVersion = result.length > 0 ? result[0].value : null;
+                return currentVersion === BIRDDEX_VERSION;
+            } finally {
+                stmt.finalizeSync();
+            }
+        } catch (error) {
+            console.log('Database not initialized yet');
+            return false;
+        }
+    }
+
+    private async getRecordCount(database: SQLiteDatabase): Promise<number> {
+        try {
+            const stmt = database.prepareSync('SELECT COUNT(*) as count FROM birddex');
+            try {
+                const result = stmt.executeSync().getAllSync();
+                return result[0]?.count || 0;
+            } finally {
+                stmt.finalizeSync();
+            }
+        } catch (error) {
+            return 0;
+        }
+    }
+
+    private async createTables(database: SQLiteDatabase): Promise<void> {
+        this.updateState({ currentOperation: 'Creating database tables...' });
+
+        database.execSync(`
+            CREATE TABLE IF NOT EXISTS metadata (
+                key   TEXT PRIMARY KEY,
+                value TEXT
+            )
+        `);
+
+        // Drop and recreate for clean schema
+        database.execSync('DROP TABLE IF EXISTS birddex');
+
+        database.execSync(`
+            CREATE TABLE birddex (
+                species_code           TEXT    PRIMARY KEY,
+                english_name           TEXT    NOT NULL,
+                scientific_name        TEXT    NOT NULL,
+                category               TEXT,
+                family                 TEXT,
+                order_                 TEXT,
+                sort_v2024             TEXT,
+                clements_v2024b_change TEXT,
+                text_for_website_v2024b TEXT,
+                range                  TEXT,
+                extinct                TEXT,
+                extinct_year           TEXT,
+                sort_v2023             TEXT,
+                de_name                TEXT,
+                es_name                TEXT,
+                ukrainian_name         TEXT,
+                ar_name                TEXT
+            )
+        `);
+    }
+
+    private async loadCSVData(): Promise<any[]> {
+        this.updateState({
+            currentOperation: 'Loading bird species data...',
+            progress: 5
+        });
+
+        const asset = Asset.fromModule(ASSET_CSV);
+        await asset.downloadAsync();
+        const uri = asset.localUri ?? asset.uri;
+
+        if (!uri) {
+            throw new Error('Could not resolve CSV asset URI');
         }
 
-        console.log(`Starting background load of ${backgroundSpecies.length} species`);
+        const csvText = await FileSystem.readAsStringAsync(uri);
+        return this.parseCSV(csvText);
+    }
 
-        // Load remaining species with larger batches for background
-        let batchCount = 0;
-        for (let i = 0; i < backgroundSpecies.length; i += config.backgroundBatchSize) {
-            await processBackgroundSpeciesBatch(
-                database,
-                backgroundSpecies,
-                i,
-                config.backgroundBatchSize,
-                backgroundSpecies.length,
-                progressCallback,
-                batchCount++
-            );
-        }
+    private async parseCSV(csvText: string): Promise<any[]> {
+        return new Promise((resolve, reject) => {
+            const rows: any[] = [];
+            let processedLines = 0;
+            const totalLines = csvText.split('\n').length;
 
-        // Create full indexes
-        console.log('Creating full database indexes...');
-        database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_english ON birddex(english_name COLLATE NOCASE);');
-        database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_scientific ON birddex(scientific_name COLLATE NOCASE);');
-        database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_family ON birddex(family);');
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                transform: (value: string) => value.trim(),
+                chunk: (results: { data: any[] }) => {
+                    results.data.forEach(row => {
+                        if (row.species_code?.trim()) {
+                            rows.push(row);
+                        }
+                    });
 
-        // Final optimization
-        database.execSync('PRAGMA optimize;');
-        database.execSync('ANALYZE birddex;');
+                    processedLines += results.data.length;
+                    const progress = Math.min(20, Math.round((processedLines / totalLines) * 15));
 
-        // Update metadata
-        const metaStmt = database.prepareSync('INSERT OR REPLACE INTO metadata(key,value) VALUES(?,?);');
-        metaStmt.executeSync(['full_loaded', 'true']);
-        metaStmt.executeSync(['full_loaded_at', new Date().toISOString()]);
-        metaStmt.finalizeSync();
-
-        isDbInitialized = true;
-
-        if (progressCallback) {
-            progressCallback({
-                loaded: 100,
-                total: 100,
-                phase: 'complete',
-                coreProgress: 100,
-                backgroundProgress: 100,
-                message: 'All species loaded successfully!'
+                    this.updateState({
+                        progress: 5 + progress,
+                        currentOperation: `Parsing species data: ${processedLines.toLocaleString()} processed`
+                    });
+                },
+                complete: () => {
+                    console.log(`Parsed ${rows.length} valid bird records`);
+                    resolve(rows);
+                },
+                error: (error: any) => {
+                    reject(new Error(`CSV parsing failed: ${error.message}`));
+                }
             });
+        });
+    }
+
+    private async processDataInChunks(data: any[], database: SQLiteDatabase): Promise<void> {
+        // Filter valid rows
+        const validRows = data.filter(row =>
+            row.species_code?.trim() &&
+            ['species', 'subspecies', 'family', 'group (polytypic)', 'group (monotypic)'].includes(
+                row.category?.trim() || ''
+            )
+        );
+
+        this.updateState({
+            totalRecords: validRows.length,
+            currentOperation: `Processing ${validRows.length.toLocaleString()} species...`
+        });
+
+        const chunks = [];
+        for (let i = 0; i < validRows.length; i += config.batchSize) {
+            chunks.push(validRows.slice(i, i + config.batchSize));
         }
 
-        console.log('Background database loading complete');
+        let batchCount = 0;
+        for (const chunk of chunks) {
+            await this.processChunk(chunk, database);
 
-    } catch (error) {
-        console.error('Background database loading failed:', error);
-        // Don't throw - core functionality should still work
-    } finally {
-        isFullLoadInProgress = false;
+            const loadedRecords = Math.min((batchCount + 1) * config.batchSize, validRows.length);
+            const progress = 20 + Math.round((loadedRecords / validRows.length) * 60); // 20-80% range
+
+            this.updateState({
+                progress,
+                loadedRecords,
+                currentOperation: `Loading species: ${loadedRecords.toLocaleString()}/${validRows.length.toLocaleString()}`
+            });
+
+            // Yield to main thread periodically
+            if (batchCount % config.yieldInterval === 0) {
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+
+            batchCount++;
+        }
+    }
+
+    private async processChunk(chunk: any[], database: SQLiteDatabase): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                database.withTransactionSync(() => {
+                    const stmt = database.prepareSync(`
+                        INSERT OR REPLACE INTO birddex (
+                            species_code, english_name, scientific_name, category, 
+                            family, order_, sort_v2024, clements_v2024b_change,
+                            text_for_website_v2024b, range, extinct, extinct_year,
+                            sort_v2023, de_name, es_name, ukrainian_name, ar_name
+                        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    `);
+
+                    try {
+                        chunk.forEach(record => {
+                            if (record.species_code?.trim()) {
+                                stmt.executeSync([
+                                    record.species_code?.trim() || '',
+                                    record['English name']?.trim() || '',
+                                    record['scientific name']?.trim() || '',
+                                    record.category?.trim() || '',
+                                    record.family?.trim() || '',
+                                    record.order?.trim() || '',
+                                    record['sort v2024']?.trim() || '',
+                                    record['Clements v2024b change']?.trim() || '',
+                                    record['text for website v2024b']?.trim() || '',
+                                    record.range?.trim() || '',
+                                    record.extinct?.trim() || '',
+                                    record['extinct year']?.trim() || '',
+                                    record.sort_v2023?.trim() || '',
+                                    record.de_name?.trim() || '',
+                                    record.es_name?.trim() || '',
+                                    record.ukrainian_name?.trim() || '',
+                                    record.ar_name?.trim() || ''
+                                ]);
+                            }
+                        });
+                    } finally {
+                        stmt.finalizeSync();
+                    }
+                });
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    private async createIndexes(database: SQLiteDatabase): Promise<void> {
+        this.updateState({
+            currentOperation: 'Creating database indexes...',
+            progress: 85
+        });
+
+        try {
+            database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_english ON birddex(english_name COLLATE NOCASE);');
+            database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_scientific ON birddex(scientific_name COLLATE NOCASE);');
+            database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_category ON birddex(category);');
+            database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_family ON birddex(family);');
+
+            // Optimize database
+            database.execSync('PRAGMA optimize;');
+            database.execSync('ANALYZE birddex;');
+        } catch (error) {
+            console.warn('Index creation failed:', error);
+        }
+    }
+
+    private async markInitializationComplete(database: SQLiteDatabase): Promise<void> {
+        const stmt = database.prepareSync('INSERT OR REPLACE INTO metadata(key,value) VALUES(?,?)');
+        try {
+            stmt.executeSync(['birddex_version', BIRDDEX_VERSION]);
+            stmt.executeSync(['initialized_at', new Date().toISOString()]);
+        } finally {
+            stmt.finalizeSync();
+        }
+    }
+
+    // Public getter for current state
+    getState(): DatabaseState {
+        return { ...this.state };
+    }
+
+    // Retry method for error recovery
+    async retry(): Promise<void> {
+        this.state = {
+            status: 'uninitialized',
+            progress: 0,
+            totalRecords: 0,
+            loadedRecords: 0
+        };
+        this.initializationPromise = null;
+        return this.initialize();
     }
 }
 
-// Enhanced query methods with error handling
+// Export singleton instance
+export const birdDexDB = BirdDexDatabase.getInstance();
+
+// Query Functions (maintaining backward compatibility)
 export function queryBirdDexPage(
     filter: string,
     sortKey: keyof BirdDexRecord,
@@ -672,17 +505,16 @@ export function queryBirdDexPage(
 ): BirdDexRecord[] {
     try {
         const offset = (pageNumber - 1) * pageSize;
-
         const validSortKeys = [
             'sort_v2024', 'species_code', 'english_name', 'scientific_name',
             'category', 'family', 'order_'
         ];
+
         if (!validSortKeys.includes(sortKey as string)) {
             throw new Error(`Invalid sort key: ${sortKey}`);
         }
 
         const dir = sortAscending ? 'ASC' : 'DESC';
-
         const conditions: string[] = [];
         const params: any[] = [];
 
@@ -691,14 +523,13 @@ export function queryBirdDexPage(
             const like = `%${filter}%`;
             params.push(like, like);
         }
+
         if (categoryFilter !== 'all') {
             conditions.push(`b.category = ?`);
             params.push(categoryFilter);
         }
 
         const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-        // Prioritize core species in results
         const sql = `
             SELECT
                 b.*,
@@ -707,9 +538,9 @@ export function queryBirdDexPage(
                     WHERE s.latinBirDex = b.scientific_name
                 ) THEN 1 ELSE 0 END AS hasBeenLogged
             FROM birddex b
-                ${whereClause}
-            ORDER BY b.is_core DESC, hasBeenLogged DESC, b."${sortKey}" ${dir}
-                LIMIT ? OFFSET ?
+            ${whereClause}
+            ORDER BY hasBeenLogged DESC, b."${sortKey}" ${dir}
+            LIMIT ? OFFSET ?
         `;
 
         params.push(pageSize, offset);
@@ -736,6 +567,7 @@ export function getBirdDexRowCount(filter: string, categoryFilter: BirdCategory 
             const like = `%${filter}%`;
             params.push(like, like);
         }
+
         if (categoryFilter !== 'all') {
             conditions.push(`category = ?`);
             params.push(categoryFilter);
@@ -746,8 +578,8 @@ export function getBirdDexRowCount(filter: string, categoryFilter: BirdCategory 
 
         const stmt = DB().prepareSync(sql);
         try {
-            const res = stmt.executeSync(...params);
-            return (res.getAllSync()[0] as any).cnt as number;
+            const res = stmt.executeSync(...params).getAllSync();
+            return (res[0] as any).cnt as number;
         } finally {
             stmt.finalizeSync();
         }
@@ -806,8 +638,6 @@ export function searchBirdsByName(
         }
 
         const whereClause = `WHERE ${conditions.join(' AND ')}`;
-
-        // Prioritize core species in search results
         const sql = `
             SELECT
                 b.*,
@@ -816,8 +646,8 @@ export function searchBirdsByName(
                     WHERE s.latinBirDex = b.scientific_name
                 ) THEN 1 ELSE 0 END AS hasBeenLogged
             FROM birddex b
-                ${whereClause}
-            ORDER BY b.is_core DESC, hasBeenLogged DESC
+            ${whereClause}
+            ORDER BY hasBeenLogged DESC
             LIMIT ?
         `;
 
@@ -846,7 +676,7 @@ export function getBirdBySpeciesCode(speciesCode: string): BirdDexRecord | null 
                 ) THEN 1 ELSE 0 END AS hasBeenLogged
             FROM birddex b
             WHERE b.species_code = ?
-                LIMIT 1
+            LIMIT 1
         `;
 
         const stmt = DB().prepareSync(sql);
@@ -862,7 +692,7 @@ export function getBirdBySpeciesCode(speciesCode: string): BirdDexRecord | null 
     }
 }
 
-// Memory cleanup utility for React Native
+// Utility functions
 export function cleanupDatabase(): void {
     try {
         if (db) {
@@ -872,4 +702,15 @@ export function cleanupDatabase(): void {
     } catch (error) {
         console.error('Database cleanup error:', error);
     }
+}
+
+// Legacy function exports for backward compatibility (marked as deprecated)
+/** @deprecated Use birdDexDB.getState().status === 'ready' instead */
+export function isDbReady(): boolean {
+    return birdDexDB.getState().status === 'ready';
+}
+
+/** @deprecated Use birdDexDB.initialize() instead */
+export function initBirdDexDB(): Promise<void> {
+    return birdDexDB.initialize();
 }
