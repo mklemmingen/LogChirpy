@@ -18,6 +18,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
@@ -400,57 +401,59 @@ export default function EnhancedRootLayout() {
 
     // Main app with enhanced theming
     return (
-        <ThemeProvider
-            value={{
-                dark: theme === theme,
-                colors: {
-                    notification: semanticColors.accent,
-                    background: semanticColors.background,
-                    card: semanticColors.backgroundElevated,
-                    text: semanticColors.text,
-                    border: semanticColors.border,
-                    primary: semanticColors.primary,
-                },
-                fonts: {
-                    regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
-                    medium: { fontFamily: 'SpaceMono', fontWeight: '500' },
-                    bold: { fontFamily: 'SpaceMono', fontWeight: 'bold' },
-                    heavy: { fontFamily: 'SpaceMono', fontWeight: '800' },
-                },
-            }}
-        >
-            <ImageLabelingModelProvider>
-                <ObjectDetectionProvider>
-                    <View style={[styles.container, { backgroundColor: semanticColors.background }]}>
-                        <Stack
-                            screenOptions={() => ({
-                                headerStyle: {
-                                    backgroundColor:
-                                        current === 'photo' || current === 'video'
-                                            ? 'transparent'
-                                            : semanticColors.backgroundElevated,
-                                    ...theme.shadows.sm,
-                                },
-                                headerTransparent: current === 'photo' || current === 'video',
-                                headerTintColor: semanticColors.text,
-                                headerTitleStyle: {
-                                    ...typography.headlineMedium,
-                                    fontWeight: '600',
-                                },
-                                headerBackTitleVisible: false,
-                                headerBackImage: () => (
-                                    <Feather name="arrow-left" size={24} color={semanticColors.text} />
-                                ),
-                            })}
-                        >
-                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                            <Stack.Screen name="+not-found" />
-                        </Stack>
-                    </View>
-                    <StatusBar style="auto" />
-                </ObjectDetectionProvider>
-            </ImageLabelingModelProvider>
-        </ThemeProvider>
+        <SafeAreaProvider>
+            <ThemeProvider
+                value={{
+                    dark: theme === theme,
+                    colors: {
+                        notification: semanticColors.accent,
+                        background: semanticColors.background,
+                        card: semanticColors.backgroundElevated,
+                        text: semanticColors.text,
+                        border: semanticColors.border,
+                        primary: semanticColors.primary,
+                    },
+                    fonts: {
+                        regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
+                        medium: { fontFamily: 'SpaceMono', fontWeight: '500' },
+                        bold: { fontFamily: 'SpaceMono', fontWeight: 'bold' },
+                        heavy: { fontFamily: 'SpaceMono', fontWeight: '800' },
+                    },
+                }}
+            >
+                <ImageLabelingModelProvider>
+                    <ObjectDetectionProvider>
+                        <View style={[styles.container, { backgroundColor: semanticColors.background }]}>
+                            <Stack
+                                screenOptions={() => ({
+                                    headerStyle: {
+                                        backgroundColor:
+                                            current === 'photo' || current === 'video'
+                                                ? 'transparent'
+                                                : semanticColors.backgroundElevated,
+                                        ...theme.shadows.sm,
+                                    },
+                                    headerTransparent: current === 'photo' || current === 'video',
+                                    headerTintColor: semanticColors.text,
+                                    headerTitleStyle: {
+                                        ...typography.headlineMedium,
+                                        fontWeight: '600',
+                                    },
+                                    headerBackTitleVisible: false,
+                                    headerBackImage: () => (
+                                        <Feather name="arrow-left" size={24} color={semanticColors.text} />
+                                    ),
+                                })}
+                            >
+                                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                <Stack.Screen name="+not-found" />
+                            </Stack>
+                        </View>
+                        <StatusBar style="auto" />
+                    </ObjectDetectionProvider>
+                </ImageLabelingModelProvider>
+            </ThemeProvider>
+        </SafeAreaProvider>
     );
 }
 
