@@ -1,14 +1,17 @@
-import React, {useEffect, useMemo, useState} from 'react';
-import {ThemeProvider} from '@react-navigation/native';
-import {useFonts} from 'expo-font';
-import {Stack, useSegments} from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import {StatusBar} from 'expo-status-bar';
-import {StyleSheet, useColorScheme, View, Alert} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, useColorScheme, View } from 'react-native';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
-import {theme} from '@/constants/theme';
-import DatabaseLoadingSplash from '@/components/DatabaseLoadingSplash';
+
+import { theme } from '@/constants/theme';
+import { useProgressiveDatabase } from '@/hooks/useProgressiveDatabase';
+import MinimalLoadingSplash from '@/components/MinimalLoadingSplash';
+
 import {
     ImageLabelingConfig,
     useImageLabelingModels,
@@ -22,8 +25,7 @@ import {
 } from '@infinitered/react-native-mlkit-object-detection';
 
 // Database imports
-import {initDB} from '@/services/database';
-import {isDbReady} from "@/services/databaseBirDex";
+import { initDB } from '@/services/database';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -69,19 +71,20 @@ export default function RootLayout() {
     const currentTheme = theme[colorScheme];
     const [loaded] = useFonts(FONTS);
 
-    const segments = useSegments()
-    const current = segments[segments.length - 1]
+    const segments = useSegments();
+    const current = segments[segments.length - 1];
 
-    // Database states
-    const [dbError, setDbError] = useState<string | null>(null);
+    // Progressive database loading
+    const databaseStatus = useProgressiveDatabase();
 
-    const [isBirdDexReady, setIsBirdDexReady] = useState(isDbReady()); // Check initial state
+    // Local database initialization state
+    const [localDbError, setLocalDbError] = useState<string | null>(null);
+    const [localDbReady, setLocalDbReady] = useState(false);
 
-    // Image Labeling
+    // ML Models
     const models_class = useImageLabelingModels(MODELS_CLASS);
     const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
 
-    // Object Detection
     const models = useObjectDetectionModels<MyModelsConfig>(useMemo(() => ({
         assets: MODELS_OBJECT,
         loadDefaultModel: true,
@@ -98,25 +101,41 @@ export default function RootLayout() {
         (async () => {
             try {
                 await initDB();
+                setLocalDbReady(true);
             } catch (e) {
                 console.error('Local DB init error', e);
-                setDbError('Failed to initialize local database');
+                setLocalDbError('Failed to initialize local database');
+                setLocalDbReady(true); // Allow app to continue
             }
         })();
     }, []);
 
-    if (!loaded || !isDbReady || !isBirdDexReady) {
+    // Hide splash screen when fonts and core database are ready
+    useEffect(() => {
+        if (loaded && databaseStatus.isCoreReady && localDbReady) {
+            SplashScreen.hideAsync();
+        }
+    }, [loaded, databaseStatus.isCoreReady, localDbReady]);
+
+    // Show minimal loading splash only while core is loading
+    const shouldShowSplash = !loaded ||
+        !localDbReady ||
+        databaseStatus.currentPhase === 'initializing' ||
+        databaseStatus.currentPhase === 'core-loading';
+
+    if (shouldShowSplash) {
         return (
-            <DatabaseLoadingSplash
-                onComplete={() => setIsBirdDexReady(true)}
-                onError={(error) => {
-                    setDbError(error);
-                    setIsBirdDexReady(true); // Allow app to continue
+            <MinimalLoadingSplash
+                databaseStatus={databaseStatus}
+                onContinue={() => {
+                    // This will be called when core is ready
+                    // The splash will automatically hide
                 }}
             />
         );
     }
 
+    // App is ready to use with core functionality
     return (
         <ThemeProvider
             value={{

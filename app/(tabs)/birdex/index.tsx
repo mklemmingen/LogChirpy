@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -11,82 +11,27 @@ import {
     TextInput,
     useColorScheme,
     View,
-    ScrollView,
-    Animated,
-    Dimensions
 } from 'react-native';
-import {useTranslation} from 'react-i18next';
-import {useRouter} from 'expo-router';
-import {Feather} from '@expo/vector-icons';
-import {BlurView} from 'expo-blur';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import BirdAnimation from '@/components/BirdAnimation';
-import {theme, getSemanticColors} from '@/constants/theme';
+import { theme, getSemanticColors } from '@/constants/theme';
+import { useProgressiveDatabase } from '@/hooks/useProgressiveDatabase';
+import BackgroundLoadingBanner from '@/components/BackgroundLoadingBanner';
 
 import {
     type BirdDexRecord,
     type BirdCategory,
-    type ProgressData,
     getBirdDexRowCount,
-    initBirdDexDB,
     queryBirdDexPage,
     getAvailableCategories,
-    isDbReady
 } from '@/services/databaseBirDex';
-import {hasSpottingForLatin} from '@/services/database';
+import { hasSpottingForLatin } from '@/services/database';
 
 const PAGE_SIZE = 15;
-const MAX_FLYING_BIRDS = 3; // Strict limit to prevent memory leaks
-
-// Enhanced FlyingBird interface with cleanup tracking
-interface FlyingBird {
-    id: number;
-    name: string;
-    language: string;
-    color: string;
-    positionX: Animated.Value;
-    positionY: Animated.Value;
-    opacity: Animated.Value;
-    fontSize: number;
-    angle: number;
-    speed: number;
-    currentY: number;
-    // Animation cleanup tracking
-    animationRef?: Animated.CompositeAnimation;
-    isCleanedUp: boolean;
-}
-
-// Available colors for the animation
-const BIRD_COLORS = [
-    '#E53935', // red
-    '#43A047', // green
-    '#1E88E5', // blue
-    '#FB8C00', // orange
-    '#8E24AA', // purple
-    '#00ACC1', // teal
-    '#FFD600', // yellow
-    '#6D4C41', // brown
-    '#546E7A', // blue-gray
-    '#EC407A', // pink
-];
-
-// Language names for animation
-const LANGUAGE_NAMES = {
-    english_name: 'English',
-    german_name: 'Deutsch',
-    spanish_name: 'Español',
-    ukrainian_name: 'Українська',
-    arabic_name: 'العربية',
-    scientific_name: 'Scientific'
-};
-
-type NameKey =
-    | 'english_name'
-    | 'german_name'
-    | 'spanish_name'
-    | 'ukrainian_name'
-    | 'arabic_name';
 
 type DisplayRecord = BirdDexRecord & {
     displayName: string;
@@ -107,27 +52,10 @@ export default function BirdDexIndex() {
     const semanticColors = getSemanticColors(scheme === 'dark');
     const insets = useSafeAreaInsets();
 
-    // Database initialization state
-    const [dbInitialized, setDbInitialized] = useState(isDbReady());
-    const [initProgress, setInitProgress] = useState<ProgressData>({
-        loaded: 0,
-        total: 100,
-        phase: 'parsing',
-        message: 'Initialisierung wird vorbereitet...'
-    });
-    const [initError, setInitError] = useState<string | null>(null);
+    // Progressive database status
+    const databaseStatus = useProgressiveDatabase();
 
-    // Enhanced flying birds state with cleanup tracking
-    const [flyingBirds, setFlyingBirds] = useState<FlyingBird[]>([]);
-    const nextBirdId = useRef(1);
-    const screenWidth = Dimensions.get('window').width;
-    const screenHeight = Dimensions.get('window').height;
-    const animationCleanupRefs = useRef<Set<number>>(new Set());
-
-    // Add ref to track pending bird additions
-    const pendingBirdsRef = useRef<Array<{bird: ProgressData['currentBird'], animationId?: string}>>([]);
-
-    // Main component state
+    // Component state
     const [list, setList] = useState<DisplayRecord[]>([]);
     const [searchText, setSearch] = useState('');
     const [sortKey, setSortKey] = useState<keyof BirdDexRecord>('english_name');
@@ -140,7 +68,6 @@ export default function BirdDexIndex() {
     const [availableCategories, setAvailableCategories] = useState<{ category: string; count: number }[]>([]);
 
     const [refreshing, setRefresh] = useState(false);
-
     const [page, setPage] = useState(1);
     const [pageCount, setPageCount] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
@@ -152,246 +79,6 @@ export default function BirdDexIndex() {
         { key: 'category', label: t('birddex.sortByCategory'), icon: 'tag' },
         { key: 'hasBeenLogged', label: t('birddex.sortByLogged'), icon: 'check-circle' }
     ];
-
-    // Cleanup function for all animations
-    const cleanupAllAnimations = useCallback(() => {
-        setFlyingBirds(prevBirds => {
-            prevBirds.forEach(bird => {
-                if (bird.animationRef && !bird.isCleanedUp) {
-                    bird.animationRef.stop();
-                    bird.isCleanedUp = true;
-                }
-            });
-            return [];
-        });
-        animationCleanupRefs.current.clear();
-        pendingBirdsRef.current = [];
-    }, []);
-
-    // Fix the addFlyingBird function
-    const addFlyingBird = useCallback((birdData: ProgressData['currentBird'], animationId?: string) => {
-        if (!birdData) return;
-
-        // Prevent duplicate animations
-        if (animationId) {
-            const animIdNum = parseInt(animationId.split('_')[1]);
-            if (animationCleanupRefs.current.has(animIdNum)) {
-                return;
-            }
-            animationCleanupRefs.current.add(animIdNum);
-        }
-
-        // Collect all available names in different languages
-        const availableNames = Object.entries(birdData)
-            .filter(([key, value]) =>
-                value &&
-                value.trim() !== '' &&
-                ['english_name', 'german_name', 'spanish_name', 'ukrainian_name', 'arabic_name', 'scientific_name'].includes(key)
-            );
-
-        if (availableNames.length === 0) return;
-
-        // Select random language
-        const [selectedKey, selectedName] = availableNames[Math.floor(Math.random() * availableNames.length)];
-        const birdId = nextBirdId.current++;
-
-        // Random position, color and movement
-        const startX = Math.random() < 0.5 ? -150 : screenWidth + 150;
-        const startY = screenHeight * 0.6 + Math.random() * (screenHeight * 0.3);
-        const endX = startX < 0 ? screenWidth + 150 : -150;
-        const fontSize = 12 + Math.random() * 6;
-        const angle = Math.random() * 20 - 10;
-        const speed = 4000 + Math.random() * 4000;
-
-        const positionX = new Animated.Value(startX);
-        const positionY = new Animated.Value(startY);
-        const opacity = new Animated.Value(0);
-
-        const newBird: FlyingBird = {
-            id: birdId,
-            name: selectedName,
-            language: LANGUAGE_NAMES[selectedKey as keyof typeof LANGUAGE_NAMES] || 'Unknown',
-            color: BIRD_COLORS[Math.floor(Math.random() * BIRD_COLORS.length)],
-            positionX,
-            positionY,
-            opacity,
-            fontSize,
-            angle,
-            speed,
-            currentY: startY,
-            isCleanedUp: false
-        };
-
-        // Create animation sequence
-        const animationSequence = Animated.sequence([
-            // Fade in
-            Animated.timing(opacity, {
-                toValue: 1,
-                duration: 800,
-                useNativeDriver: true
-            }),
-            // Fly across screen
-            Animated.parallel([
-                Animated.timing(positionX, {
-                    toValue: endX,
-                    duration: speed,
-                    useNativeDriver: true
-                }),
-                // Subtle Y movement
-                Animated.sequence([
-                    Animated.timing(positionY, {
-                        toValue: startY - 20 + Math.random() * 40,
-                        duration: speed / 3,
-                        useNativeDriver: true
-                    }),
-                    Animated.timing(positionY, {
-                        toValue: startY + 20 - Math.random() * 40,
-                        duration: speed / 3,
-                        useNativeDriver: true
-                    }),
-                    Animated.timing(positionY, {
-                        toValue: startY,
-                        duration: speed / 3,
-                        useNativeDriver: true
-                    })
-                ])
-            ]),
-            // Fade out
-            Animated.timing(opacity, {
-                toValue: 0,
-                duration: 800,
-                useNativeDriver: true
-            })
-        ]);
-
-        // Store animation reference for cleanup
-        newBird.animationRef = animationSequence;
-
-        // Add bird to state - handle max birds limit
-        setFlyingBirds(prev => {
-            if (prev.length >= MAX_FLYING_BIRDS) {
-                // Remove oldest bird
-                const [oldestBird, ...restBirds] = prev;
-                if (oldestBird && oldestBird.animationRef && !oldestBird.isCleanedUp) {
-                    oldestBird.animationRef.stop();
-                    oldestBird.isCleanedUp = true;
-                }
-                return [...restBirds, newBird];
-            }
-            return [...prev, newBird];
-        });
-
-        // Start animation with proper cleanup
-        animationSequence.start((finished) => {
-            if (finished) {
-                setFlyingBirds(prev => prev.filter(bird => bird.id !== birdId));
-                if (animationId) {
-                    const animIdNum = parseInt(animationId.split('_')[1]);
-                    animationCleanupRefs.current.delete(animIdNum);
-                }
-            }
-        });
-
-        // Failsafe cleanup after maximum animation duration plus buffer
-        setTimeout(() => {
-            setFlyingBirds(prev => {
-                const bird = prev.find(b => b.id === birdId);
-                if (bird && !bird.isCleanedUp) {
-                    if (bird.animationRef) {
-                        bird.animationRef.stop();
-                    }
-                    bird.isCleanedUp = true;
-                }
-                return prev.filter(b => b.id !== birdId);
-            });
-            if (animationId) {
-                const animIdNum = parseInt(animationId.split('_')[1]);
-                animationCleanupRefs.current.delete(animIdNum);
-            }
-        }, speed + 2000);
-
-    }, [screenWidth, screenHeight]);
-
-    // Process pending birds
-    useEffect(() => {
-        const processPendingBirds = () => {
-            if (pendingBirdsRef.current.length > 0) {
-                const pending = pendingBirdsRef.current.shift();
-                if (pending) {
-                    addFlyingBird(pending.bird!, pending.animationId);
-                }
-            }
-        };
-
-        const interval = setInterval(processPendingBirds, 100);
-        return () => clearInterval(interval);
-    }, [addFlyingBird]);
-
-    // Initialize database on component mount
-    useEffect(() => {
-        let isMounted = true;
-
-        const initializeDatabase = async () => {
-            if (dbInitialized || !isMounted) return;
-
-            try {
-                await initBirdDexDB((progressData: ProgressData) => {
-                    if (!isMounted) return;
-
-                    // Update progress state
-                    setInitProgress(progressData);
-
-                    // Check if animation should be triggered
-                    if (progressData.shouldTriggerAnimation && progressData.currentBird) {
-                        // Add to pending birds queue
-                        pendingBirdsRef.current.push({
-                            bird: progressData.currentBird,
-                            animationId: progressData.animationId
-                        });
-                    }
-
-                    if (progressData.phase === 'complete') {
-                        setDbInitialized(true);
-                        // Clean up any remaining animations after a delay
-                        setTimeout(() => {
-                            if (isMounted) {
-                                cleanupAllAnimations();
-                            }
-                        }, 10000);
-                    }
-                });
-            } catch (err) {
-                if (isMounted) {
-                    setInitError(err instanceof Error ? err.message : 'Unknown database initialization error');
-                }
-            }
-        };
-
-        initializeDatabase();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [dbInitialized, cleanupAllAnimations]);
-
-    // Cleanup on component unmount
-    useEffect(() => {
-        return () => {
-            cleanupAllAnimations();
-        };
-    }, [cleanupAllAnimations]);
-
-    // Enhanced cleanup when initialization completes or errors
-    useEffect(() => {
-        if (dbInitialized || initError) {
-            // Cleanup animations after a delay to let final animations complete
-            const cleanupTimer = setTimeout(() => {
-                cleanupAllAnimations();
-            }, 3000);
-
-            return () => clearTimeout(cleanupTimer);
-        }
-    }, [dbInitialized, initError, cleanupAllAnimations]);
 
     // Category display functions
     const getCategoryDisplayName = (category: string): string => {
@@ -418,19 +105,13 @@ export default function BirdDexIndex() {
         }
     };
 
-    const getPhaseText = (phase: string): string => {
-        switch (phase) {
-            case 'parsing': return t('birddex.init.parsing');
-            case 'inserting': return t('birddex.init.inserting');
-            case 'indexing': return t('birddex.init.indexing');
-            case 'complete': return t('birddex.init.complete');
-            default: return phase;
-        }
-    };
-
     // Load page data
     const loadPage = useCallback(async (target: number) => {
-        if (!dbInitialized) return;
+        // Only proceed if core database is ready
+        if (!databaseStatus.isCoreReady) {
+            console.log('Waiting for core database to be ready...');
+            return;
+        }
 
         setRefresh(true);
         try {
@@ -441,10 +122,10 @@ export default function BirdDexIndex() {
             const lang = i18n.language.split('-')[0];
             const colMap: Record<string, keyof BirdDexRecord> = {
                 en: 'english_name',
-                de: 'de_name',        // Changed from 'german_name'
-                es: 'es_name',        // Changed from 'spanish_name'
-                uk: 'ukrainian_name', // Unchanged
-                ar: 'ar_name',        // Changed from 'arabic_name'
+                de: 'de_name',
+                es: 'es_name',
+                uk: 'ukrainian_name',
+                ar: 'ar_name',
             };
 
             const langCol = colMap[lang] || 'english_name';
@@ -480,11 +161,11 @@ export default function BirdDexIndex() {
         } finally {
             setRefresh(false);
         }
-    }, [searchText, sortKey, asc, categoryFilter, i18n.language, dbInitialized, t]);
+    }, [searchText, sortKey, asc, categoryFilter, i18n.language, databaseStatus.isCoreReady, t]);
 
     // Load categories when database is ready
     useEffect(() => {
-        if (dbInitialized) {
+        if (databaseStatus.isCoreReady) {
             try {
                 const categories = getAvailableCategories();
                 setAvailableCategories(categories);
@@ -493,15 +174,15 @@ export default function BirdDexIndex() {
                 console.error('Failed to load categories:', e);
             }
         }
-    }, [dbInitialized, loadPage]);
+    }, [databaseStatus.isCoreReady, loadPage]);
 
     // Reload on search/sort/category change
     useEffect(() => {
-        if (dbInitialized) {
+        if (databaseStatus.isCoreReady) {
             const timeoutId = setTimeout(() => loadPage(1), 300);
             return () => clearTimeout(timeoutId);
         }
-    }, [searchText, sortKey, asc, categoryFilter, dbInitialized, loadPage]);
+    }, [searchText, sortKey, asc, categoryFilter, databaseStatus.isCoreReady, loadPage]);
 
     const handleSort = (key: keyof BirdDexRecord) => {
         if (key === sortKey) {
@@ -523,159 +204,7 @@ export default function BirdDexIndex() {
         Linking.openURL(url);
     }, []);
 
-    // Enhanced render method for flying birds with better cleanup
-    const renderFlyingBirds = () => (
-        flyingBirds.map(bird => {
-            // Don't render if already cleaned up
-            if (bird.isCleanedUp) return null;
-
-            return (
-                <Animated.View
-                    key={bird.id}
-                    style={[
-                        styles.flyingBird,
-                        {
-                            transform: [
-                                { translateX: bird.positionX },
-                                { translateY: bird.positionY },
-                                { rotate: `${bird.angle}deg` }
-                            ],
-                            opacity: bird.opacity
-                        }
-                    ]}
-                >
-                    <Text style={[styles.birdName, { color: bird.color, fontSize: bird.fontSize }]}>
-                        {bird.name}
-                    </Text>
-                    <Text style={[styles.birdLanguage, { color: bird.color }]}>
-                        ({bird.language})
-                    </Text>
-                </Animated.View>
-            );
-        })
-    );
-
-    // Enhanced database initialization screen with controlled animations
-    if (!dbInitialized) {
-        const percentComplete = Math.round((initProgress.loaded / initProgress.total) * 100);
-
-        return (
-            <SafeAreaView style={[styles.initContainer, { backgroundColor: pal.colors.background }]}>
-                {/* Controlled flying bird names animation */}
-                {renderFlyingBirds()}
-
-                <BirdAnimation numberOfBirds={5} />
-
-                <View style={styles.initContent}>
-                    <ActivityIndicator size="large" color={pal.colors.primary} style={styles.loadingSpinner} />
-
-                    <Text style={[styles.initTitle, { color: pal.colors.text.primary }]}>
-                        {t('birddex.initializingDb')}
-                    </Text>
-
-                    <Text style={[styles.initSubtitle, { color: pal.colors.text.secondary }]}>
-                        {t('birddex.preparingBirdData')}
-                    </Text>
-
-                    {initError ? (
-                        <View style={styles.errorContainer}>
-                            <Feather name="alert-circle" size={48} color={pal.colors.error} />
-                            <Text style={[styles.errorText, { color: pal.colors.error }]}>
-                                {t('birddex.error')}: {initError}
-                            </Text>
-                            {/* Add retry button */}
-                            <Pressable
-                                style={[styles.retryButton, { backgroundColor: pal.colors.primary }]}
-                                onPress={() => {
-                                    setInitError(null);
-                                    setDbInitialized(false);
-                                    cleanupAllAnimations();
-                                    // Reset initialization state if needed
-                                }}
-                                android_ripple={null}
-                            >
-                                <Text style={[styles.retryButtonText, { color: pal.colors.text.onPrimary }]}>
-                                    {t('birddex.retry')}
-                                </Text>
-                            </Pressable>
-                        </View>
-                    ) : (
-                        <View style={styles.progressSection}>
-                            <View style={[styles.phaseContainer, { backgroundColor: pal.colors.surface }]}>
-                                <Text style={[styles.phaseText, { color: pal.colors.text.primary }]}>
-                                    {getPhaseText(initProgress.phase)}
-                                </Text>
-                                {initProgress.message && (
-                                    <Text style={[styles.messageText, { color: pal.colors.text.secondary }]}>
-                                        {initProgress.message}
-                                    </Text>
-                                )}
-                            </View>
-
-                            <View style={styles.progressContainer}>
-                                <Text style={[styles.progressText, { color: pal.colors.text.primary }]}>
-                                    {percentComplete}% {t('birddex.complete')}
-                                </Text>
-
-                                <View style={[styles.progressBarContainer, { backgroundColor: pal.colors.border }]}>
-                                    <View
-                                        style={[
-                                            styles.progressBar,
-                                            {
-                                                backgroundColor: pal.colors.primary,
-                                                width: `${percentComplete}%`
-                                            }
-                                        ]}
-                                    />
-                                </View>
-                            </View>
-
-                            {/* Enhanced table progress */}
-                            {initProgress.tables && Object.entries(initProgress.tables).length > 0 && (
-                                <View style={styles.tablesContainer}>
-                                    <Text style={[styles.tablesTitle, { color: pal.colors.text.primary }]}>
-                                        {t('birddex.tableProgress')}:
-                                    </Text>
-                                    {Object.entries(initProgress.tables).map(([tableName, tableProgress]) => {
-                                        const tablePercent = Math.round((tableProgress.loaded / tableProgress.total) * 100);
-                                        return (
-                                            <View key={tableName} style={styles.tableProgressItem}>
-                                                <Text style={[styles.tableName, { color: pal.colors.text.secondary }]}>
-                                                    {tableName}: {tableProgress.loaded.toLocaleString()}/{tableProgress.total.toLocaleString()} {t('birddex.entries')}
-                                                </Text>
-                                                <View style={[styles.tableProgressBarContainer, { backgroundColor: pal.colors.border }]}>
-                                                    <View
-                                                        style={[
-                                                            styles.tableProgressBar,
-                                                            {
-                                                                backgroundColor: pal.colors.accent,
-                                                                width: `${tablePercent}%`
-                                                            }
-                                                        ]}
-                                                    />
-                                                </View>
-                                            </View>
-                                        );
-                                    })}
-                                </View>
-                            )}
-
-                            {/* Active flying birds counter */}
-                            {flyingBirds.length > 0 && (
-                                <View style={styles.animationStatus}>
-                                    <Text style={[styles.animationStatusText, { color: pal.colors.text.tertiary }]}>
-                                        🦅 {flyingBirds.length} {t('birddex.flyingBirds')}
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-                    )}
-                </View>
-            </SafeAreaView>
-        );
-    }
-
-    // Main BirdDex interface rendering functions
+    // Render method for bird cards
     const renderBirdCard = useCallback(({ item, index }: { item: DisplayRecord; index: number }) => (
         <BlurView
             intensity={60}
@@ -694,6 +223,12 @@ export default function BirdDexIndex() {
                 <Text style={[styles.categoryText, { color: pal.colors.accent }]}>
                     {item.category}
                 </Text>
+                {/* Core species indicator */}
+                {item.is_core && (
+                    <View style={[styles.coreIndicator, { backgroundColor: pal.colors.primary }]}>
+                        <Feather name="star" size={8} color={pal.colors.text.primary} />
+                    </View>
+                )}
             </View>
 
             {/* Logged indicator */}
@@ -782,54 +317,52 @@ export default function BirdDexIndex() {
                 tint={scheme === "dark" ? "dark" : "light"}
                 style={[styles.categoryMenu, { borderColor: pal.colors.border }]}
             >
-                <ScrollView style={styles.categoryMenuScroll} showsVerticalScrollIndicator={false}>
-                    {/* All categories option */}
+                {/* All categories option */}
+                <Pressable
+                    style={[
+                        styles.categoryOption,
+                        { borderBottomColor: pal.colors.border },
+                        categoryFilter === 'all' && { backgroundColor: pal.colors.primary + '20' }
+                    ]}
+                    onPress={() => handleCategoryFilter('all')}
+                    android_ripple={null}
+                >
+                    <Feather name="grid" size={16} color={pal.colors.text.secondary} />
+                    <Text style={[styles.categoryOptionText, { color: pal.colors.text.primary }]}>
+                        {getCategoryDisplayName('all')}
+                    </Text>
+                    <Text style={[styles.categoryCount, { color: pal.colors.text.secondary }]}>
+                        {totalCount}
+                    </Text>
+                    {categoryFilter === 'all' && (
+                        <Feather name="check" size={16} color={pal.colors.primary} />
+                    )}
+                </Pressable>
+
+                {/* Individual categories */}
+                {availableCategories.map((cat) => (
                     <Pressable
+                        key={cat.category}
                         style={[
                             styles.categoryOption,
                             { borderBottomColor: pal.colors.border },
-                            categoryFilter === 'all' && { backgroundColor: pal.colors.primary + '20' }
+                            categoryFilter === cat.category && { backgroundColor: pal.colors.primary + '20' }
                         ]}
-                        onPress={() => handleCategoryFilter('all')}
+                        onPress={() => handleCategoryFilter(cat.category as BirdCategory)}
                         android_ripple={null}
                     >
-                        <Feather name="grid" size={16} color={pal.colors.text.secondary} />
+                        <Feather name={getCategoryIcon(cat.category) as any} size={16} color={pal.colors.text.secondary} />
                         <Text style={[styles.categoryOptionText, { color: pal.colors.text.primary }]}>
-                            {getCategoryDisplayName('all')}
+                            {getCategoryDisplayName(cat.category)}
                         </Text>
                         <Text style={[styles.categoryCount, { color: pal.colors.text.secondary }]}>
-                            {totalCount}
+                            {cat.count}
                         </Text>
-                        {categoryFilter === 'all' && (
+                        {categoryFilter === cat.category && (
                             <Feather name="check" size={16} color={pal.colors.primary} />
                         )}
                     </Pressable>
-
-                    {/* Individual categories */}
-                    {availableCategories.map((cat) => (
-                        <Pressable
-                            key={cat.category}
-                            style={[
-                                styles.categoryOption,
-                                { borderBottomColor: pal.colors.border },
-                                categoryFilter === cat.category && { backgroundColor: pal.colors.primary + '20' }
-                            ]}
-                            onPress={() => handleCategoryFilter(cat.category as BirdCategory)}
-                            android_ripple={null}
-                        >
-                            <Feather name={getCategoryIcon(cat.category) as any} size={16} color={pal.colors.text.secondary} />
-                            <Text style={[styles.categoryOptionText, { color: pal.colors.text.primary }]}>
-                                {getCategoryDisplayName(cat.category)}
-                            </Text>
-                            <Text style={[styles.categoryCount, { color: pal.colors.text.secondary }]}>
-                                {cat.count}
-                            </Text>
-                            {categoryFilter === cat.category && (
-                                <Feather name="check" size={16} color={pal.colors.primary} />
-                            )}
-                        </Pressable>
-                    ))}
-                </ScrollView>
+                ))}
             </BlurView>
         )
     );
@@ -880,23 +413,50 @@ export default function BirdDexIndex() {
         </View>
     );
 
+    // Show loading state only while waiting for core database
+    if (!databaseStatus.isCoreReady) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={pal.colors.primary} />
+                    <Text style={[styles.loadingText, { color: pal.colors.text.secondary }]}>
+                        {t('birddex.waitingForDatabase', 'Waiting for database to be ready...')}
+                    </Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     // Main BirdDex interface
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+            {/* Background Loading Banner */}
+            <BackgroundLoadingBanner databaseStatus={databaseStatus} />
+
             {/* Header */}
             <View style={[styles.header, { marginTop: insets.top }]}>
                 <Text style={[styles.headerTitle, { color: pal.colors.text.primary }]}>
                     {t('birddex.title')}
                 </Text>
-                <Text style={[styles.headerSubtitle, { color: pal.colors.text.secondary }]}>
-                    {categoryFilter === 'all'
-                        ? t('birddex.subtitle', { count: totalCount })
-                        : t('birddex.subtitleFiltered', {
-                            count: totalCount,
-                            category: getCategoryDisplayName(categoryFilter)
-                        })
-                    }
-                </Text>
+                <View style={styles.headerSubtitleContainer}>
+                    <Text style={[styles.headerSubtitle, { color: pal.colors.text.secondary }]}>
+                        {categoryFilter === 'all'
+                            ? t('birddex.subtitle', { count: totalCount })
+                            : t('birddex.subtitleFiltered', {
+                                count: totalCount,
+                                category: getCategoryDisplayName(categoryFilter)
+                            })
+                        }
+                    </Text>
+                    {!databaseStatus.isFullReady && (
+                        <View style={[styles.coreModeBadge, { backgroundColor: pal.colors.accent + '20' }]}>
+                            <Feather name="star" size={12} color={pal.colors.accent} />
+                            <Text style={[styles.coreModeText, { color: pal.colors.accent }]}>
+                                {t('birddex.coreMode', 'Core Species')}
+                            </Text>
+                        </View>
+                    )}
+                </View>
             </View>
 
             {/* Search and Controls Bar */}
@@ -1007,124 +567,19 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-
-    // Database initialization styles
-    initContainer: {
-        flex: 1,
-        position: 'relative',
-        overflow: 'hidden',
-    },
-    initContent: {
+    loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: theme.spacing.xl,
+        paddingVertical: theme.spacing.xxl,
     },
-    loadingSpinner: {
-        marginBottom: theme.spacing.lg,
-    },
-    initTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-        marginBottom: theme.spacing.sm,
-        textAlign: 'center',
-    },
-    initSubtitle: {
+    loadingText: {
         fontSize: 16,
-        marginBottom: theme.spacing.xl,
+        marginTop: theme.spacing.md,
         textAlign: 'center',
-    },
-    errorContainer: {
-        alignItems: 'center',
-        marginTop: theme.spacing.lg,
-        gap: theme.spacing.md,
-    },
-    errorText: {
-        fontSize: 16,
-        textAlign: 'center',
-        paddingHorizontal: theme.spacing.lg,
-    },
-    progressSection: {
-        width: '100%',
-        gap: theme.spacing.lg,
-    },
-    phaseContainer: {
-        paddingHorizontal: theme.spacing.lg,
-        paddingVertical: theme.spacing.md,
-        borderRadius: theme.borderRadius.lg,
-        alignItems: 'center',
-    },
-    phaseText: {
-        fontSize: 18,
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-    messageText: {
-        fontSize: 14,
-        textAlign: 'center',
-        marginTop: theme.spacing.xs,
-    },
-    progressContainer: {
-        gap: theme.spacing.sm,
-    },
-    progressText: {
-        fontSize: 16,
-        fontWeight: '500',
-        textAlign: 'center',
-    },
-    progressBarContainer: {
-        height: 8,
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    progressBar: {
-        height: '100%',
-        borderRadius: 4,
-    },
-    tablesContainer: {
-        gap: theme.spacing.sm,
-    },
-    tablesTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-    tableProgressItem: {
-        gap: theme.spacing.xs,
-    },
-    tableName: {
-        fontSize: 14,
-        textAlign: 'center',
-    },
-    tableProgressBarContainer: {
-        height: 4,
-        borderRadius: 2,
-        overflow: 'hidden',
-    },
-    tableProgressBar: {
-        height: '100%',
-        borderRadius: 2,
     },
 
-    // Flying birds animation styles
-    flyingBird: {
-        position: 'absolute',
-        alignItems: 'center',
-        zIndex: 10,
-    },
-    birdName: {
-        fontWeight: '600',
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 2,
-    },
-    birdLanguage: {
-        fontSize: 9,
-        opacity: 0.7,
-        fontWeight: '500',
-    },
-
-    // Main BirdDex interface styles
+    // Header
     header: {
         paddingHorizontal: theme.spacing.md,
         paddingVertical: theme.spacing.sm,
@@ -1133,9 +588,28 @@ const styles = StyleSheet.create({
         fontSize: 28,
         fontWeight: 'bold',
     },
+    headerSubtitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 2,
+    },
     headerSubtitle: {
         fontSize: 14,
-        marginTop: 2,
+        flex: 1,
+    },
+    coreModeBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: theme.spacing.xs,
+        paddingVertical: 2,
+        borderRadius: theme.borderRadius.sm,
+        gap: 4,
+    },
+    coreModeText: {
+        fontSize: 10,
+        fontWeight: '600',
+        textTransform: 'uppercase',
     },
 
     // Controls
@@ -1231,9 +705,6 @@ const styles = StyleSheet.create({
         minWidth: 220,
         maxHeight: 300,
     },
-    categoryMenuScroll: {
-        maxHeight: 280,
-    },
     categoryOption: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1280,6 +751,14 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         textTransform: 'uppercase',
     },
+    coreIndicator: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 4,
+    },
     loggedBadge: {
         position: 'absolute',
         top: theme.spacing.sm,
@@ -1300,6 +779,11 @@ const styles = StyleSheet.create({
     birdInfo: {
         flex: 1,
         marginRight: theme.spacing.sm,
+    },
+    birdName: {
+        fontSize: 17,
+        fontWeight: '600',
+        marginBottom: 2,
     },
     scientificName: {
         fontSize: 14,
@@ -1374,31 +858,5 @@ const styles = StyleSheet.create({
     },
     disabledBtn: {
         opacity: 0.3,
-    },
-    // Error handling styles
-    retryButton: {
-        marginTop: theme.spacing.lg,
-        paddingHorizontal: theme.spacing.lg,
-        paddingVertical: theme.spacing.md,
-        borderRadius: theme.borderRadius.lg,
-        alignItems: 'center',
-    },
-    retryButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-
-    // Animation status styles
-    animationStatus: {
-        alignItems: 'center',
-        marginTop: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.xs,
-        backgroundColor: 'rgba(0,0,0,0.05)',
-        borderRadius: theme.borderRadius.md,
-    },
-    animationStatusText: {
-        fontSize: 12,
-        fontWeight: '500',
     },
 });

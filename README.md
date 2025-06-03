@@ -372,6 +372,7 @@ Each Feature Folder contains:
 - ✅ Advanced file handling and media storage
 - ✅ Performance optimization for Android devices (2020+)
 - ✅ Media logging components (photo, video, audio)
+- ✅ BirdyDex database of all 30k earth bird species is loaded in different stages with user feedback
 
 **Luis Wehrberger:**
 - ✅ Firebase and Firestore setup
