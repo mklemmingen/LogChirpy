@@ -12,7 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { theme } from '@/constants/theme';
 import BirdAnimation from '@/components/BirdAnimation';
-import { initBirdDexDB, type ProgressData } from '@/services/databaseBirDex';
+import {initBirdDexDB, isDbReady, type ProgressData} from '@/services/databaseBirDex';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -36,6 +36,12 @@ export default function DatabaseLoadingSplash({ onComplete, onError }: DatabaseL
     useEffect(() => {
         let isMounted = true;
 
+        // Check if already initialized
+        if (isDbReady()) {
+            onComplete();
+            return;
+        }
+
         const initializeDatabase = async () => {
             try {
                 await initBirdDexDB((progressData: ProgressData) => {
@@ -47,7 +53,7 @@ export default function DatabaseLoadingSplash({ onComplete, onError }: DatabaseL
                             if (isMounted) {
                                 onComplete();
                             }
-                        }, 1000); // Small delay to show completion
+                        }, 500); // Reduced delay
                     }
                 });
             } catch (err) {

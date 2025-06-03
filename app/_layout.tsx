@@ -23,6 +23,7 @@ import {
 
 // Database imports
 import {initDB} from '@/services/database';
+import {isDbReady} from "@/services/databaseBirDex";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -72,10 +73,9 @@ export default function RootLayout() {
     const current = segments[segments.length - 1]
 
     // Database states
-    const [isDbReady, setIsDbReady] = useState(false);
-    const [isBirdDexReady, setIsBirdDexReady] = useState(false);
-    const [showDatabaseLoading, setShowDatabaseLoading] = useState(true);
     const [dbError, setDbError] = useState<string | null>(null);
+
+    const [isBirdDexReady, setIsBirdDexReady] = useState(isDbReady()); // Check initial state
 
     // Image Labeling
     const models_class = useImageLabelingModels(MODELS_CLASS);
@@ -98,7 +98,6 @@ export default function RootLayout() {
         (async () => {
             try {
                 await initDB();
-                setIsDbReady(true);
             } catch (e) {
                 console.error('Local DB init error', e);
                 setDbError('Failed to initialize local database');
@@ -106,39 +105,14 @@ export default function RootLayout() {
         })();
     }, []);
 
-    // Handle database loading completion
-    const handleDatabaseLoadingComplete = () => {
-        setIsBirdDexReady(true);
-        setShowDatabaseLoading(false);
-    };
-
-    // Handle database loading error
-    const handleDatabaseLoadingError = (error: string) => {
-        setDbError(error);
-        setShowDatabaseLoading(false);
-        Alert.alert(
-            'Database Error',
-            error,
-            [
-                { text: 'Retry', onPress: () => setShowDatabaseLoading(true) },
-                { text: 'Continue', onPress: () => setIsBirdDexReady(true) }
-            ]
-        );
-    };
-
-    // Hide splash screen when everything is ready
-    useEffect(() => {
-        if (loaded && isDbReady && !showDatabaseLoading) {
-            SplashScreen.hideAsync();
-        }
-    }, [loaded, isDbReady, showDatabaseLoading]);
-
-    // Show loading screens
-    if (!loaded || !isDbReady || showDatabaseLoading) {
+    if (!loaded || !isDbReady || !isBirdDexReady) {
         return (
             <DatabaseLoadingSplash
-                onComplete={handleDatabaseLoadingComplete}
-                onError={handleDatabaseLoadingError}
+                onComplete={() => setIsBirdDexReady(true)}
+                onError={(error) => {
+                    setDbError(error);
+                    setIsBirdDexReady(true); // Allow app to continue
+                }}
             />
         );
     }
