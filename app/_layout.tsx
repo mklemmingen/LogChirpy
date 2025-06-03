@@ -1,341 +1,305 @@
-import React from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    Dimensions,
-    ScrollView,
-    SafeAreaView,
-} from 'react-native';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { BlurView } from 'expo-blur';
+// app/_layout.tsx
+import React, { useEffect, useMemo, useState } from 'react';
+import { ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { Stack, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, useColorScheme, View, Text, ActivityIndicator, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withTiming,
-    interpolate,
-    Easing,
-} from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import 'react-native-reanimated';
+import "@/i18n/i18n";
 
-import { HelloWave } from '@/components/HelloWave';
-import BirdAnimation from '@/components/BirdAnimation';
-import { ModernCard } from '@/components/ModernCard';
+import { theme } from '@/constants/theme';
+import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
+
 import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues
-} from '@/hooks/useThemeColor';
+    ImageLabelingConfig,
+    useImageLabelingModels,
+    useImageLabelingProvider
+} from "@infinitered/react-native-mlkit-image-labeling";
 
-const { width, height } = Dimensions.get('window');
+import {
+    ObjectDetectionConfig,
+    useObjectDetectionModels,
+    useObjectDetectionProvider
+} from '@infinitered/react-native-mlkit-object-detection';
 
-// Feature card data
-interface FeatureAction {
-    id: string;
-    title: string;
-    description: string;
-    icon: string;
-    route: string;
-    gradient: [string, string];
-    featured?: boolean;
-}
+// Database imports
+import { initDB } from '@/services/database';
 
-export default function ModernIndex() {
-    const { t } = useTranslation();
-    const theme = useTheme();
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
-    const typography = useTypography();
-    const motion = useMotionValues();
+SplashScreen.preventAutoHideAsync();
 
-    // Animations
-    const pulseAnimation = useSharedValue(1);
-    const floatAnimation = useSharedValue(0);
+// ML Models Configuration
+const MODELS_OBJECT: ObjectDetectionConfig = {
+    ssdmobilenetV1: {
+        model: require('../assets/models/ssd_mobilenet_v1_metadata.tflite'),
+        options: {
+            shouldEnableMultipleObjects: true,
+            shouldEnableClassification: false,
+            classificationConfidenceThreshold: 0.3,
+            maxPerObjectLabelCount: 1
+        }
+    },
+    efficientNetlite0int8: {
+        model: require('../assets/models/efficientnet-lite0-int8.tflite'),
+        options: {
+            shouldEnableMultipleObjects: true,
+            shouldEnableClassification: false,
+            classificationConfidenceThreshold: 0.3,
+            maxPerObjectLabelCount: 1
+        }
+    },
+};
+
+const MODELS_CLASS: ImageLabelingConfig = {
+    birdClassifier: {
+        model: require("../assets/models/birds_mobilenetv2/bird_classifier_metadata.tflite"),
+        options: {
+            confidenceThreshold: 0.5,
+            maxResultCount: 5,
+        },
+    },
+};
+
+const FONTS = {
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+};
+
+// Database Loading Screen Component
+function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
+    const { isReady, isLoading, hasError, progress, loadedRecords, error, retry } = useBirdDexDatabase();
+    const colorScheme = useColorScheme() ?? 'light';
+    const pal = theme[colorScheme];
 
     React.useEffect(() => {
-        // Subtle pulse for the main CTA
-        pulseAnimation.value = withRepeat(
-            withTiming(1.02, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-            -1,
-            true
-        );
+        if (isReady) {
+            onReady();
+        }
+    }, [isReady, onReady]);
 
-        // Floating animation for cards
-        floatAnimation.value = withRepeat(
-            withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
-            -1,
-            true
+    if (hasError) {
+        return (
+            <View style={[styles.loadingContainer, { backgroundColor: pal.colors.background }]}>
+                <View style={styles.errorContainer}>
+                    <Feather name="alert-triangle" size={64} color={pal.colors.error} />
+                    <Text style={[styles.errorTitle, { color: pal.colors.text.primary }]}>
+                        Database Error
+                    </Text>
+                    <Text style={[styles.errorMessage, { color: pal.colors.text.secondary }]}>
+                        {error || 'Failed to load bird database'}
+                    </Text>
+                    <Pressable
+                        style={[styles.retryButton, { backgroundColor: pal.colors.primary }]}
+                        onPress={retry}
+                    >
+                        <Feather name="refresh-cw" size={18} color={pal.colors.text.onPrimary} />
+                        <Text style={[styles.retryText, { color: pal.colors.text.onPrimary }]}>
+                            Retry
+                        </Text>
+                    </Pressable>
+                </View>
+            </View>
         );
+    }
+
+    if (isLoading) {
+        return (
+            <View style={[styles.loadingContainer, { backgroundColor: pal.colors.background }]}>
+                <View style={styles.loadingContent}>
+                    {/* App Logo */}
+                    <View style={styles.logoContainer}>
+                        <Feather name="feather" size={64} color={pal.colors.primary} />
+                    </View>
+
+                    <Text style={[styles.loadingTitle, { color: pal.colors.text.primary }]}>
+                        LogChirpy
+                    </Text>
+
+                    <Text style={[styles.loadingSubtitle, { color: pal.colors.text.secondary }]}>
+                        Loading Bird Database
+                    </Text>
+
+                    {/* Progress Indicator */}
+                    <View style={styles.progressContainer}>
+                        <ActivityIndicator size="large" color={pal.colors.primary} />
+
+                        {loadedRecords > 0 && (
+                            <Text style={[styles.progressDetail, { color: pal.colors.text.secondary }]}>
+                                {loadedRecords.toLocaleString()} species loaded
+                            </Text>
+                        )}
+
+                        {/* Progress Bar */}
+                        <View style={[styles.progressBar, { backgroundColor: pal.colors.border }]}>
+                            <View
+                                style={[
+                                    styles.progressFill,
+                                    {
+                                        backgroundColor: pal.colors.primary,
+                                        width: `${Math.max(5, progress)}%` // Minimum 5% for visual feedback
+                                    }
+                                ]}
+                            />
+                        </View>
+
+                        <Text style={[styles.progressText, { color: pal.colors.text.primary }]}>
+                            {progress}%
+                        </Text>
+                    </View>
+
+                    {/* Helpful Info */}
+                    <Text style={[styles.loadingInfo, { color: pal.colors.text.tertiary }]}>
+                        Preparing comprehensive bird species database...
+                    </Text>
+                </View>
+            </View>
+        );
+    }
+
+    return null;
+}
+
+export default function RootLayout() {
+    const colorScheme = useColorScheme() ?? 'light';
+    const currentTheme = theme[colorScheme];
+    const [loaded] = useFonts(FONTS);
+    const segments = useSegments();
+    const current = segments[segments.length - 1];
+
+    // Application state
+    const [localDbReady, setLocalDbReady] = useState(false);
+    const [localDbError, setLocalDbError] = useState<string | null>(null);
+    const [birdDexReady, setBirdDexReady] = useState(false);
+
+    // ML Models setup
+    const models_class = useImageLabelingModels(MODELS_CLASS);
+    const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
+
+    const models = useObjectDetectionModels<typeof MODELS_OBJECT>(useMemo(() => ({
+        assets: MODELS_OBJECT,
+        loadDefaultModel: true,
+        defaultModelOptions: {
+            shouldEnableMultipleObjects: true,
+            shouldEnableClassification: true,
+            detectorMode: 'singleImage',
+        },
+    }), []));
+    const { ObjectDetectionProvider } = useObjectDetectionProvider(models);
+
+    // Initialize local database (bird_spottings)
+    useEffect(() => {
+        const initializeLocalDB = async () => {
+            try {
+                await initDB();
+                setLocalDbReady(true);
+            } catch (error) {
+                console.error('Local DB initialization failed:', error);
+                setLocalDbError(error instanceof Error ? error.message : 'Failed to initialize local database');
+                setLocalDbReady(true); // Allow app to continue even if local DB fails
+            }
+        };
+
+        initializeLocalDB();
     }, []);
 
-    const heroAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: pulseAnimation.value }],
-    }));
+    // Hide splash screen when fonts and local database are ready
+    useEffect(() => {
+        if (loaded && localDbReady) {
+            SplashScreen.hideAsync();
+        }
+    }, [loaded, localDbReady]);
 
-    const getFloatingStyle = (delay: number) => {
-        return useAnimatedStyle(() => ({
-            transform: [
-                {
-                    translateY: interpolate(
-                        floatAnimation.value,
-                        [0, 1],
-                        [0, -8]
-                    ) * Math.sin(Date.now() / 1000 + delay),
-                },
-            ],
-        }));
-    };
-
-    const features: FeatureAction[] = [
-        {
-            id: 'detection',
-            title: t('buttons.objectCamera'),
-            description: 'Real-time AI bird detection and classification',
-            icon: 'zap',
-            route: '/log/objectIdentCamera',
-            gradient: [semanticColors.primary, semanticColors.accent],
-            featured: true,
-        },
-        {
-            id: 'photo',
-            title: t('buttons.photo'),
-            description: 'Capture and identify birds from photos',
-            icon: 'camera',
-            route: '/log/photo',
-            gradient: [variants.accentSubtle, semanticColors.accent],
-        },
-        {
-            id: 'audio',
-            title: t('buttons.audio'),
-            description: 'Record and analyze bird songs',
-            icon: 'mic',
-            route: '/log/audio',
-            gradient: [variants.primarySubtle, semanticColors.primary],
-        },
-        {
-            id: 'manual',
-            title: t('buttons.manual'),
-            description: 'Manual entry for field observations',
-            icon: 'edit-3',
-            route: '/log/manual',
-            gradient: [semanticColors.backgroundSecondary, semanticColors.textSecondary],
-        },
-    ];
-
-    const handleFeaturePress = (route: string) => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        router.push(route as any);
-    };
-
-    const renderFeatureCard = (feature: FeatureAction, index: number) => {
-        const isLarge = feature.featured;
-        const cardStyle = isLarge
-            ? [styles.featuredCard, getFloatingStyle(index * 0.5)]
-            : [styles.regularCard, getFloatingStyle(index * 0.5)];
-
+    // Show loading screen while essential components are initializing
+    if (!loaded || !localDbReady) {
         return (
-            <Animated.View key={feature.id} style={cardStyle}>
-                <ModernCard
-                    variant="glass"
-                    onPress={() => handleFeaturePress(feature.route)}
-                    animateOnPress
-                    glowOnHover={feature.featured}
-                    style={isLarge ? styles.featuredCardInner : styles.regularCardInner}
-                >
-                    <View style={styles.cardContent}>
-                        {/* Gradient background */}
-                        <LinearGradient
-                            colors={feature.gradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={[
-                                StyleSheet.absoluteFillObject,
-                                { opacity: isLarge ? 0.2 : 0.1 }
-                            ]}
-                        />
-
-                        {/* Icon */}
-                        <View style={[
-                            styles.iconContainer,
-                            isLarge ? styles.featuredIconContainer : styles.regularIconContainer,
-                            { backgroundColor: feature.gradient[0] + '20' }
-                        ]}>
-                            <Feather
-                                name={feature.icon as any}
-                                size={isLarge ? 32 : 24}
-                                color={feature.gradient[0]}
-                            />
-                        </View>
-
-                        {/* Content */}
-                        <View style={styles.cardTextContent}>
-                            <Text
-                                style={[
-                                    isLarge ? typography.headlineMedium : typography.headlineSmall,
-                                    styles.cardTitle,
-                                    { color: semanticColors.text }
-                                ]}
-                                numberOfLines={isLarge ? 2 : 1}
-                            >
-                                {feature.title}
-                            </Text>
-                            <Text
-                                style={[
-                                    typography.bodySmall,
-                                    styles.cardDescription,
-                                    { color: semanticColors.textSecondary }
-                                ]}
-                                numberOfLines={isLarge ? 3 : 2}
-                            >
-                                {feature.description}
-                            </Text>
-                        </View>
-
-                        {/* Arrow indicator */}
-                        <View style={styles.arrowContainer}>
-                            <Feather
-                                name="arrow-right"
-                                size={isLarge ? 20 : 16}
-                                color={semanticColors.textTertiary}
-                            />
-                        </View>
-                    </View>
-                </ModernCard>
-            </Animated.View>
+            <View style={[styles.loadingContainer, { backgroundColor: currentTheme.colors.background }]}>
+                <ActivityIndicator size="large" color={currentTheme.colors.primary} />
+                <Text style={[styles.initializingText, { color: currentTheme.colors.text.secondary }]}>
+                    Initializing LogChirpy...
+                </Text>
+                {localDbError && (
+                    <Text style={[styles.errorText, { color: currentTheme.colors.error }]}>
+                        Warning: {localDbError}
+                    </Text>
+                )}
+            </View>
         );
-    };
+    }
 
+    // Show bird database loading screen
+    if (!birdDexReady) {
+        return (
+            <ImageLabelingModelProvider>
+                <ObjectDetectionProvider>
+                    <DatabaseLoadingScreen onReady={() => setBirdDexReady(true)} />
+                    <StatusBar style="auto" />
+                </ObjectDetectionProvider>
+            </ImageLabelingModelProvider>
+        );
+    }
+
+    // Main app is ready
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
-            {/* Background animations */}
-            <BirdAnimation numberOfBirds={8} />
-
-            {/* Background gradient overlay */}
-            <LinearGradient
-                colors={[
-                    semanticColors.background + 'E6',
-                    semanticColors.background + 'CC',
-                    semanticColors.background,
-                ]}
-                locations={[0, 0.3, 0.7]}
-                style={StyleSheet.absoluteFillObject}
-                pointerEvents="none"
-            />
-
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Hero Section */}
-                <View style={styles.heroSection}>
-                    <Animated.View style={[styles.heroContent, heroAnimatedStyle]}>
-                        <HelloWave />
-                        <Text style={[typography.displayMedium, styles.heroTitle]}>
-                            {t('welcome')}
-                        </Text>
-                        <Text style={[typography.bodyLarge, styles.heroSubtitle, { color: semanticColors.textSecondary }]}>
-                            {t('start_logging')}
-                        </Text>
-                    </Animated.View>
-
-                    {/* Quick stats */}
-                    <BlurView
-                        intensity={40}
-                        tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
-                        style={[styles.statsContainer, { borderColor: variants.primaryMuted }]}
-                    >
-                        <View style={styles.statItem}>
-                            <Text style={[typography.headlineLarge, { color: semanticColors.primary }]}>
-                                15K+
-                            </Text>
-                            <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
-                                Bird Species
-                            </Text>
-                        </View>
-                        <View style={[styles.statDivider, { backgroundColor: variants.primaryMuted }]} />
-                        <View style={styles.statItem}>
-                            <Text style={[typography.headlineLarge, { color: semanticColors.accent }]}>
-                                AI
-                            </Text>
-                            <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
-                                Recognition
-                            </Text>
-                        </View>
-                        <View style={[styles.statDivider, { backgroundColor: variants.primaryMuted }]} />
-                        <View style={styles.statItem}>
-                            <Text style={[typography.headlineLarge, { color: semanticColors.primary }]}>
-                                5
-                            </Text>
-                            <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
-                                Languages
-                            </Text>
-                        </View>
-                    </BlurView>
-                </View>
-
-                {/* Features Section */}
-                <View style={styles.featuresSection}>
-                    <Text style={[typography.headlineLarge, styles.sectionTitle]}>
-                        Start Birding
-                    </Text>
-                    <Text style={[typography.bodyMedium, styles.sectionSubtitle, { color: semanticColors.textSecondary }]}>
-                        Choose how you'd like to log your bird observations
-                    </Text>
-
-                    <View style={styles.featuresGrid}>
-                        {features.map((feature, index) => renderFeatureCard(feature, index))}
-                    </View>
-                </View>
-
-                {/* Quick Access Section */}
-                <View style={styles.quickAccessSection}>
-                    <Text style={[typography.headlineLarge, styles.sectionTitle]}>
-                        Quick Access
-                    </Text>
-
-                    <View style={styles.quickAccessGrid}>
-                        <Animated.View style={getFloatingStyle(0.8)}>
-                            <ModernCard
-                                variant="outlined"
-                                onPress={() => router.push('/archive')}
-                                animateOnPress
-                                style={styles.quickAccessCard}
+        <ThemeProvider
+            value={{
+                dark: colorScheme === 'dark',
+                colors: {
+                    notification: currentTheme.colors.secondary,
+                    background: currentTheme.colors.background,
+                    card: currentTheme.colors.accent,
+                    text: currentTheme.colors.text.primary,
+                    border: currentTheme.colors.border,
+                    primary: currentTheme.colors.primary,
+                },
+                fonts: {
+                    regular: {
+                        fontFamily: 'SpaceMono',
+                        fontWeight: 'normal',
+                    },
+                    medium: {
+                        fontFamily: 'SpaceMono',
+                        fontWeight: '500',
+                    },
+                    bold: {
+                        fontFamily: 'SpaceMono',
+                        fontWeight: 'bold',
+                    },
+                    heavy: {
+                        fontFamily: 'SpaceMono',
+                        fontWeight: '800',
+                    },
+                },
+            }}
+        >
+            <ImageLabelingModelProvider>
+                <ObjectDetectionProvider>
+                    <View style={styles.container}>
+                        <View style={styles.content}>
+                            <Stack
+                                screenOptions={() => ({
+                                    headerStyle: {
+                                        backgroundColor:
+                                            current === 'photo' || current === 'video'
+                                                ? 'transparent'
+                                                : currentTheme.colors.background,
+                                    },
+                                    headerTransparent: current === 'photo' || current === 'video',
+                                    headerTintColor: currentTheme.colors.text.primary,
+                                    headerTitleStyle: {
+                                        fontWeight: 'bold',
+                                    },
+                                })}
                             >
-                                <View style={styles.quickAccessContent}>
-                                    <Feather name="archive" size={24} color={semanticColors.primary} />
-                                    <Text style={[typography.labelLarge, { color: semanticColors.text }]}>
-                                        My Archive
-                                    </Text>
-                                </View>
-                            </ModernCard>
-                        </Animated.View>
-
-                        <Animated.View style={getFloatingStyle(1.2)}>
-                            <ModernCard
-                                variant="outlined"
-                                onPress={() => router.push('/birdex')}
-                                animateOnPress
-                                style={styles.quickAccessCard}
-                            >
-                                <View style={styles.quickAccessContent}>
-                                    <Feather name="book-open" size={24} color={semanticColors.accent} />
-                                    <Text style={[typography.labelLarge, { color: semanticColors.text }]}>
-                                        Bird Guide
-                                    </Text>
-                                </View>
-                            </ModernCard>
-                        </Animated.View>
+                                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                <Stack.Screen name="+not-found" />
+                            </Stack>
+                        </View>
                     </View>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+                    <StatusBar style="auto" />
+                </ObjectDetectionProvider>
+            </ImageLabelingModelProvider>
+        </ThemeProvider>
     );
 }
 
@@ -343,140 +307,108 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    scrollView: {
+    content: {
         flex: 1,
-    },
-    scrollContent: {
-        paddingBottom: 100,
-    },
-
-    // Hero Section
-    heroSection: {
-        paddingHorizontal: 24,
-        paddingTop: 40,
-        paddingBottom: 32,
-        alignItems: 'center',
-        minHeight: height * 0.4,
-        justifyContent: 'center',
-    },
-    heroContent: {
-        alignItems: 'center',
-        marginBottom: 32,
-    },
-    heroTitle: {
-        textAlign: 'center',
-        marginTop: 16,
-        marginBottom: 8,
-    },
-    heroSubtitle: {
-        textAlign: 'center',
-        lineHeight: 24,
-        maxWidth: width * 0.8,
-    },
-
-    // Stats
-    statsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 20,
-        borderWidth: 1,
-        paddingVertical: 20,
-        paddingHorizontal: 24,
-        marginTop: 16,
-    },
-    statItem: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    statDivider: {
-        width: 1,
-        height: 40,
-        marginHorizontal: 16,
-    },
-
-    // Features Section
-    featuresSection: {
-        paddingHorizontal: 24,
-        marginBottom: 48,
-    },
-    sectionTitle: {
-        marginBottom: 8,
-    },
-    sectionSubtitle: {
-        lineHeight: 20,
-        marginBottom: 24,
-    },
-    featuresGrid: {
-        gap: 16,
-    },
-
-    // Feature Cards
-    featuredCard: {
-        marginBottom: 8,
-    },
-    featuredCardInner: {
-        minHeight: 140,
-    },
-    regularCard: {
-        marginBottom: 8,
-    },
-    regularCardInner: {
-        minHeight: 100,
-    },
-
-    cardContent: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 20,
         position: 'relative',
     },
-    iconContainer: {
-        borderRadius: 16,
+
+    // Loading States
+    loadingContainer: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 16,
+        padding: theme.spacing.xl,
     },
-    featuredIconContainer: {
-        width: 64,
-        height: 64,
+    loadingContent: {
+        alignItems: 'center',
+        maxWidth: 320,
+        width: '100%',
     },
-    regularIconContainer: {
-        width: 48,
-        height: 48,
+    logoContainer: {
+        marginBottom: theme.spacing.xl,
     },
-    cardTextContent: {
-        flex: 1,
-        marginRight: 12,
+    loadingTitle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: theme.spacing.sm,
+        textAlign: 'center',
     },
-    cardTitle: {
-        marginBottom: 4,
-        fontWeight: '600',
+    loadingSubtitle: {
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: theme.spacing.xl,
     },
-    cardDescription: {
-        lineHeight: 18,
-    },
-    arrowContainer: {
-        justifyContent: 'center',
+    initializingText: {
+        fontSize: 16,
+        marginTop: theme.spacing.md,
+        textAlign: 'center',
     },
 
-    // Quick Access
-    quickAccessSection: {
-        paddingHorizontal: 24,
-        marginBottom: 32,
+    // Progress Indicators
+    progressContainer: {
+        alignItems: 'center',
+        width: '100%',
+        gap: theme.spacing.md,
     },
-    quickAccessGrid: {
+    progressDetail: {
+        fontSize: 14,
+        textAlign: 'center',
+    },
+    progressBar: {
+        width: '100%',
+        height: 6,
+        borderRadius: 3,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        borderRadius: 3,
+    },
+    progressText: {
+        fontSize: 18,
+        fontWeight: '600',
+    },
+    loadingInfo: {
+        fontSize: 12,
+        textAlign: 'center',
+        marginTop: theme.spacing.lg,
+        fontStyle: 'italic',
+    },
+
+    // Error States
+    errorContainer: {
+        alignItems: 'center',
+        maxWidth: 320,
+    },
+    errorTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginTop: theme.spacing.lg,
+        marginBottom: theme.spacing.sm,
+        textAlign: 'center',
+    },
+    errorMessage: {
+        fontSize: 16,
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: theme.spacing.xl,
+    },
+    errorText: {
+        fontSize: 14,
+        marginTop: theme.spacing.sm,
+        textAlign: 'center',
+    },
+    retryButton: {
         flexDirection: 'row',
-        gap: 16,
-    },
-    quickAccessCard: {
-        flex: 1,
-        minHeight: 80,
-    },
-    quickAccessContent: {
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 20,
-        gap: 8,
+        paddingVertical: theme.spacing.md,
+        paddingHorizontal: theme.spacing.lg,
+        borderRadius: theme.borderRadius.lg,
+        gap: theme.spacing.sm,
+    },
+    retryText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
