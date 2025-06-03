@@ -358,7 +358,7 @@ const formatDuration = (seconds: number): string => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-export default function EnhancedAudioCapture() {
+export default function AudioScreen() {
     const { t } = useTranslation();
     const { update } = useLogDraft();
     const semanticColors = useSemanticColors();
