@@ -1,28 +1,57 @@
 import React from 'react';
 import { Text, TextProps } from 'react-native';
-import { useThemeColor } from '@/hooks/useThemeColor';
+import { useTypography, useSemanticColors } from '@/hooks/useThemeColor';
 
 export type ThemedTextProps = TextProps & {
-  type?: 'title' | 'default';
+    variant?: 'displayLarge' | 'displayMedium' | 'displaySmall' |
+        'headlineLarge' | 'headlineMedium' | 'headlineSmall' |
+        'bodyLarge' | 'bodyMedium' | 'bodySmall' |
+        'labelLarge' | 'labelMedium' | 'labelSmall' |
+        'caption' | 'overline';
+    color?: 'primary' | 'secondary' | 'tertiary' | 'inverse' | 'disabled' | 'accent' | 'error' | 'success';
+    semiBold?: boolean;
+    italic?: boolean;
 };
 
-export function ThemedText({ style, type = 'default', ...rest }: ThemedTextProps) {
-  const themeTextColor = useThemeColor({}, 'text'); // might be a string OR an object
+export function ThemedText({
+                               style,
+                               variant = 'bodyMedium',
+                               color = 'primary',
+                               semiBold = false,
+                               italic = false,
+                               ...rest
+                           }: ThemedTextProps) {
+    const typography = useTypography();
+    const semanticColors = useSemanticColors();
 
-  // Correctly handles both cases
-  const color = typeof themeTextColor === 'string'
-      ? themeTextColor
-      : themeTextColor.primary;
+    const getTextColor = () => {
+        switch (color) {
+            case 'primary': return semanticColors.text;
+            case 'secondary': return semanticColors.textSecondary;
+            case 'tertiary': return semanticColors.textTertiary;
+            case 'inverse': return semanticColors.textInverse;
+            case 'disabled': return semanticColors.disabled;
+            case 'accent': return semanticColors.accent;
+            case 'error': return semanticColors.error;
+            case 'success': return semanticColors.success;
+            default: return semanticColors.text;
+        }
+    };
 
-  return (
-      <Text
-          style={[
-            { color },
-            type === 'title' && { fontSize: 24, fontWeight: 'bold' },
-            type === 'default' && { fontSize: 16 },
-            style,
-          ]}
-          {...rest}
-      />
-  );
+    const getTypographyStyle = () => {
+        return typography[variant] || typography.bodyMedium;
+    };
+
+    return (
+        <Text
+            style={[
+                getTypographyStyle(),
+                { color: getTextColor() },
+                semiBold && { fontWeight: '600' },
+                italic && { fontStyle: 'italic' },
+                style,
+            ]}
+            {...rest}
+        />
+    );
 }
