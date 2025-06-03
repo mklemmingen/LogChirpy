@@ -90,3 +90,5 @@ export function LogDraftProvider({ children }: { children: ReactNode }) {
       </LogDraftContext.Provider>
   );
 }
+
+export default LogDraftProvider;

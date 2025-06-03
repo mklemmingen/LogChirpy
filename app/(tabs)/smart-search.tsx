@@ -517,36 +517,43 @@ const styles = StyleSheet.create({
     tipsContainer: {
         flex: 1,
         paddingHorizontal: 20,
-        paddingTop: 40,
+        paddingVertical: 60, // Increased and made symmetric
+        justifyContent: 'center', // Center the card in available space
     },
     tipsCard: {
-        padding: 32,
+        padding: 40, // Increased from 32
         alignItems: 'center',
-        gap: 24,
+        gap: 32, // Increased from 24
+        minHeight: 400, // Ensure minimum height
     },
     tipsIcon: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
+        width: 80, // Increased from 64
+        height: 80, // Increased from 64
+        borderRadius: 40, // Adjusted for new size
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: 8, // Add some separation
     },
     tipsTitle: {
         textAlign: 'center',
         fontWeight: '600',
+        marginBottom: 8, // Add separation from subtitle
     },
     tipsList: {
         alignSelf: 'stretch',
-        gap: 16,
+        gap: 24, // Increased from 16
+        width: '100%', // Ensure full width
+        marginTop: 8, // Add top margin
     },
     tipItem: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: 12,
+        gap: 16, // Increased from 12
+        paddingVertical: 8, // Add vertical padding for touch targets
     },
     tipText: {
         flex: 1,
-        lineHeight: 22,
+        lineHeight: 24, // Increased from 22
     },
 
     // Loading

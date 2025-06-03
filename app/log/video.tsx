@@ -203,7 +203,7 @@ function VideoPreview({
   );
 }
 
-export default function EnhancedVideoCapture() {
+export default function VideoScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { update } = useLogDraft();

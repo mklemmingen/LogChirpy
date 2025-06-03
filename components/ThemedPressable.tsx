@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Pressable, ViewStyle, PressableProps } from 'react-native';
 import Animated, {
     useAnimatedStyle,
@@ -38,22 +38,25 @@ interface ThemedPressableProps extends Omit<PressableProps, 'style'> {
 // Create AnimatedPressable correctly
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function ThemedPressable({
-                                    children,
-                                    style,
-                                    variant = 'ghost',
-                                    size = 'medium',
-                                    disabled = false,
-                                    loading = false,
-                                    fullWidth = false,
-                                    animateOnPress = true,
-                                    hapticFeedback = true,
-                                    glowOnHover = false,
-                                    onPress,
-                                    onPressIn,
-                                    onPressOut,
-                                    ...props
-                                }: ThemedPressableProps) {
+export const ThemedPressable = forwardRef<
+    React.ElementRef<typeof Pressable>,
+    ThemedPressableProps
+>(({
+       children,
+       style,
+       variant = 'ghost',
+       size = 'medium',
+       disabled = false,
+       loading = false,
+       fullWidth = false,
+       animateOnPress = true,
+       hapticFeedback = true,
+       glowOnHover = false,
+       onPress,
+       onPressIn,
+       onPressOut,
+       ...props
+   }, ref) => {
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const buttonTheme = useButtonTheme();
@@ -199,59 +202,82 @@ export function ThemedPressable({
     return (
         <>
             {/* Glow effect background */}
-                {glowOnHover && (
-                    <Animated.View
-                        style={[
-                            {
-                                position: 'absolute',
-                                top: -2,
-                                left: -2,
-                                right: -2,
-                                bottom: -2,
-                                borderRadius: getSizeStyle().borderRadius + 2,
-                                backgroundColor: variants.primarySubtle,
-                                zIndex: -1,
-                            },
-                            useAnimatedStyle(() => ({
-                                opacity: glowOpacity.value * 0.5,
-                                transform: [{ scale: 1 + glowOpacity.value * 0.05 }],
-                            })),
-                        ]}
-                        pointerEvents="none"
-                    />
-                )}
+            {glowOnHover && (
+                <Animated.View
+                    style={[
+                        {
+                            position: 'absolute',
+                            top: -2,
+                            left: -2,
+                            right: -2,
+                            bottom: -2,
+                            borderRadius: getSizeStyle().borderRadius + 2,
+                            backgroundColor: variants.primarySubtle,
+                            zIndex: -1,
+                        },
+                        useAnimatedStyle(() => ({
+                            opacity: glowOpacity.value * 0.5,
+                            transform: [{ scale: 1 + glowOpacity.value * 0.05 }],
+                        })),
+                    ]}
+                    pointerEvents="none"
+                />
+            )}
 
-                <AnimatedPressable
-                    {...props}
-                    style={combinedStyle}
-                    onPress={handlePress}
-                    onPressIn={handlePressIn}
-                    onPressOut={handlePressOut}
-                    disabled={disabled || loading}
-                    android_ripple={{
-                        color: getRippleColor(),
-                        borderless: false,
-                    }}
-                >
-                    {children}
-                </AnimatedPressable>
+            <AnimatedPressable
+                ref={ref}
+                {...props}
+                style={combinedStyle}
+                onPress={handlePress}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                disabled={disabled || loading}
+                android_ripple={{
+                    color: getRippleColor(),
+                    borderless: false,
+                }}
+            >
+                {children}
+            </AnimatedPressable>
         </>
     );
-}
+});
+
+ThemedPressable.displayName = 'ThemedPressable';
 
 // Specialized button components for common use cases
-export function PrimaryButton(props: Omit<ThemedPressableProps, 'variant'>) {
-    return <ThemedPressable variant="primary" hapticFeedback glowOnHover {...props} />;
-}
+export const PrimaryButton = forwardRef<
+    React.ElementRef<typeof Pressable>,
+    Omit<ThemedPressableProps, 'variant'>
+>((props, ref) => {
+    return <ThemedPressable ref={ref} variant="primary" hapticFeedback glowOnHover {...props} />;
+});
 
-export function SecondaryButton(props: Omit<ThemedPressableProps, 'variant'>) {
-    return <ThemedPressable variant="secondary" {...props} />;
-}
+PrimaryButton.displayName = 'PrimaryButton';
 
-export function DestructiveButton(props: Omit<ThemedPressableProps, 'variant'>) {
-    return <ThemedPressable variant="destructive" hapticFeedback {...props} />;
-}
+export const SecondaryButton = forwardRef<
+    React.ElementRef<typeof Pressable>,
+    Omit<ThemedPressableProps, 'variant'>
+>((props, ref) => {
+    return <ThemedPressable ref={ref} variant="secondary" {...props} />;
+});
 
-export function GhostButton(props: Omit<ThemedPressableProps, 'variant'>) {
-    return <ThemedPressable variant="ghost" {...props} />;
-}
+SecondaryButton.displayName = 'SecondaryButton';
+
+export const DestructiveButton = forwardRef<
+    React.ElementRef<typeof Pressable>,
+    Omit<ThemedPressableProps, 'variant'>
+>((props, ref) => {
+    return <ThemedPressable ref={ref} variant="destructive" hapticFeedback {...props} />;
+});
+
+DestructiveButton.displayName = 'DestructiveButton';
+
+export const GhostButton = forwardRef<
+    React.ElementRef<typeof Pressable>,
+    Omit<ThemedPressableProps, 'variant'>
+>((props, ref) => {
+    return <ThemedPressable ref={ref} variant="ghost" {...props} />;
+});
+
+GhostButton.displayName = 'GhostButton';
