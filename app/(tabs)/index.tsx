@@ -11,7 +11,6 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -42,7 +41,7 @@ interface FeatureAction {
     description: string;
     icon: string;
     route: string;
-    gradient: [string, string];
+    colorScheme: 'primary' | 'accent' | 'neutral' | 'success';
     featured?: boolean;
 }
 
@@ -99,7 +98,7 @@ export default function ModernIndex() {
             description: 'Real-time AI bird detection and classification',
             icon: 'zap',
             route: '/log/objectIdentCamera',
-            gradient: [semanticColors.primary, semanticColors.accent],
+            colorScheme: 'primary',
             featured: true,
         },
         {
@@ -108,7 +107,7 @@ export default function ModernIndex() {
             description: 'Capture and identify birds from photos',
             icon: 'camera',
             route: '/log/photo',
-            gradient: [variants.accentSubtle, semanticColors.accent],
+            colorScheme: 'accent',
         },
         {
             id: 'audio',
@@ -116,7 +115,7 @@ export default function ModernIndex() {
             description: 'Record and analyze bird songs',
             icon: 'mic',
             route: '/log/audio',
-            gradient: [variants.primarySubtle, semanticColors.primary],
+            colorScheme: 'primary',
         },
         {
             id: 'manual',
@@ -124,9 +123,39 @@ export default function ModernIndex() {
             description: 'Manual entry for field observations',
             icon: 'edit-3',
             route: '/log/manual',
-            gradient: [semanticColors.backgroundSecondary, semanticColors.textSecondary],
+            colorScheme: 'neutral',
         },
     ];
+
+    const getColorScheme = (scheme: 'primary' | 'accent' | 'neutral' | 'success') => {
+        switch (scheme) {
+            case 'primary':
+                return {
+                    background: variants.primarySubtle,
+                    icon: semanticColors.primary,
+                    border: variants.primaryMuted,
+                };
+            case 'accent':
+                return {
+                    background: variants.accentSubtle,
+                    icon: semanticColors.accent,
+                    border: variants.accentMuted,
+                };
+            case 'success':
+                return {
+                    background: semanticColors.successContainer,
+                    icon: semanticColors.success,
+                    border: semanticColors.success + '40',
+                };
+            case 'neutral':
+            default:
+                return {
+                    background: semanticColors.backgroundSecondary,
+                    icon: semanticColors.textSecondary,
+                    border: semanticColors.border,
+                };
+        }
+    };
 
     const handleFeaturePress = (route: string) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -139,6 +168,8 @@ export default function ModernIndex() {
             ? [styles.featuredCard, getFloatingStyle(index * 0.5)]
             : [styles.regularCard, getFloatingStyle(index * 0.5)];
 
+        const colors = getColorScheme(feature.colorScheme);
+
         return (
             <Animated.View key={feature.id} style={cardStyle}>
                 <ModernCard
@@ -146,17 +177,21 @@ export default function ModernIndex() {
                     onPress={() => handleFeaturePress(feature.route)}
                     animateOnPress
                     glowOnHover={feature.featured}
-                    style={isLarge ? styles.featuredCardInner : styles.regularCardInner}
+                    style={{
+                        ...(isLarge ? styles.featuredCardInner : styles.regularCardInner),
+                        borderColor: colors.border,
+                    }}
                 >
                     <View style={styles.cardContent}>
-                        {/* Gradient background */}
-                        <LinearGradient
-                            colors={feature.gradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
+                        {/* Subtle background color overlay */}
+                        <View
                             style={[
                                 StyleSheet.absoluteFillObject,
-                                { opacity: isLarge ? 0.2 : 0.1 }
+                                {
+                                    backgroundColor: colors.background,
+                                    opacity: isLarge ? 0.3 : 0.2,
+                                    borderRadius: theme.borderRadius.card,
+                                }
                             ]}
                         />
 
@@ -164,12 +199,12 @@ export default function ModernIndex() {
                         <View style={[
                             styles.iconContainer,
                             isLarge ? styles.featuredIconContainer : styles.regularIconContainer,
-                            { backgroundColor: feature.gradient[0] + '20' }
+                            { backgroundColor: colors.background }
                         ]}>
                             <Feather
                                 name={feature.icon as any}
                                 size={isLarge ? 32 : 24}
-                                color={feature.gradient[0]}
+                                color={colors.icon}
                             />
                         </View>
 
@@ -216,17 +251,21 @@ export default function ModernIndex() {
             {/* Background animations */}
             <BirdAnimation numberOfBirds={8} />
 
-            {/* Background gradient overlay */}
-            <LinearGradient
-                colors={[
-                    semanticColors.background + 'E6',
-                    semanticColors.background + 'CC',
-                    semanticColors.background,
-                ]}
-                locations={[0, 0.3, 0.7]}
-                style={StyleSheet.absoluteFillObject}
-                pointerEvents="none"
-            />
+            {/* Multi-layer background for depth without gradients */}
+            <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                <View style={[
+                    styles.backgroundLayer1,
+                    { backgroundColor: semanticColors.background }
+                ]} />
+                <View style={[
+                    styles.backgroundLayer2,
+                    { backgroundColor: variants.primarySubtle }
+                ]} />
+                <View style={[
+                    styles.backgroundLayer3,
+                    { backgroundColor: semanticColors.background }
+                ]} />
+            </View>
 
             <ScrollView
                 style={styles.scrollView}
@@ -350,6 +389,22 @@ const styles = StyleSheet.create({
         paddingBottom: 100,
     },
 
+    // Background layers for depth
+    backgroundLayer1: {
+        ...StyleSheet.absoluteFillObject,
+        opacity: 1,
+    },
+    backgroundLayer2: {
+        ...StyleSheet.absoluteFillObject,
+        opacity: 0.05,
+        top: height * 0.1,
+    },
+    backgroundLayer3: {
+        ...StyleSheet.absoluteFillObject,
+        opacity: 0.9,
+        top: height * 0.7,
+    },
+
     // Hero Section
     heroSection: {
         paddingHorizontal: 24,
@@ -416,12 +471,14 @@ const styles = StyleSheet.create({
     },
     featuredCardInner: {
         minHeight: 140,
+        borderWidth: 1,
     },
     regularCard: {
         marginBottom: 8,
     },
     regularCardInner: {
         minHeight: 100,
+        borderWidth: 1,
     },
 
     cardContent: {
