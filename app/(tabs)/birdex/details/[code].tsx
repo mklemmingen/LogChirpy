@@ -1,23 +1,24 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Linking,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    useColorScheme,
-    View
-} from 'react-native';
+import {ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {Feather} from '@expo/vector-icons';
-import {BlurView} from 'expo-blur';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import Animated, {
+    FadeInDown,
+    FadeInUp,
+    Layout,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
-import {theme} from '@/constants/theme';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ModernCard} from '@/components/ModernCard';
+import {useColorVariants, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 import {type BirdDexRecord, getBirdBySpeciesCode} from '@/services/databaseBirDex';
 import {hasSpottingForLatin} from '@/services/database';
 
@@ -32,13 +33,218 @@ type NameField = {
     isPrimary?: boolean;
 };
 
-export default function BirdDexDetail() {
+// Enhanced Header Component
+function DetailHeader({
+                          bird,
+                          onBack,
+                          onAddToSpottings
+                      }: {
+    bird: DetailRecord;
+    onBack: () => void;
+    onAddToSpottings: () => void;
+}) {
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const typography = useTypography();
+    const { t, i18n } = useTranslation();
+    const insets = useSafeAreaInsets();
+
+    const scale = useSharedValue(1);
+
+    const handleBackPress = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        scale.value = withSpring(0.95, { damping: 15, stiffness: 300 }, () => {
+            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+        });
+        onBack();
+    };
+
+    const backButtonStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
+    // Get localized display name
+    const lang = i18n.language.split('-')[0];
+    const localizedName = {
+        de: bird.de_name,
+        es: bird.es_name,
+        uk: bird.ukrainian_name,
+        ar: bird.ar_name
+    }[lang] || '';
+    const displayName = localizedName || bird.english_name;
+
+    return (
+        <Animated.View
+            entering={FadeInUp.springify()}
+            style={[styles.header, { marginTop: insets.top }]}
+        >
+            <Animated.View style={backButtonStyle}>
+                <ThemedPressable
+                    variant="secondary"
+                    size="medium"
+                    onPress={handleBackPress}
+                    style={styles.backButton}
+                >
+                    <Feather name="arrow-left" size={20} color={semanticColors.text} />
+                </ThemedPressable>
+            </Animated.View>
+
+            <ThemedView surface="transparent" style={styles.headerInfo}>
+                <ThemedText
+                    variant="headlineLarge"
+                    style={styles.headerTitle}
+                    numberOfLines={2}
+                >
+                    {displayName}
+                </ThemedText>
+
+                <ThemedText
+                    variant="bodyMedium"
+                    color="secondary"
+                    style={styles.scientificName}
+                >
+                    {bird.scientific_name}
+                </ThemedText>
+
+                {bird.hasBeenLogged === 1 && (
+                    <Animated.View
+                        entering={FadeInDown.delay(200).springify()}
+                        style={[styles.loggedBadge, { backgroundColor: variants.primarySubtle }]}
+                    >
+                        <Feather name="check" size={14} color={semanticColors.primary} />
+                        <ThemedText
+                            variant="labelSmall"
+                            color="primary"
+                            style={styles.loggedText}
+                        >
+                            {t('birddex.spotted')}
+                        </ThemedText>
+                    </Animated.View>
+                )}
+            </ThemedView>
+
+            {!bird.hasBeenLogged && (
+                <ThemedPressable
+                    variant="primary"
+                    size="medium"
+                    onPress={onAddToSpottings}
+                    style={styles.addButton}
+                    glowOnHover
+                >
+                    <Feather name="plus" size={18} color={semanticColors.onPrimary} />
+                </ThemedPressable>
+            )}
+        </Animated.View>
+    );
+}
+
+// Quick Action Button Component
+function QuickActionButton({
+                               title,
+                               icon,
+                               onPress,
+                               delay = 0
+                           }: {
+    title: string;
+    icon: string;
+    onPress: () => void;
+    delay?: number;
+}) {
+    const semanticColors = useSemanticColors();
+
+    return (
+        <Animated.View
+            entering={FadeInDown.delay(delay).springify()}
+            layout={Layout.springify()}
+            style={styles.actionButtonContainer}
+        >
+            <ThemedPressable
+                variant="outline"
+                onPress={onPress}
+                style={styles.actionButton}
+                animateOnPress
+            >
+                <Feather name={icon as any} size={18} color={semanticColors.text} />
+                <ThemedText variant="labelMedium">{title}</ThemedText>
+                <Feather name="external-link" size={14} color={semanticColors.textTertiary} />
+            </ThemedPressable>
+        </Animated.View>
+    );
+}
+
+// Name Row Component
+function NameRow({ field, index }: { field: NameField; index: number }) {
+    const semanticColors = useSemanticColors();
+    const typography = useTypography();
+
+    return (
+        <Animated.View
+            entering={FadeInDown.delay(index * 50).springify()}
+            layout={Layout.springify()}
+            style={styles.nameRow}
+        >
+            <ThemedText style={styles.nameFlag}>{field.flag}</ThemedText>
+            <ThemedView surface="transparent" style={styles.nameInfo}>
+                <ThemedText
+                    variant="labelSmall"
+                    color="secondary"
+                    style={[
+                        styles.nameLabel,
+                        field.isPrimary && styles.primaryNameLabel
+                    ]}
+                >
+                    {field.label}
+                </ThemedText>
+                <ThemedText
+                    variant="bodyMedium"
+                    style={[
+                        styles.nameValue,
+                        field.label.includes('Scientific') && styles.scientificNameText
+                    ]}
+                >
+                    {field.value}
+                </ThemedText>
+            </ThemedView>
+        </Animated.View>
+    );
+}
+
+// Classification Item Component
+function ClassificationItem({
+                                label,
+                                value,
+                                index
+                            }: {
+    label: string;
+    value: string;
+    index: number;
+}) {
+    return (
+        <Animated.View
+            entering={FadeInDown.delay(index * 100).springify()}
+            layout={Layout.springify()}
+            style={styles.classificationItem}
+        >
+            <ThemedText variant="labelMedium" color="secondary" style={styles.classificationLabel}>
+                {label}
+            </ThemedText>
+            <ThemedText variant="bodyMedium" style={styles.classificationValue}>
+                {value}
+            </ThemedText>
+        </Animated.View>
+    );
+}
+
+export default function ModernBirdDexDetail() {
     const { code } = useLocalSearchParams<{ code: string }>();
     const { t, i18n } = useTranslation();
     const router = useRouter();
-    const scheme = useColorScheme() ?? 'light';
-    const pal = theme[scheme];
-    const insets = useSafeAreaInsets();
+
+    // Modern theme hooks
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const typography = useTypography();
+    const theme = useTheme();
 
     const [rec, setRec] = useState<DetailRecord | null>(null);
     const [loading, setLoading] = useState(true);
@@ -53,12 +259,9 @@ export default function BirdDexDetail() {
 
             try {
                 setLoading(true);
-
-                // Use the service function instead of direct DB access
                 const bird = getBirdBySpeciesCode(code);
 
                 if (bird) {
-                    // Add logging status
                     const detailRecord: DetailRecord = {
                         ...bird,
                         hasBeenLogged: hasSpottingForLatin(bird.scientific_name) ? 1 : 0
@@ -82,6 +285,7 @@ export default function BirdDexDetail() {
 
     const openWikipedia = useCallback(() => {
         if (rec?.scientific_name) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(rec.scientific_name)}`;
             Linking.openURL(url);
         }
@@ -89,6 +293,7 @@ export default function BirdDexDetail() {
 
     const openEBird = useCallback(() => {
         if (rec?.species_code) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             const url = `https://ebird.org/species/${rec.species_code}`;
             Linking.openURL(url);
         }
@@ -96,30 +301,34 @@ export default function BirdDexDetail() {
 
     const openAllAboutBirds = useCallback(() => {
         if (rec?.species_code) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             const url = `https://www.allaboutbirds.org/guide/${rec.species_code}`;
             Linking.openURL(url);
         }
     }, [rec?.species_code]);
 
     const addToSpottings = useCallback(() => {
-        // Navigate to the logging screen with pre-filled data
-        router.push({
-            pathname: '/log/manual',
-            params: {
-                prefilledBird: rec?.scientific_name || '',
-                prefilledEnglishName: rec?.english_name || '',
-            }
-        });
+        if (rec) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            router.push({
+                pathname: '/log/manual',
+                params: {
+                    prefilledBird: rec.scientific_name || '',
+                    prefilledEnglishName: rec.english_name || '',
+                }
+            });
+        }
     }, [rec, router]);
 
+    // Loading state
     if (loading) {
         return (
-            <SafeAreaView style={[styles.loadingContainer, { backgroundColor: pal.colors.background }]}>
-                <ActivityIndicator size="large" color={pal.colors.primary} />
-                <Text style={[styles.loadingText, { color: pal.colors.text.secondary }]}>
+            <ThemedView surface="primary" style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={semanticColors.primary} />
+                <ThemedText variant="bodyMedium" color="secondary" style={styles.loadingText}>
                     {t('birddex.loadingDetail')}
-                </Text>
-            </SafeAreaView>
+                </ThemedText>
+            </ThemedView>
         );
     }
 
@@ -133,7 +342,6 @@ export default function BirdDexDetail() {
         uk: rec.ukrainian_name,
         ar: rec.ar_name
     }[lang] || '';
-    const displayName = localizedName || rec.english_name;
 
     // Prepare name fields for display
     const nameFields: NameField[] = [
@@ -145,232 +353,189 @@ export default function BirdDexDetail() {
         { label: t('birddex.arabic'), value: rec.ar_name, flag: '🇸🇦' },
     ].filter(field => field.value && field.value.trim() !== '');
 
-
-    const renderInfoCard = (title: string, children: React.ReactNode, icon?: string) => (
-        <BlurView
-            intensity={60}
-            tint={scheme === "dark" ? "dark" : "light"}
-            style={[styles.infoCard, { borderColor: pal.colors.border }]}
-        >
-            <View style={styles.cardHeader}>
-                {icon && <Feather name={icon as any} size={20} color={pal.colors.primary} />}
-                <Text style={[styles.cardTitle, { color: pal.colors.text.primary }]}>
-                    {title}
-                </Text>
-            </View>
-            <View style={styles.cardContent}>
-                {children}
-            </View>
-        </BlurView>
-    );
-
-    const renderActionButton = (title: string, icon: string, onPress: () => void, variant: 'primary' | 'secondary' = 'secondary') => (
-        <Pressable
-            style={[
-                styles.actionButton,
-                variant === 'primary'
-                    ? { backgroundColor: pal.colors.primary }
-                    : { backgroundColor: pal.colors.statusBar, borderColor: pal.colors.border, borderWidth: 1 }
-            ]}
-            onPress={onPress}
-            android_ripple={{ color: pal.colors.primary + '20' }}
-        >
-            <Feather
-                name={icon as any}
-                size={18}
-                color={variant === 'primary' ? pal.colors.text.primary : pal.colors.text.primary}
-            />
-            <Text style={[
-                styles.actionButtonText,
-                { color: variant === 'primary' ? pal.colors.text.primary : pal.colors.text.primary }
-            ]}>
-                {title}
-            </Text>
-        </Pressable>
-    );
-
-    if (loading) {
-        return (
-            <SafeAreaView style={[styles.loadingContainer, { backgroundColor: pal.colors.background }]}>
-                <ActivityIndicator size="large" color={pal.colors.primary} />
-                <Text style={[styles.loadingText, { color: pal.colors.text.secondary }]}>
-                    {t('birddex.loadingDetail')}
-                </Text>
-            </SafeAreaView>
-        );
-    }
-
-    if (!rec) return null;
-
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+        <ThemedView surface="primary" style={styles.container}>
             {/* Header */}
-            <View style={[styles.header, { marginTop: insets.top }]}>
-                <Pressable
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                >
-                    <Feather name="arrow-left" size={24} color={pal.colors.text.primary} />
-                </Pressable>
+            <DetailHeader
+                bird={rec}
+                onBack={() => router.back()}
+                onAddToSpottings={addToSpottings}
+            />
 
-                <View style={styles.headerInfo}>
-                    <Text style={[styles.headerTitle, { color: pal.colors.text.primary }]} numberOfLines={2}>
-                        {displayName}
-                    </Text>
-                    {rec.hasBeenLogged === 1 && (
-                        <View style={[styles.loggedBadge, { backgroundColor: pal.colors.primary }]}>
-                            <Feather name="check" size={14} color={pal.colors.text.primary} />
-                            <Text style={[styles.loggedText, { color: pal.colors.text.primary }]}>
-                                {t('birddex.spotted')}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-            </View>
-
+            {/* Content */}
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Action Buttons */}
-                <View style={styles.actionsContainer}>
-                    {!rec.hasBeenLogged && renderActionButton(
-                        t('birddex.addToSpottings'),
-                        'plus-circle',
-                        addToSpottings,
-                        'primary'
-                    )}
-                    {renderActionButton(t('birddex.wikipedia'), 'external-link', openWikipedia)}
-                    {renderActionButton(t('birddex.eBird'), 'globe', openEBird)}
-                    {renderActionButton(t('birddex.allAboutBirds'), 'book-open', openAllAboutBirds)}
-                </View>
+                {/* Quick Actions */}
+                <Animated.View
+                    entering={FadeInDown.delay(100).springify()}
+                    style={styles.quickActions}
+                >
+                    <QuickActionButton
+                        title={t('birddex.wikipedia')}
+                        icon="book"
+                        onPress={openWikipedia}
+                        delay={0}
+                    />
+                    <QuickActionButton
+                        title={t('birddex.eBird')}
+                        icon="globe"
+                        onPress={openEBird}
+                        delay={50}
+                    />
+                    <QuickActionButton
+                        title={t('birddex.allAboutBirds')}
+                        icon="feather"
+                        onPress={openAllAboutBirds}
+                        delay={100}
+                    />
+                </Animated.View>
 
                 {/* Names Section */}
-                {renderInfoCard(t('birddex.names'), (
-                    <View style={styles.namesGrid}>
-                        {nameFields.map((field, index) => (
-                            <View key={index} style={styles.nameRow}>
-                                <Text style={styles.nameFlag}>{field.flag}</Text>
-                                <View style={styles.nameInfo}>
-                                    <Text style={[
-                                        styles.nameLabel,
-                                        { color: pal.colors.text.secondary },
-                                        field.isPrimary && styles.primaryNameLabel
-                                    ]}>
-                                        {field.label}
-                                    </Text>
-                                    <Text style={[
-                                        styles.nameValue,
-                                        { color: pal.colors.text.primary },
-                                        field.label === t('birddex.scientific') && styles.scientificName
-                                    ]}>
-                                        {field.value}
-                                    </Text>
-                                </View>
-                            </View>
-                        ))}
-                    </View>
-                ), 'globe')}
+                <Animated.View entering={FadeInDown.delay(200).springify()}>
+                    <ModernCard variant="glass" style={styles.section}>
+                        <ThemedView style={styles.sectionHeader}>
+                            <Feather name="globe" size={20} color={semanticColors.primary} />
+                            <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
+                                {t('birddex.names')}
+                            </ThemedText>
+                        </ThemedView>
+                        <ThemedView surface="transparent" style={styles.namesGrid}>
+                            {nameFields.map((field, index) => (
+                                <NameRow key={index} field={field} index={index} />
+                            ))}
+                        </ThemedView>
+                    </ModernCard>
+                </Animated.View>
 
                 {/* Classification Section */}
-                {renderInfoCard(t('birddex.classification'), (
-                    <View style={styles.classificationGrid}>
-                        {rec.category && (
-                            <View style={styles.classificationItem}>
-                                <Text style={[styles.classificationLabel, { color: pal.colors.text.secondary }]}>
-                                    {t('birddex.category')}
-                                </Text>
-                                <Text style={[styles.classificationValue, { color: pal.colors.text.primary }]}>
-                                    {rec.category}
-                                </Text>
-                            </View>
-                        )}
-                        {rec.order_ && (
-                            <View style={styles.classificationItem}>
-                                <Text style={[styles.classificationLabel, { color: pal.colors.text.secondary }]}>
-                                    {t('birddex.order')}
-                                </Text>
-                                <Text style={[styles.classificationValue, { color: pal.colors.text.primary }]}>
-                                    {rec.order_}
-                                </Text>
-                            </View>
-                        )}
-                        {rec.family && (
-                            <View style={styles.classificationItem}>
-                                <Text style={[styles.classificationLabel, { color: pal.colors.text.secondary }]}>
-                                    {t('birddex.family')}
-                                </Text>
-                                <Text style={[styles.classificationValue, { color: pal.colors.text.primary }]}>
-                                    {rec.family}
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-                ), 'layers')}
+                <Animated.View entering={FadeInDown.delay(300).springify()}>
+                    <ModernCard variant="glass" style={styles.section}>
+                        <ThemedView style={styles.sectionHeader}>
+                            <Feather name="layers" size={20} color={semanticColors.primary} />
+                            <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
+                                {t('birddex.classification')}
+                            </ThemedText>
+                        </ThemedView>
+                        <ThemedView surface="transparent" style={styles.classificationGrid}>
+                            {rec.category && (
+                                <ClassificationItem
+                                    label={t('birddex.category')}
+                                    value={rec.category}
+                                    index={0}
+                                />
+                            )}
+                            {rec.order_ && (
+                                <ClassificationItem
+                                    label={t('birddex.order')}
+                                    value={rec.order_}
+                                    index={1}
+                                />
+                            )}
+                            {rec.family && (
+                                <ClassificationItem
+                                    label={t('birddex.family')}
+                                    value={rec.family}
+                                    index={2}
+                                />
+                            )}
+                        </ThemedView>
+                    </ModernCard>
+                </Animated.View>
 
-                {/* Range & Status Section */}
-                {renderInfoCard(t('birddex.distribution'), (
-                    <View style={styles.infoSection}>
-                        {rec.range && (
-                            <View style={styles.infoItem}>
-                                <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                    {t('birddex.range')}
-                                </Text>
-                                <Text style={[styles.infoValue, { color: pal.colors.text.primary }]}>
-                                    {rec.range}
-                                </Text>
-                            </View>
-                        )}
+                {/* Distribution Section */}
+                <Animated.View entering={FadeInDown.delay(400).springify()}>
+                    <ModernCard variant="glass" style={styles.section}>
+                        <ThemedView style={styles.sectionHeader}>
+                            <Feather name="map-pin" size={20} color={semanticColors.primary} />
+                            <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
+                                {t('birddex.distribution')}
+                            </ThemedText>
+                        </ThemedView>
+                        <ThemedView surface="transparent" style={styles.distributionContent}>
+                            {rec.range && (
+                                <Animated.View
+                                    entering={FadeInDown.delay(450).springify()}
+                                    style={styles.infoItem}
+                                >
+                                    <ThemedText variant="labelMedium" color="secondary" style={styles.infoLabel}>
+                                        {t('birddex.range')}
+                                    </ThemedText>
+                                    <ThemedText variant="bodyMedium" style={styles.infoValue}>
+                                        {rec.range}
+                                    </ThemedText>
+                                </Animated.View>
+                            )}
 
-                        <View style={styles.infoItem}>
-                            <Text style={[styles.infoLabel, { color: pal.colors.text.secondary }]}>
-                                {t('birddex.conservationStatus')}
-                            </Text>
-                            <View style={styles.statusContainer}>
-                                {rec.extinct === 'yes' ? (
-                                    <>
-                                        <Feather name="alert-triangle" size={16} color={pal.colors.error} />
-                                        <Text style={[styles.statusText, { color: pal.colors.error }]}>
-                                            {t('birddex.extinct')} {rec.extinct_year ? `(${rec.extinct_year})` : ''}
-                                        </Text>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Feather name="check-circle" size={16} color={pal.colors.primary} />
-                                        <Text style={[styles.statusText, { color: pal.colors.primary }]}>
-                                            {t('birddex.extant')}
-                                        </Text>
-                                    </>
-                                )}
-                            </View>
-                        </View>
-                    </View>
-                ), 'map-pin')}
+                            <Animated.View
+                                entering={FadeInDown.delay(500).springify()}
+                                style={styles.infoItem}
+                            >
+                                <ThemedText variant="labelMedium" color="secondary" style={styles.infoLabel}>
+                                    {t('birddex.conservationStatus')}
+                                </ThemedText>
+                                <ThemedView surface="transparent" style={styles.statusContainer}>
+                                    {rec.extinct === 'yes' ? (
+                                        <>
+                                            <Feather name="alert-triangle" size={16} color={semanticColors.error} />
+                                            <ThemedText variant="bodyMedium" color="error" style={styles.statusText}>
+                                                {t('birddex.extinct')} {rec.extinct_year ? `(${rec.extinct_year})` : ''}
+                                            </ThemedText>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Feather name="check-circle" size={16} color={semanticColors.success} />
+                                            <ThemedText variant="bodyMedium" color="success" style={styles.statusText}>
+                                                {t('birddex.extant')}
+                                            </ThemedText>
+                                        </>
+                                    )}
+                                </ThemedView>
+                            </Animated.View>
+                        </ThemedView>
+                    </ModernCard>
+                </Animated.View>
 
                 {/* Metadata Section */}
-                {renderInfoCard(t('birddex.metadata'), (
-                    <View style={styles.metadataGrid}>
-                        <View style={styles.metadataItem}>
-                            <Text style={[styles.metadataLabel, { color: pal.colors.text.secondary }]}>
-                                {t('birddex.speciesCode')}
-                            </Text>
-                            <Text style={[styles.metadataValue, { color: pal.colors.text.primary }]}>
-                                {rec.species_code}
-                            </Text>
-                        </View>
-                        <View style={styles.metadataItem}>
-                            <Text style={[styles.metadataLabel, { color: pal.colors.text.secondary }]}>
-                                {t('birddex.clements2024')}
-                            </Text>
-                            <Text style={[styles.metadataValue, { color: pal.colors.text.primary }]}>
-                                {rec.clements_v2024b_change || t('birddex.noChanges')}
-                            </Text>
-                        </View>
-                    </View>
-                ), 'database')}
+                <Animated.View entering={FadeInDown.delay(500).springify()}>
+                    <ModernCard variant="glass" style={styles.section}>
+                        <ThemedView style={styles.sectionHeader}>
+                            <Feather name="database" size={20} color={semanticColors.primary} />
+                            <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
+                                {t('birddex.metadata')}
+                            </ThemedText>
+                        </ThemedView>
+                        <ThemedView surface="transparent" style={styles.metadataGrid}>
+                            <Animated.View
+                                entering={FadeInDown.delay(550).springify()}
+                                style={styles.metadataItem}
+                            >
+                                <ThemedText variant="labelSmall" color="secondary" style={styles.metadataLabel}>
+                                    {t('birddex.speciesCode')}
+                                </ThemedText>
+                                <ThemedText variant="bodySmall" style={styles.metadataValue}>
+                                    {rec.species_code}
+                                </ThemedText>
+                            </Animated.View>
+
+                            <Animated.View
+                                entering={FadeInDown.delay(600).springify()}
+                                style={styles.metadataItem}
+                            >
+                                <ThemedText variant="labelSmall" color="secondary" style={styles.metadataLabel}>
+                                    {t('birddex.clements2024')}
+                                </ThemedText>
+                                <ThemedText variant="bodySmall" style={styles.metadataValue}>
+                                    {rec.clements_v2024b_change || t('birddex.noChanges')}
+                                </ThemedText>
+                            </Animated.View>
+                        </ThemedView>
+                    </ModernCard>
+                </Animated.View>
             </ScrollView>
-        </SafeAreaView>
+        </ThemedView>
     );
 }
 
@@ -382,50 +547,66 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: theme.spacing.xl,
+        gap: 16,
     },
     loadingText: {
-        fontSize: 16,
-        marginTop: theme.spacing.md,
+        textAlign: 'center',
     },
 
     // Header
     header: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        gap: theme.spacing.md,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        gap: 16,
     },
     backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 4,
+        minWidth: 44,
     },
     headerInfo: {
         flex: 1,
+        gap: 4,
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        lineHeight: 34,
-        marginBottom: theme.spacing.sm,
+        fontWeight: '700',
+        lineHeight: 32,
+    },
+    scientificName: {
+        fontStyle: 'italic',
+        marginBottom: 8,
     },
     loggedBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         alignSelf: 'flex-start',
-        paddingHorizontal: theme.spacing.sm,
-        paddingVertical: 4,
-        borderRadius: theme.borderRadius.md,
-        gap: 4,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        gap: 6,
     },
     loggedText: {
-        fontSize: 12,
         fontWeight: '600',
         textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    addButton: {
+        minWidth: 44,
+    },
+
+    // Sections
+    section: {
+        overflow: 'hidden',
+        padding: 20,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 20,
+    },
+    sectionTitle: {
+        fontWeight: '600',
     },
 
     // Scroll View
@@ -433,149 +614,117 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        padding: theme.spacing.md,
-        paddingBottom: theme.spacing.xxl,
+        padding: 20,
+        paddingBottom: 40,
+        gap: 24,
     },
 
-    // Action Buttons
-    actionsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: theme.spacing.sm,
-        marginBottom: theme.spacing.lg,
+    // Quick Actions
+    quickActions: {
+        gap: 12,
+    },
+    actionButtonContainer: {
+        width: '100%',
     },
     actionButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        borderRadius: theme.borderRadius.lg,
-        gap: theme.spacing.sm,
-        minWidth: 0,
-        flex: 1,
-        justifyContent: 'center',
-    },
-    actionButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-
-    // Info Cards
-    infoCard: {
-        marginBottom: theme.spacing.lg,
-        borderRadius: theme.borderRadius.lg,
-        borderWidth: 1,
-        overflow: 'hidden',
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        gap: theme.spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(128, 128, 128, 0.2)',
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    cardContent: {
-        padding: theme.spacing.md,
+        gap: 12,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        justifyContent: 'space-between',
     },
 
     // Names Section
     namesGrid: {
-        gap: theme.spacing.md,
+        gap: 16,
     },
     nameRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: theme.spacing.sm,
+        gap: 12,
     },
     nameFlag: {
         fontSize: 20,
         width: 28,
+        textAlign: 'center',
     },
     nameInfo: {
         flex: 1,
+        gap: 4,
     },
     nameLabel: {
-        fontSize: 12,
-        fontWeight: '600',
         textTransform: 'uppercase',
-        marginBottom: 2,
+        fontWeight: '600',
+        letterSpacing: 0.5,
     },
     primaryNameLabel: {
         fontWeight: '700',
     },
     nameValue: {
-        fontSize: 16,
         lineHeight: 22,
     },
-    scientificName: {
+    scientificNameText: {
         fontStyle: 'italic',
     },
 
     // Classification Section
     classificationGrid: {
-        gap: theme.spacing.md,
+        gap: 16,
     },
     classificationItem: {
-        paddingBottom: theme.spacing.sm,
+        paddingBottom: 12,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(128, 128, 128, 0.1)',
     },
     classificationLabel: {
-        fontSize: 12,
-        fontWeight: '600',
         textTransform: 'uppercase',
+        fontWeight: '600',
+        letterSpacing: 0.5,
         marginBottom: 4,
     },
     classificationValue: {
-        fontSize: 16,
         fontWeight: '500',
     },
 
-    // Info Section
-    infoSection: {
-        gap: theme.spacing.lg,
+    // Distribution Section
+    distributionContent: {
+        gap: 20,
     },
     infoItem: {
-        gap: theme.spacing.sm,
+        gap: 8,
     },
     infoLabel: {
-        fontSize: 14,
+        textTransform: 'uppercase',
         fontWeight: '600',
+        letterSpacing: 0.5,
     },
     infoValue: {
-        fontSize: 16,
         lineHeight: 24,
     },
     statusContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: theme.spacing.sm,
+        gap: 8,
     },
     statusText: {
-        fontSize: 16,
         fontWeight: '500',
     },
 
     // Metadata Section
     metadataGrid: {
-        gap: theme.spacing.md,
+        gap: 16,
     },
     metadataItem: {
-        gap: 4,
+        gap: 6,
     },
     metadataLabel: {
-        fontSize: 12,
-        fontWeight: '600',
         textTransform: 'uppercase',
+        fontWeight: '600',
+        letterSpacing: 0.5,
     },
     metadataValue: {
-        fontSize: 14,
         fontFamily: 'monospace',
+        opacity: 0.8,
     },
 });

@@ -230,7 +230,7 @@ function SearchHeader({
   );
 }
 
-export function ArchiveScreen() {
+export default function ArchiveScreen() {
   const {t} = useTranslation();
   const semanticColors = useSemanticColors();
   const variants = useColorVariants();
