@@ -670,8 +670,8 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         overflow: 'hidden',
+        paddingTop: 40,
     },
-
     // Header
     header: {
         paddingHorizontal: 24,

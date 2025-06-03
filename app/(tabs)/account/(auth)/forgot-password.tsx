@@ -332,6 +332,7 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        paddingTop: 40,
     },
     keyboardView: {
         flex: 1,
