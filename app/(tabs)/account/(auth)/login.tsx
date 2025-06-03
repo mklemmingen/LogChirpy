@@ -1,45 +1,41 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
-    View,
-    Text,
-    TextInput,
-    StyleSheet,
-    SafeAreaView,
+    Dimensions,
     KeyboardAvoidingView,
     Platform,
-    ScrollView,
     Pressable,
-    Dimensions,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
+import {router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {BlurView} from 'expo-blur';
+import {Feather} from '@expo/vector-icons';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-    withSequence,
     interpolate,
     SlideInRight,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring,
+    withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 // Firebase imports
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/firebase/config';
+import {signInWithEmailAndPassword} from 'firebase/auth';
+import {auth} from '@/firebase/config';
 
 // Local component imports
-import { ModernCard } from '@/components/ModernCard';
-import { PrimaryButton, ThemedPressable } from '@/components/ThemedPressable';
-import { ThemedText } from '@/components/ThemedText';
-import { useSnackbar } from '@/components/ThemedSnackbar';
-import {
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-} from '@/hooks/useThemeColor';
+import {ModernCard} from '@/components/ModernCard';
+import {PrimaryButton, ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedText} from '@/components/ThemedText';
+import {useSnackbar} from '@/components/ThemedSnackbar';
+import {useColorVariants, useSemanticColors, useTypography,} from '@/hooks/useThemeColor';
 
 // Constants
 const { width, height } = Dimensions.get('window');

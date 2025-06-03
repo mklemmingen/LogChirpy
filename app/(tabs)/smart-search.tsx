@@ -1,13 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {
-    ActivityIndicator,
-    FlatList,
-    Pressable,
-    SafeAreaView,
-    StyleSheet,
-    TextInput,
-    View
-} from 'react-native';
+import {ActivityIndicator, FlatList, Pressable, SafeAreaView, StyleSheet, TextInput, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
 import {Feather} from '@expo/vector-icons';
@@ -19,21 +11,14 @@ import Animated, {
     Layout,
     useAnimatedStyle,
     useSharedValue,
-    withSpring,
-    withTiming
+    withSpring
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { ModernCard } from '@/components/ModernCard';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues
-} from '@/hooks/useThemeColor';
+import {ModernCard} from '@/components/ModernCard';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 import {type BirdDexRecord, searchBirdsByName} from '@/services/databaseBirDex';
 
 type SmartSearchResult = BirdDexRecord & {

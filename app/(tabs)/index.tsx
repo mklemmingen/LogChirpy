@@ -1,36 +1,22 @@
 import React from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    Dimensions,
-    ScrollView,
-    SafeAreaView,
-} from 'react-native';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
+import {Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, View,} from 'react-native';
+import {router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Feather} from '@expo/vector-icons';
 import Animated, {
+    Easing,
+    interpolate,
     useAnimatedStyle,
     useSharedValue,
     withRepeat,
     withTiming,
-    interpolate,
-    Easing,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { HelloWave } from '@/components/HelloWave';
+import {HelloWave} from '@/components/HelloWave';
 import BirdAnimation from '@/components/BirdAnimation';
-import { ModernCard } from '@/components/ModernCard';
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues
-} from '@/hooks/useThemeColor';
+import {ModernCard} from '@/components/ModernCard';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 
 const { width, height } = Dimensions.get('window');
 

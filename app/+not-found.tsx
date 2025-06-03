@@ -1,29 +1,22 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
-import { Link, Stack } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import React, {useEffect} from 'react';
+import {Dimensions, StyleSheet, View} from 'react-native';
+import {Link, Stack} from 'expo-router';
+import {Feather} from '@expo/vector-icons';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
   withRepeat,
   withSequence,
-  interpolate,
-  Easing,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ModernCard } from '@/components/ModernCard';
-import {
-  useTheme,
-  useSemanticColors,
-  useColorVariants,
-  useTypography,
-  useMotionValues,
-} from '@/hooks/useThemeColor';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ModernCard} from '@/components/ModernCard';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

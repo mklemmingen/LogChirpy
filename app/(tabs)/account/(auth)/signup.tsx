@@ -1,45 +1,30 @@
-import React, { useState, useRef } from 'react';
+import React, {useRef, useState} from 'react';
 import {
-    View,
-    Text,
-    TextInput,
-    StyleSheet,
-    SafeAreaView,
     KeyboardAvoidingView,
     Platform,
-    ScrollView,
     Pressable,
-    Alert,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-    interpolate,
-} from 'react-native-reanimated';
+import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Feather} from '@expo/vector-icons';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 // Firebase imports
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/firebase/config';
+import {createUserWithEmailAndPassword} from 'firebase/auth';
+import {auth} from '@/firebase/config';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ModernCard } from '@/components/ModernCard';
-import { useSnackbar } from '@/components/ThemedSnackbar';
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues,
-} from '@/hooks/useThemeColor';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ModernCard} from '@/components/ModernCard';
+import {useSnackbar} from '@/components/ThemedSnackbar';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 

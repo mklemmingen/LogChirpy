@@ -1,16 +1,16 @@
 import React from 'react';
-import { View, StyleSheet, useColorScheme, Text } from 'react-native';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
+import {StyleSheet, useColorScheme, View} from 'react-native';
+import {router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
-import { Feather } from '@expo/vector-icons';
+import {Feather} from '@expo/vector-icons';
 
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ThemedText } from '@/components/ThemedText';
-import { theme } from '@/constants/theme';
-import { useLogDraft } from '../context/LogDraftContext';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedText} from '@/components/ThemedText';
+import {theme} from '@/constants/theme';
+import {useLogDraft} from '../context/LogDraftContext';
 
 export default function PhotoCapture() {
   const { t } = useTranslation();

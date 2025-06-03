@@ -1,44 +1,35 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  SafeAreaView,
-  Pressable,
-  RefreshControl,
   Alert,
   Dimensions,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  SafeAreaView,
+  StyleSheet,
+  TextInput,
+  View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { router } from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Feather} from '@expo/vector-icons';
+import {BlurView} from 'expo-blur';
+import {router} from 'expo-router';
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
   FadeInDown,
   FadeOutUp,
   Layout,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { BirdSpottingCard } from '@/components/ModernCard';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import {
-  useTheme,
-  useSemanticColors,
-  useColorVariants,
-  useTypography,
-  useMotionValues,
-} from '@/hooks/useThemeColor';
-import { getBirdSpottings, type BirdSpotting } from '@/services/database';
-import { syncDatabase } from '@/services/sync_layer';
+import {BirdSpottingCard} from '@/components/ModernCard';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedText} from '@/components/ThemedText';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {type BirdSpotting, getBirdSpottings} from '@/services/database';
+import {syncDatabase} from '@/services/sync_layer';
 
 const { width } = Dimensions.get('window');
 const CARD_MARGIN = 16;

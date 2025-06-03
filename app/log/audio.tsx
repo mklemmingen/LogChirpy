@@ -1,40 +1,27 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    BackHandler,
-    Dimensions,
-    StatusBar,
-    Linking,
-} from 'react-native';
-import { Audio } from 'expo-av';
-import { router, Stack, useFocusEffect } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Feather } from '@expo/vector-icons';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {ActivityIndicator, Alert, BackHandler, Dimensions, Linking, StatusBar,} from 'react-native';
+import {Audio} from 'expo-av';
+import {router, Stack, useFocusEffect} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Feather} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
+import {BlurView} from 'expo-blur';
 import Animated, {
+    Easing,
+    interpolate,
     useAnimatedStyle,
     useSharedValue,
+    withRepeat,
     withSpring,
     withTiming,
-    withRepeat,
-    interpolate,
-    Easing,
 } from 'react-native-reanimated';
 
-import { useLogDraft } from '../context/LogDraftContext';
-import { ModernCard } from '@/components/ModernCard';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues,
-} from '@/hooks/useThemeColor';
+import {useLogDraft} from '../context/LogDraftContext';
+import {ModernCard} from '@/components/ModernCard';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {useColorVariants, useSemanticColors, useTheme,} from '@/hooks/useThemeColor';
 
 type RecordingStatus = 'idle' | 'recording' | 'stopping' | 'playback';
 

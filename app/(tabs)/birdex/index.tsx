@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -12,23 +12,23 @@ import {
     useColorScheme,
     View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {useTranslation} from 'react-i18next';
+import {useRouter} from 'expo-router';
+import {Feather} from '@expo/vector-icons';
+import {BlurView} from 'expo-blur';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import { theme, getSemanticColors } from '@/constants/theme';
-import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
+import {getSemanticColors, theme} from '@/constants/theme';
+import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
 
 import {
-    type BirdDexRecord,
     type BirdCategory,
+    type BirdDexRecord,
+    getAvailableCategories,
     getBirdDexRowCount,
     queryBirdDexPage,
-    getAvailableCategories,
 } from '@/services/databaseBirDex';
-import { hasSpottingForLatin } from '@/services/database';
+import {hasSpottingForLatin} from '@/services/database';
 
 const PAGE_SIZE = 15;
 

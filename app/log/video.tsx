@@ -1,55 +1,33 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useColorScheme,
-  View,
-  StatusBar,
-  Alert,
-  BackHandler,
-} from 'react-native';
-import { Stack, useRouter, useFocusEffect } from 'expo-router';
-import {
-  Camera,
-  useCameraDevice,
-  useCameraPermission,
-  useMicrophonePermission,
-} from 'react-native-vision-camera';
-import { useVideoPlayer, VideoSource, VideoView } from 'expo-video';
-import { useTranslation } from 'react-i18next';
-import { Feather } from '@expo/vector-icons';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {ActivityIndicator, Alert, BackHandler, StatusBar, StyleSheet, Text, View,} from 'react-native';
+import {Stack, useFocusEffect, useRouter} from 'expo-router';
+import {Camera, useCameraDevice, useCameraPermission, useMicrophonePermission,} from 'react-native-vision-camera';
+import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
+import {useTranslation} from 'react-i18next';
+import {Feather} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
+import {BlurView} from 'expo-blur';
 import Animated, {
+  Easing,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
   withRepeat,
-  interpolate,
-  Easing,
+  withTiming,
 } from 'react-native-reanimated';
 
 // Modern components
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ModernCard } from '@/components/ModernCard';
-import { EnhancedCameraControls } from '@/components/CameraControls';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ModernCard} from '@/components/ModernCard';
+import {EnhancedCameraControls} from '@/components/CameraControls';
 
 // Modern theme hooks
-import {
-  useTheme,
-  useSemanticColors,
-  useColorVariants,
-  useTypography,
-  useMotionValues,
-} from '@/hooks/useThemeColor';
+import {useColorVariants, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
 
 // Context
-import { useLogDraft } from '../context/LogDraftContext';
+import {useLogDraft} from '../context/LogDraftContext';
 
 type RecordingState = 'idle' | 'recording' | 'stopping' | 'preview';
 

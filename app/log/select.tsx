@@ -1,38 +1,17 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    SafeAreaView,
-    TextInput,
-    View,
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-    Layout,
-    FadeInDown,
-} from 'react-native-reanimated';
+import React, {useCallback, useEffect, useState} from 'react';
+import {ActivityIndicator, Alert, FlatList, TextInput, View,} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import Animated, {Layout, useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ModernCard } from '@/components/ModernCard';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues,
-} from '@/hooks/useThemeColor';
-import { type BirdSpotting, getBirdSpottings, updateLatinBirDex } from '@/services/database';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ModernCard} from '@/components/ModernCard';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {type BirdSpotting, getBirdSpottings, updateLatinBirDex} from '@/services/database';
 
 interface SpottingCardProps {
     spotting: BirdSpotting;

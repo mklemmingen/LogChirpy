@@ -1,33 +1,26 @@
 // app/_layout.tsx
-import React, { useEffect, useMemo, useState } from 'react';
-import { ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack, useSegments } from 'expo-router';
+import React, {useEffect, useMemo, useState} from 'react';
+import {ThemeProvider} from '@react-navigation/native';
+import {useFonts} from 'expo-font';
+import {Stack, useSegments} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text, Pressable } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
+import {StatusBar} from 'expo-status-bar';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
+import {BlurView} from 'expo-blur';
+import {Feather} from '@expo/vector-icons';
 import Animated, {
+    Easing,
     useAnimatedStyle,
     useSharedValue,
+    withRepeat,
     withSpring,
     withTiming,
-    withRepeat,
-    interpolate,
-    Easing,
 } from 'react-native-reanimated';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
 
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues
-} from '@/hooks/useThemeColor';
-import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
+import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
 
 import {
     ImageLabelingConfig,
@@ -42,7 +35,7 @@ import {
 } from '@infinitered/react-native-mlkit-object-detection';
 
 // Database imports
-import { initDB } from '@/services/database';
+import {initDB} from '@/services/database';
 
 SplashScreen.preventAutoHideAsync();
 
