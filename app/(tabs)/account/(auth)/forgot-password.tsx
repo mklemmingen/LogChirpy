@@ -243,7 +243,7 @@ export default function ForgotPasswordScreen() {
                             style={styles.errorContainer}
                         >
                             <Feather name="alert-circle" size={14} color={semanticColors.error} />
-                            <ThemedText variant="labelSmall" style={[styles.errorText, { color: semanticColors.error }]}>
+                            <ThemedText variant="labelSmall" color="error" style={styles.errorText}>
                                 {errors.email}
                             </ThemedText>
                         </Animated.View>
@@ -309,7 +309,8 @@ export default function ForgotPasswordScreen() {
                     {/* Main Card */}
                     <Animated.View style={[styles.cardContainer, cardAnimatedStyle]}>
                         <ModernCard
-                            variant="glass"
+                            elevated={false}
+                            bordered={true}
                             style={{
                                 borderColor: variants.primaryMuted,
                                 ...theme.shadows.lg,

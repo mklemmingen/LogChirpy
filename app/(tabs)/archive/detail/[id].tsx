@@ -136,7 +136,7 @@ function MediaSection({
 
     return (
         <Animated.View entering={FadeInDown.delay(100).springify()} layout={Layout.springify()}>
-            <ModernCard variant="elevated" style={styles.section}>
+            <ModernCard elevated={true} bordered={false} style={styles.section}>
                 <ThemedView surface="transparent" style={styles.sectionHeader}>
                     <Feather name="camera" size={20} color={semanticColors.primary} />
                     <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
@@ -186,7 +186,7 @@ function MediaSection({
                                     color={semanticColors.onPrimary}
                                 />
                             )}
-                            <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
+                            <ThemedText variant="labelLarge" color="inverse">
                                 {t('archive.play_audio')}
                             </ThemedText>
                         </ThemedPressable>
@@ -216,7 +216,7 @@ function InfoSection({
             entering={FadeInDown.delay(delay).springify()}
             layout={Layout.springify()}
         >
-            <ModernCard variant="elevated" style={styles.section}>
+            <ModernCard elevated={true} bordered={false} style={styles.section}>
                 <ThemedView surface="transparent" style={styles.sectionHeader}>
                     <Feather name={icon as any} size={20} color={semanticColors.primary} />
                     <ThemedText variant="headlineSmall" style={styles.sectionTitle}>

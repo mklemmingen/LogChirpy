@@ -24,7 +24,7 @@ import {ModernCard} from '@/components/ModernCard';
 import {EnhancedCameraControls} from '@/components/CameraControls';
 
 // Modern theme hooks
-import {useColorVariants, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {useTheme, useTypography,} from '@/hooks/useThemeColor';
 
 // Context
 import {useLogDraft} from '../context/LogDraftContext';
@@ -35,8 +35,8 @@ const AnimatedPressable = Animated.createAnimatedComponent(ThemedPressable);
 
 // Recording Status Indicator Component
 function RecordingStatusIndicator({ isRecording, duration }: { isRecording: boolean; duration: number }) {
-  const semanticColors = useSemanticColors();
   const typography = useTypography();
+  const theme = useTheme();
   const pulse = useSharedValue(0);
 
   useEffect(() => {
@@ -73,9 +73,9 @@ function RecordingStatusIndicator({ isRecording, duration }: { isRecording: bool
         />
         <View style={styles.statusContent}>
           {isRecording && (
-              <View style={[styles.recordingDot, { backgroundColor: semanticColors.error }]} />
+              <View style={[styles.recordingDot, { backgroundColor: theme.colors.text.secondary }]} />
           )}
-          <Text style={[typography.labelLarge, { color: 'white', fontWeight: '600' }]}>
+          <Text style={{ color: 'white', fontWeight: '600' }}>
             {isRecording ? 'REC' : 'STOPPED'} {formatTime(duration)}
           </Text>
         </View>
@@ -86,17 +86,15 @@ function RecordingStatusIndicator({ isRecording, duration }: { isRecording: bool
 // Permission Error Component
 function PermissionError({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation();
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
 
   return (
-      <ThemedView surface="primary" style={styles.centered}>
-        <ModernCard variant="glass" style={styles.errorCard}>
-          <View style={[styles.errorIcon, { backgroundColor: variants.primarySubtle }]}>
-            <Feather name="video-off" size={32} color={semanticColors.primary} />
+      <ThemedView style={styles.centered}>
+        <ModernCard elevated={false} bordered={true} style={styles.errorCard}>
+          <View style={[styles.errorIcon]}>
+            <Feather name="video-off" size={32} />
           </View>
 
-          <ThemedText variant="headlineMedium" style={styles.errorTitle}>
+          <ThemedText variant="h2" style={styles.errorTitle}>
             {t('camera.permission_required')}
           </ThemedText>
 
@@ -141,7 +139,6 @@ function VideoPreview({
   onConfirm: () => void;
 }) {
   const { t } = useTranslation();
-  const semanticColors = useSemanticColors();
 
   const player = useVideoPlayer(videoUri as VideoSource, (player) => {
     player.loop = true;
@@ -163,7 +160,7 @@ function VideoPreview({
         {/* Header */}
         <View style={styles.previewHeader}>
           <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFillObject} />
-          <ThemedText variant="headlineSmall" style={{ color: 'white' }}>
+          <ThemedText variant="h3" color="inverse">
             {t('video.preview_title')}
           </ThemedText>
         </View>
@@ -177,7 +174,6 @@ function VideoPreview({
                 variant="secondary"
                 style={[styles.previewButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
                 onPress={onRetake}
-                animateOnPress
             >
               <Feather name="refresh-cw" size={20} color="white" />
               <Text style={[styles.buttonText, { color: 'white' }]}>
@@ -187,13 +183,11 @@ function VideoPreview({
 
             <AnimatedPressable
                 variant="primary"
-                style={[styles.previewButton, { backgroundColor: semanticColors.primary }]}
+                style={[styles.previewButton]}
                 onPress={onConfirm}
-                animateOnPress
-                glowOnHover
             >
-              <Feather name="check" size={20} color={semanticColors.onPrimary} />
-              <Text style={[styles.buttonText, { color: semanticColors.onPrimary }]}>
+              <Feather name="check" size={20}/>
+              <Text style={[styles.buttonText]}>
                 {t('common.confirm')}
               </Text>
             </AnimatedPressable>
@@ -207,12 +201,6 @@ export default function VideoScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { update } = useLogDraft();
-
-  // Modern theme hooks
-  const theme = useTheme();
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
-  const typography = useTypography();
 
   // Permissions
   const { hasPermission: hasCameraPermission, requestPermission: requestCameraPermission } = useCameraPermission();
@@ -389,8 +377,8 @@ export default function VideoScreen() {
   // Device check
   if (!device) {
     return (
-        <ThemedView surface="primary" style={styles.centered}>
-          <ActivityIndicator size="large" color={semanticColors.primary} />
+        <ThemedView style={styles.centered}>
+          <ActivityIndicator size="large" />
           <ThemedText variant="bodyLarge" color="secondary" style={{ marginTop: 16 }}>
             {t('camera.loading_screen')}
           </ThemedText>
@@ -460,7 +448,7 @@ export default function VideoScreen() {
             <View style={styles.loadingOverlay}>
               <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
               <ActivityIndicator size="large" color="white" />
-              <ThemedText variant="bodyLarge" style={{ color: 'white', marginTop: 16 }}>
+              <ThemedText variant="bodyLarge" color="inverse" style={{ marginTop: 16 }}>
                 {t('video.processing')}
               </ThemedText>
             </View>

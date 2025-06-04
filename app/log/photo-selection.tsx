@@ -42,12 +42,12 @@ export default function PhotoSelection() {
     };
 
     return (
-        <ThemedView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+        <ThemedView style={[styles.container, { backgroundColor: pal.colors.background.primary }]}>
             <View style={styles.header}>
                 <ThemedText variant="headlineLarge">
                     {t('photo.select_best_photo')}
                 </ThemedText>
-                <ThemedText variant="bodyMedium" color="secondary">
+                <ThemedText variant="bodySmall" color="secondary">
                     {t('photo.tap_to_select')}
                 </ThemedText>
             </View>
@@ -81,7 +81,7 @@ export default function PhotoSelection() {
                     onPress={handleRetakePhotos}
                     style={styles.actionButton}
                 >
-                    <Feather name="camera" size={20} color={pal.colors.content.primary} />
+                    <Feather name="camera" size={20} color={pal.colors.background.primary} />
                     <ThemedText variant="labelLarge">
                         {t('photo.take_more')}
                     </ThemedText>
@@ -93,8 +93,8 @@ export default function PhotoSelection() {
                     disabled={!selectedPhoto}
                     style={[styles.actionButton, styles.primaryButton]}
                 >
-                    <Feather name="check" size={20} color={pal.colors.content.inverse} />
-                    <ThemedText variant="labelLarge" style={{ color: pal.colors.content.inverse }}>
+                    <Feather name="check" size={20} color={pal.colors.text.inverse} />
+                    <ThemedText variant="labelLarge" color="inverse">
                         {t('photo.use_this_photo')}
                     </ThemedText>
                 </ThemedPressable>

@@ -7,7 +7,6 @@ import {
     SafeAreaView,
     ScrollView,
     StyleSheet,
-    Text,
     TextInput,
     View,
 } from 'react-native';
@@ -32,7 +31,7 @@ import {auth} from '@/firebase/config';
 
 // Local component imports
 import {ModernCard} from '@/components/ModernCard';
-import {PrimaryButton, ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {useSnackbar} from '@/components/ThemedSnackbar';
 import {useColorVariants, useSemanticColors, useTypography,} from '@/hooks/useThemeColor';
@@ -147,9 +146,9 @@ function ModernTextInput({
 
     return (
         <View style={styles.inputContainer}>
-            <Animated.Text style={[typography.labelMedium, styles.inputLabel, labelStyle]}>
+            <ThemedText variant="label" style={[styles.inputLabel, labelStyle]}>
                 {label}
-            </Animated.Text>
+            </ThemedText>
 
             <Animated.View style={[styles.inputWrapper, containerStyle]}>
                 <BlurView
@@ -212,9 +211,9 @@ function ModernTextInput({
                     style={styles.errorContainer}
                 >
                     <Feather name="alert-circle" size={14} color={semanticColors.error} />
-                    <Text style={[typography.labelSmall, { color: semanticColors.error }]}>
+                    <ThemedText variant="caption" color="error">
                         {error}
-                    </Text>
+                    </ThemedText>
                 </Animated.View>
             )}
         </View>
@@ -399,7 +398,8 @@ export default function ModernLoginScreen() {
                     {/* Login Form */}
                     <Animated.View style={cardStyle}>
                         <ModernCard
-                            variant="glass"
+                            elevated={false}
+                            bordered={true}
                         >
                             <View style={styles.formContainer}>
                                 <ModernTextInput
@@ -439,14 +439,13 @@ export default function ModernLoginScreen() {
                                 </ThemedPressable>
 
                                 {/* Login Button */}
-                                <PrimaryButton
-                                    size="large"
+                                <ThemedPressable
+                                    variant="primary"
+                                    size="lg"
                                     fullWidth
-                                    loading={isLoading}
                                     disabled={isLoading}
                                     onPress={handleLogin}
                                     style={styles.loginButton}
-                                    glowOnHover
                                 >
                                     <View style={styles.buttonContent}>
                                         {!isLoading && (
@@ -458,12 +457,12 @@ export default function ModernLoginScreen() {
                                         )}
                                         <ThemedText
                                             variant="labelLarge"
-                                            style={{ color: semanticColors.onPrimary }}
+                                            color="inverse"
                                         >
                                             {isLoading ? 'Signing In...' : t('auth.signin')}
                                         </ThemedText>
                                     </View>
-                                </PrimaryButton>
+                                </ThemedPressable>
 
                                 {/* Sign Up Link */}
                                 <ThemedPressable

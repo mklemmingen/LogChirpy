@@ -17,10 +17,11 @@ import * as Haptics from 'expo-haptics';
 
 import {languages} from "@/i18n/languages";
 import {Config} from "@/constants/config";
-import {ModernCard} from "@/components/ModernCard";
-import SettingsSection from "@/components/SettingsSection";
+import {ThemedView, Card} from "@/components/ThemedView";
 import {ThemedText} from "@/components/ThemedText";
-import {useColorVariants, useSemanticColors, useTheme, useTypography} from "@/hooks/useThemeColor";
+import {ThemedPressable} from "@/components/ThemedPressable";
+import {Button} from "@/components/Button";
+import {useColors, useTheme, useTypography} from "@/hooks/useThemeColor";
 
 // Enhanced Language Selection Card
 function LanguageCard({
@@ -36,10 +37,9 @@ function LanguageCard({
     onPress: () => void;
     index: number;
 }) {
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
-    const typography = useTypography();
+    const colors = useColors();
     const theme = useTheme();
+    const typography = useTypography();
 
     const scale = useSharedValue(1);
     const glowOpacity = useSharedValue(0);
@@ -94,7 +94,7 @@ function LanguageCard({
                     style={[
                         StyleSheet.absoluteFillObject,
                         {
-                            backgroundColor: variants.primarySubtle,
+                            backgroundColor: colors.backgroundSecondary,
                             borderRadius: theme.borderRadius.lg,
                             margin: -2,
                         },
@@ -104,12 +104,12 @@ function LanguageCard({
                 />
             )}
 
-            <ModernCard
-                variant={isActive ? "primary" : "outlined"}
+            <ThemedPressable
+                variant={isActive ? "primary" : "secondary"}
                 onPress={handlePress}
-                animateOnPress
-                glowOnHover={isActive}
+                style={styles.languageCard}
             >
+                <Card style={[styles.languageCardInner, isActive && { borderColor: colors.primary, borderWidth: 2 }]}>
                 <View style={styles.languageContent}>
                     <Text style={styles.languageFlag}>
                         {getLanguageFlag(langKey)}
@@ -117,13 +117,13 @@ function LanguageCard({
 
                     <View style={styles.languageText}>
                         <ThemedText
-                            variant="bodyLarge"
+                            variant="body"
                             style={[
                                 styles.languageName,
                                 {
                                     color: isActive
-                                        ? semanticColors.primary
-                                        : semanticColors.text,
+                                        ? colors.primary
+                                        : colors.text,
                                     fontWeight: isActive ? '600' : '400',
                                 }
                             ]}
@@ -132,7 +132,7 @@ function LanguageCard({
                         </ThemedText>
 
                         <ThemedText
-                            variant="labelMedium"
+                            variant="label"
                             color="secondary"
                             style={styles.languageCode}
                         >
@@ -143,17 +143,18 @@ function LanguageCard({
                     {isActive && (
                         <View style={[
                             styles.activeIndicator,
-                            { backgroundColor: semanticColors.primary }
+                            { backgroundColor: colors.primary }
                         ]}>
                             <Feather
                                 name="check"
                                 size={16}
-                                color={semanticColors.onPrimary}
+                                color={colors.textInverse}
                             />
                         </View>
                     )}
                 </View>
-            </ModernCard>
+                </Card>
+            </ThemedPressable>
         </Animated.View>
     );
 }
@@ -166,10 +167,9 @@ function GPSToggleCard({
     enabled: boolean;
     onToggle: () => void;
 }) {
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
-    const typography = useTypography();
+    const colors = useColors();
     const theme = useTheme();
+    const typography = useTypography();
 
     const iconScale = useSharedValue(1);
     const switchScale = useSharedValue(1);
@@ -203,17 +203,15 @@ function GPSToggleCard({
             entering={FadeInDown.delay(200).springify()}
             layout={Layout.springify()}
         >
-            <ModernCard
-                variant="elevated"
-            >
+            <Card elevated style={styles.gpsCard}>
                 <View style={styles.gpsContent}>
                     <View style={styles.gpsInfo}>
                         <Animated.View style={[
                             styles.gpsIcon,
                             {
                                 backgroundColor: enabled
-                                    ? variants.primarySubtle
-                                    : variants.surfaceHover
+                                    ? colors.backgroundSecondary
+                                    : colors.backgroundTertiary
                             },
                             iconAnimatedStyle,
                         ]}>
@@ -221,8 +219,8 @@ function GPSToggleCard({
                                 name="map-pin"
                                 size={24}
                                 color={enabled
-                                    ? semanticColors.primary
-                                    : semanticColors.textSecondary
+                                    ? colors.primary
+                                    : colors.textSecondary
                                 }
                             />
                         </Animated.View>
@@ -248,8 +246,8 @@ function GPSToggleCard({
                                     styles.statusDot,
                                     {
                                         backgroundColor: enabled
-                                            ? semanticColors.success
-                                            : semanticColors.textTertiary
+                                            ? colors.success
+                                            : colors.textTertiary
                                     }
                                 ]} />
                                 <ThemedText
@@ -268,19 +266,19 @@ function GPSToggleCard({
                             value={enabled}
                             onValueChange={handleToggle}
                             trackColor={{
-                                false: semanticColors.border,
-                                true: semanticColors.primary
+                                false: colors.border,
+                                true: colors.primary
                             }}
                             thumbColor={
                                 enabled
-                                    ? semanticColors.onPrimary
-                                    : semanticColors.textSecondary
+                                    ? colors.textInverse
+                                    : colors.textSecondary
                             }
-                            ios_backgroundColor={semanticColors.border}
+                            ios_backgroundColor={colors.border}
                         />
                     </Animated.View>
                 </View>
-            </ModernCard>
+            </Card>
         </Animated.View>
     );
 }
@@ -292,10 +290,9 @@ export default function ModernSettingsScreen() {
     const [isLoading, setIsLoading] = useState(false);
 
     const colorScheme = useColorScheme() ?? 'light';
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
-    const typography = useTypography();
+    const colors = useColors();
     const theme = useTheme();
+    const typography = useTypography();
 
     // Load settings on mount
     useEffect(() => {
@@ -368,7 +365,7 @@ export default function ModernSettingsScreen() {
     return (
         <SafeAreaView style={[
             styles.container,
-            { backgroundColor: semanticColors.background }
+            { backgroundColor: colors.background }
         ]}>
             <ScrollView
                 style={styles.scrollView}
@@ -380,11 +377,11 @@ export default function ModernSettingsScreen() {
                     entering={FadeInDown.springify()}
                     style={styles.header}
                 >
-                    <ThemedText variant="displaySmall" style={styles.headerTitle}>
+                    <ThemedText variant="h2" style={styles.headerTitle}>
                         Settings
                     </ThemedText>
                     <ThemedText
-                        variant="bodyLarge"
+                        variant="body"
                         color="secondary"
                         style={styles.headerSubtitle}
                     >
@@ -393,13 +390,13 @@ export default function ModernSettingsScreen() {
                 </Animated.View>
 
                 {/* Language Section */}
-                <SettingsSection
-                    title={t("settings.language")}
-                    subtitle="Choose your preferred language for the app interface"
-                    variant="glass"
-                    animated
-                    delay={1}
-                >
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        {t("settings.language")}
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        Choose your preferred language for the app interface
+                    </ThemedText>
                     <View style={styles.languageGrid}>
                         {Object.entries(languages).map(([langKey, langName], index) => {
                             const isActive = currentLanguage.startsWith(langKey);
@@ -418,58 +415,55 @@ export default function ModernSettingsScreen() {
 
                     {isLoading && (
                         <View style={styles.loadingContainer}>
-                            <ThemedText variant="labelMedium" color="secondary">
+                            <ThemedText variant="label" color="secondary">
                                 Applying language changes...
                             </ThemedText>
                         </View>
                     )}
-                </SettingsSection>
+                </ThemedView>
 
                 {/* Location Section */}
-                <SettingsSection
-                    title={t("settings.logging") || "Location Settings"}
-                    subtitle="Configure how LogChirpy handles location data"
-                    variant="glass"
-                    animated
-                    delay={2}
-                >
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        {t("settings.logging") || "Location Settings"}
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        Configure how LogChirpy handles location data
+                    </ThemedText>
                     <GPSToggleCard
                         enabled={gpsEnabled}
                         onToggle={toggleGpsLogging}
                     />
-                </SettingsSection>
+                </ThemedView>
 
                 {/* App Info Section */}
                 <Animated.View
                     entering={FadeInDown.delay(300).springify()}
                     layout={Layout.springify()}
                 >
-                    <ModernCard
-                        variant="outlined"
-                        style={styles.infoCard}
-                    >
+                    <Card style={styles.infoCard}>
                         <View style={styles.infoContent}>
                             <View style={[
                                 styles.infoIcon,
-                                { backgroundColor: variants.accentSubtle }
+                                { backgroundColor: colors.backgroundSecondary }
                             ]}>
                                 <Feather
                                     name="feather"
                                     size={20}
-                                    color={semanticColors.accent}
+                                    color={colors.primary}
                                 />
                             </View>
 
                             <View style={styles.infoText}>
-                                <ThemedText variant="bodyMedium" style={styles.appName}>
+                                <ThemedText variant="body" style={styles.appName}>
                                     LogChirpy
                                 </ThemedText>
-                                <ThemedText variant="labelMedium" color="secondary">
+                                <ThemedText variant="label" color="secondary">
                                     Your Digital Birding Companion
                                 </ThemedText>
                             </View>
                         </View>
-                    </ModernCard>
+                    </Card>
                 </Animated.View>
             </ScrollView>
         </SafeAreaView>
@@ -503,12 +497,29 @@ const styles = StyleSheet.create({
         maxWidth: 280,
     },
 
+    // Sections
+    section: {
+        marginBottom: 32,
+    },
+    sectionTitle: {
+        marginBottom: 8,
+        fontWeight: '600',
+    },
+    sectionSubtitle: {
+        marginBottom: 16,
+        lineHeight: 20,
+    },
+    
     // Language Section
     languageGrid: {
         gap: 12,
     },
     languageCard: {
+        borderRadius: 12,
+    },
+    languageCardInner: {
         minHeight: 72,
+        padding: 0,
     },
     languageContent: {
         flexDirection: 'row',
@@ -545,6 +556,7 @@ const styles = StyleSheet.create({
     // GPS Section
     gpsCard: {
         minHeight: 120,
+        padding: 0,
     },
     gpsContent: {
         flexDirection: 'row',
