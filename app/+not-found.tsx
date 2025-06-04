@@ -16,14 +16,13 @@ import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Animated Bird Icon Component
 function LostBirdIcon() {
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
+  const colors = useColors();
 
   const rotation = useSharedValue(0);
   const scale = useSharedValue(1);
@@ -66,7 +65,7 @@ function LostBirdIcon() {
               width: 120,
               height: 120,
               borderRadius: 60,
-              backgroundColor: variants.primarySubtle,
+              backgroundColor: colors.backgroundSecondary,
               justifyContent: 'center',
               alignItems: 'center',
               marginBottom: 32,
@@ -74,14 +73,14 @@ function LostBirdIcon() {
             animatedStyle,
           ]}
       >
-        <Feather name="help-circle" size={48} color={semanticColors.primary} />
+        <Feather name="help-circle" size={48} color={colors.primary} />
       </Animated.View>
   );
 }
 
 // Floating Elements Background
 function FloatingElements() {
-  const variants = useColorVariants();
+  const colors = useColors();
 
   const elements = [
     { icon: 'feather', delay: 0 },
@@ -138,7 +137,7 @@ function FloatingElements() {
                         width: 50,
                         height: 50,
                         borderRadius: 25,
-                        backgroundColor: variants.primarySubtle,
+                        backgroundColor: colors.backgroundSecondary,
                         justifyContent: 'center',
                         alignItems: 'center',
                       }}
@@ -146,7 +145,7 @@ function FloatingElements() {
                     <Feather
                         name={element.icon as any}
                         size={20}
-                        color={variants.primaryMuted}
+                        color={colors.border}
                     />
                   </View>
                 </Animated.View>
@@ -161,10 +160,8 @@ function FloatingElements() {
 
 export default function NotFoundScreen() {
   const theme = useTheme();
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
+  const colors = useColors();
   const typography = useTypography();
-  const motion = useMotionValues();
 
   // Animation values for the main content
   const contentOpacity = useSharedValue(0);
@@ -174,7 +171,7 @@ export default function NotFoundScreen() {
     // Staggered entrance animation
     setTimeout(() => {
       contentOpacity.value = withTiming(1, {
-        duration: motion.duration.medium
+        duration: theme.motion.duration.normal
       });
       contentTranslateY.value = withSpring(0, {
         damping: 20,
@@ -189,7 +186,7 @@ export default function NotFoundScreen() {
   }));
 
   return (
-      <ThemedView surface="primary" style={styles.container}>
+      <ThemedView background="primary" style={styles.container}>
         <Stack.Screen options={{
           title: 'Page Not Found',
           headerShown: false
@@ -201,9 +198,9 @@ export default function NotFoundScreen() {
         {/* Main content */}
         <Animated.View style={[styles.content, contentAnimatedStyle]}>
           <ModernCard
-              variant="glass"
+              elevated={false}
+              bordered={true}
               style={styles.card}
-              glowOnHover={false}
           >
             {/* Lost bird illustration */}
             <View style={styles.illustration}>
@@ -233,14 +230,13 @@ export default function NotFoundScreen() {
               <Link href="/" asChild>
                 <ThemedPressable
                     variant="primary"
-                    size="large"
+                    size="lg"
                     style={styles.primaryAction}
-                    glowOnHover
                 >
-                  <Feather name="home" size={20} color={semanticColors.onPrimary} />
+                  <Feather name="home" size={20} color={colors.textInverse} />
                   <ThemedText
                       variant="labelLarge"
-                      style={{ color: semanticColors.onPrimary }}
+                      color="inverse"
                   >
                     Return to Nest
                   </ThemedText>
@@ -250,10 +246,10 @@ export default function NotFoundScreen() {
               <Link href="/(tabs)" asChild>
                 <ThemedPressable
                     variant="secondary"
-                    size="large"
+                    size="lg"
                     style={styles.secondaryAction}
                 >
-                  <Feather name="map" size={20} color={semanticColors.text} />
+                  <Feather name="map" size={20} color={colors.text} />
                   <ThemedText variant="labelLarge">
                     Explore BirdDex
                   </ThemedText>
@@ -262,8 +258,8 @@ export default function NotFoundScreen() {
             </View>
 
             {/* Fun fact */}
-            <View style={[styles.funFact, { backgroundColor: variants.primarySubtle }]}>
-              <Feather name="info" size={16} color={semanticColors.primary} />
+            <View style={[styles.funFact, { backgroundColor: colors.backgroundSecondary }]}>
+              <Feather name="info" size={16} color={colors.primary} />
               <ThemedText
                   variant="labelMedium"
                   color="primary"

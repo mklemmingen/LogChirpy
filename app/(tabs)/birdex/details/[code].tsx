@@ -159,10 +159,9 @@ function QuickActionButton({
             style={styles.actionButtonContainer}
         >
             <ThemedPressable
-                variant="outline"
+                variant="secondary"
                 onPress={onPress}
                 style={styles.actionButton}
-                animateOnPress
             >
                 <Feather name={icon as any} size={18} color={semanticColors.text} />
                 <ThemedText variant="labelMedium">{title}</ThemedText>
@@ -395,7 +394,7 @@ export default function ModernBirdDexDetail() {
 
                 {/* Names Section */}
                 <Animated.View entering={FadeInDown.delay(200).springify()}>
-                    <ModernCard variant="glass" style={styles.section}>
+                    <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <Feather name="globe" size={20} color={semanticColors.primary} />
                             <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
@@ -412,7 +411,7 @@ export default function ModernBirdDexDetail() {
 
                 {/* Classification Section */}
                 <Animated.View entering={FadeInDown.delay(300).springify()}>
-                    <ModernCard variant="glass" style={styles.section}>
+                    <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <Feather name="layers" size={20} color={semanticColors.primary} />
                             <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
@@ -447,7 +446,7 @@ export default function ModernBirdDexDetail() {
 
                 {/* Distribution Section */}
                 <Animated.View entering={FadeInDown.delay(400).springify()}>
-                    <ModernCard variant="glass" style={styles.section}>
+                    <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <Feather name="map-pin" size={20} color={semanticColors.primary} />
                             <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
@@ -500,7 +499,7 @@ export default function ModernBirdDexDetail() {
 
                 {/* Metadata Section */}
                 <Animated.View entering={FadeInDown.delay(500).springify()}>
-                    <ModernCard variant="glass" style={styles.section}>
+                    <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <Feather name="database" size={20} color={semanticColors.primary} />
                             <ThemedText variant="headlineSmall" style={styles.sectionTitle}>

@@ -60,7 +60,7 @@ function SpottingCard({ spotting, onSelect, delay }: SpottingCardProps) {
                 style={{ marginBottom: 12 }}
                 animateOnPress
             >
-                <ModernCard variant="outlined" style={{ marginHorizontal: 0 }}>
+                <ModernCard elevated={false} bordered={true} style={{ marginHorizontal: 0 }}>
                     <View style={{ padding: 16 }}>
                         {/* Header */}
                         <View style={{

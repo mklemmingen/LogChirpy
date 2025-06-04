@@ -106,7 +106,8 @@ export default function ModernAccountScreen() {
                 <Animated.View style={fadeInStyle}>
                     {/* Profile Section */}
                     <ModernCard
-                        variant="elevated"
+                        elevated={true}
+                        bordered={false}
                         style={styles.profileCard}
                         title={t('account.profileInfo', 'Profile Information')}
                         headerAction={
@@ -138,7 +139,8 @@ export default function ModernAccountScreen() {
 
                     {/* Account Actions */}
                     <ModernCard
-                        variant="outlined"
+                        elevated={false}
+                        bordered={true}
                         style={styles.actionsCard}
                         title={t('account.actions', 'Account Actions')}
                     >

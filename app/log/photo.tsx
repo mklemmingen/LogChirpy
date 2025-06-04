@@ -56,7 +56,7 @@ export default function PhotoCapture() {
   };
 
   return (
-      <ThemedView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+      <ThemedView style={[styles.container, { backgroundColor: pal.colors.background.primary }]}>
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={[styles.iconContainer, { backgroundColor: pal.colors.primary + '20' }]}>
@@ -75,25 +75,24 @@ export default function PhotoCapture() {
           <View style={styles.actions}>
             <ThemedPressable
                 variant="primary"
-                size="large"
+                size="lg"
                 onPress={handleCameraLaunch}
                 style={styles.actionButton}
-                glowOnHover
             >
-              <Feather name="camera" size={24} color={pal.colors.content.inverse} />
-              <ThemedText variant="labelLarge" style={{ color: pal.colors.content.inverse }}>
+              <Feather name="camera" size={24} color={pal.colors.text.inverse} />
+              <ThemedText variant="labelLarge" color="inverse">
                 {t('photo.take_photos')}
               </ThemedText>
             </ThemedPressable>
 
             <ThemedPressable
                 variant="secondary"
-                size="large"
+                size="lg"
                 onPress={handleGalleryPick}
                 style={styles.actionButton}
             >
-              <Feather name="image" size={24} color={pal.colors.content.primary} />
-              <ThemedText variant="labelLarge" style={{ color: pal.colors.content.primary }}>
+              <Feather name="image" size={24} color={pal.colors.text.inverse} />
+              <ThemedText variant="labelLarge" color="primary">
                 {t('photo.choose_existing')}
               </ThemedText>
             </ThemedPressable>

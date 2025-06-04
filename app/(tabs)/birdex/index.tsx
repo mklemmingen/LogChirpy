@@ -22,18 +22,19 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-// Modern components
-import { ThemedView } from '@/components/ThemedView';
+// Components
+import { ThemedView, Card } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedPressable } from '@/components/ThemedPressable';
-import { ModernCard } from '@/components/ModernCard';
+import { Button } from '@/components/Button';
 
-// Modern theme hooks
+// Theme hooks
 import {
-    useColorVariants,
-    useSemanticColors,
-    useTheme,
+    useColors,
     useTypography,
+    useBorderRadius,
+    useShadows,
+    useSpacing
 } from '@/hooks/useThemeColor';
 
 // Services
@@ -74,30 +75,30 @@ function BirdCard({
     index: number;
     onPress: () => void;
 }) {
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
-    const theme = useTheme();
+    const colors = useColors();
+    const typography = useTypography();
+    const borderRadius = useBorderRadius();
 
     return (
         <Animated.View
             entering={FadeInDown.delay(index * 50).springify()}
             layout={Layout.springify()}
         >
-            <ModernCard
-                variant={bird.logged ? "primary" : "outlined"}
+            <ThemedPressable
+                variant="ghost"
                 onPress={onPress}
                 style={styles.birdCard}
-                glowOnHover={!bird.logged}
             >
+                <Card style={[styles.birdCardInner, bird.logged && { borderColor: colors.primary, borderWidth: 2 }]}>
                 <View style={styles.cardContent}>
                     {/* Header Row */}
                     <View style={styles.cardHeader}>
                         <View style={styles.birdInfo}>
                             <ThemedText
-                                variant="bodyLarge"
+                                variant="body"
                                 style={[
                                     styles.birdName,
-                                    { color: bird.logged ? semanticColors.primary : semanticColors.text }
+                                    { color: bird.logged ? colors.primary : colors.text }
                                 ]}
                                 numberOfLines={1}
                             >
@@ -118,35 +119,35 @@ function BirdCard({
                             {bird.logged && (
                                 <View style={[
                                     styles.loggedBadge,
-                                    { backgroundColor: semanticColors.primary }
+                                    { backgroundColor: colors.primary }
                                 ]}>
-                                    <Feather name="check" size={12} color={semanticColors.onPrimary} />
+                                    <Feather name="check" size={12} color={colors.textInverse} />
                                 </View>
                             )}
-                            <Feather name="chevron-right" size={16} color={semanticColors.textTertiary} />
+                            <Feather name="chevron-right" size={16} color={colors.textSecondary} />
                         </View>
                     </View>
 
                     {/* Metadata Row */}
                     <View style={styles.cardMetadata}>
                         {bird.family && (
-                            <View style={[styles.metaBadge, { backgroundColor: variants.accentSubtle }]}>
-                                <Feather name="users" size={10} color={semanticColors.accent} />
-                                <ThemedText variant="labelSmall" color="accent">
+                            <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
+                                <Feather name="users" size={10} color={colors.textSecondary} />
+                                <ThemedText variant="caption" color="secondary">
                                     {bird.family}
                                 </ThemedText>
                             </View>
                         )}
 
-                        <View style={[styles.metaBadge, { backgroundColor: variants.primarySubtle }]}>
-                            <Feather name="tag" size={10} color={semanticColors.primary} />
-                            <ThemedText variant="labelSmall" color="primary">
+                        <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
+                            <Feather name="tag" size={10} color={colors.primary} />
+                            <ThemedText variant="caption" color="primary">
                                 {bird.category}
                             </ThemedText>
                         </View>
                     </View>
-                </View>
-            </ModernCard>
+                </Card>
+            </ThemedPressable>
         </Animated.View>
     );
 }
@@ -202,16 +203,12 @@ function SearchHeader({
         <ThemedView style={styles.searchHeader}>
             {/* Search Bar */}
             <View style={styles.searchRow}>
-                <BlurView
-                    intensity={60}
-                    tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
-                    style={[styles.searchContainer, { borderColor: variants.primaryMuted }]}
-                >
-                    <Feather name="search" size={20} color={semanticColors.textSecondary} />
+                <Card style={styles.searchContainer}>
+                    <Feather name="search" size={20} color={colors.textSecondary} />
                     <TextInput
-                        style={[styles.searchInput, { color: semanticColors.text }]}
+                        style={[styles.searchInput, { color: colors.text }]}
                         placeholder={t('birddex.searchPlaceholder')}
-                        placeholderTextColor={semanticColors.textTertiary}
+                        placeholderTextColor={colors.textSecondary}
                         value={searchQuery}
                         onChangeText={onSearchChange}
                         autoCapitalize="none"
@@ -219,18 +216,18 @@ function SearchHeader({
                     />
                     {searchQuery.length > 0 && (
                         <Pressable onPress={() => onSearchChange('')}>
-                            <Feather name="x" size={18} color={semanticColors.textSecondary} />
+                            <Feather name="x" size={18} color={colors.textSecondary} />
                         </Pressable>
                     )}
-                </BlurView>
+                </Card>
             </View>
 
             {/* Filter Controls */}
             <View style={styles.filterRow}>
                 {/* Category Filter */}
                 <ThemedPressable
-                    variant={categoryFilter !== 'all' ? 'primary' : 'outline'}
-                    size="small"
+                    variant={categoryFilter !== 'all' ? 'primary' : 'secondary'}
+                    size="sm"
                     onPress={() => {
                         setShowCategoryMenu(!showCategoryMenu);
                         setShowSortMenu(false);
@@ -241,10 +238,10 @@ function SearchHeader({
                     <Feather
                         name={getCategoryIcon(categoryFilter)}
                         size={16}
-                        color={categoryFilter !== 'all' ? semanticColors.onPrimary : semanticColors.text}
+                        color={categoryFilter !== 'all' ? colors.textInverse : colors.text}
                     />
                     <ThemedText
-                        variant="labelMedium"
+                        variant="label"
                         color={categoryFilter !== 'all' ? 'inverse' : 'primary'}
                     >
                         {categoryFilter === 'all' ? t('birddex.categories.all') : categoryFilter}
@@ -253,8 +250,8 @@ function SearchHeader({
 
                 {/* Sort Filter */}
                 <ThemedPressable
-                    variant="outline"
-                    size="small"
+                    variant="secondary"
+                    size="sm"
                     onPress={() => {
                         setShowSortMenu(!showSortMenu);
                         setShowCategoryMenu(false);
@@ -280,17 +277,13 @@ function SearchHeader({
                     entering={FadeInDown.duration(200)}
                     style={styles.dropdownMenu}
                 >
-                    <BlurView
-                        intensity={80}
-                        tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
-                        style={[styles.menuContent, { borderColor: variants.primaryMuted }]}
-                    >
+                    <Card style={styles.menuContent}>
                         {sortOptions.map((option) => (
                             <Pressable
                                 key={option.key}
                                 style={[
                                     styles.menuOption,
-                                    sortOption === option.key && { backgroundColor: variants.primarySubtle }
+                                    sortOption === option.key && { backgroundColor: colors.backgroundSecondary }
                                 ]}
                                 onPress={() => {
                                     onSortChange(option.key);
@@ -301,17 +294,17 @@ function SearchHeader({
                                 <Feather
                                     name={option.icon as any}
                                     size={16}
-                                    color={sortOption === option.key ? semanticColors.primary : semanticColors.textSecondary}
+                                    color={sortOption === option.key ? colors.primary : colors.textSecondary}
                                 />
                                 <ThemedText
-                                    variant="bodyMedium"
+                                    variant="body"
                                     color={sortOption === option.key ? 'primary' : 'secondary'}
                                 >
                                     {option.label}
                                 </ThemedText>
                             </Pressable>
                         ))}
-                    </BlurView>
+                    </Card>
                 </Animated.View>
             )}
 
@@ -321,11 +314,7 @@ function SearchHeader({
                     entering={FadeInDown.duration(200)}
                     style={styles.dropdownMenu}
                 >
-                    <BlurView
-                        intensity={80}
-                        tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
-                        style={[styles.menuContent, { borderColor: variants.primaryMuted }]}
-                    >
+                    <Card style={styles.menuContent}>
                         {categories.map((category) => (
                             <Pressable
                                 key={category.key}
@@ -342,24 +331,24 @@ function SearchHeader({
                                 <Feather
                                     name={category.icon as any}
                                     size={16}
-                                    color={categoryFilter === category.key ? semanticColors.primary : semanticColors.textSecondary}
+                                    color={categoryFilter === category.key ? colors.primary : colors.textSecondary}
                                 />
                                 <ThemedText
-                                    variant="bodyMedium"
+                                    variant="body"
                                     color={categoryFilter === category.key ? 'primary' : 'secondary'}
                                     style={styles.categoryLabel}
                                 >
                                     {category.label}
                                 </ThemedText>
                                 <ThemedText
-                                    variant="labelSmall"
-                                    color="tertiary"
+                                    variant="caption"
+                                    color="secondary"
                                 >
                                     {category.count.toLocaleString()}
                                 </ThemedText>
                             </Pressable>
                         ))}
-                    </BlurView>
+                    </Card>
                 </Animated.View>
             )}
         </ThemedView>
@@ -380,15 +369,15 @@ function ErrorState({
 
     return (
         <ThemedView style={styles.errorContainer}>
-            <View style={[styles.errorIcon, { backgroundColor: variants.primarySubtle }]}>
-                <Feather name="alert-triangle" size={48} color={semanticColors.error} />
+            <View style={[styles.errorIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <Feather name="alert-triangle" size={48} color={colors.primary} />
             </View>
 
-            <ThemedText variant="headlineSmall" style={styles.errorTitle}>
+            <ThemedText variant="h3" style={styles.errorTitle}>
                 {t('birddex.error')}
             </ThemedText>
 
-            <ThemedText variant="bodyMedium" color="secondary" style={styles.errorMessage}>
+            <ThemedText variant="body" color="secondary" style={styles.errorMessage}>
                 {error || t('birddex.initFailed')}
             </ThemedText>
 
@@ -397,8 +386,8 @@ function ErrorState({
                 onPress={onRetry}
                 style={styles.retryButton}
             >
-                <Feather name="refresh-cw" size={18} color={semanticColors.onPrimary} />
-                <ThemedText variant="labelLarge" color="inverse">
+                <Feather name="refresh-cw" size={18} color={colors.textInverse} />
+                <ThemedText variant="label" color="inverse">
                     {t('birddex.reload')}
                 </ThemedText>
             </ThemedPressable>
@@ -414,7 +403,7 @@ function LoadingState() {
     return (
         <ThemedView style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={semanticColors.primary} />
-            <ThemedText variant="bodyMedium" color="secondary" style={styles.loadingText}>
+            <ThemedText variant="body" color="secondary" style={styles.loadingText}>
                 {t('birddex.loadingEntries')}
             </ThemedText>
         </ThemedView>
@@ -591,7 +580,7 @@ export default function ModernBirdDexIndex() {
     // Error state
     if (hasError) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <ErrorState error={error} onRetry={retry} />
             </SafeAreaView>
         );
@@ -600,20 +589,20 @@ export default function ModernBirdDexIndex() {
     // Loading state
     if (isLoading || !isReady) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <LoadingState />
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
             <ThemedView style={styles.header}>
-                <ThemedText variant="displaySmall" style={styles.headerTitle}>
+                <ThemedText variant="h2" style={styles.headerTitle}>
                     {t('birddex.title')}
                 </ThemedText>
-                <ThemedText variant="bodyMedium" color="secondary">
+                <ThemedText variant="body" color="secondary">
                     {t('birddex.subtitle', { count: totalCount })}
                 </ThemedText>
             </ThemedView>
@@ -644,19 +633,19 @@ export default function ModernBirdDexIndex() {
                 ListFooterComponent={
                     hasMore ? (
                         <View style={styles.loadingFooter}>
-                            <ActivityIndicator size="small" color={semanticColors.primary} />
+                            <ActivityIndicator size="small" color={colors.primary} />
                         </View>
                     ) : null
                 }
                 ListEmptyComponent={
                     <ThemedView style={styles.emptyContainer}>
-                        <View style={[styles.emptyIcon, { backgroundColor: variants.primarySubtle }]}>
-                            <Feather name="search" size={48} color={semanticColors.primary} />
+                        <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                            <Feather name="search" size={48} color={colors.primary} />
                         </View>
-                        <ThemedText variant="headlineSmall" style={styles.emptyTitle}>
+                        <ThemedText variant="h3" style={styles.emptyTitle}>
                             {searchQuery ? t('birddex.noSearchResults') : t('birddex.noResults')}
                         </ThemedText>
-                        <ThemedText variant="bodyMedium" color="secondary" style={styles.emptyMessage}>
+                        <ThemedText variant="body" color="secondary" style={styles.emptyMessage}>
                             {searchQuery ? t('birddex.tryDifferentSearch') : t('birddex.noResultsMessage')}
                         </ThemedText>
                     </ThemedView>

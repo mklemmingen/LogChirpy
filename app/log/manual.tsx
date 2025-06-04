@@ -1,3 +1,25 @@
+/**
+ * Manual Bird Spotting Entry Screen
+ * 
+ * A clean, minimal interface for manually logging bird sightings with the new design system.
+ * Supports multiple media types, AI identification, and comprehensive data entry.
+ * 
+ * Key Features:
+ * - Multi-media capture (photo, video, audio)
+ * - BirdNet AI identification for audio
+ * - GPS location with privacy controls
+ * - Real-time validation and progress tracking
+ * - Draft auto-save functionality
+ * - Accessibility-first design
+ * - Haptic feedback integration
+ * 
+ * Design System:
+ * - Uses minimal black/white theme
+ * - Clean typography and spacing
+ * - Subtle animations and interactions
+ * - Consistent component patterns
+ */
+
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
     ActivityIndicator,
@@ -30,15 +52,13 @@ import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {BirdNetService, BirdNetPrediction} from '@/services/birdNetService';
 
 // Modern components
-import {ThemedView} from '@/components/ThemedView';
+import {ThemedView, Card} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
-import {PrimaryButton, ThemedPressable} from '@/components/ThemedPressable';
-import {ModernCard} from '@/components/ModernCard';
+import {ThemedPressable} from '@/components/ThemedPressable';
 import {useSnackbar} from '@/components/ThemedSnackbar';
-import {GlassSection} from '@/components/Section';
 
 // Theme hooks
-import {useColorVariants, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {useColors, useTypography, useBorderRadius, useShadows, useSpacing} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -47,6 +67,13 @@ interface ValidationError {
     message: string;
 }
 
+/**
+ * Enhanced Manual Bird Spotting Entry Component
+ * 
+ * Main component for manually creating comprehensive bird sighting entries.
+ * Integrates with the draft context system for auto-save functionality.
+ * Supports multiple media types and AI-powered identification.
+ */
 export default function EnhancedManual() {
     const params = useLocalSearchParams();
     const { t } = useTranslation();
@@ -54,10 +81,11 @@ export default function EnhancedManual() {
     const colorScheme = useColorScheme() ?? 'light';
 
     // Theme system
-    const theme = useTheme();
-    const semanticColors = useSemanticColors();
+    const colors = useColors();
     const typography = useTypography();
-    const variants = useColorVariants();
+    const borderRadius = useBorderRadius();
+    const shadows = useShadows();
+    const spacing = useSpacing();
     const { SnackbarComponent, showSuccess, showError } = useSnackbar();
 
     // State management
@@ -204,7 +232,12 @@ export default function EnhancedManual() {
         return Math.round((completedFields.length / totalFields.length) * 100);
     }, [draft]);
 
-    // Media handling functions
+    /**
+     * Media Handling Functions
+     * 
+     * These functions manage audio playback, bird identification,
+     * and location services with proper error handling and user feedback.
+     */
     const handlePlayAudio = useCallback(async () => {
         if (!draft.audioUri) return;
 
@@ -427,36 +460,51 @@ export default function EnhancedManual() {
         );
     }, [validateEntry, completionPercentage, performSave, t, showError]);
 
-    // Media Cards Components
+    /**
+     * Component Sections
+     * 
+     * These section components are built with the new minimal design system.
+     * They use Card components for consistent styling and spacing.
+     */
+    /**
+     * Media Section Component
+     * 
+     * Displays interactive cards for photo, video, and audio capture.
+     * Includes AI bird identification for audio recordings.
+     */
     const MediaSection = () => (
-        <GlassSection title={t('log.media_section')} spacing="comfortable">
+        <Card style={styles.sectionCard}>
+            <ThemedText variant="h3" style={styles.sectionTitle}>
+                {t('log.media_section')}
+            </ThemedText>
             <View style={styles.mediaGrid}>
                 {/* Image Card */}
-                <ModernCard
-                    variant={draft.imageUri ? "primary" : "outlined"}
-                    style={styles.mediaCard}
+                <ThemedPressable
+                    variant="ghost"
                     onPress={() => handleMediaNavigation('/log/photo')}
-                    glowOnHover={!draft.imageUri}
+                    style={styles.mediaCard}
                 >
+                    <Card style={styles.mediaCardInner}>
                     {draft.imageUri ? (
                         <Image source={{ uri: draft.imageUri }} style={styles.mediaPreview} />
                     ) : (
                         <View style={styles.addMediaContent}>
-                            <Feather name="camera" size={32} color={semanticColors.primary} />
-                            <ThemedText variant="labelLarge" color="primary">
+                            <Feather name="camera" size={32} color={colors.primary} />
+                            <ThemedText variant="label" color="primary">
                                 {t('log.add_image')}
                             </ThemedText>
                         </View>
                     )}
-                </ModernCard>
+                    </Card>
+                </ThemedPressable>
 
                 {/* Video Card */}
-                <ModernCard
-                    variant={draft.videoUri ? "primary" : "outlined"}
-                    style={styles.mediaCard}
+                <ThemedPressable
+                    variant="ghost"
                     onPress={() => draft.videoUri ? setIsVideoModalVisible(true) : handleMediaNavigation('/log/video')}
-                    glowOnHover
+                    style={styles.mediaCard}
                 >
+                    <Card style={styles.mediaCardInner}>
                     {draft.videoUri ? (
                         <>
                             {previewPlayer && (
@@ -472,45 +520,47 @@ export default function EnhancedManual() {
                         </>
                     ) : (
                         <View style={styles.addMediaContent}>
-                            <Feather name="video" size={32} color={semanticColors.primary} />
-                            <ThemedText variant="labelLarge" color="primary">
+                            <Feather name="video" size={32} color={colors.primary} />
+                            <ThemedText variant="label" color="primary">
                                 {t('log.add_video')}
                             </ThemedText>
                         </View>
                     )}
-                </ModernCard>
+                    </Card>
+                </ThemedPressable>
 
                 {/* Audio Card */}
-                <ModernCard
-                    variant={draft.audioUri ? "primary" : "outlined"}
-                    style={styles.mediaCard}
+                <ThemedPressable
+                    variant="ghost"
                     onPress={() => draft.audioUri ? handlePlayAudio() : handleMediaNavigation('/log/audio')}
-                    glowOnHover
+                    style={styles.mediaCard}
                 >
+                    <Card style={styles.mediaCardInner}>
                     <View style={styles.addMediaContent}>
                         <Feather
                             name={draft.audioUri ? (sound ? "pause" : "play") : "mic"}
                             size={32}
-                            color={semanticColors.primary}
+                            color={colors.primary}
                         />
-                        <ThemedText variant="labelLarge" color="primary">
+                        <ThemedText variant="label" color="primary">
                             {draft.audioUri
                                 ? (sound ? t('log.playing') : t('log.tap_to_play'))
                                 : t('log.add_audio')
                             }
                         </ThemedText>
                     </View>
-                </ModernCard>
+                    </Card>
+                </ThemedPressable>
             </View>
 
             {/* Bird Identification Section */}
             {draft.audioUri && (
                 <View style={styles.identificationSection}>
                     <ThemedPressable
+                        variant="primary"
                         style={[
                             styles.identifyButton,
                             {
-                                backgroundColor: isIdentifyingBird ? variants.primaryMuted : semanticColors.primary,
                                 opacity: isIdentifyingBird ? 0.7 : 1,
                             }
                         ]}
@@ -521,20 +571,20 @@ export default function EnhancedManual() {
                             {isIdentifyingBird ? (
                                 <ActivityIndicator 
                                     size="small" 
-                                    color={semanticColors.onPrimary}
+                                    color={colors.textInverse}
                                     style={styles.identifyLoader}
                                 />
                             ) : (
                                 <Feather 
                                     name="search" 
                                     size={20} 
-                                    color={semanticColors.onPrimary}
+                                    color={colors.textInverse}
                                     style={styles.identifyIcon}
                                 />
                             )}
                             <ThemedText 
-                                variant="labelLarge" 
-                                style={[styles.identifyButtonText, { color: semanticColors.onPrimary }]}
+                                variant="button" 
+                                style={[styles.identifyButtonText, { color: colors.textInverse }]}
                             >
                                 {isIdentifyingBird 
                                     ? t('birdnet.identifying', 'Identifying Bird...') 
@@ -547,7 +597,7 @@ export default function EnhancedManual() {
                     {/* Show prediction confidence if available */}
                     {draft.audioPrediction && (
                         <View style={styles.predictionInfo}>
-                            <Feather name="check-circle" size={16} color={semanticColors.success} />
+                            <Feather name="check-circle" size={16} color={colors.success} />
                             <ThemedText variant="bodySmall" color="secondary" style={styles.predictionInfoText}>
                                 {draft.audioPrediction}
                             </ThemedText>
@@ -555,91 +605,110 @@ export default function EnhancedManual() {
                     )}
                 </View>
             )}
-        </GlassSection>
+        </Card>
     );
 
+    /**
+     * Details Section Component
+     * 
+     * Form inputs for bird type (required) and optional notes.
+     * Includes real-time validation and user feedback.
+     */
     const DetailsSection = () => (
-        <GlassSection title={t('log.details_section')} spacing="comfortable">
+        <Card style={styles.sectionCard}>
+            <ThemedText variant="h3" style={styles.sectionTitle}>
+                {t('log.details_section')}
+            </ThemedText>
             <View style={styles.detailsGrid}>
                 {/* Bird Type - Required */}
-                <ModernCard
-                    variant="filled"
-                >
+                <Card>
                     <View style={styles.inputContainer}>
-                        <ThemedText variant="labelLarge" style={styles.inputLabel}>
+                        <ThemedText variant="label" style={styles.inputLabel}>
                             {t('log.bird_type')} *
                         </ThemedText>
                         <TextInput
-                            style={[styles.textInput, { color: semanticColors.text }]}
+                            style={[styles.textInput, { color: colors.text }]}
                             value={draft.birdType || ''}
                             onChangeText={(text) => handleTextChange('birdType', text)}
                             placeholder={t('log.bird_type_placeholder')}
-                            placeholderTextColor={semanticColors.textSecondary}
+                            placeholderTextColor={colors.textSecondary}
                         />
                     </View>
-                </ModernCard>
+                </Card>
 
                 {/* Notes */}
-                <ModernCard variant="filled" style={styles.notesCard}>
+                <Card style={styles.notesCard}>
                     <View style={styles.inputContainer}>
-                        <ThemedText variant="labelLarge" style={styles.inputLabel}>
+                        <ThemedText variant="label" style={styles.inputLabel}>
                             {t('log.notes')}
                         </ThemedText>
                         <TextInput
-                            style={[styles.textInput, styles.notesInput, { color: semanticColors.text }]}
+                            style={[styles.textInput, styles.notesInput, { color: colors.text }]}
                             value={draft.textNote || ''}
                             onChangeText={(text) => handleTextChange('textNote', text)}
                             placeholder={t('log.notes_placeholder')}
-                            placeholderTextColor={semanticColors.textSecondary}
+                            placeholderTextColor={colors.textSecondary}
                             multiline
                             textAlignVertical="top"
                         />
                     </View>
-                </ModernCard>
+                </Card>
             </View>
-        </GlassSection>
+        </Card>
     );
 
+    /**
+     * Metadata Section Component
+     * 
+     * Date and location selection with GPS integration.
+     * Shows AI prediction results when available.
+     */
     const MetadataSection = () => (
-        <GlassSection title={t('log.metadata_section')} spacing="comfortable">
+        <Card style={styles.sectionCard}>
+            <ThemedText variant="h3" style={styles.sectionTitle}>
+                {t('log.metadata_section')}
+            </ThemedText>
             <View style={styles.metadataGrid}>
                 {/* Date Card */}
-                <ModernCard
-                    variant="outlined"
-                    style={styles.metadataCard}
+                <ThemedPressable
+                    variant="ghost"
                     onPress={() => {
                         setSelectedDate(draft.date ? new Date(draft.date) : new Date());
                         setIsDatePickerVisible(true);
                     }}
+                    style={styles.metadataCard}
                 >
+                    <Card style={styles.metadataCardInner}>
                     <View style={styles.metadataContent}>
-                        <Feather name="calendar" size={20} color={semanticColors.primary} />
+                        <Feather name="calendar" size={20} color={colors.primary} />
                         <View style={styles.metadataText}>
-                            <ThemedText variant="labelMedium" color="secondary">
+                            <ThemedText variant="label" color="secondary">
                                 {t('log.date')}
                             </ThemedText>
-                            <ThemedText variant="bodyMedium">
+                            <ThemedText variant="body">
                                 {draft.date ? new Date(draft.date).toLocaleDateString() : new Date().toLocaleDateString()}
                             </ThemedText>
                         </View>
                     </View>
-                </ModernCard>
+                    </Card>
+                </ThemedPressable>
 
                 {/* Location Card */}
-                <ModernCard
-                    variant="outlined"
-                    style={styles.metadataCard}
+                <ThemedPressable
+                    variant="ghost"
                     onPress={handleGetLocation}
                     disabled={isLoadingLocation}
+                    style={styles.metadataCard}
                 >
+                    <Card style={styles.metadataCardInner}>
                     <View style={styles.metadataContent}>
                         {isLoadingLocation ? (
-                            <ActivityIndicator size="small" color={semanticColors.primary} />
+                            <ActivityIndicator size="small" color={colors.primary} />
                         ) : (
-                            <Feather name="map-pin" size={20} color={semanticColors.primary} />
+                            <Feather name="map-pin" size={20} color={colors.primary} />
                         )}
                         <View style={styles.metadataText}>
-                            <ThemedText variant="labelMedium" color="secondary">
+                            <ThemedText variant="label" color="secondary">
                                 {t('log.location')}
                             </ThemedText>
                             <ThemedText variant="bodySmall" numberOfLines={2}>
@@ -650,63 +719,70 @@ export default function EnhancedManual() {
                             </ThemedText>
                         </View>
                     </View>
-                </ModernCard>
+                    </Card>
+                </ThemedPressable>
             </View>
 
             {/* Predictions */}
             {(draft.imagePrediction || draft.audioPrediction) && (
                 <View style={styles.predictionsContainer}>
-                    <ThemedText variant="labelLarge" style={styles.sectionSubtitle}>
+                    <ThemedText variant="label" style={styles.sectionSubtitle}>
                         {t('log.ai_predictions')}
                     </ThemedText>
 
                     {draft.imagePrediction && (
-                        <ModernCard variant="accent" style={styles.predictionCard}>
+                        <Card style={styles.predictionCard}>
                             <View style={styles.predictionContent}>
-                                <Feather name="camera" size={16} color={semanticColors.accent} />
+                                <Feather name="camera" size={16} color={colors.primary} />
                                 <ThemedText variant="bodySmall" style={styles.predictionText}>
                                     {draft.imagePrediction}
                                 </ThemedText>
                             </View>
-                        </ModernCard>
+                        </Card>
                     )}
 
                     {draft.audioPrediction && (
-                        <ModernCard variant="accent" style={styles.predictionCard}>
+                        <Card style={styles.predictionCard}>
                             <View style={styles.predictionContent}>
-                                <Feather name="mic" size={16} color={semanticColors.accent} />
+                                <Feather name="mic" size={16} color={colors.primary} />
                                 <ThemedText variant="bodySmall" style={styles.predictionText}>
                                     {draft.audioPrediction}
                                 </ThemedText>
                             </View>
-                        </ModernCard>
+                        </Card>
                     )}
                 </View>
             )}
-        </GlassSection>
+        </Card>
     );
 
+    /**
+     * Main Render
+     * 
+     * Structured layout with progress tracking, scrollable content sections,
+     * and modal dialogs. Uses the new minimal design system throughout.
+     */
     return (
         <ThemedView style={styles.container}>
             <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
             <Stack.Screen options={{ headerShown: false }} />
 
             {/* Progress Header */}
-            <ThemedView surface="elevated" style={styles.header}>
-                <ThemedText variant="headlineMedium" style={styles.headerTitle}>
+            <ThemedView background="surface" elevated style={styles.header}>
+                <ThemedText variant="h2" style={styles.headerTitle}>
                     {t('log.manual_entry')}
                 </ThemedText>
 
                 <View style={styles.progressContainer}>
-                    <ThemedText variant="labelMedium" color="secondary">
+                    <ThemedText variant="label" color="secondary">
                         {completionPercentage}% {t('log.complete')}
                     </ThemedText>
-                    <View style={[styles.progressBar, { backgroundColor: variants.primarySubtle }]}>
+                    <View style={[styles.progressBar, { backgroundColor: colors.backgroundSecondary }]}>
                         <View
                             style={[
                                 styles.progressFill,
                                 {
-                                    backgroundColor: semanticColors.primary,
+                                    backgroundColor: colors.primary,
                                     width: `${completionPercentage}%`
                                 }
                             ]}
@@ -730,23 +806,24 @@ export default function EnhancedManual() {
             </ScrollView>
 
             {/* Save Button */}
-            <ThemedView surface="elevated" style={styles.saveButtonContainer}>
-                <PrimaryButton
+            <ThemedView background="surface" elevated style={styles.saveButtonContainer}>
+                <ThemedPressable
+                    variant="primary"
                     onPress={handleSave}
                     disabled={isSaving}
-                    size="large"
+                    size="lg"
                     fullWidth
                     style={styles.saveButton}
                 >
                     {isSaving ? (
-                        <ActivityIndicator size="small" color={semanticColors.onPrimary} />
+                        <ActivityIndicator size="small" color={colors.textInverse} />
                     ) : (
-                        <Feather name="save" size={20} color={semanticColors.onPrimary} />
+                        <Feather name="save" size={20} color={colors.textInverse} />
                     )}
-                    <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
+                    <ThemedText variant="button" color="inverse">
                         {isSaving ? t('common.saving') : t('common.save')}
                     </ThemedText>
-                </PrimaryButton>
+                </ThemedPressable>
             </ThemedView>
 
             {/* Date Picker Modal */}
@@ -758,8 +835,8 @@ export default function EnhancedManual() {
                     onRequestClose={() => setIsDatePickerVisible(false)}
                 >
                     <BlurView intensity={80} style={styles.modalContainer}>
-                        <ModernCard variant="glass" style={styles.datePickerCard}>
-                            <ThemedText variant="headlineSmall" style={styles.modalTitle}>
+                        <Card style={styles.datePickerCard}>
+                            <ThemedText variant="h3" style={styles.modalTitle}>
                                 {t('log.select_date')}
                             </ThemedText>
                             <DateTimePicker
@@ -776,7 +853,7 @@ export default function EnhancedManual() {
                                         onPress={() => setIsDatePickerVisible(false)}
                                         style={styles.dateButton}
                                     >
-                                        <ThemedText variant="labelLarge">
+                                        <ThemedText variant="button">
                                             {t('common.cancel')}
                                         </ThemedText>
                                     </ThemedPressable>
@@ -788,13 +865,13 @@ export default function EnhancedManual() {
                                         }}
                                         style={styles.dateButton}
                                     >
-                                        <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
+                                        <ThemedText variant="button" color="inverse">
                                             {t('common.confirm')}
                                         </ThemedText>
                                     </ThemedPressable>
                                 </View>
                             )}
-                        </ModernCard>
+                        </Card>
                     </BlurView>
                 </Modal>
             )}
@@ -821,8 +898,8 @@ export default function EnhancedManual() {
                             onPress={() => setIsVideoModalVisible(false)}
                             style={styles.videoButton}
                         >
-                            <Feather name="x" size={20} color={semanticColors.text} />
-                            <ThemedText variant="labelLarge">
+                            <Feather name="x" size={20} color={colors.text} />
+                            <ThemedText variant="button">
                                 {t('common.close')}
                             </ThemedText>
                         </ThemedPressable>
@@ -834,8 +911,8 @@ export default function EnhancedManual() {
                             }}
                             style={styles.videoButton}
                         >
-                            <Feather name="refresh-cw" size={20} color={semanticColors.onPrimary} />
-                            <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
+                            <Feather name="refresh-cw" size={20} color={colors.textInverse} />
+                            <ThemedText variant="button" color="inverse">
                                 {t('camera.retake')}
                             </ThemedText>
                         </ThemedPressable>
@@ -854,14 +931,14 @@ export default function EnhancedManual() {
                     <BlurView intensity={80} style={styles.modalBlur}>
                         <View style={styles.predictionsModalContainer}>
                             <View style={styles.predictionsHeader}>
-                                <ThemedText variant="headlineSmall">
+                                <ThemedText variant="h3">
                                     {t('birdnet.predictions_title', 'Bird Identification Results')}
                                 </ThemedText>
                                 <ThemedPressable
                                     style={styles.modalCloseButton}
                                     onPress={() => setShowPredictions(false)}
                                 >
-                                    <Feather name="x" size={24} color={semanticColors.text} />
+                                    <Feather name="x" size={24} color={colors.text} />
                                 </ThemedPressable>
                             </View>
                             
@@ -869,12 +946,12 @@ export default function EnhancedManual() {
                                 {birdPredictions.map((prediction, index) => (
                                     <ThemedPressable
                                         key={index}
-                                        style={[styles.predictionItem, { backgroundColor: semanticColors.backgroundElevated }]}
+                                        style={[styles.predictionItem, { backgroundColor: colors.surface }]}
                                         onPress={() => handleSelectPrediction(prediction)}
                                     >
                                         <View style={styles.predictionItemContent}>
                                             <View style={styles.predictionInfo}>
-                                                <ThemedText variant="bodyLarge" style={styles.predictionCommonName}>
+                                                <ThemedText variant="body" style={styles.predictionCommonName}>
                                                     {prediction.common_name}
                                                 </ThemedText>
                                                 <ThemedText variant="bodySmall" color="secondary" style={styles.predictionScientificName}>
@@ -882,10 +959,10 @@ export default function EnhancedManual() {
                                                 </ThemedText>
                                             </View>
                                             <View style={styles.predictionConfidence}>
-                                                <ThemedText variant="labelLarge" color="primary">
+                                                <ThemedText variant="label" color="primary">
                                                     {BirdNetService.formatConfidenceScore(prediction.confidence)}
                                                 </ThemedText>
-                                                <Feather name="chevron-right" size={20} color={semanticColors.textSecondary} />
+                                                <Feather name="chevron-right" size={20} color={colors.textSecondary} />
                                             </View>
                                         </View>
                                     </ThemedPressable>
@@ -907,6 +984,12 @@ export default function EnhancedManual() {
     );
 }
 
+/**
+ * Styles
+ * 
+ * Minimal, clean styling using the new design system principles.
+ * Focuses on consistency, accessibility, and visual hierarchy.
+ */
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -915,7 +998,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)',
+        borderBottomColor: 'transparent',
     },
     headerTitle: {
         fontWeight: '700',
@@ -943,6 +1026,13 @@ const styles = StyleSheet.create({
         padding: 20,
         gap: 24,
     },
+    sectionCard: {
+        marginBottom: 16,
+    },
+    sectionTitle: {
+        marginBottom: 16,
+        fontWeight: '600',
+    },
     bottomSpacer: {
         height: 100,
     },
@@ -952,10 +1042,15 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     mediaCard: {
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    mediaCardInner: {
         height: 120,
         justifyContent: 'center',
         alignItems: 'center',
-        overflow: 'hidden',
+        margin: 0,
+        padding: 0,
     },
     mediaPreview: {
         width: '100%',
@@ -1006,7 +1101,8 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'transparent',
+        backgroundColor: 'rgba(128,128,128,0.1)',
     },
     notesInput: {
         height: 88,
@@ -1020,7 +1116,12 @@ const styles = StyleSheet.create({
     },
     metadataCard: {
         flex: 1,
-        padding: 16,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    metadataCardInner: {
+        padding: 0,
+        margin: 0,
     },
     metadataContent: {
         flexDirection: 'row',
@@ -1058,7 +1159,7 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingBottom: 32,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        borderTopColor: 'transparent',
     },
     saveButton: {
         flexDirection: 'row',
@@ -1143,7 +1244,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 8,
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        backgroundColor: 'rgba(128, 128, 128, 0.1)',
     },
     predictionInfoText: {
         flex: 1,

@@ -6,7 +6,6 @@ import {
     SafeAreaView,
     ScrollView,
     StyleSheet,
-    Text,
     TextInput,
     View,
 } from 'react-native';
@@ -291,13 +290,13 @@ export default function ModernSignupScreen() {
                         </Animated.View>
 
                         {/* Form Card */}
-                        <ModernCard variant="glass" style={styles.formCard}>
+                        <ModernCard elevated={false} bordered={true} style={styles.formCard}>
                             <View style={styles.form}>
                                 {/* Email Field */}
                                 <View style={styles.inputGroup}>
-                                    <Text style={[typography.labelMedium, styles.inputLabel]}>
+                                    <ThemedText variant="label" style={styles.inputLabel}>
                                         {t('auth.email_placeholder')}
-                                    </Text>
+                                    </ThemedText>
                                     <View style={[styles.inputContainer, getInputStyle(formState.email)]}>
                                         <Feather
                                             name="mail"
@@ -324,17 +323,17 @@ export default function ModernSignupScreen() {
                                         )}
                                     </View>
                                     {formState.email.error ? (
-                                        <Text style={[typography.labelSmall, styles.errorText]}>
+                                        <ThemedText variant="caption" color="error" style={styles.errorText}>
                                             {formState.email.error}
-                                        </Text>
+                                        </ThemedText>
                                     ) : null}
                                 </View>
 
                                 {/* Password Field */}
                                 <View style={styles.inputGroup}>
-                                    <Text style={[typography.labelMedium, styles.inputLabel]}>
+                                    <ThemedText variant="label" style={styles.inputLabel}>
                                         {t('auth.password_placeholder')}
-                                    </Text>
+                                    </ThemedText>
                                     <View style={[styles.inputContainer, getInputStyle(formState.password)]}>
                                         <Feather
                                             name="lock"
@@ -370,17 +369,17 @@ export default function ModernSignupScreen() {
                                         </Pressable>
                                     </View>
                                     {formState.password.error ? (
-                                        <Text style={[typography.labelSmall, styles.errorText]}>
+                                        <ThemedText variant="caption" color="error" style={styles.errorText}>
                                             {formState.password.error}
-                                        </Text>
+                                        </ThemedText>
                                     ) : null}
                                 </View>
 
                                 {/* Confirm Password Field */}
                                 <View style={styles.inputGroup}>
-                                    <Text style={[typography.labelMedium, styles.inputLabel]}>
+                                    <ThemedText variant="label" style={styles.inputLabel}>
                                         Confirm Password
-                                    </Text>
+                                    </ThemedText>
                                     <View style={[styles.inputContainer, getInputStyle(formState.confirmPassword)]}>
                                         <Feather
                                             name="shield"
@@ -416,9 +415,9 @@ export default function ModernSignupScreen() {
                                         </Pressable>
                                     </View>
                                     {formState.confirmPassword.error ? (
-                                        <Text style={[typography.labelSmall, styles.errorText]}>
+                                        <ThemedText variant="caption" color="error" style={styles.errorText}>
                                             {formState.confirmPassword.error}
-                                        </Text>
+                                        </ThemedText>
                                     ) : null}
                                 </View>
 
@@ -437,7 +436,7 @@ export default function ModernSignupScreen() {
                                     ) : (
                                         <Feather name="user-plus" size={20} color={semanticColors.onPrimary} />
                                     )}
-                                    <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
+                                    <ThemedText variant="labelLarge" color="inverse">
                                         {isLoading ? 'Creating Account...' : t('auth.signup')}
                                     </ThemedText>
                                 </ThemedPressable>

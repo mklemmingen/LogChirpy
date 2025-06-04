@@ -95,8 +95,8 @@ export default function ModernCamera() {
 
     if (!hasPermission) {
         return (
-            <View style={[styles.centered, { backgroundColor: pal.colors.background }]}>
-                <Text style={{ color: pal.colors.content.primary }}>
+            <View style={[styles.centered, { backgroundColor: pal.colors.background.secondary }]}>
+                <Text style={{ color: pal.colors.text.primary }}>
                     {t('camera.requesting_permission')}
                 </Text>
             </View>
@@ -105,8 +105,8 @@ export default function ModernCamera() {
 
     if (!device) {
         return (
-            <View style={[styles.centered, { backgroundColor: pal.colors.background }]}>
-                <Text style={{ color: pal.colors.content.primary }}>
+            <View style={[styles.centered, { backgroundColor: pal.colors.background.secondary }]}>
+                <Text style={{ color: pal.colors.text.primary }}>
                     {t('camera.no_device')}
                 </Text>
             </View>
@@ -196,7 +196,7 @@ export default function ModernCamera() {
                     style={[styles.continueButton, { backgroundColor: pal.colors.primary }]}
                     onPress={proceedToSelection}
                 >
-                    <Text style={[styles.continueText, { color: pal.colors.content.inverse }]}>
+                    <Text style={[styles.continueText, { color: pal.colors.text.inverse }]}>
                         {t('photo.continue_with_photos', { count: capturedPhotos.length })}
                     </Text>
                 </TouchableOpacity>
