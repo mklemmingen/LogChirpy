@@ -21,6 +21,7 @@ import "@/i18n/i18n";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
+import { AuthProvider } from '@/app/context/AuthContext';
 import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
 
 import {
@@ -37,6 +38,7 @@ import {
 
 // Database imports
 import {initDB} from '@/services/database';
+import {BirdNetService} from '@/services/birdNetService';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -329,6 +331,7 @@ export default function EnhancedRootLayout() {
     const [localDbReady, setLocalDbReady] = useState(false);
     const [localDbError, setLocalDbError] = useState<string | null>(null);
     const [birdDexReady, setBirdDexReady] = useState(false);
+    const [offlineModelReady, setOfflineModelReady] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
 
     // ML Models setup (same as before)
@@ -363,12 +366,33 @@ export default function EnhancedRootLayout() {
         initializeLocalDB();
     }, [retryCount]);
 
+    // Initialize offline bird classification model
+    useEffect(() => {
+        const initializeOfflineModel = async () => {
+            try {
+                console.log('Initializing offline bird classification model...');
+                await BirdNetService.initializeOfflineMode();
+                setOfflineModelReady(true);
+                console.log('Offline bird classification model initialized successfully');
+            } catch (error) {
+                console.error('Offline model initialization failed:', error);
+                // Continue without offline model - it will fallback to online
+                setOfflineModelReady(true);
+            }
+        };
+
+        // Only initialize after local DB is ready
+        if (localDbReady) {
+            initializeOfflineModel();
+        }
+    }, [localDbReady]);
+
     // Hide splash screen when ready
     useEffect(() => {
-        if (loaded && localDbReady) {
+        if (loaded && localDbReady && offlineModelReady) {
             SplashScreen.hideAsync();
         }
-    }, [loaded, localDbReady]);
+    }, [loaded, localDbReady, offlineModelReady]);
 
     const handleRetry = () => {
         setRetryCount(prev => prev + 1);
@@ -377,10 +401,19 @@ export default function EnhancedRootLayout() {
     };
 
     // Show app initialization screen
-    if (!loaded || !localDbReady) {
+    if (!loaded || !localDbReady || !offlineModelReady) {
+        let message = "Loading application...";
+        if (!loaded) {
+            message = "Loading fonts and assets...";
+        } else if (!localDbReady) {
+            message = "Initializing local database...";
+        } else if (!offlineModelReady) {
+            message = "Loading AI models...";
+        }
+
         return (
             <AppInitializationScreen
-                message={!loaded ? "Loading fonts and assets..." : "Initializing local database..."}
+                message={message}
                 error={localDbError || undefined}
                 onRetry={localDbError ? handleRetry : undefined}
             />
@@ -402,57 +435,59 @@ export default function EnhancedRootLayout() {
     // Main app with enhanced theming
     return (
         <SafeAreaProvider>
-            <ThemeProvider
-                value={{
-                    dark: theme === theme,
-                    colors: {
-                        notification: semanticColors.accent,
-                        background: semanticColors.background,
-                        card: semanticColors.backgroundElevated,
-                        text: semanticColors.text,
-                        border: semanticColors.border,
-                        primary: semanticColors.primary,
-                    },
-                    fonts: {
-                        regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
-                        medium: { fontFamily: 'SpaceMono', fontWeight: '500' },
-                        bold: { fontFamily: 'SpaceMono', fontWeight: 'bold' },
-                        heavy: { fontFamily: 'SpaceMono', fontWeight: '800' },
-                    },
-                }}
-            >
-                <ImageLabelingModelProvider>
-                    <ObjectDetectionProvider>
-                        <View style={[styles.container, { backgroundColor: semanticColors.background }]}>
-                            <Stack
-                                screenOptions={() => ({
-                                    headerStyle: {
-                                        backgroundColor:
-                                            current === 'photo' || current === 'video'
-                                                ? 'transparent'
-                                                : semanticColors.backgroundElevated,
-                                        ...theme.shadows.sm,
-                                    },
-                                    headerTransparent: current === 'photo' || current === 'video',
-                                    headerTintColor: semanticColors.text,
-                                    headerTitleStyle: {
-                                        ...typography.headlineMedium,
-                                        fontWeight: '600',
-                                    },
-                                    headerBackTitleVisible: false,
-                                    headerBackImage: () => (
-                                        <Feather name="arrow-left" size={24} color={semanticColors.text} />
-                                    ),
-                                })}
-                            >
-                                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                                <Stack.Screen name="+not-found" />
-                            </Stack>
-                        </View>
-                        <StatusBar style="auto" />
-                    </ObjectDetectionProvider>
-                </ImageLabelingModelProvider>
-            </ThemeProvider>
+            <AuthProvider>
+                <ThemeProvider
+                    value={{
+                        dark: theme === theme,
+                        colors: {
+                            notification: semanticColors.accent,
+                            background: semanticColors.background,
+                            card: semanticColors.backgroundElevated,
+                            text: semanticColors.text,
+                            border: semanticColors.border,
+                            primary: semanticColors.primary,
+                        },
+                        fonts: {
+                            regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
+                            medium: { fontFamily: 'SpaceMono', fontWeight: '500' },
+                            bold: { fontFamily: 'SpaceMono', fontWeight: 'bold' },
+                            heavy: { fontFamily: 'SpaceMono', fontWeight: '800' },
+                        },
+                    }}
+                >
+                    <ImageLabelingModelProvider>
+                        <ObjectDetectionProvider>
+                            <View style={[styles.container, { backgroundColor: semanticColors.background }]}>
+                                <Stack
+                                    screenOptions={() => ({
+                                        headerStyle: {
+                                            backgroundColor:
+                                                current === 'photo' || current === 'video'
+                                                    ? 'transparent'
+                                                    : semanticColors.backgroundElevated,
+                                            ...theme.shadows.sm,
+                                        },
+                                        headerTransparent: current === 'photo' || current === 'video',
+                                        headerTintColor: semanticColors.text,
+                                        headerTitleStyle: {
+                                            ...typography.headlineMedium,
+                                            fontWeight: '600',
+                                        },
+                                        headerBackTitleVisible: false,
+                                        headerBackImage: () => (
+                                            <Feather name="arrow-left" size={24} color={semanticColors.text} />
+                                        ),
+                                    })}
+                                >
+                                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                    <Stack.Screen name="+not-found" />
+                                </Stack>
+                            </View>
+                            <StatusBar style="auto" />
+                        </ObjectDetectionProvider>
+                    </ImageLabelingModelProvider>
+                </ThemeProvider>
+            </AuthProvider>
         </SafeAreaProvider>
     );
 }

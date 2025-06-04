@@ -59,6 +59,24 @@
     "load_detail_failed": "Failed to load spotting details",
     "location_unknown": "Location not recorded"
   },
+  "birdnet": {
+    "identify_button": "Identify Bird from Audio",
+    "identify_button_offline": "Identify Bird (AI)",
+    "identifying": "Identifying Bird...",
+    "identification_success": "Bird identification completed!",
+    "identification_failed": "Bird identification failed",
+    "no_audio_error": "No audio file available for identification",
+    "no_internet_error": "No internet connection available",
+    "network_error": "Network error. Please check your internet connection.",
+    "audio_not_found": "Audio file not found",
+    "no_birds_detected": "No bird sounds detected with sufficient confidence",
+    "prediction_selected": "Prediction selected!",
+    "predictions_title": "Bird Identification Results",
+    "disclaimer": "Tap a prediction to select it. Results are AI-generated and may not be 100% accurate.",
+    "offline_mode": "Offline AI",
+    "online_mode": "Online API",
+    "cached_result": "Cached Result"
+  },
   "birddex": {
     "error": "Error",
     "loadBatchFailed": "Failed to load BirdDex batch.",

@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 // Firebase imports
 import {createUserWithEmailAndPassword} from 'firebase/auth';
 import {auth} from '@/firebase/config';
+import { UserProfileService } from '@/services/userProfile';
 
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
@@ -169,6 +170,12 @@ export default function ModernSignupScreen() {
             );
 
             console.log('User created:', userCredential.user);
+
+            // Create user profile in Firestore
+            await UserProfileService.createUserProfile(
+                userCredential.user.uid,
+                userCredential.user.email
+            );
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             showSuccess('Account created successfully!');
