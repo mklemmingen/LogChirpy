@@ -7,18 +7,15 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
 import {ModernCard} from '@/components/ModernCard';
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {useTheme, useTypography,} from '@/hooks/useThemeColor';
 import { useAuth } from '@/app/context/AuthContext';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function ModernAccountScreen() {
     const { t } = useTranslation();
-    const semanticColors = useSemanticColors();
     const theme = useTheme();
     const typography = useTypography();
-    const variants = useColorVariants();
-    const motion = useMotionValues();
     const insets = useSafeAreaInsets();
     const { user, isAuthenticated, signOut: authSignOut, isLoading } = useAuth();
 
