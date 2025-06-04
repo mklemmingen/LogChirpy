@@ -1,6 +1,6 @@
 import React from 'react';
 import { Feather } from '@expo/vector-icons';
-import { useSemanticColors } from '@/hooks/useThemeColor';
+import { useTheme } from '@/hooks/useThemeColor';
 
 interface ThemedIconProps {
     name: keyof typeof Feather.glyphMap;
@@ -15,17 +15,17 @@ export function ThemedIcon({
                                color = 'primary',
                                style
                            }: ThemedIconProps) {
-    const semanticColors = useSemanticColors();
+    const theme = useTheme();
 
     const getColor = () => {
         switch (color) {
-            case 'primary': return semanticColors.text;
-            case 'secondary': return semanticColors.textSecondary;
-            case 'tertiary': return semanticColors.textTertiary;
-            case 'accent': return semanticColors.accent;
-            case 'error': return semanticColors.error;
-            case 'success': return semanticColors.success;
-            default: return semanticColors.text;
+            case 'primary': return theme.colors.text.primary;
+            case 'secondary': return theme.colors.text.secondary;
+            case 'tertiary': return theme.colors.text.tertiary;
+            case 'accent': return theme.colors.border.secondary;
+            case 'error': return theme.colors.status.error;
+            case 'success': return theme.colors.status.success;
+            default: return theme.colors.text.primary;
         }
     };
 
