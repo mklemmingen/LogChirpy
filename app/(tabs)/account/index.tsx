@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import {Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View,} from 'react-native';
-import {signOut} from 'firebase/auth';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {Feather} from '@expo/vector-icons';
@@ -8,8 +7,8 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
 import {ModernCard} from '@/components/ModernCard';
-import {auth} from '@/firebase/config';
 import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import { useAuth } from '@/app/context/AuthContext';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -21,30 +20,22 @@ export default function ModernAccountScreen() {
     const variants = useColorVariants();
     const motion = useMotionValues();
     const insets = useSafeAreaInsets();
-
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [userEmail, setUserEmail] = useState<string | null>(null);
+    const { user, isAuthenticated, signOut: authSignOut, isLoading } = useAuth();
 
     // Animation values
     const signOutScale = useSharedValue(1);
     const fadeInOpacity = useSharedValue(0);
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(user => {
-            setIsLoggedIn(!!user);
-            setUserEmail(user?.email || null);
-
-            if (!user) {
-                requestAnimationFrame(() =>
-                    router.replace('/(tabs)/account/(auth)/login')
-                );
-            } else {
-                // Fade in animation when user loads
-                fadeInOpacity.value = withTiming(1, { duration: motion.duration.medium });
-            }
-        });
-        return unsubscribe;
-    }, []);
+        if (!isLoading && !isAuthenticated) {
+            requestAnimationFrame(() =>
+                router.replace('/(tabs)/account/(auth)/login')
+            );
+        } else if (isAuthenticated) {
+            // Fade in animation when user loads
+            fadeInOpacity.value = withTiming(1, { duration: motion.duration.medium });
+        }
+    }, [isAuthenticated, isLoading]);
 
     const fadeInStyle = useAnimatedStyle(() => ({
         opacity: fadeInOpacity.value,
@@ -69,8 +60,7 @@ export default function ModernAccountScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await signOut(auth);
-                            setIsLoggedIn(false);
+                            await authSignOut();
                         } catch (error) {
                             console.error('Error signing out:', error);
                             Alert.alert(
@@ -92,7 +82,7 @@ export default function ModernAccountScreen() {
         signOutScale.value = withSpring(1);
     };
 
-    if (!isLoggedIn) {
+    if (isLoading || !isAuthenticated) {
         return null; // Will redirect to login
     }
 
@@ -140,7 +130,7 @@ export default function ModernAccountScreen() {
                                     {t('account.email_label')}
                                 </Text>
                                 <Text style={[typography.bodyLarge, { color: semanticColors.text }]}>
-                                    {userEmail}
+                                    {user?.email}
                                 </Text>
                             </View>
                         </View>

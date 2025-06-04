@@ -36,6 +36,7 @@ import {PrimaryButton, ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {useSnackbar} from '@/components/ThemedSnackbar';
 import {useColorVariants, useSemanticColors, useTypography,} from '@/hooks/useThemeColor';
+import { useAuth } from '@/app/context/AuthContext';
 
 // Constants
 const { width, height } = Dimensions.get('window');

@@ -27,6 +27,7 @@ import {BlurView} from 'expo-blur';
 import {useLogDraft} from '../context/LogDraftContext';
 import {BirdSpotting, insertBirdSpotting} from '@/services/database';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
+import {BirdNetService, BirdNetPrediction} from '@/services/birdNetService';
 
 // Modern components
 import {ThemedView} from '@/components/ThemedView';
@@ -64,6 +65,11 @@ export default function EnhancedManual() {
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+    
+    // Bird identification state
+    const [isIdentifyingBird, setIsIdentifyingBird] = useState(false);
+    const [birdPredictions, setBirdPredictions] = useState<BirdNetPrediction[]>([]);
+    const [showPredictions, setShowPredictions] = useState(false);
 
     // Modal states
     const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
@@ -226,6 +232,82 @@ export default function EnhancedManual() {
             showError(t('audio.playback_failed'));
         }
     }, [draft.audioUri, sound, t, showError]);
+
+    const handleIdentifyBird = useCallback(async () => {
+        if (!draft.audioUri) {
+            showError(t('birdnet.no_audio_error', 'No audio file available for identification'));
+            return;
+        }
+
+        setIsIdentifyingBird(true);
+        
+        try {
+            // Check network connectivity first
+            const isConnected = await BirdNetService.checkNetworkConnection();
+            if (!isConnected) {
+                showError(t('birdnet.no_internet_error', 'No internet connection available'));
+                return;
+            }
+
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            
+            const response = await BirdNetService.identifyBirdFromAudio(
+                draft.audioUri,
+                {
+                    latitude: draft.gpsLat,
+                    longitude: draft.gpsLng,
+                    minConfidence: 0.1,
+                }
+            );
+
+            if (response.success && response.predictions.length > 0) {
+                setBirdPredictions(response.predictions);
+                setShowPredictions(true);
+                
+                // Auto-fill with the best prediction
+                const bestPrediction = BirdNetService.getBestPrediction(response.predictions);
+                if (bestPrediction) {
+                    update({
+                        birdType: bestPrediction.common_name,
+                        audioPrediction: `${bestPrediction.common_name} (${BirdNetService.formatConfidenceScore(bestPrediction.confidence)} confidence)`,
+                    });
+                }
+                
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                showSuccess(t('birdnet.identification_success', 'Bird identification completed!'));
+            } else {
+                showError(response.error || t('birdnet.no_birds_detected', 'No bird sounds detected with sufficient confidence'));
+            }
+        } catch (error) {
+            console.error('Bird identification error:', error);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            
+            let errorMessage = t('birdnet.identification_failed', 'Bird identification failed');
+            if (error instanceof Error) {
+                if (error.message.includes('internet') || error.message.includes('network')) {
+                    errorMessage = t('birdnet.network_error', 'Network error. Please check your internet connection.');
+                } else if (error.message.includes('not found')) {
+                    errorMessage = t('birdnet.audio_not_found', 'Audio file not found');
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+            
+            showError(errorMessage);
+        } finally {
+            setIsIdentifyingBird(false);
+        }
+    }, [draft.audioUri, draft.gpsLat, draft.gpsLng, update, t, showSuccess, showError]);
+
+    const handleSelectPrediction = useCallback((prediction: BirdNetPrediction) => {
+        update({
+            birdType: prediction.common_name,
+            audioPrediction: `${prediction.common_name} (${BirdNetService.formatConfidenceScore(prediction.confidence)} confidence)`,
+        });
+        setShowPredictions(false);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        showSuccess(t('birdnet.prediction_selected', 'Prediction selected!'));
+    }, [update, t, showSuccess]);
 
     const handleGetLocation = useCallback(async () => {
         setIsLoadingLocation(true);
@@ -420,6 +502,59 @@ export default function EnhancedManual() {
                     </View>
                 </ModernCard>
             </View>
+
+            {/* Bird Identification Section */}
+            {draft.audioUri && (
+                <View style={styles.identificationSection}>
+                    <ThemedPressable
+                        style={[
+                            styles.identifyButton,
+                            {
+                                backgroundColor: isIdentifyingBird ? variants.primaryMuted : semanticColors.primary,
+                                opacity: isIdentifyingBird ? 0.7 : 1,
+                            }
+                        ]}
+                        onPress={handleIdentifyBird}
+                        disabled={isIdentifyingBird}
+                    >
+                        <View style={styles.identifyButtonContent}>
+                            {isIdentifyingBird ? (
+                                <ActivityIndicator 
+                                    size="small" 
+                                    color={semanticColors.onPrimary}
+                                    style={styles.identifyLoader}
+                                />
+                            ) : (
+                                <Feather 
+                                    name="search" 
+                                    size={20} 
+                                    color={semanticColors.onPrimary}
+                                    style={styles.identifyIcon}
+                                />
+                            )}
+                            <ThemedText 
+                                variant="labelLarge" 
+                                style={[styles.identifyButtonText, { color: semanticColors.onPrimary }]}
+                            >
+                                {isIdentifyingBird 
+                                    ? t('birdnet.identifying', 'Identifying Bird...') 
+                                    : t('birdnet.identify_button_offline', 'Identify Bird (AI)')
+                                }
+                            </ThemedText>
+                        </View>
+                    </ThemedPressable>
+
+                    {/* Show prediction confidence if available */}
+                    {draft.audioPrediction && (
+                        <View style={styles.predictionInfo}>
+                            <Feather name="check-circle" size={16} color={semanticColors.success} />
+                            <ThemedText variant="bodySmall" color="secondary" style={styles.predictionInfoText}>
+                                {draft.audioPrediction}
+                            </ThemedText>
+                        </View>
+                    )}
+                </View>
+            )}
         </GlassSection>
     );
 
@@ -708,6 +843,65 @@ export default function EnhancedManual() {
                 </View>
             </Modal>
 
+            {/* Bird Predictions Modal */}
+            <Modal
+                visible={showPredictions}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowPredictions(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <BlurView intensity={80} style={styles.modalBlur}>
+                        <View style={styles.predictionsModalContainer}>
+                            <View style={styles.predictionsHeader}>
+                                <ThemedText variant="headlineSmall">
+                                    {t('birdnet.predictions_title', 'Bird Identification Results')}
+                                </ThemedText>
+                                <ThemedPressable
+                                    style={styles.modalCloseButton}
+                                    onPress={() => setShowPredictions(false)}
+                                >
+                                    <Feather name="x" size={24} color={semanticColors.text} />
+                                </ThemedPressable>
+                            </View>
+                            
+                            <ScrollView style={styles.predictionsScrollView}>
+                                {birdPredictions.map((prediction, index) => (
+                                    <ThemedPressable
+                                        key={index}
+                                        style={[styles.predictionItem, { backgroundColor: semanticColors.backgroundElevated }]}
+                                        onPress={() => handleSelectPrediction(prediction)}
+                                    >
+                                        <View style={styles.predictionItemContent}>
+                                            <View style={styles.predictionInfo}>
+                                                <ThemedText variant="bodyLarge" style={styles.predictionCommonName}>
+                                                    {prediction.common_name}
+                                                </ThemedText>
+                                                <ThemedText variant="bodySmall" color="secondary" style={styles.predictionScientificName}>
+                                                    {prediction.scientific_name}
+                                                </ThemedText>
+                                            </View>
+                                            <View style={styles.predictionConfidence}>
+                                                <ThemedText variant="labelLarge" color="primary">
+                                                    {BirdNetService.formatConfidenceScore(prediction.confidence)}
+                                                </ThemedText>
+                                                <Feather name="chevron-right" size={20} color={semanticColors.textSecondary} />
+                                            </View>
+                                        </View>
+                                    </ThemedPressable>
+                                ))}
+                            </ScrollView>
+                            
+                            <View style={styles.predictionsFooter}>
+                                <ThemedText variant="bodySmall" color="secondary" style={styles.predictionsDisclaimer}>
+                                    {t('birdnet.disclaimer', 'Tap a prediction to select it. Results are AI-generated and may not be 100% accurate.')}
+                                </ThemedText>
+                            </View>
+                        </View>
+                    </BlurView>
+                </View>
+            </Modal>
+
             <SnackbarComponent />
         </ThemedView>
     );
@@ -913,5 +1107,112 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 8,
         paddingHorizontal: 20,
+    },
+
+    // Bird Identification Styles
+    identificationSection: {
+        marginTop: 16,
+        gap: 12,
+    },
+    identifyButton: {
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    identifyButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    identifyButtonText: {
+        fontWeight: '600',
+    },
+    identifyLoader: {
+        marginRight: 4,
+    },
+    identifyIcon: {
+        marginRight: 4,
+    },
+    predictionInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    },
+    predictionInfoText: {
+        flex: 1,
+    },
+
+    // Predictions Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalBlur: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    predictionsModalContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderRadius: 16,
+        maxHeight: '80%',
+        width: '100%',
+        maxWidth: 400,
+        overflow: 'hidden',
+    },
+    predictionsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    },
+    modalCloseButton: {
+        padding: 8,
+        borderRadius: 8,
+    },
+    predictionsScrollView: {
+        maxHeight: 300,
+    },
+    predictionItem: {
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    },
+    predictionItemContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    predictionCommonName: {
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    predictionScientificName: {
+        fontStyle: 'italic',
+    },
+    predictionConfidence: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    predictionsFooter: {
+        padding: 20,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0, 0, 0, 0.1)',
+    },
+    predictionsDisclaimer: {
+        textAlign: 'center',
+        lineHeight: 20,
     },
 });

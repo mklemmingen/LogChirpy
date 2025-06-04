@@ -26,7 +26,7 @@ import {
     useTypography,
     useMotionValues
 } from '@/hooks/useThemeColor';
-import { ImageSource } from "expo-image";
+import { ImageSourcePropType } from "react-native";
 
 // Card variants
 type CardVariant = 'default' | 'elevated' | 'outlined' | 'filled' | 'primary' | 'accent' | 'glass';
@@ -46,7 +46,7 @@ interface ModernCardProps {
     headerAction?: React.ReactNode;
 
     // Media props
-    image?: ImageSource;
+    image?: ImageSourcePropType;
     imageAspectRatio?: number;
 
     // Footer props
@@ -334,7 +334,7 @@ export function BirdSpottingCard({
     scientificName?: string | null;
     date: string;
     location?: string;
-    image?: ImageSource;
+    image?: ImageSourcePropType;
     hasAudio?: boolean;
     hasVideo?: boolean;
     isLogged?: boolean;
