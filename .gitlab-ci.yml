@@ -8,24 +8,24 @@ deploy-logchirpy:
   stage: deploy
   image: ruby:2.7
   script:
-    - echo "🧨 Installing git-filter-repo..."
+    - echo "Installing git-filter-repo..."
     - apt-get update && apt-get install -y python3 wget
     - wget https://raw.githubusercontent.com/newren/git-filter-repo/main/git-filter-repo -O /usr/local/bin/git-filter-repo
     - chmod +x /usr/local/bin/git-filter-repo
 
-    - echo "🛠️ Git setup..."
+    - echo "Git setup..."
     - git config --global user.email "mklemmingen@users.noreply.github.com"
     - git config --global user.name "mklemmingen"
     - git checkout -B main
 
-    - echo "🧹 Removing commit 6dc08e15 from history..."
+    - echo "Removing commit 6dc08e15 from history..."
     - >
       git-filter-repo --force --commit-callback '
         if commit.original_id == b"6dc08e153ae7aa2670a085104a1dbb95dd64254c":
             commit.skip()
       '
 
-    - echo "🧹 Removing commit and large file from history..."
+    - echo "Removing commit and large file from history..."
     - >
       git-filter-repo --force
       --commit-callback '
@@ -35,7 +35,13 @@ deploy-logchirpy:
       --path _model_conversion_scripts/faster-rcnn-inception-resnet-v2-tensorflow2-640x640-v1/variables/variables.data-00000-of-00001
       --invert-paths
 
-    - echo "✉️ Rewriting student email to GitHub address..."
+    - echo "Removing all .env files from history..."
+    - >
+      git-filter-repo --force
+      --path-glob '**/.env'
+      --invert-paths
+
+    - echo "Rewriting student email to GitHub address..."
     - >
       git-filter-repo --force --email-callback '
         if email == b"martin.lauterbach@student.reutlingen-university.de":
@@ -43,10 +49,10 @@ deploy-logchirpy:
         return email
       '
 
-    - echo "🌐 Pushing cleaned history to GitHub..."
+    - echo "Pushing cleaned history to GitHub..."
     - git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
     - git push --force origin main
-    - echo "✅ Successfully deployed cleaned GitHub history."
+    - echo "Successfully deployed cleaned GitHub history."
   only:
     - main
   environment: production
