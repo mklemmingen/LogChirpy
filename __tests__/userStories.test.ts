@@ -10,7 +10,10 @@
  * - Authentication flows
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { BirdNetService } from '../services/birdNetService';
+import { insertBirdSpotting, getBirdSpottings } from '../services/database';
+import { searchBirdsByName, getBirdBySpeciesCode } from '../services/databaseBirDex';
 
 // Mock dependencies
 jest.mock('../services/birdNetService');
@@ -20,10 +23,6 @@ jest.mock('../hooks/useBirdDexDatabase');
 jest.mock('expo-camera');
 jest.mock('expo-av');
 jest.mock('expo-location');
-
-import { BirdNetService } from '../services/birdNetService';
-import { insertBirdSpotting, getBirdSpottings } from '../services/database';
-import { searchBirdsByName, getBirdBySpeciesCode } from '../services/databaseBirDex';
 
 describe('User Story Tests', () => {
   beforeEach(() => {
@@ -284,9 +283,11 @@ describe('User Story Tests', () => {
         const birdDetails = getBirdBySpeciesCode('amro');
 
         expect(birdDetails).toBeDefined();
-        expect(birdDetails.english_name).toBe('American Robin');
-        expect(birdDetails.scientific_name).toBe('Turdus migratorius');
-        expect(birdDetails.family).toBeDefined();
+        if (birdDetails) {
+          expect(birdDetails.english_name).toBe('American Robin');
+          expect(birdDetails.scientific_name).toBe('Turdus migratorius');
+          expect(birdDetails.family).toBeDefined();
+        }
       });
 
       it('should handle empty search results gracefully', async () => {

@@ -328,7 +328,7 @@ export function ThemedSnackbar({
                         {/* Message */}
                         <Text
                             style={[
-                                typography.bodyMedium,
+                                typography.body,
                                 {
                                     color: semanticColors.primary,
                                     flex: 1,
@@ -358,7 +358,7 @@ export function ThemedSnackbar({
                             >
                                 <Text
                                     style={[
-                                        typography.labelMedium,
+                                        typography.label,
                                         {
                                             color: semanticColors.primary,
                                             fontWeight: '600',

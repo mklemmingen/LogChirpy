@@ -112,12 +112,12 @@ export default function SettingsSection({
             {(title || subtitle) && (
                 <View style={styles.header}>
                     {title && (
-                        <Text style={[typography.headlineSmall, styles.title]}>
+                        <Text style={[typography.h2, styles.title]}>
                             {title}
                         </Text>
                     )}
                     {subtitle && (
-                        <Text style={[typography.bodyMedium, styles.subtitle, { color: semanticColors.secondary }]}>
+                        <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
                             {subtitle}
                         </Text>
                     )}
