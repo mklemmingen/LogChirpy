@@ -16,7 +16,7 @@ import {
     useTypography,
     useTheme,
     useMotionValues,
-} from '@/hooks/useThemeColor';
+} from '../hooks/useThemeColor';
 
 interface SettingsSectionProps {
     title?: string;

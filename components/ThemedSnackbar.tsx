@@ -25,7 +25,7 @@ import {
     useColorVariants,
     useTypography,
     useMotionValues,
-} from '@/hooks/useThemeColor';
+} from '../hooks/useThemeColor';
 import {PanGestureHandler} from "react-native-gesture-handler";
 
 // Snackbar variants with semantic meaning

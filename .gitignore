@@ -96,3 +96,6 @@ yarn-error.*
 /_model_conversion_scripts/objectDet/
 /_model_conversion_scripts/faster-rcnn-inception-resnet-v2-tensorflow2-640x640-v1/variables/
 /model_conversion_env/
+/_birdNetH5toTFlite/model_conversion_env/
+/_birdNetH5toTFlite/model_conversion_env/bin/
+/_birdNetH5toTFlite/model_conversion_env/lib/

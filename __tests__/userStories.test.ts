@@ -13,17 +13,17 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 
 // Mock dependencies
-jest.mock('@/services/birdNetService');
-jest.mock('@/services/database');
-jest.mock('@/services/databaseBirDex');
-jest.mock('@/hooks/useBirdDexDatabase');
+jest.mock('../services/birdNetService');
+jest.mock('../services/database');
+jest.mock('../services/databaseBirDex');
+jest.mock('../hooks/useBirdDexDatabase');
 jest.mock('expo-camera');
 jest.mock('expo-av');
 jest.mock('expo-location');
 
-import { BirdNetService } from '@/services/birdNetService';
-import { insertBirdSpotting, getUserSpottings } from '@/services/database';
-import { searchBirds, getBirdByCode } from '@/services/databaseBirDex';
+import { BirdNetService } from '../services/birdNetService';
+import { insertBirdSpotting, getBirdSpottings } from '../services/database';
+import { searchBirdsByName, getBirdBySpeciesCode } from '../services/databaseBirDex';
 
 describe('User Story Tests', () => {
   beforeEach(() => {
@@ -47,10 +47,10 @@ describe('User Story Tests', () => {
           processing_time: 1200,
           audio_duration: 3.0,
           success: true,
-          source: 'offline',
+          source: 'tflite' as const,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.Mock).mockResolvedValue(mockIdentificationResult);
+        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockIdentificationResult);
 
         // Simulate user taking photo and getting identification
         const photoUri = 'file:///path/to/photo.jpg';
@@ -64,7 +64,7 @@ describe('User Story Tests', () => {
 
       it('should handle failed bird identification gracefully', async () => {
         // Mock failed identification
-        (BirdNetService.identifyBirdFromAudio as jest.Mock).mockRejectedValue(
+        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockRejectedValue(
           new Error('Network connection failed')
         );
 
@@ -89,16 +89,16 @@ describe('User Story Tests', () => {
           processing_time: 800,
           audio_duration: 3.0,
           success: true,
-          source: 'offline',
+          source: 'tflite' as const,
           fallback_used: false,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.Mock).mockResolvedValue(mockOfflineResult);
+        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockOfflineResult);
 
         const photoUri = 'file:///path/to/photo.jpg';
         const result = await BirdNetService.identifyBirdFromAudio(photoUri, { forceOffline: true });
 
-        expect(result.source).toBe('offline');
+        expect(result.source).toBe('tflite');
         expect(result.success).toBe(true);
         expect(result.predictions[0].common_name).toBe('Northern Cardinal');
       });
@@ -119,10 +119,10 @@ describe('User Story Tests', () => {
           processing_time: 2100,
           audio_duration: 6.0,
           success: true,
-          source: 'offline',
+          source: 'tflite' as const,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.Mock).mockResolvedValue(mockAudioResult);
+        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockAudioResult);
 
         const audioUri = 'file:///path/to/recording.wav';
         const result = await BirdNetService.identifyBirdFromAudio(audioUri);
@@ -154,10 +154,10 @@ describe('User Story Tests', () => {
           processing_time: 3200,
           audio_duration: 8.5,
           success: true,
-          source: 'offline',
+          source: 'tflite' as const,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.Mock).mockResolvedValue(mockMultiSpeciesResult);
+        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockMultiSpeciesResult);
 
         const audioUri = 'file:///path/to/multi-bird-recording.wav';
         const result = await BirdNetService.identifyBirdFromAudio(audioUri);
@@ -171,59 +171,69 @@ describe('User Story Tests', () => {
   describe('📝 Manual Logging Stories', () => {
     describe('As a birdwatcher, I want to manually log my bird sightings', () => {
       it('should successfully save a complete bird sighting', async () => {
-        const mockSpottingId = 123;
-        (insertBirdSpotting as jest.Mock).mockResolvedValue(mockSpottingId);
+        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(undefined);
 
         const sightingData = {
-          species: 'American Robin',
-          scientificName: 'Turdus migratorius',
-          location: 'Central Park, NYC',
-          latitude: 40.7829,
-          longitude: -73.9654,
-          timestamp: new Date().toISOString(),
-          notes: 'Building nest in oak tree',
-          confidence: 0.95,
-          photoUri: 'file:///path/to/photo.jpg',
+          imageUri: 'file:///path/to/photo.jpg',
+          videoUri: '',
           audioUri: 'file:///path/to/audio.wav',
-          weather: 'Sunny, 22°C',
-          behavior: 'Nesting',
+          textNote: 'Building nest in oak tree - Sunny, 22°C - Nesting',
+          gpsLat: 40.7829,
+          gpsLng: -73.9654,
+          date: new Date().toISOString(),
+          birdType: 'American Robin',
+          imagePrediction: 'Turdus migratorius',
+          audioPrediction: 'Turdus migratorius',
         };
 
-        const result = await insertBirdSpotting(sightingData);
+        insertBirdSpotting(sightingData);
 
-        expect(result).toBe(mockSpottingId);
+        expect(insertBirdSpotting).toHaveBeenCalledWith(sightingData);
         expect(insertBirdSpotting).toHaveBeenCalledWith(sightingData);
       });
 
       it('should save minimal sighting with just species and location', async () => {
-        const mockSpottingId = 124;
-        (insertBirdSpotting as jest.Mock).mockResolvedValue(mockSpottingId);
+        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(undefined);
 
         const minimalSighting = {
-          species: 'Blue Jay',
-          location: 'My backyard',
-          timestamp: new Date().toISOString(),
+          imageUri: '',
+          videoUri: '',
+          audioUri: '',
+          textNote: '',
+          gpsLat: 0,
+          gpsLng: 0,
+          date: new Date().toISOString(),
+          birdType: 'Blue Jay',
+          imagePrediction: '',
+          audioPrediction: '',
         };
 
-        const result = await insertBirdSpotting(minimalSighting);
+        insertBirdSpotting(minimalSighting);
 
-        expect(result).toBe(mockSpottingId);
+        expect(insertBirdSpotting).toHaveBeenCalledWith(minimalSighting);
         expect(insertBirdSpotting).toHaveBeenCalledWith(minimalSighting);
       });
 
       it('should validate required fields before saving', async () => {
         const invalidSighting = {
-          // Missing required species field
-          location: 'Test location',
-          timestamp: new Date().toISOString(),
+          imageUri: '',
+          videoUri: '',
+          audioUri: '',
+          textNote: '',
+          gpsLat: 0,
+          gpsLng: 0,
+          date: new Date().toISOString(),
+          birdType: '', // Empty birdType
+          imagePrediction: '',
+          audioPrediction: '',
         };
 
-        (insertBirdSpotting as jest.Mock).mockRejectedValue(
-          new Error('Species is required')
-        );
+        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockImplementation(() => {
+          throw new Error('Bird type is required');
+        });
 
-        await expect(insertBirdSpotting(invalidSighting))
-          .rejects.toThrow('Species is required');
+        expect(() => insertBirdSpotting(invalidSighting))
+          .toThrow('Bird type is required');
       });
     });
   });
@@ -233,55 +243,56 @@ describe('User Story Tests', () => {
       it('should search for birds by common name', async () => {
         const mockSearchResults = [
           {
-            code: 'amro',
-            commonName: 'American Robin',
-            scientificName: 'Turdus migratorius',
-            familyName: 'Thrushes',
-          },
+            species_code: 'amro',
+            english_name: 'American Robin',
+            scientific_name: 'Turdus migratorius',
+            family: 'Thrushes',
+            category: 'species',
+            hasBeenLogged: 0 as const,
+          } as any,
           {
-            code: 'euro',
-            commonName: 'European Robin',
-            scientificName: 'Erithacus rubecula',
-            familyName: 'Old World Flycatchers',
-          }
+            species_code: 'euro',
+            english_name: 'European Robin',
+            scientific_name: 'Erithacus rubecula',
+            family: 'Old World Flycatchers',
+            category: 'species',
+            hasBeenLogged: 0 as const,
+          } as any
         ];
 
-        (searchBirds as jest.Mock).mockResolvedValue(mockSearchResults);
+        (searchBirdsByName as jest.MockedFunction<typeof searchBirdsByName>).mockReturnValue(mockSearchResults);
 
-        const results = await searchBirds('robin', 10);
+        const results = searchBirdsByName('robin', 10);
 
         expect(results).toHaveLength(2);
-        expect(results[0].commonName).toContain('Robin');
-        expect(results[1].commonName).toContain('Robin');
+        expect(results[0].english_name).toContain('Robin');
+        expect(results[1].english_name).toContain('Robin');
       });
 
       it('should get detailed bird information by species code', async () => {
         const mockBirdDetails = {
-          code: 'amro',
-          commonName: 'American Robin',
-          scientificName: 'Turdus migratorius',
-          familyName: 'Thrushes',
-          habitat: 'Urban areas, parks, woodlands',
-          diet: 'Worms, insects, berries',
-          description: 'Large songbird with orange breast and dark head',
-          migrationPattern: 'Partial migrant',
-          conservationStatus: 'Least Concern',
-        };
+          species_code: 'amro',
+          english_name: 'American Robin',
+          scientific_name: 'Turdus migratorius',
+          family: 'Thrushes',
+          category: 'species',
+          hasBeenLogged: 0 as const,
+        } as any;
 
-        (getBirdByCode as jest.Mock).mockResolvedValue(mockBirdDetails);
+        (getBirdBySpeciesCode as jest.MockedFunction<typeof getBirdBySpeciesCode>).mockReturnValue(mockBirdDetails);
 
-        const birdDetails = await getBirdByCode('amro');
+        const birdDetails = getBirdBySpeciesCode('amro');
 
         expect(birdDetails).toBeDefined();
-        expect(birdDetails.commonName).toBe('American Robin');
-        expect(birdDetails.scientificName).toBe('Turdus migratorius');
-        expect(birdDetails.habitat).toBeDefined();
+        expect(birdDetails.english_name).toBe('American Robin');
+        expect(birdDetails.scientific_name).toBe('Turdus migratorius');
+        expect(birdDetails.family).toBeDefined();
       });
 
       it('should handle empty search results gracefully', async () => {
-        (searchBirds as jest.Mock).mockResolvedValue([]);
+        (searchBirdsByName as jest.MockedFunction<typeof searchBirdsByName>).mockReturnValue([]);
 
-        const results = await searchBirds('nonexistentbird', 10);
+        const results = searchBirdsByName('nonexistentbird', 10);
 
         expect(results).toHaveLength(0);
       });
@@ -294,48 +305,62 @@ describe('User Story Tests', () => {
         const mockSightings = [
           {
             id: 1,
-            species: 'American Robin',
-            location: 'Central Park',
-            timestamp: '2024-01-15T10:30:00Z',
-            photoUri: 'file:///photo1.jpg',
+            imageUri: 'file:///photo1.jpg',
+            videoUri: '',
+            audioUri: '',
+            textNote: 'Central Park',
+            gpsLat: 0,
+            gpsLng: 0,
+            date: '2024-01-15T10:30:00Z',
+            birdType: 'American Robin',
+            imagePrediction: '',
+            audioPrediction: '',
+            synced: 0 as const,
           },
           {
             id: 2,
-            species: 'Blue Jay',
-            location: 'My backyard',
-            timestamp: '2024-01-14T08:15:00Z',
+            imageUri: '',
+            videoUri: '',
             audioUri: 'file:///audio1.wav',
+            textNote: 'My backyard',
+            gpsLat: 0,
+            gpsLng: 0,
+            date: '2024-01-14T08:15:00Z',
+            birdType: 'Blue Jay',
+            imagePrediction: '',
+            audioPrediction: '',
+            synced: 0 as const,
           }
         ];
 
-        (getUserSpottings as jest.Mock).mockResolvedValue(mockSightings);
+        (getBirdSpottings as jest.MockedFunction<typeof getBirdSpottings>).mockReturnValue(mockSightings);
 
-        const sightings = await getUserSpottings(10);
+        const sightings = getBirdSpottings(10);
 
         expect(sightings).toHaveLength(2);
-        expect(sightings[0].species).toBe('American Robin');
-        expect(sightings[1].species).toBe('Blue Jay');
+        expect(sightings[0].birdType).toBe('American Robin');
+        expect(sightings[1].birdType).toBe('Blue Jay');
       });
 
       it('should sort sightings by most recent first', async () => {
         const mockSightings = [
           {
             id: 2,
-            species: 'Blue Jay',
-            timestamp: '2024-01-15T10:30:00Z',
-          },
+            birdType: 'Blue Jay',
+            date: '2024-01-15T10:30:00Z',
+          } as any,
           {
             id: 1,
-            species: 'American Robin',
-            timestamp: '2024-01-14T08:15:00Z',
-          }
+            birdType: 'American Robin',
+            date: '2024-01-14T08:15:00Z',
+          } as any
         ];
 
-        (getUserSpottings as jest.Mock).mockResolvedValue(mockSightings);
+        (getBirdSpottings as jest.MockedFunction<typeof getBirdSpottings>).mockReturnValue(mockSightings);
 
-        const sightings = await getUserSpottings();
+        const sightings = getBirdSpottings();
 
-        expect(sightings[0].timestamp > sightings[1].timestamp).toBe(true);
+        expect(sightings[0].date > sightings[1].date).toBe(true);
       });
     });
   });
@@ -353,25 +378,33 @@ describe('User Story Tests', () => {
             }
           ],
           success: true,
-          source: 'offline',
+          source: 'tflite' as const,
+          processing_time: 1500,
+          audio_duration: 3.0,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.Mock).mockResolvedValue(mockIdentification);
+        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockIdentification);
 
         // Step 2: Save to database
-        const mockSpottingId = 125;
-        (insertBirdSpotting as jest.Mock).mockResolvedValue(mockSpottingId);
+        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(undefined);
 
         // Step 3: Retrieve from archive
         const mockArchivedSighting = {
-          id: mockSpottingId,
-          species: 'Northern Cardinal',
-          scientificName: 'Cardinalis cardinalis',
-          confidence: 0.88,
-          timestamp: new Date().toISOString(),
+          id: 125,
+          imageUri: 'file:///test-photo.jpg',
+          videoUri: '',
+          audioUri: '',
+          textNote: '',
+          gpsLat: 0,
+          gpsLng: 0,
+          date: new Date().toISOString(),
+          birdType: 'Northern Cardinal',
+          imagePrediction: 'Cardinalis cardinalis',
+          audioPrediction: '',
+          synced: 0 as const,
         };
 
-        (getUserSpottings as jest.Mock).mockResolvedValue([mockArchivedSighting]);
+        (getBirdSpottings as jest.MockedFunction<typeof getBirdSpottings>).mockReturnValue([mockArchivedSighting]);
 
         // Execute workflow
         const photoUri = 'file:///test-photo.jpg';
@@ -382,20 +415,25 @@ describe('User Story Tests', () => {
 
         // Save
         const sightingData = {
-          species: identification.predictions[0].common_name,
-          scientificName: identification.predictions[0].scientific_name,
-          confidence: identification.predictions[0].confidence,
-          photoUri,
-          timestamp: new Date().toISOString(),
+          imageUri: photoUri,
+          videoUri: '',
+          audioUri: '',
+          textNote: '',
+          gpsLat: 0,
+          gpsLng: 0,
+          date: new Date().toISOString(),
+          birdType: identification.predictions[0].common_name,
+          imagePrediction: identification.predictions[0].scientific_name,
+          audioPrediction: '',
         };
         
-        const savedId = await insertBirdSpotting(sightingData);
-        expect(savedId).toBe(mockSpottingId);
+        insertBirdSpotting(sightingData);
+        expect(insertBirdSpotting).toHaveBeenCalledWith(sightingData);
 
         // Retrieve from archive
-        const archivedSightings = await getUserSpottings(1);
-        expect(archivedSightings[0].species).toBe('Northern Cardinal');
-        expect(archivedSightings[0].id).toBe(savedId);
+        const archivedSightings = getBirdSpottings(1);
+        expect(archivedSightings[0].birdType).toBe('Northern Cardinal');
+        expect(archivedSightings[0].id).toBe(125);
       });
     });
 
@@ -409,15 +447,16 @@ describe('User Story Tests', () => {
             confidence: 0.76,
           }],
           success: true,
-          source: 'offline',
+          source: 'tflite' as const,
           fallback_used: false,
+          processing_time: 1200,
+          audio_duration: 3.0,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.Mock).mockResolvedValue(mockOfflineResult);
+        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockOfflineResult);
 
         // Mock local database operations
-        const mockSpottingId = 126;
-        (insertBirdSpotting as jest.Mock).mockResolvedValue(mockSpottingId);
+        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(undefined);
 
         // Execute offline workflow
         const result = await BirdNetService.identifyBirdFromAudio(
@@ -425,16 +464,23 @@ describe('User Story Tests', () => {
           { forceOffline: true }
         );
 
-        expect(result.source).toBe('offline');
+        expect(result.source).toBe('tflite');
         expect(result.fallback_used).toBe(false);
 
-        const savedId = await insertBirdSpotting({
-          species: result.predictions[0].common_name,
-          confidence: result.predictions[0].confidence,
-          timestamp: new Date().toISOString(),
+        insertBirdSpotting({
+          imageUri: '',
+          videoUri: '',
+          audioUri: '',
+          textNote: '',
+          gpsLat: 0,
+          gpsLng: 0,
+          date: new Date().toISOString(),
+          birdType: result.predictions[0].common_name,
+          imagePrediction: '',
+          audioPrediction: '',
         });
 
-        expect(savedId).toBe(mockSpottingId);
+        expect(insertBirdSpotting).toHaveBeenCalled();
       });
     });
   });
@@ -443,12 +489,14 @@ describe('User Story Tests', () => {
     describe('As a user, I want the app to respond quickly', () => {
       it('should identify birds in under 5 seconds', async () => {
         const mockFastResult = {
-          predictions: [{ common_name: 'Fast Bird', confidence: 0.9 }],
+          predictions: [{ common_name: 'Fast Bird', scientific_name: 'Fastus birdus', confidence: 0.9 }],
           processing_time: 2100, // 2.1 seconds
           success: true,
+          audio_duration: 3.0,
+          source: 'tflite' as const,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.Mock).mockResolvedValue(mockFastResult);
+        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockFastResult);
 
         const startTime = Date.now();
         const result = await BirdNetService.identifyBirdFromAudio('file:///photo.jpg');
@@ -461,20 +509,20 @@ describe('User Story Tests', () => {
       it('should load bird database progressively', async () => {
         // Mock progressive loading
         const mockProgressiveResults = [
-          [{ commonName: 'Bird 1' }],
-          [{ commonName: 'Bird 1' }, { commonName: 'Bird 2' }],
-          [{ commonName: 'Bird 1' }, { commonName: 'Bird 2' }, { commonName: 'Bird 3' }],
+          [{ english_name: 'Bird 1' } as any],
+          [{ english_name: 'Bird 1' } as any, { english_name: 'Bird 2' } as any],
+          [{ english_name: 'Bird 1' } as any, { english_name: 'Bird 2' } as any, { english_name: 'Bird 3' } as any],
         ];
 
         let callCount = 0;
-        (searchBirds as jest.Mock).mockImplementation(() => {
-          return Promise.resolve(mockProgressiveResults[callCount++] || []);
+        (searchBirdsByName as jest.MockedFunction<typeof searchBirdsByName>).mockImplementation(() => {
+          return mockProgressiveResults[callCount++] || [];
         });
 
         // Simulate progressive loading
-        const firstLoad = await searchBirds('', 1);
-        const secondLoad = await searchBirds('', 2);
-        const thirdLoad = await searchBirds('', 3);
+        const firstLoad = searchBirdsByName('', 1);
+        const secondLoad = searchBirdsByName('', 2);
+        const thirdLoad = searchBirdsByName('', 3);
 
         expect(firstLoad).toHaveLength(1);
         expect(secondLoad).toHaveLength(2);
@@ -486,7 +534,7 @@ describe('User Story Tests', () => {
   describe('🛡️ Error Handling Stories', () => {
     describe('As a user, I want graceful error handling', () => {
       it('should handle network errors gracefully', async () => {
-        (BirdNetService.identifyBirdFromAudio as jest.Mock).mockRejectedValue(
+        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockRejectedValue(
           new Error('Network request failed')
         );
 
@@ -495,7 +543,7 @@ describe('User Story Tests', () => {
       });
 
       it('should handle invalid file errors', async () => {
-        (BirdNetService.identifyBirdFromAudio as jest.Mock).mockRejectedValue(
+        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockRejectedValue(
           new Error('Audio file not found')
         );
 
@@ -504,12 +552,22 @@ describe('User Story Tests', () => {
       });
 
       it('should handle database errors gracefully', async () => {
-        (insertBirdSpotting as jest.Mock).mockRejectedValue(
-          new Error('Database connection failed')
-        );
+        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockImplementation(() => {
+          throw new Error('Database connection failed');
+        });
 
-        await expect(insertBirdSpotting({ species: 'Test Bird' }))
-          .rejects.toThrow('Database connection failed');
+        expect(() => insertBirdSpotting({
+          imageUri: '',
+          videoUri: '',
+          audioUri: '',
+          textNote: '',
+          gpsLat: 0,
+          gpsLng: 0,
+          date: new Date().toISOString(),
+          birdType: 'Test Bird',
+          imagePrediction: '',
+          audioPrediction: '',
+        })).toThrow('Database connection failed');
       });
     });
   });

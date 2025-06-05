@@ -1,5 +1,7 @@
 // Jest setup file for mocking React Native modules
 
+// Setup React Native Testing Library (built-in matchers included in v12.4+)
+
 // Mock AsyncStorage
 import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
 
@@ -61,6 +63,15 @@ jest.mock('expo-av', () => ({
       getStatusAsync = jest.fn().mockResolvedValue({ isDoneRecording: true });
     },
     Sound: class MockSound {
+      static createAsync = jest.fn().mockResolvedValue({
+        sound: {
+          getStatusAsync: jest.fn().mockResolvedValue({
+            isLoaded: true,
+            durationMillis: 3000
+          }),
+          unloadAsync: jest.fn().mockResolvedValue(undefined)
+        }
+      });
       loadAsync = jest.fn().mockResolvedValue(undefined);
       playAsync = jest.fn().mockResolvedValue(undefined);
       stopAsync = jest.fn().mockResolvedValue(undefined);
@@ -69,3 +80,17 @@ jest.mock('expo-av', () => ({
     setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
   },
 }));
+
+// Mock .tflite files
+jest.mock('../assets/models/birdnet/birdnet_v24.tflite', () => 'mock-tflite-path', { virtual: true });
+
+// Mock labels.json
+jest.mock('../assets/models/birdnet/labels.json', () => ({
+  labels: [
+    { index: 0, scientific_name: 'Turdus migratorius', common_name: 'American Robin', label: 'Turdus migratorius_American Robin' },
+    { index: 1, scientific_name: 'Passer domesticus', common_name: 'House Sparrow', label: 'Passer domesticus_House Sparrow' }
+  ]
+}), { virtual: true });
+
+// Mock CSV files
+jest.mock('../assets/birds_fully_translated.csv', () => 'mock-csv-data', { virtual: true });

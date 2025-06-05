@@ -69,7 +69,7 @@ export default function HomeScreen() {
     {
       id: 'detection',
       title: t('buttons.objectCamera'),
-      description: 'Real-time AI bird detection and classification',
+      description: t('home.camera_description'),
       icon: 'zap',
       route: '/log/objectIdentCamera',
       primary: true,
@@ -77,21 +77,21 @@ export default function HomeScreen() {
     {
       id: 'photo',
       title: t('buttons.photo'),
-      description: 'Capture and identify birds from photos',
+      description: t('home.photo_description'),
       icon: 'camera',
       route: '/log/photo',
     },
     {
       id: 'audio',
       title: t('buttons.audio'),
-      description: 'Record and analyze bird songs',
+      description: t('home.audio_description'),
       icon: 'mic',
       route: '/log/audio',
     },
     {
       id: 'manual',
       title: t('buttons.manual'),
-      description: 'Manual entry for field observations',
+      description: t('home.manual_description'),
       icon: 'edit-3',
       route: '/log/manual',
     },
