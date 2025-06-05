@@ -231,7 +231,7 @@ function InfoRow({
     value: string;
     icon?: string;
     onPress?: () => void;
-    style?: any;
+    style?: object;
 }) {
     const theme = useTheme();
 

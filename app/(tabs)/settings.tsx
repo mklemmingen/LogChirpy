@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {I18nManager, SafeAreaView, ScrollView, StyleSheet, Switch, Text, useColorScheme, View,} from "react-native";
 import {useTranslation} from "react-i18next";
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
     FadeInDown,
     interpolate,
@@ -145,10 +145,10 @@ function LanguageCard({
                             styles.activeIndicator,
                             { backgroundColor: colors.primary }
                         ]}>
-                            <Feather
+                            <ThemedIcon
                                 name="check"
                                 size={16}
-                                color={colors.textInverse}
+                                color="inverse"
                             />
                         </View>
                     )}
@@ -215,12 +215,12 @@ function GPSToggleCard({
                             },
                             iconAnimatedStyle,
                         ]}>
-                            <Feather
+                            <ThemedIcon
                                 name="map-pin"
                                 size={24}
                                 color={enabled
-                                    ? colors.primary
-                                    : colors.textSecondary
+                                    ? 'primary'
+                                    : 'secondary'
                                 }
                             />
                         </Animated.View>
@@ -447,10 +447,10 @@ export default function ModernSettingsScreen() {
                                 styles.infoIcon,
                                 { backgroundColor: colors.backgroundSecondary }
                             ]}>
-                                <Feather
+                                <ThemedIcon
                                     name="feather"
                                     size={20}
-                                    color={colors.primary}
+                                    color="primary"
                                 />
                             </View>
 

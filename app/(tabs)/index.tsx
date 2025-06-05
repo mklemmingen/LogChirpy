@@ -5,7 +5,7 @@ import React from 'react';
 import { Dimensions, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Feather } from '@expo/vector-icons';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
   Easing,
   interpolate,
@@ -121,10 +121,10 @@ export default function HomeScreen() {
               ]}
               rounded="lg"
             >
-              <Feather
-                name={feature.icon as any}
+              <ThemedIcon
+                name={feature.icon}
                 size={24}
-                color={colors.text}
+                color="primary"
               />
             </ThemedView>
 
@@ -143,10 +143,10 @@ export default function HomeScreen() {
             </View>
 
             {/* Arrow */}
-            <Feather
+            <ThemedIcon
               name="arrow-right"
               size={16}
-              color={colors.textTertiary}
+              color="tertiary"
             />
           </View>
         </ModernCard>

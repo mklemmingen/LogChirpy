@@ -22,8 +22,6 @@
     "@react-native-community/slider": "4.5.5",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
-    "@tensorflow/tfjs": "^4.22.0",
-    "@tensorflow/tfjs-react-native": "^1.0.0",
     "dotenv": "^16.5.0",
     "expo": "~52.0.46",
     "expo-av": "~15.0.2",
@@ -47,7 +45,6 @@
     "expo-updates": "~0.27.4",
     "expo-video": "~2.0.6",
     "expo-web-browser": "~14.0.2",
-    "fft-js": "^0.0.12",
     "firebase": "^11.6.1",
     "fs-extra": "^11.3.0",
     "i18next": "^25.0.1",
@@ -90,7 +87,8 @@
     "typescript": "^5.3.3"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"]
   },
   "expo": {
     "doctor": {

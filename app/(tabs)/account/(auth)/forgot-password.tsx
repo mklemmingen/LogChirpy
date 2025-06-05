@@ -89,12 +89,13 @@ export default function ForgotPasswordScreen() {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }, theme.motion.duration.fast);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Password reset error:', error);
 
             // Handle Firebase Auth specific error codes
             let errorMessage = t('errors.sending_reset_error');
-            switch (error.code) {
+            if (error && typeof error === 'object' && 'code' in error) {
+                switch ((error as { code: string }).code) {
                 case 'auth/user-not-found':
                     errorMessage = t('errors.user_not_found');
                     break;
@@ -109,6 +110,9 @@ export default function ForgotPasswordScreen() {
                     break;
                 default:
                     errorMessage = t('errors.sending_reset_error');
+                }
+            } else {
+                errorMessage = error instanceof Error ? error.message : t('errors.sending_reset_error');
             }
 
             snackbar.showError(errorMessage);

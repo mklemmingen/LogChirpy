@@ -3,7 +3,7 @@ import {ActivityIndicator, Alert, BackHandler, Dimensions, Linking, StatusBar,} 
 import {Audio} from 'expo-av';
 import {router, Stack, useFocusEffect} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import {BlurView} from 'expo-blur';
 import Animated, {
@@ -183,10 +183,10 @@ function RecordingButton({
                     onPress={onPress}
                     disabled={status === 'stopping'}
                 >
-                    <Feather
+                    <ThemedIcon
                         name={isRecording ? 'square' : 'mic'}
                         size={48}
-                        color={theme.colors.primary}
+                        color="primary"
                     />
                 </AnimatedPressable>
             </ThemedView>
@@ -241,7 +241,7 @@ function PermissionError({
                         marginBottom: 24,
                     }}
                 >
-                    <Feather name="mic-off" size={32} color={theme.colors.status.error} />
+                    <ThemedIcon name="mic-off" size={32} color="error" />
                 </ThemedView>
 
                 <ThemedText variant="h2" style={{ textAlign: 'center', marginBottom: 12 }}>
@@ -324,7 +324,7 @@ function PlaybackControls({
                     style={{ flex: 1, flexDirection: 'row', gap: 8 }}
                     onPress={onPlay}
                 >
-                    <Feather name={isPlaying ? 'pause' : 'play'} size={20} />
+                    <ThemedIcon name={isPlaying ? 'pause' : 'play'} size={20} color="primary" />
                     <ThemedText>{isPlaying ? t('audio.pause') : t('audio.play')}</ThemedText>
                 </ThemedPressable>
 
@@ -333,7 +333,7 @@ function PlaybackControls({
                     style={{ paddingHorizontal: 20 }}
                     onPress={onRetake}
                 >
-                    <Feather name="refresh-cw" size={20} />
+                    <ThemedIcon name="refresh-cw" size={20} color="primary" />
                 </ThemedPressable>
 
                 <ThemedPressable
@@ -341,7 +341,7 @@ function PlaybackControls({
                     style={{ flex: 1, flexDirection: 'row', gap: 8 }}
                     onPress={onConfirm}
                 >
-                    <Feather name="check" size={20} color="white" />
+                    <ThemedIcon name="check" size={20} color="inverse" />
                     <ThemedText color="inverse">{t('common.confirm')}</ThemedText>
                 </ThemedPressable>
             </ThemedView>
@@ -650,7 +650,7 @@ export default function AudioScreen() {
                     style={{ padding: 8 }}
                     onPress={() => router.back()}
                 >
-                    <Feather name="arrow-left" size={24} color={theme.colors.primary} />
+                    <ThemedIcon name="arrow-left" size={24} color="primary" />
                 </ThemedPressable>
 
                 <ThemedText variant="h3" style={{ marginLeft: 16 }}>

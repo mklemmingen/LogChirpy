@@ -2,7 +2,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {ActivityIndicator, FlatList, Pressable, SafeAreaView, StyleSheet, TextInput, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import {BlurView} from 'expo-blur';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {
@@ -173,7 +173,7 @@ function SearchResultCard({
 
                 {/* Chevron indicator */}
                 <View style={styles.chevronContainer}>
-                    <Feather name="chevron-right" size={20} color={colors.textSecondary} />
+                    <ThemedIcon name="chevron-right" size={20} color="secondary" />
                 </View>
             </ModernCard>
         </Animated.View>
@@ -355,7 +355,7 @@ export default function SmartSearch() {
                     onPress={() => router.back()}
                     style={styles.backButton}
                 >
-                    <Feather name="arrow-left" size={24} color={colors.text} />
+                    <ThemedIcon name="arrow-left" size={24} color="primary" />
                 </ThemedPressable>
 
                 <View style={styles.headerText}>
@@ -377,7 +377,7 @@ export default function SmartSearch() {
                     intensity={60}
                     tint={colors.background === '#FFFFFF' ? 'light' : 'dark'}
                     style={[styles.searchContainer, { borderColor: colors.border }]}>
-                    <Feather name="search" size={20} color={colors.textSecondary} />
+                    <ThemedIcon name="search" size={20} color="secondary" />
                     <TextInput
                         style={[styles.searchInput, typography.h2, { color: colors.text }]}
                         placeholder={t('smartSearch.placeholder')}
@@ -390,7 +390,7 @@ export default function SmartSearch() {
                     />
                     {searchQuery.length > 0 && (
                         <Pressable onPress={() => setSearchQuery('')}>
-                            <Feather name="x" size={20} color={colors.textSecondary} />
+                            <ThemedIcon name="x" size={20} color="secondary" />
                         </Pressable>
                     )}
                 </BlurView>
@@ -405,7 +405,7 @@ export default function SmartSearch() {
                 >
                     <ModernCard elevated={false} bordered={true} style={styles.tipsCard}>
                         <View style={[styles.tipsIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                            <Feather name="help-circle" size={24} color={colors.primary} />
+                            <ThemedIcon name="help-circle" size={24} color="primary" />
                         </View>
 
                         <ThemedText variant="h3" style={styles.tipsTitle}>
@@ -414,19 +414,19 @@ export default function SmartSearch() {
 
                         <View style={styles.tipsList}>
                             <View style={styles.tipItem}>
-                                <Feather name="check" size={16} color={colors.success} />
+                                <ThemedIcon name="check" size={16} color="success" />
                                 <ThemedText variant="bodySmall" color="secondary" style={styles.tipText}>
                                     {t('smartSearch.tip1')}
                                 </ThemedText>
                             </View>
                             <View style={styles.tipItem}>
-                                <Feather name="check" size={16} color={colors.success} />
+                                <ThemedIcon name="check" size={16} color="success" />
                                 <ThemedText variant="bodySmall" color="secondary" style={styles.tipText}>
                                     {t('smartSearch.tip2')}
                                 </ThemedText>
                             </View>
                             <View style={styles.tipItem}>
-                                <Feather name="check" size={16} color={colors.success} />
+                                <ThemedIcon name="check" size={16} color="success" />
                                 <ThemedText variant="bodySmall" color="secondary" style={styles.tipText}>
                                     {t('smartSearch.tip3')}
                                 </ThemedText>
@@ -453,7 +453,7 @@ export default function SmartSearch() {
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                                <Feather name="search" size={48} color={colors.textSecondary} />
+                                <ThemedIcon name="search" size={48} color="secondary" />
                             </View>
                             <ThemedText variant="h3" color="secondary" style={styles.emptyText}>
                                 {t('smartSearch.noResults')}
