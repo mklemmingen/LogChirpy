@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-env node */
 // Quick test for BirdNET model files and structure
 
 const fs = require('fs');

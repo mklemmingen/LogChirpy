@@ -192,7 +192,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                             style={styles.errorCard}
                         >
                             <View style={styles.errorContent}>
-                                <Text style={[typography.bodyMedium, { color: semanticColors.secondary }]}>
+                                <Text style={[typography.body, { color: semanticColors.secondary }]}>
                                     {error || 'Check your storage space and network connection'}
                                 </Text>
 
@@ -252,7 +252,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                             }}
                         >
                             <View style={styles.progressContent}>
-                                <Text style={[typography.headlineSmall, { color: semanticColors.primary }]}>
+                                <Text style={[typography.h2, { color: semanticColors.primary }]}>
                                     {getStatusMessage()}
                                 </Text>
 
@@ -264,7 +264,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                                         <Text style={[typography.h2, { color: semanticColors.primary }]}>
                                             {loadedRecords.toLocaleString()}
                                         </Text>
-                                        <Text style={[typography.labelMedium, { color: semanticColors.secondary }]}>
+                                        <Text style={[typography.label, { color: semanticColors.secondary }]}>
                                             Species Loaded
                                         </Text>
                                     </View>
@@ -276,7 +276,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                                                 <Text style={[typography.h2, { color: semanticColors.primary }]}>
                                                     {totalRecords.toLocaleString()}
                                                 </Text>
-                                                <Text style={[typography.labelMedium, { color: semanticColors.secondary }]}>
+                                                <Text style={[typography.label, { color: semanticColors.secondary }]}>
                                                     Total Species
                                                 </Text>
                                             </View>
@@ -288,7 +288,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     </Animated.View>
 
                     {/* Loading Hint */}
-                    <Text style={[typography.labelMedium, styles.hint, { color: semanticColors.secondary }]}>
+                    <Text style={[typography.label, styles.hint, { color: semanticColors.secondary }]}>
                         This may take a moment on first launch
                     </Text>
                 </Animated.View>
