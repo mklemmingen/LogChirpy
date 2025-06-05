@@ -300,7 +300,9 @@ export class MLKitBirdClassifier {
     // Limit cache size
     if (this.cache.size > this.config.maxCacheSize) {
       const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
+      if (oldestKey) {
+        this.cache.delete(oldestKey);
+      }
     }
 
     await this.saveCache();

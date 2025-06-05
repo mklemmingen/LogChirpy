@@ -84,28 +84,28 @@ export function ThemedSnackbar({
         switch (variant) {
             case 'success':
                 return {
-                    backgroundColor: semanticColors.successContainer,
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
                     borderColor: semanticColors.success,
                     iconColor: semanticColors.success,
                     iconName: icon || 'check-circle',
                 };
             case 'error':
                 return {
-                    backgroundColor: semanticColors.errorContainer,
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
                     borderColor: semanticColors.error,
                     iconColor: semanticColors.error,
                     iconName: icon || 'alert-circle',
                 };
             case 'warning':
                 return {
-                    backgroundColor: semanticColors.warningContainer,
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
                     borderColor: semanticColors.warning,
                     iconColor: semanticColors.warning,
                     iconName: icon || 'alert-triangle',
                 };
             case 'info':
                 return {
-                    backgroundColor: semanticColors.infoContainer,
+                    backgroundColor: 'rgba(115, 115, 115, 0.1)',
                     borderColor: semanticColors.info,
                     iconColor: semanticColors.info,
                     iconName: icon || 'info',
@@ -113,7 +113,7 @@ export function ThemedSnackbar({
             default:
                 return {
                     backgroundColor: 'transparent',
-                    borderColor: variants.primaryMuted,
+                    borderColor: variants.primary.light,
                     iconColor: semanticColors.primary,
                     iconName: icon || 'message-circle',
                 };
@@ -141,7 +141,7 @@ export function ThemedSnackbar({
         });
 
         opacity.value = withTiming(1, {
-            duration: motion.duration.medium,
+            duration: 200,
             easing: Easing.out(Easing.exp),
         });
 
@@ -156,7 +156,7 @@ export function ThemedSnackbar({
                 onHide();
             }, duration);
         }
-    }, [variant, translateY, opacity, scale, motion.duration.medium, duration, onHide]);
+    }, [variant, translateY, opacity, scale, duration, onHide]);
 
     // Enhanced exit animation
     const hideSnackbar = useCallback(() => {
@@ -170,16 +170,16 @@ export function ThemedSnackbar({
         });
 
         opacity.value = withTiming(0, {
-            duration: motion.duration.fast,
+            duration: 150,
         });
 
         scale.value = withTiming(0.9, {
-            duration: motion.duration.fast,
+            duration: 150,
         });
 
         // Call onHide after animation
-        setTimeout(onHide, motion.duration.fast);
-    }, [position, translateY, opacity, scale, motion.duration.fast, onHide]);
+        setTimeout(onHide, 150);
+    }, [position, translateY, opacity, scale, onHide]);
 
     // Swipe to dismiss gesture handler
     const gestureHandler = useAnimatedGestureHandler({
@@ -212,13 +212,13 @@ export function ThemedSnackbar({
             if (translation > 50 || velocity > 500) {
                 // Dismiss
                 gestureTranslateY.value = withTiming(200 * dismissDirection, {
-                    duration: motion.duration.fast,
+                    duration: 150,
                 });
                 gestureOpacity.value = withTiming(0, {
-                    duration: motion.duration.fast,
+                    duration: 150,
                 });
 
-                setTimeout(() => runOnJS(onHide)(), motion.duration.fast);
+                setTimeout(() => runOnJS(onHide)(), 150);
             } else {
                 // Snap back
                 gestureTranslateY.value = withSpring(0);
@@ -314,7 +314,7 @@ export function ThemedSnackbar({
                             gap: theme.spacing.sm,
                         }}
                         onPress={action ? undefined : hideSnackbar}
-                        android_ripple={!action ? { color: variants.surfacePressed } : null}
+                        android_ripple={!action ? { color: variants.neutral.dark } : null}
                     >
                         {/* Icon */}
                         {variantStyle.iconName && (
@@ -330,7 +330,7 @@ export function ThemedSnackbar({
                             style={[
                                 typography.bodyMedium,
                                 {
-                                    color: semanticColors.text,
+                                    color: semanticColors.primary,
                                     flex: 1,
                                     lineHeight: 20,
                                 },
@@ -347,14 +347,14 @@ export function ThemedSnackbar({
                                     paddingVertical: theme.spacing.xs,
                                     paddingHorizontal: theme.spacing.sm,
                                     borderRadius: theme.borderRadius.sm,
-                                    backgroundColor: variants.primarySubtle,
+                                    backgroundColor: variants.primary.light,
                                 }}
                                 onPress={() => {
                                     Haptics.selectionAsync();
                                     action.onPress();
                                     hideSnackbar();
                                 }}
-                                android_ripple={{ color: variants.primaryPressed }}
+                                android_ripple={{ color: variants.primary.dark }}
                             >
                                 <Text
                                     style={[
@@ -378,7 +378,7 @@ export function ThemedSnackbar({
                                     borderRadius: theme.borderRadius.sm,
                                 }}
                                 onPress={hideSnackbar}
-                                android_ripple={{ color: variants.surfacePressed }}
+                                android_ripple={{ color: variants.neutral.dark }}
                             >
                                 <ThemedIcon
                                     name="x"
@@ -400,7 +400,7 @@ export function ThemedSnackbar({
                                 width: 24,
                                 height: 3,
                                 borderRadius: 1.5,
-                                backgroundColor: semanticColors.border,
+                                backgroundColor: semanticColors.secondary,
                                 opacity: 0.5,
                             }}
                         />

@@ -435,7 +435,6 @@ export default function ModernSignupScreen() {
                                     fullWidth
                                     onPress={handleSignup}
                                     disabled={!isFormValid || isLoading}
-                                    loading={isLoading}
                                     style={styles.signupButton}
                                 >
                                     {isLoading ? (

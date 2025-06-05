@@ -55,7 +55,7 @@ export default function Section({
         switch (variant) {
             case 'elevated':
                 return {
-                    backgroundColor: semanticColors.backgroundElevated,
+                    backgroundColor: semanticColors.surface,
                     borderColor: 'transparent',
                     borderWidth: 0,
                     ...theme.shadows.sm,
@@ -64,22 +64,22 @@ export default function Section({
             case 'glass':
                 return {
                     backgroundColor: 'transparent',
-                    borderColor: variants.primaryMuted,
+                    borderColor: variants.primary.light,
                     borderWidth: 1,
                     useBlur: true,
                 };
             case 'outlined':
                 return {
                     backgroundColor: 'transparent',
-                    borderColor: semanticColors.border,
+                    borderColor: semanticColors.secondary,
                     borderWidth: 1,
                     useBlur: false,
                 };
             case 'default':
             default:
                 return {
-                    backgroundColor: semanticColors.backgroundSecondary,
-                    borderColor: semanticColors.border,
+                    backgroundColor: semanticColors.background,
+                    borderColor: semanticColors.secondary,
                     borderWidth: 1,
                     useBlur: false,
                 };

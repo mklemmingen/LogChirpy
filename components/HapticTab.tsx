@@ -3,7 +3,7 @@ import { Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 
-interface HapticTabProps extends Omit<Pressable['props'], 'onPress'> {
+interface HapticTabProps extends Omit<React.ComponentProps<typeof Pressable>, 'onPress'> {
   children: React.ReactNode;
   onPress?: () => void;
 }
@@ -37,7 +37,7 @@ export function HapticTab({ children, onPress, ...props }: HapticTabProps) {
         };
     }, [sound]);
 
-    const handlePress = async (e: Parameters<NonNullable<Pressable['props']['onPress']>>[0]) => {
+    const handlePress = async () => {
         try {
             // Always trigger haptic feedback
             await Haptics.selectionAsync();
@@ -53,7 +53,7 @@ export function HapticTab({ children, onPress, ...props }: HapticTabProps) {
         }
 
         if (onPress) {
-            onPress(e);
+            onPress();
         }
     };
 
