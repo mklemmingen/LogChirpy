@@ -6,6 +6,7 @@ import { Dimensions, SafeAreaView, ScrollView, StyleSheet, View } from 'react-na
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ThemedIcon } from '@/components/ThemedIcon';
+import { Feather } from '@expo/vector-icons';
 import Animated, {
   Easing,
   interpolate,
@@ -29,7 +30,7 @@ interface FeatureAction {
   id: string;
   title: string;
   description: string;
-  icon: string;
+  icon: keyof typeof Feather.glyphMap;
   route: string;
   primary?: boolean;
 }

@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import {theme} from '@/constants/theme';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
+import {useColors} from '@/hooks/useThemeColor';
 
 // Screen dimensions available if needed
 // const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -17,6 +18,7 @@ export default function ModernCamera() {
     const { t } = useTranslation();
     const colorScheme = useColorScheme() ?? 'light';
     const pal = theme[colorScheme];
+    const colors = useColors();
 
     const camera = useRef<Camera>(null);
     const { hasPermission, requestPermission } = useCameraPermission();
@@ -98,8 +100,8 @@ export default function ModernCamera() {
 
     if (!hasPermission) {
         return (
-            <View style={[styles.centered, { backgroundColor: pal.colors.background.secondary }]}>
-                <ThemedText style={{ color: pal.colors.text.primary }}>
+            <View style={[styles.centered, { backgroundColor: colors.backgroundSecondary }]}>
+                <ThemedText style={{ color: colors.text }}>
                     {t('camera.requesting_permission')}
                 </ThemedText>
             </View>
@@ -108,8 +110,8 @@ export default function ModernCamera() {
 
     if (!device) {
         return (
-            <View style={[styles.centered, { backgroundColor: pal.colors.background.secondary }]}>
-                <ThemedText style={{ color: pal.colors.text.primary }}>
+            <View style={[styles.centered, { backgroundColor: colors.backgroundSecondary }]}>
+                <ThemedText style={{ color: colors.text }}>
                     {t('camera.no_device')}
                 </ThemedText>
             </View>
@@ -134,7 +136,7 @@ export default function ModernCamera() {
             {/* Top Controls */}
             <View style={styles.topControls}>
                 <ThemedPressable
-                    style={[styles.controlButton, { backgroundColor: pal.colors.overlay.dark }]}
+                    style={[styles.controlButton, { backgroundColor: colors.overlay }]}
                     onPress={() => router.back()}
                 >
                     <ThemedIcon name="arrow-left" size={24} color="primary" />
@@ -147,7 +149,7 @@ export default function ModernCamera() {
                 </View>
 
                 <ThemedPressable
-                    style={[styles.controlButton, { backgroundColor: pal.colors.overlay.dark }]}
+                    style={[styles.controlButton, { backgroundColor: colors.overlay }]}
                     onPress={toggleFlash}
                 >
                     <ThemedIcon name={getFlashIcon()} size={24} color="primary" />
@@ -177,7 +179,7 @@ export default function ModernCamera() {
                 <ThemedPressable
                     style={[
                         styles.captureButton,
-                        isCapturing && styles.capturingButton
+                        ...(isCapturing ? [styles.capturingButton] : [])
                     ]}
                     onPress={takePhoto}
                     disabled={isCapturing}
@@ -196,10 +198,10 @@ export default function ModernCamera() {
             {/* Continue Button */}
             {capturedPhotos.length > 0 && (
                 <ThemedPressable
-                    style={[styles.continueButton, { backgroundColor: pal.colors.primary }]}
+                    style={[styles.continueButton, { backgroundColor: colors.primary }]}
                     onPress={proceedToSelection}
                 >
-                    <ThemedText style={[styles.continueText, { color: pal.colors.text.inverse }]}>
+                    <ThemedText style={[styles.continueText, { color: colors.textInverse }]}>
                         {t('photo.continue_with_photos', { count: capturedPhotos.length })}
                     </ThemedText>
                 </ThemedPressable>
@@ -230,7 +232,7 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     topCenter: {
-        backgroundColor: pal.colors.overlay.dark,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
@@ -262,7 +264,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: pal.colors.overlay.dark,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -293,7 +295,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 4,
-        borderColor: theme.colors.surface.primary + '4D',
+        borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     capturingButton: {
         transform: [{ scale: 0.95 }],

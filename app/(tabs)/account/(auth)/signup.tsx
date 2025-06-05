@@ -74,7 +74,7 @@ export default function ModernSignupScreen() {
 
     React.useEffect(() => {
         // Entrance animation
-        containerOpacity.value = withTiming(1, { duration: motion.duration.medium });
+        containerOpacity.value = withTiming(1, { duration: 300 });
         contentTranslateY.value = withSpring(0, { damping: 20, stiffness: 300 });
         headerScale.value = withSpring(1, { damping: 15, stiffness: 300 });
     }, []);
@@ -231,24 +231,24 @@ export default function ModernSignupScreen() {
         if (field.error && !field.focused) {
             return {
                 borderColor: semanticColors.error,
-                backgroundColor: variants.surfaceHover,
+                backgroundColor: variants.secondary.light,
             };
         }
         if (field.focused) {
             return {
                 borderColor: semanticColors.primary,
-                backgroundColor: semanticColors.backgroundElevated,
+                backgroundColor: semanticColors.surface,
             };
         }
         if (field.valid) {
             return {
                 borderColor: semanticColors.success,
-                backgroundColor: semanticColors.backgroundElevated,
+                backgroundColor: semanticColors.surface,
             };
         }
         return {
-            borderColor: semanticColors.border,
-            backgroundColor: semanticColors.backgroundElevated,
+            borderColor: semanticColors.secondary,
+            backgroundColor: semanticColors.surface,
         };
     };
 
@@ -279,7 +279,7 @@ export default function ModernSignupScreen() {
                     <Animated.View style={[styles.content, containerStyle]}>
                         {/* Header Section */}
                         <Animated.View style={[styles.header, headerStyle]}>
-                            <View style={[styles.logoContainer, { backgroundColor: variants.primarySubtle }]}>
+                            <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
                                 <ThemedIcon name="feather" size={32} color="accent" />
                             </View>
 
@@ -312,9 +312,9 @@ export default function ModernSignupScreen() {
                                         />
                                         <AnimatedTextInput
                                             ref={emailRef}
-                                            style={[styles.textInput, { color: semanticColors.text }]}
+                                            style={[styles.textInput, { color: semanticColors.primary }]}
                                             placeholder={t('auth.email_placeholder')}
-                                            placeholderTextColor={semanticColors.textTertiary}
+                                            placeholderTextColor={semanticColors.secondary}
                                             value={formState.email.value}
                                             onChangeText={(text) => updateField('email', text)}
                                             onFocus={() => handleFocus('email')}
@@ -349,9 +349,9 @@ export default function ModernSignupScreen() {
                                         />
                                         <AnimatedTextInput
                                             ref={passwordRef}
-                                            style={[styles.textInput, { color: semanticColors.text }]}
+                                            style={[styles.textInput, { color: semanticColors.primary }]}
                                             placeholder={t('auth.password_placeholder')}
-                                            placeholderTextColor={semanticColors.textTertiary}
+                                            placeholderTextColor={semanticColors.secondary}
                                             value={formState.password.value}
                                             onChangeText={(text) => updateField('password', text)}
                                             onFocus={() => handleFocus('password')}
@@ -395,9 +395,9 @@ export default function ModernSignupScreen() {
                                         />
                                         <AnimatedTextInput
                                             ref={confirmPasswordRef}
-                                            style={[styles.textInput, { color: semanticColors.text }]}
+                                            style={[styles.textInput, { color: semanticColors.primary }]}
                                             placeholder={t('app_errors.confirm_password_placeholder')}
-                                            placeholderTextColor={semanticColors.textTertiary}
+                                            placeholderTextColor={semanticColors.secondary}
                                             value={formState.confirmPassword.value}
                                             onChangeText={(text) => updateField('confirmPassword', text)}
                                             onFocus={() => handleFocus('confirmPassword')}
@@ -431,7 +431,7 @@ export default function ModernSignupScreen() {
                                 {/* Sign Up Button */}
                                 <ThemedPressable
                                     variant="primary"
-                                    size="large"
+                                    size="lg"
                                     fullWidth
                                     onPress={handleSignup}
                                     disabled={!isFormValid || isLoading}
@@ -439,11 +439,11 @@ export default function ModernSignupScreen() {
                                     style={styles.signupButton}
                                 >
                                     {isLoading ? (
-                                        <ThemedIcon name="loader" size={20} color="inverse" />
+                                        <ThemedIcon name="loader" size={20} color="primary" />
                                     ) : (
-                                        <ThemedIcon name="user-plus" size={20} color="inverse" />
+                                        <ThemedIcon name="user-plus" size={20} color="primary" />
                                     )}
-                                    <ThemedText variant="labelLarge" color="inverse">
+                                    <ThemedText variant="labelLarge" color="primary">
                                         {isLoading ? 'Creating Account...' : t('auth.signup')}
                                     </ThemedText>
                                 </ThemedPressable>
@@ -460,7 +460,7 @@ export default function ModernSignupScreen() {
                                 }}
                                 style={styles.footerButton}
                             >
-                                <ThemedText variant="bodyMedium" color="secondary">
+                                <ThemedText variant="body" color="secondary">
                                     {t('auth.already_have_account')}
                                 </ThemedText>
                             </ThemedPressable>

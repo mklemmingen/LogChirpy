@@ -677,7 +677,7 @@ export default function EnhancedManual() {
 
                     {/* Show prediction confidence if available */}
                     {draft.audioPrediction && (
-                        <View style={styles.predictionInfo}>
+                        <View style={dynamicStyles.predictionInfo}>
                             <ThemedIcon name="check-circle" size={16} color="success" />
                             <ThemedText variant="bodySmall" color="secondary" style={styles.predictionInfoText}>
                                 {draft.audioPrediction}
@@ -900,7 +900,7 @@ export default function EnhancedManual() {
                     ) : (
                         <ThemedIcon name="save" size={20} color="primary" />
                     )}
-                    <ThemedText variant="button" color="inverse">
+                    <ThemedText variant="button" color="primary">
                         {isSaving ? t('common.saving') : t('common.save')}
                     </ThemedText>
                 </ThemedPressable>
@@ -972,7 +972,7 @@ export default function EnhancedManual() {
                             nativeControls
                         />
                     )}
-                    <View style={styles.videoModalControls}>
+                    <View style={dynamicStyles.videoModalControls}>
                         <ThemedPressable
                             variant="secondary"
                             onPress={() => setIsVideoModalVisible(false)}
@@ -992,7 +992,7 @@ export default function EnhancedManual() {
                             style={styles.videoButton}
                         >
                             <ThemedIcon name="refresh-cw" size={20} color="primary" />
-                            <ThemedText variant="button" color="inverse">
+                            <ThemedText variant="button" color="primary">
                                 {t('camera.retake')}
                             </ThemedText>
                         </ThemedPressable>
@@ -1007,10 +1007,10 @@ export default function EnhancedManual() {
                 animationType="slide"
                 onRequestClose={() => setShowPredictions(false)}
             >
-                <View style={styles.modalOverlay}>
+                <View style={dynamicStyles.modalOverlay}>
                     <BlurView intensity={80} style={styles.modalBlur}>
-                        <View style={styles.predictionsModalContainer}>
-                            <View style={styles.predictionsHeader}>
+                        <View style={dynamicStyles.predictionsModalContainer}>
+                            <View style={dynamicStyles.predictionsHeader}>
                                 <ThemedText variant="h3">
                                     {t('birdnet.predictions_title', 'Bird Identification Results')}
                                 </ThemedText>
@@ -1026,11 +1026,11 @@ export default function EnhancedManual() {
                                 {birdPredictions.map((prediction, index) => (
                                     <ThemedPressable
                                         key={index}
-                                        style={[styles.predictionItem, { backgroundColor: colors.surface }]}
+                                        style={[dynamicStyles.predictionItem, { backgroundColor: colors.surface }]}
                                         onPress={() => handleSelectPrediction(prediction)}
                                     >
                                         <View style={styles.predictionItemContent}>
-                                            <View style={styles.predictionInfo}>
+                                            <View style={dynamicStyles.predictionInfo}>
                                                 <ThemedText variant="body" style={styles.predictionCommonName}>
                                                     {prediction.common_name}
                                                 </ThemedText>
@@ -1049,7 +1049,7 @@ export default function EnhancedManual() {
                                 ))}
                             </ScrollView>
                             
-                            <View style={styles.predictionsFooter}>
+                            <View style={dynamicStyles.predictionsFooter}>
                                 <ThemedText variant="bodySmall" color="secondary" style={styles.predictionsDisclaimer}>
                                     {t('birdnet.disclaimer', 'Tap a prediction to select it. Results are AI-generated and may not be 100% accurate.')}
                                 </ThemedText>
@@ -1303,34 +1303,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
     },
-    predictionsModalContainer: {
-        backgroundColor: colors.surface + 'F2',
-        borderRadius: 16,
-        maxHeight: '80%',
-        width: '100%',
-        maxWidth: 400,
-        overflow: 'hidden',
-    },
-    predictionsHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border + '1A',
-    },
     modalCloseButton: {
         padding: 8,
         borderRadius: 8,
     },
     predictionsScrollView: {
         maxHeight: 300,
-    },
-    predictionItem: {
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border + '0D',
     },
     predictionItemContent: {
         flexDirection: 'row',
@@ -1348,11 +1326,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-    },
-    predictionsFooter: {
-        padding: 20,
-        borderTopWidth: 1,
-        borderTopColor: colors.border + '1A',
     },
     predictionsDisclaimer: {
         textAlign: 'center',

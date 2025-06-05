@@ -91,7 +91,7 @@ function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
                         style={[
                             {
                                 width: 4,
-                                backgroundColor: theme.colors.background.primary,
+                                backgroundColor: theme.colors.primary,
                                 borderRadius: 2,
                             },
                             animatedStyle,
@@ -235,7 +235,7 @@ function PermissionError({
                         width: 80,
                         height: 80,
                         borderRadius: 40,
-                        backgroundColor: theme.colors.background.primary,
+                        backgroundColor: theme.colors.surface,
                         justifyContent: 'center',
                         alignItems: 'center',
                         marginBottom: 24,
@@ -274,7 +274,7 @@ function PermissionError({
                         {isRequesting ? (
                             <ActivityIndicator size="small" color="white" />
                         ) : (
-                            <ThemedText color="inverse">{t('audio.grant_permission')}</ThemedText>
+                            <ThemedText color="primary">{t('audio.grant_permission')}</ThemedText>
                         )}
                     </ThemedPressable>
                 </ThemedView>
@@ -341,8 +341,8 @@ function PlaybackControls({
                     style={{ flex: 1, flexDirection: 'row', gap: 8 }}
                     onPress={onConfirm}
                 >
-                    <ThemedIcon name="check" size={20} color="inverse" />
-                    <ThemedText color="inverse">{t('common.confirm')}</ThemedText>
+                    <ThemedIcon name="check" size={20} color="primary" />
+                    <ThemedText color="primary">{t('common.confirm')}</ThemedText>
                 </ThemedPressable>
             </ThemedView>
         </BlurView>
@@ -642,7 +642,7 @@ export default function AudioScreen() {
                     paddingHorizontal: 16,
                     paddingVertical: 12,
                     borderBottomWidth: 1,
-                    borderBottomColor: theme.colors.border.primary
+                    borderBottomColor: theme.colors.border
                 }}
             >
                 <ThemedPressable
@@ -678,7 +678,7 @@ export default function AudioScreen() {
                                     gap: 8,
                                     paddingHorizontal: 16,
                                     paddingVertical: 8,
-                                    backgroundColor: theme.colors.background.tertiary,
+                                    backgroundColor: theme.colors.surface,
                                     borderRadius: theme.borderRadius.sm,
                                 }}
                             >
@@ -687,7 +687,7 @@ export default function AudioScreen() {
                                         width: 8,
                                         height: 8,
                                         borderRadius: 4,
-                                        backgroundColor: theme.colors.background.tertiary,
+                                        backgroundColor: theme.colors.surface,
                                     }}
                                 />
                                 <ThemedText variant="labelMedium" color="error">

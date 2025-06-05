@@ -148,7 +148,7 @@ function LanguageCard({
                             <ThemedIcon
                                 name="check"
                                 size={16}
-                                color="inverse"
+                                color="primary"
                             />
                         </View>
                     )}

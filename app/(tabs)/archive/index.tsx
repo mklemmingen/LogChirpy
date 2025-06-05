@@ -79,8 +79,8 @@ function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) 
             onPress={onStartLogging}
             style={styles.startButton}
         >
-          <ThemedIcon name="plus" size={20} color="inverse" />
-          <ThemedText variant="label" color="inverse">
+          <ThemedIcon name="plus" size={20} color="primary" />
+          <ThemedText variant="label" color="primary">
             {t('archive.start_logging')}
           </ThemedText>
         </ThemedPressable>
