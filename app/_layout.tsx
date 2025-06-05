@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import React, {useEffect, useMemo, useState} from 'react';
 import {ThemeProvider} from '@react-navigation/native';
 import {useFonts} from 'expo-font';

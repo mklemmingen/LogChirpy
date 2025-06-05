@@ -2,6 +2,7 @@ import React, {useEffect} from 'react';
 import {Dimensions, StyleSheet, View} from 'react-native';
 import {Link, Stack} from 'expo-router';
 import {useTranslation} from 'react-i18next';
+import { Feather } from '@expo/vector-icons';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
   Easing,
@@ -83,7 +84,7 @@ function LostBirdIcon() {
 function FloatingElements() {
   const colors = useColors();
 
-  const elements = [
+  const elements: Array<{ icon: keyof typeof Feather.glyphMap; delay: number }> = [
     { icon: 'feather', delay: 0 },
     { icon: 'map-pin', delay: 500 },
     { icon: 'camera', delay: 1000 },
@@ -235,10 +236,10 @@ export default function NotFoundScreen() {
                     size="lg"
                     style={styles.primaryAction}
                 >
-                  <ThemedIcon name="home" size={20} color="inverse" />
+                  <ThemedIcon name="home" size={20} color="primary" />
                   <ThemedText
                       variant="labelLarge"
-                      color="inverse"
+                      color="primary"
                   >
                     {t('not_found.return_to_nest')}
                   </ThemedText>

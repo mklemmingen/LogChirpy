@@ -33,7 +33,7 @@ import {useTranslation} from 'react-i18next';
 
 import Slider from '@react-native-community/slider';
 
-import {ModernSnackbar} from "@/components/ThemedSnackbar";
+import {ThemedSnackbar} from "@/components/ThemedSnackbar";
 
 import * as Haptics from 'expo-haptics';
 
@@ -213,6 +213,9 @@ function ObjectIdentCameraContent() {
 
     const device = useCameraDevice('back');
 
+    // i18n (internationalization)
+    const { t } = useTranslation();
+
     // Add this check
     if (!device) {
         return (
@@ -221,9 +224,6 @@ function ObjectIdentCameraContent() {
             </View>
         );
     }
-
-    // i18n (internationalization)
-    const { t } = useTranslation();
     
     // Theme setup
     const raw = useColorScheme()
@@ -947,7 +947,7 @@ function ObjectIdentCameraContent() {
                         {debugText}
                     </Text>
                 </View>
-                <ModernSnackbar
+                <ThemedSnackbar
                     visible={snackbarVisible}
                     message={snackbarMessage}
                     onHide={() => setSnackbarVisible(false)}

@@ -30,7 +30,7 @@ function SpottingCard({ spotting, onSelect, delay }: SpottingCardProps) {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            opacity.value = withTiming(1, { duration: motion.duration.medium });
+            opacity.value = withTiming(1, { duration: motion.timing.duration });
             translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
         }, delay * 50);
 
@@ -58,7 +58,6 @@ function SpottingCard({ spotting, onSelect, delay }: SpottingCardProps) {
                 variant="ghost"
                 onPress={() => onSelect(spotting.id)}
                 style={{ marginBottom: 12 }}
-                animateOnPress
             >
                 <ModernCard elevated={false} bordered={true} style={{ marginHorizontal: 0 }}>
                     <View style={{ padding: 16 }}>
@@ -100,7 +99,7 @@ function SpottingCard({ spotting, onSelect, delay }: SpottingCardProps) {
                                         alignItems: 'center',
                                         paddingHorizontal: 8,
                                         paddingVertical: 4,
-                                        backgroundColor: variants.primarySubtle,
+                                        backgroundColor: variants.primary.light,
                                         borderRadius: 12,
                                         gap: 4
                                     }}>
@@ -116,12 +115,12 @@ function SpottingCard({ spotting, onSelect, delay }: SpottingCardProps) {
                                         alignItems: 'center',
                                         paddingHorizontal: 8,
                                         paddingVertical: 4,
-                                        backgroundColor: variants.accentSubtle,
+                                        backgroundColor: variants.secondary.light,
                                         borderRadius: 12,
                                         gap: 4
                                     }}>
-                                        <ThemedIcon name="video" size={12} color="accent" />
-                                        <ThemedText variant="labelSmall" color="accent">
+                                        <ThemedIcon name="video" size={12} color="secondary" />
+                                        <ThemedText variant="labelSmall" color="secondary">
                                             Video
                                         </ThemedText>
                                     </View>
@@ -132,7 +131,7 @@ function SpottingCard({ spotting, onSelect, delay }: SpottingCardProps) {
                                         alignItems: 'center',
                                         paddingHorizontal: 8,
                                         paddingVertical: 4,
-                                        backgroundColor: variants.primarySubtle,
+                                        backgroundColor: variants.primary.light,
                                         borderRadius: 12,
                                         gap: 4
                                     }}>
@@ -185,9 +184,9 @@ export default function SelectSpottingScreen() {
 
     useEffect(() => {
         // Entrance animations
-        headerOpacity.value = withTiming(1, { duration: motion.duration.medium });
+        headerOpacity.value = withTiming(1, { duration: motion.timing.duration });
         setTimeout(() => {
-            searchOpacity.value = withTiming(1, { duration: motion.duration.medium });
+            searchOpacity.value = withTiming(1, { duration: motion.timing.duration });
         }, 150);
     }, []);
 
@@ -315,10 +314,10 @@ export default function SelectSpottingScreen() {
                     </ThemedPressable>
                 </View>
 
-                <ThemedText variant="headlineMedium" style={{ marginBottom: 4 }}>
+                <ThemedText variant="h2" style={{ marginBottom: 4 }}>
                     Assign Species
                 </ThemedText>
-                <ThemedText variant="bodyMedium" color="secondary">
+                <ThemedText variant="body" color="secondary">
                     Select a spotting to assign "{latin}" to
                 </ThemedText>
             </Animated.View>
@@ -334,7 +333,7 @@ export default function SelectSpottingScreen() {
                 <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: semanticColors.backgroundSecondary,
+                    backgroundColor: semanticColors.surface,
                     borderRadius: theme.borderRadius.lg,
                     borderWidth: 1,
                     borderColor: semanticColors.border,
@@ -344,7 +343,7 @@ export default function SelectSpottingScreen() {
                     <ThemedIcon name="search" size={20} color="tertiary" />
                     <TextInput
                         style={[
-                            typography.bodyMedium,
+                            typography.body,
                             {
                                 flex: 1,
                                 color: semanticColors.text,
@@ -409,18 +408,18 @@ export default function SelectSpottingScreen() {
                             width: 80,
                             height: 80,
                             borderRadius: 40,
-                            backgroundColor: variants.primarySubtle,
+                            backgroundColor: variants.primary.light,
                             justifyContent: 'center',
                             alignItems: 'center',
                             marginBottom: theme.spacing.lg
                         }}>
                             <ThemedIcon name="search" size={32} color="primary" />
                         </View>
-                        <ThemedText variant="headlineSmall" style={{ marginBottom: 8 }}>
+                        <ThemedText variant="h3" style={{ marginBottom: 8 }}>
                             No Spottings Found
                         </ThemedText>
                         <ThemedText
-                            variant="bodyMedium"
+                            variant="body"
                             color="secondary"
                             style={{ textAlign: 'center', maxWidth: 280 }}
                         >

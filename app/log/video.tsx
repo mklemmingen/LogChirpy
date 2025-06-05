@@ -24,7 +24,7 @@ import {ModernCard} from '@/components/ModernCard';
 import {EnhancedCameraControls} from '@/components/CameraControls';
 
 // Modern theme hooks
-import {useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {useTheme, useTypography, useColors} from '@/hooks/useThemeColor';
 
 // Context
 import {useLogDraft} from '../context/LogDraftContext';
@@ -120,7 +120,7 @@ function PermissionError({ onRetry }: { onRetry: () => void }) {
                 style={styles.errorButton}
                 onPress={onRetry}
             >
-              <ThemedText color="inverse">{t('camera.grant_permission')}</ThemedText>
+              <ThemedText color="primary">{t('camera.grant_permission')}</ThemedText>
             </ThemedPressable>
           </View>
         </ModernCard>
@@ -139,6 +139,7 @@ function VideoPreview({
   onConfirm: () => void;
 }) {
   const { t } = useTranslation();
+  const colors = useColors();
 
   const player = useVideoPlayer(videoUri as VideoSource, (player) => {
     player.loop = true;
@@ -160,7 +161,7 @@ function VideoPreview({
         {/* Header */}
         <View style={styles.previewHeader}>
           <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFillObject} />
-          <ThemedText variant="h3" color="inverse">
+          <ThemedText variant="h3" color="primary">
             {t('video.preview_title')}
           </ThemedText>
         </View>
@@ -201,6 +202,7 @@ export default function VideoScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { update } = useLogDraft();
+  const colors = useColors();
 
   // Permissions
   const { hasPermission: hasCameraPermission, requestPermission: requestCameraPermission } = useCameraPermission();
@@ -448,7 +450,7 @@ export default function VideoScreen() {
             <View style={styles.loadingOverlay}>
               <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
               <ActivityIndicator size="large" color="white" />
-              <ThemedText variant="bodyLarge" color="inverse" style={{ marginTop: 16 }}>
+              <ThemedText variant="bodyLarge" color="primary" style={{ marginTop: 16 }}>
                 {t('video.processing')}
               </ThemedText>
             </View>

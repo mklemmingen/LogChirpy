@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
+    "@infinitered/react-native-mlkit-core": "^3.1.0",
     "@infinitered/react-native-mlkit-image-labeling": "^3.1.0",
     "@infinitered/react-native-mlkit-object-detection": "^3.1.0",
     "@react-native-async-storage/async-storage": "1.23.1",
