@@ -7,7 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import {StatusBar} from 'expo-status-bar';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {BlurView} from 'expo-blur';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -119,7 +119,7 @@ function LoadingAnimation() {
                 animatedStyle,
             ]}
         >
-            <Feather name="feather" size={32} color={colors.text} />
+            <ThemedIcon name="feather" size={32} color="primary" />
         </Animated.View>
     );
 }
@@ -159,7 +159,7 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     style={styles.errorCard}
                 >
                     <View style={[styles.errorIconContainer, { backgroundColor: colors.backgroundSecondary }]}>
-                        <Feather name="alert-triangle" size={48} color={colors.error} />
+                        <ThemedIcon name="alert-triangle" size={48} color="error" />
                     </View>
 
                     <Text style={[typography.h2, { color: colors.text }]}>
@@ -174,7 +174,7 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                         style={[styles.retryButton, { backgroundColor: colors.primary }]}
                         onPress={retry}
                     >
-                        <Feather name="refresh-cw" size={20} color={colors.textInverse} />
+                        <ThemedIcon name="refresh-cw" size={20} color="inverse" />
                         <Text style={[typography.label, { color: colors.textInverse }]}>
                             Retry Loading
                         </Text>
@@ -272,7 +272,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
             <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <View style={styles.errorContent}>
                     <View style={[styles.errorIconContainer, { backgroundColor: colors.backgroundSecondary }]}>
-                        <Feather name="alert-circle" size={48} color={colors.error} />
+                        <ThemedIcon name="alert-circle" size={48} color="error" />
                     </View>
 
                     <Text style={[typography.h2, { color: colors.text }]}>
@@ -288,7 +288,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
                             style={[styles.retryButton, { backgroundColor: colors.primary }]}
                             onPress={onRetry}
                         >
-                            <Feather name="refresh-cw" size={18} color={colors.textInverse} />
+                            <ThemedIcon name="refresh-cw" size={18} color="inverse" />
                             <Text style={[typography.label, { color: colors.textInverse }]}>
                                 Try Again
                             </Text>
@@ -470,7 +470,7 @@ export default function EnhancedRootLayout() {
                                         },
                                         headerBackTitleVisible: false,
                                         headerBackImage: () => (
-                                            <Feather name="arrow-left" size={24} color={colors.text} />
+                                            <ThemedIcon name="arrow-left" size={24} color="primary" />
                                         ),
                                     })}
                                 >

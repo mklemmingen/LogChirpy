@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import {BlurView} from 'expo-blur';
 import {router} from 'expo-router';
 import Animated, {
@@ -58,7 +58,7 @@ function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) 
   return (
       <Animated.View style={[styles.emptyState, animatedStyle]}>
         <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-          <Feather name="archive" size={48} color={colors.primary} />
+          <ThemedIcon name="archive" size={48} color="primary" />
         </View>
 
         <ThemedText variant="h2" style={styles.emptyTitle}>
@@ -79,7 +79,7 @@ function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) 
             onPress={onStartLogging}
             style={styles.startButton}
         >
-          <Feather name="plus" size={20} color={colors.textInverse} />
+          <ThemedIcon name="plus" size={20} color="inverse" />
           <ThemedText variant="label" color="inverse">
             {t('archive.start_logging')}
           </ThemedText>
@@ -132,7 +132,7 @@ function SearchHeader({
       <View style={styles.searchHeader}>
         {/* Search Bar */}
         <Card style={styles.searchContainer}>
-          <Feather name="search" size={20} color={colors.textSecondary} />
+          <ThemedIcon name="search" size={20} color="secondary" />
           <TextInput
               style={[styles.searchInput, { color: colors.text }]}
               placeholder={t('archive.search_placeholder')}
@@ -142,7 +142,7 @@ function SearchHeader({
           />
           {searchQuery.length > 0 && (
               <Pressable onPress={() => onSearchChange('')}>
-                <Feather name="x" size={18} color={colors.textSecondary} />
+                <ThemedIcon name="x" size={18} color="secondary" />
               </Pressable>
           )}
         </Card>
@@ -155,7 +155,7 @@ function SearchHeader({
               style={styles.actionButton}
               onPress={() => setShowSortMenu(!showSortMenu)}
           >
-            <Feather name={getSortIcon()} size={18} color={colors.text} />
+            <ThemedIcon name={getSortIcon()} size={18} color="primary" />
           </ThemedPressable>
 
           {/* Sync Button */}
@@ -165,10 +165,10 @@ function SearchHeader({
               onPress={onSync}
               disabled={isLoading}
           >
-            <Feather
+            <ThemedIcon
                 name="refresh-cw"
                 size={18}
-                color={isLoading ? colors.textSecondary : colors.text}
+                color={isLoading ? 'secondary' : 'primary'}
             />
           </ThemedPressable>
         </View>
@@ -198,10 +198,10 @@ function SearchHeader({
                           Haptics.selectionAsync();
                         }}
                     >
-                      <Feather
-                          name={option.icon as any}
+                      <ThemedIcon
+                          name={option.icon}
                           size={16}
-                          color={sortOrder === option.key ? colors.primary : colors.textSecondary}
+                          color={sortOrder === option.key ? 'primary' : 'secondary'}
                       />
                       <ThemedText
                           variant="body"
@@ -362,8 +362,8 @@ export default function ArchiveScreen() {
                 </ThemedText>
               )}
               <View style={styles.mediaIndicators}>
-                {item.audioUri && <Feather name="mic" size={12} color={colors.primary} />}
-                {item.videoUri && <Feather name="video" size={12} color={colors.primary} />}
+                {item.audioUri && <ThemedIcon name="mic" size={12} color="primary" />}
+                {item.videoUri && <ThemedIcon name="video" size={12} color="primary" />}
               </View>
             </View>
           </Card>
@@ -376,7 +376,7 @@ export default function ArchiveScreen() {
     return (
         <SafeAreaView style={[styles.container, {backgroundColor: colors.background}]}>
           <View style={styles.loadingContainer}>
-            <Feather name="archive" size={48} color={colors.primary}/>
+            <ThemedIcon name="archive" size={48} color="primary"/>
             <ThemedText variant="body" color="secondary" style={styles.loadingText}>
               {t('archive.loading')}
             </ThemedText>
@@ -411,7 +411,7 @@ export default function ArchiveScreen() {
         {filteredSpottings.length === 0 ? (
             searchQuery ? (
                 <View style={styles.noResultsContainer}>
-                  <Feather name="search" size={48} color={colors.textSecondary}/>
+                  <ThemedIcon name="search" size={48} color="secondary"/>
                   <ThemedText variant="h3" color="secondary">
                     {t('archive.no_search_results')}
                   </ThemedText>

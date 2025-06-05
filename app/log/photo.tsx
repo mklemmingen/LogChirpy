@@ -4,7 +4,7 @@ import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {launchImageLibrary, ImagePickerResponse, MediaType, ImageLibraryOptions} from 'react-native-image-picker';
 import * as Haptics from 'expo-haptics';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedPressable} from '@/components/ThemedPressable';
@@ -60,7 +60,7 @@ export default function PhotoCapture() {
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={[styles.iconContainer, { backgroundColor: pal.colors.primary + '20' }]}>
-              <Feather name="camera" size={48} color={pal.colors.primary} />
+              <ThemedIcon name="camera" size={48} color="primary" />
             </View>
 
             <ThemedText variant="displaySmall" style={styles.title}>
@@ -79,7 +79,7 @@ export default function PhotoCapture() {
                 onPress={handleCameraLaunch}
                 style={styles.actionButton}
             >
-              <Feather name="camera" size={24} color={pal.colors.text.inverse} />
+              <ThemedIcon name="camera" size={24} color="inverse" />
               <ThemedText variant="labelLarge" color="inverse">
                 {t('photo.take_photos')}
               </ThemedText>
@@ -91,7 +91,7 @@ export default function PhotoCapture() {
                 onPress={handleGalleryPick}
                 style={styles.actionButton}
             >
-              <Feather name="image" size={24} color={pal.colors.text.inverse} />
+              <ThemedIcon name="image" size={24} color="primary" />
               <ThemedText variant="labelLarge" color="primary">
                 {t('photo.choose_existing')}
               </ThemedText>

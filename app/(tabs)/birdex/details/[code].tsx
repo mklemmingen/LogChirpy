@@ -2,7 +2,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {
     FadeInDown,
@@ -85,7 +85,7 @@ function DetailHeader({
                     onPress={handleBackPress}
                     style={styles.backButton}
                 >
-                    <Feather name="arrow-left" size={20} color={semanticColors.text} />
+                    <ThemedIcon name="arrow-left" size={20} color="text" />
                 </ThemedPressable>
             </Animated.View>
 
@@ -111,7 +111,7 @@ function DetailHeader({
                         entering={FadeInDown.delay(200).springify()}
                         style={[styles.loggedBadge, { backgroundColor: variants.primarySubtle }]}
                     >
-                        <Feather name="check" size={14} color={semanticColors.primary} />
+                        <ThemedIcon name="check" size={14} color="primary" />
                         <ThemedText
                             variant="labelSmall"
                             color="primary"
@@ -131,7 +131,7 @@ function DetailHeader({
                     style={styles.addButton}
                     glowOnHover
                 >
-                    <Feather name="plus" size={18} color={semanticColors.onPrimary} />
+                    <ThemedIcon name="plus" size={18} color="onPrimary" />
                 </ThemedPressable>
             )}
         </Animated.View>
@@ -163,9 +163,9 @@ function QuickActionButton({
                 onPress={onPress}
                 style={styles.actionButton}
             >
-                <Feather name={icon as any} size={18} color={semanticColors.text} />
+                <ThemedIcon name={icon as any} size={18} color="text" />
                 <ThemedText variant="labelMedium">{title}</ThemedText>
-                <Feather name="external-link" size={14} color={semanticColors.textTertiary} />
+                <ThemedIcon name="external-link" size={14} color="textTertiary" />
             </ThemedPressable>
         </Animated.View>
     );
@@ -396,7 +396,7 @@ export default function ModernBirdDexDetail() {
                 <Animated.View entering={FadeInDown.delay(200).springify()}>
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
-                            <Feather name="globe" size={20} color={semanticColors.primary} />
+                            <ThemedIcon name="globe" size={20} color="primary" />
                             <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
                                 {t('birddex.names')}
                             </ThemedText>
@@ -413,7 +413,7 @@ export default function ModernBirdDexDetail() {
                 <Animated.View entering={FadeInDown.delay(300).springify()}>
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
-                            <Feather name="layers" size={20} color={semanticColors.primary} />
+                            <ThemedIcon name="layers" size={20} color="primary" />
                             <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
                                 {t('birddex.classification')}
                             </ThemedText>
@@ -448,7 +448,7 @@ export default function ModernBirdDexDetail() {
                 <Animated.View entering={FadeInDown.delay(400).springify()}>
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
-                            <Feather name="map-pin" size={20} color={semanticColors.primary} />
+                            <ThemedIcon name="map-pin" size={20} color="primary" />
                             <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
                                 {t('birddex.distribution')}
                             </ThemedText>
@@ -478,14 +478,14 @@ export default function ModernBirdDexDetail() {
                                 <ThemedView surface="transparent" style={styles.statusContainer}>
                                     {rec.extinct === 'yes' ? (
                                         <>
-                                            <Feather name="alert-triangle" size={16} color={semanticColors.error} />
+                                            <ThemedIcon name="alert-triangle" size={16} color="error" />
                                             <ThemedText variant="bodyMedium" color="error" style={styles.statusText}>
                                                 {t('birddex.extinct')} {rec.extinct_year ? `(${rec.extinct_year})` : ''}
                                             </ThemedText>
                                         </>
                                     ) : (
                                         <>
-                                            <Feather name="check-circle" size={16} color={semanticColors.success} />
+                                            <ThemedIcon name="check-circle" size={16} color="success" />
                                             <ThemedText variant="bodyMedium" color="success" style={styles.statusText}>
                                                 {t('birddex.extant')}
                                             </ThemedText>
@@ -501,7 +501,7 @@ export default function ModernBirdDexDetail() {
                 <Animated.View entering={FadeInDown.delay(500).springify()}>
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
-                            <Feather name="database" size={20} color={semanticColors.primary} />
+                            <ThemedIcon name="database" size={20} color="primary" />
                             <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
                                 {t('birddex.metadata')}
                             </ThemedText>
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     classificationItem: {
         paddingBottom: 12,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border + '1A',
+        borderBottomColor: 'rgba(0, 0, 0, 0.1)',
     },
     classificationLabel: {
         textTransform: 'uppercase',

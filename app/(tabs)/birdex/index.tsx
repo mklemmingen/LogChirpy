@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import { BlurView } from 'expo-blur';
 import Animated, {
     FadeInDown,
@@ -59,7 +59,7 @@ type SortOption = 'name' | 'scientific' | 'family' | 'logged';
 interface CategoryOption {
     key: BirdCategory;
     label: string;
-    icon: keyof typeof Feather.glyphMap;
+    icon: string;
     count: number;
 }
 
@@ -121,10 +121,10 @@ function BirdCard({
                                     styles.loggedBadge,
                                     { backgroundColor: colors.primary }
                                 ]}>
-                                    <Feather name="check" size={12} color={colors.textInverse} />
+                                    <ThemedIcon name="check" size={12} color="inverse" />
                                 </View>
                             )}
-                            <Feather name="chevron-right" size={16} color={colors.textSecondary} />
+                            <ThemedIcon name="chevron-right" size={16} color="secondary" />
                         </View>
                     </View>
 
@@ -132,7 +132,7 @@ function BirdCard({
                     <View style={styles.cardMetadata}>
                         {bird.family && (
                             <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
-                                <Feather name="users" size={10} color={colors.textSecondary} />
+                                <ThemedIcon name="users" size={10} color="secondary" />
                                 <ThemedText variant="caption" color="secondary">
                                     {bird.family}
                                 </ThemedText>
@@ -140,7 +140,7 @@ function BirdCard({
                         )}
 
                         <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
-                            <Feather name="tag" size={10} color={colors.primary} />
+                            <ThemedIcon name="tag" size={10} color="primary" />
                             <ThemedText variant="caption" color="primary">
                                 {bird.category}
                             </ThemedText>
@@ -205,7 +205,7 @@ function SearchHeader({
             {/* Search Bar */}
             <View style={styles.searchRow}>
                 <Card style={styles.searchContainer}>
-                    <Feather name="search" size={20} color={colors.textSecondary} />
+                    <ThemedIcon name="search" size={20} color="secondary" />
                     <TextInput
                         style={[styles.searchInput, { color: colors.text }]}
                         placeholder={t('birddex.searchPlaceholder')}
@@ -217,7 +217,7 @@ function SearchHeader({
                     />
                     {searchQuery.length > 0 && (
                         <Pressable onPress={() => onSearchChange('')}>
-                            <Feather name="x" size={18} color={colors.textSecondary} />
+                            <ThemedIcon name="x" size={18} color="secondary" />
                         </Pressable>
                     )}
                 </Card>
@@ -236,10 +236,10 @@ function SearchHeader({
                     }}
                     style={styles.filterButton}
                 >
-                    <Feather
+                    <ThemedIcon
                         name={getCategoryIcon(categoryFilter)}
                         size={16}
-                        color={categoryFilter !== 'all' ? colors.textInverse : colors.text}
+                        color={categoryFilter !== 'all' ? 'inverse' : 'primary'}
                     />
                     <ThemedText
                         variant="label"
@@ -260,7 +260,7 @@ function SearchHeader({
                     }}
                     style={styles.filterButton}
                 >
-                    <Feather name="filter" size={16} color={semanticColors.text} />
+                    <ThemedIcon name="filter" size={16} color="primary" />
                     <ThemedText variant="labelMedium">
                         {sortOptions.find(opt => opt.key === sortOption)?.label || 'Sort'}
                     </ThemedText>
@@ -292,10 +292,10 @@ function SearchHeader({
                                     Haptics.selectionAsync();
                                 }}
                             >
-                                <Feather
-                                    name={option.icon as any}
+                                <ThemedIcon
+                                    name={option.icon}
                                     size={16}
-                                    color={sortOption === option.key ? colors.primary : colors.textSecondary}
+                                    color={sortOption === option.key ? 'primary' : 'secondary'}
                                 />
                                 <ThemedText
                                     variant="body"
@@ -329,10 +329,10 @@ function SearchHeader({
                                     Haptics.selectionAsync();
                                 }}
                             >
-                                <Feather
-                                    name={category.icon as any}
+                                <ThemedIcon
+                                    name={category.icon}
                                     size={16}
-                                    color={categoryFilter === category.key ? colors.primary : colors.textSecondary}
+                                    color={categoryFilter === category.key ? 'primary' : 'secondary'}
                                 />
                                 <ThemedText
                                     variant="body"
@@ -371,7 +371,7 @@ function ErrorState({
     return (
         <ThemedView style={styles.errorContainer}>
             <View style={[styles.errorIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                <Feather name="alert-triangle" size={48} color={colors.primary} />
+                <ThemedIcon name="alert-triangle" size={48} color="primary" />
             </View>
 
             <ThemedText variant="h3" style={styles.errorTitle}>
@@ -387,7 +387,7 @@ function ErrorState({
                 onPress={onRetry}
                 style={styles.retryButton}
             >
-                <Feather name="refresh-cw" size={18} color={colors.textInverse} />
+                <ThemedIcon name="refresh-cw" size={18} color="inverse" />
                 <ThemedText variant="label" color="inverse">
                     {t('birddex.reload')}
                 </ThemedText>
@@ -434,7 +434,7 @@ export default function ModernBirdDexIndex() {
     const [categories, setCategories] = useState<CategoryOption[]>([]);
 
     // Helper function for category icons
-    const getCategoryIcon = (category: string): keyof typeof Feather.glyphMap => {
+    const getCategoryIcon = (category: string): string => {
         switch (category) {
             case 'species': return 'circle';
             case 'subspecies': return 'target';
@@ -641,7 +641,7 @@ export default function ModernBirdDexIndex() {
                 ListEmptyComponent={
                     <ThemedView style={styles.emptyContainer}>
                         <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                            <Feather name="search" size={48} color={colors.primary} />
+                            <ThemedIcon name="search" size={48} color="primary" />
                         </View>
                         <ThemedText variant="h3" style={styles.emptyTitle}>
                             {searchQuery ? t('birddex.noSearchResults') : t('birddex.noResults')}

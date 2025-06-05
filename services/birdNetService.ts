@@ -1,9 +1,9 @@
-// Bird identification service with offline-first approach
-// Uses local BirdNET model with online API fallback
+// Bird identification service with MLKit and online API fallback
+// Uses MLKit for image classification and online services for audio
 
 import * as FileSystem from 'expo-file-system';
 import NetInfo from '@react-native-community/netinfo';
-import { OfflineBirdClassifier, OfflineClassificationResult } from './offlineBirdClassifier';
+import { MLKitBirdClassifier, MLKitClassificationResult } from './mlkitBirdClassifier';
 
 export interface BirdNetPrediction {
   common_name: string;
@@ -19,7 +19,7 @@ export interface BirdNetResponse {
   audio_duration: number;
   success: boolean;
   error?: string;
-  source?: 'offline' | 'online' | 'cache' | 'mock';
+  source?: 'mlkit' | 'online' | 'cache' | 'mock';
   fallback_used?: boolean;
   cache_hit?: boolean;
 }
@@ -38,20 +38,19 @@ export class BirdNetService {
     minConfidence: 0.1,
   };
 
-  private static offlineClassifier: OfflineBirdClassifier | null = null;
+  private static mlkitClassifier: MLKitBirdClassifier | null = null;
 
   static updateConfig(newConfig: Partial<BirdNetConfig>) {
     this.config = { ...this.config, ...newConfig };
   }
 
-  // Set up offline model for bird classification
-  static async initializeOfflineMode(): Promise<void> {
+  // Set up MLKit model for bird classification
+  static async initializeMLKit(): Promise<void> {
     try {
-      this.offlineClassifier = OfflineBirdClassifier.getInstance();
-      await this.offlineClassifier.initialize();
-      console.log('BirdNetService: Offline mode initialized');
+      this.mlkitClassifier = MLKitBirdClassifier.getInstance();
+      console.log('BirdNetService: MLKit mode initialized');
     } catch (error) {
-      console.error('BirdNetService: Failed to initialize offline mode:', error);
+      console.error('BirdNetService: Failed to initialize MLKit mode:', error);
       // Continue without offline mode
     }
   }
@@ -82,25 +81,21 @@ export class BirdNetService {
         throw new Error('Audio file not found');
       }
 
-      if (!this.offlineClassifier) {
-        await this.initializeOfflineMode();
+      if (!this.mlkitClassifier) {
+        await this.initializeMLKit();
       }
 
-      // Try offline first unless forced online
-      if (this.offlineClassifier && !options?.forceOnline) {
+      // For audio, we'll use MLKit's fallback (which returns mock data) or online API
+      if (this.mlkitClassifier && !options?.forceOnline) {
         try {
-          console.log('BirdNetService: Using offline classification');
-          const offlineResult = await this.offlineClassifier.classifyBirdAudio(audioUri, {
-            forceOffline: options?.forceOffline,
-            forceOnline: options?.forceOnline,
-          });
-
-          return this.convertOfflineResultToBirdNetResponse(offlineResult, audioUri);
-        } catch (offlineError) {
-          console.error('BirdNetService: Offline classification failed:', offlineError);
+          console.log('BirdNetService: Using MLKit classification for audio (fallback)');
+          const mlkitResult = await this.mlkitClassifier.classifyBirdAudio(audioUri);
+          return mlkitResult;
+        } catch (mlkitError) {
+          console.error('BirdNetService: MLKit classification failed:', mlkitError);
           
           if (options?.forceOffline) {
-            throw offlineError;
+            throw mlkitError;
           }
           
           console.log('BirdNetService: Falling back to online classification');
@@ -117,7 +112,7 @@ export class BirdNetService {
       // Mock response for now - replace with real API
       const mockResult = await this.mockBirdNetResponse(audioUri, options);
       mockResult.source = 'mock';
-      mockResult.fallback_used = !!this.offlineClassifier;
+      mockResult.fallback_used = !!this.mlkitClassifier;
       
       return mockResult;
       
@@ -160,19 +155,58 @@ export class BirdNetService {
     }
   }
 
-  // Convert offline result to standard response format
-  private static convertOfflineResultToBirdNetResponse(
-    offlineResult: OfflineClassificationResult,
-    audioUri: string
+  // New method for image identification using MLKit
+  static async identifyBirdFromImage(imageUri: string): Promise<BirdNetResponse> {
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(imageUri);
+      if (!fileInfo.exists) {
+        throw new Error('Image file not found');
+      }
+
+      if (!this.mlkitClassifier) {
+        await this.initializeMLKit();
+      }
+
+      if (this.mlkitClassifier) {
+        try {
+          console.log('BirdNetService: Using MLKit classification for image');
+          const mlkitResult = await this.mlkitClassifier.classifyBirdImage(imageUri);
+          
+          return {
+            predictions: mlkitResult.predictions,
+            processing_time: mlkitResult.processingTime / 1000, // Convert to seconds
+            audio_duration: 0, // Not applicable for images
+            success: mlkitResult.predictions.length > 0,
+            source: mlkitResult.source,
+            fallback_used: mlkitResult.fallbackUsed,
+            cache_hit: mlkitResult.cacheHit,
+          };
+        } catch (mlkitError) {
+          console.error('BirdNetService: MLKit image classification failed:', mlkitError);
+          throw mlkitError;
+        }
+      }
+
+      throw new Error('MLKit classifier not available');
+    } catch (error) {
+      console.error('BirdNet image identification error:', error);
+      throw error;
+    }
+  }
+
+  // Convert MLKit result to standard response format
+  private static convertMLKitResultToBirdNetResponse(
+    mlkitResult: MLKitClassificationResult,
+    isAudio: boolean = false
   ): BirdNetResponse {
     return {
-      predictions: offlineResult.predictions,
-      processing_time: offlineResult.processingTime / 1000, // Convert to seconds
-      audio_duration: 3.0, // TODO: Calculate from actual audio file
+      predictions: mlkitResult.predictions,
+      processing_time: mlkitResult.processingTime / 1000, // Convert to seconds
+      audio_duration: isAudio ? 3.0 : 0, // Default audio duration or 0 for images
       success: true,
-      source: offlineResult.source,
-      fallback_used: offlineResult.fallbackUsed,
-      cache_hit: offlineResult.cacheHit,
+      source: mlkitResult.source,
+      fallback_used: mlkitResult.fallbackUsed,
+      cache_hit: mlkitResult.cacheHit,
     };
   }
 

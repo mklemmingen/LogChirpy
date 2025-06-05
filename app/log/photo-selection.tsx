@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import {Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, useColorScheme, View,} from 'react-native';
 import {router, useLocalSearchParams} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 
 import {ThemedView} from '@/components/ThemedView';
@@ -68,7 +68,7 @@ export default function PhotoSelection() {
                         <Image source={{ uri: photoUri }} style={styles.photoImage} />
                         {selectedPhoto === photoUri && (
                             <View style={[styles.selectedOverlay, { backgroundColor: pal.colors.primary }]}>
-                                <Feather name="check" size={24} color="white" />
+                                <ThemedIcon name="check" size={24} color="primary" />
                             </View>
                         )}
                     </TouchableOpacity>
@@ -81,7 +81,7 @@ export default function PhotoSelection() {
                     onPress={handleRetakePhotos}
                     style={styles.actionButton}
                 >
-                    <Feather name="camera" size={20} color={pal.colors.background.primary} />
+                    <ThemedIcon name="camera" size={20} color="primary" />
                     <ThemedText variant="labelLarge">
                         {t('photo.take_more')}
                     </ThemedText>
@@ -93,7 +93,7 @@ export default function PhotoSelection() {
                     disabled={!selectedPhoto}
                     style={[styles.actionButton, styles.primaryButton]}
                 >
-                    <Feather name="check" size={20} color={pal.colors.text.inverse} />
+                    <ThemedIcon name="check" size={20} color="primary" />
                     <ThemedText variant="labelLarge" color="inverse">
                         {t('photo.use_this_photo')}
                     </ThemedText>

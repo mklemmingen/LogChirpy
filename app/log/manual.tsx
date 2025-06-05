@@ -43,7 +43,7 @@ import {Audio} from 'expo-av';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import {BlurView} from 'expo-blur';
 
 import {useLogDraft} from '../context/LogDraftContext';
@@ -489,7 +489,7 @@ export default function EnhancedManual() {
                         <Image source={{ uri: draft.imageUri }} style={styles.mediaPreview} />
                     ) : (
                         <View style={styles.addMediaContent}>
-                            <Feather name="camera" size={32} color={colors.primary} />
+                            <ThemedIcon name="camera" size={32} color="accent" />
                             <ThemedText variant="label" color="primary">
                                 {t('log.add_image')}
                             </ThemedText>
@@ -515,12 +515,12 @@ export default function EnhancedManual() {
                                 />
                             )}
                             <View style={styles.videoOverlay}>
-                                <Feather name="play" size={24} color="#fff" />
+                                <ThemedIcon name="play" size={24} color="primary" />
                             </View>
                         </>
                     ) : (
                         <View style={styles.addMediaContent}>
-                            <Feather name="video" size={32} color={colors.primary} />
+                            <ThemedIcon name="video" size={32} color="accent" />
                             <ThemedText variant="label" color="primary">
                                 {t('log.add_video')}
                             </ThemedText>
@@ -537,10 +537,10 @@ export default function EnhancedManual() {
                 >
                     <Card style={styles.mediaCardInner}>
                     <View style={styles.addMediaContent}>
-                        <Feather
+                        <ThemedIcon
                             name={draft.audioUri ? (sound ? "pause" : "play") : "mic"}
                             size={32}
-                            color={colors.primary}
+                            color="accent"
                         />
                         <ThemedText variant="label" color="primary">
                             {draft.audioUri
@@ -575,10 +575,10 @@ export default function EnhancedManual() {
                                     style={styles.identifyLoader}
                                 />
                             ) : (
-                                <Feather 
+                                <ThemedIcon 
                                     name="search" 
                                     size={20} 
-                                    color={colors.textInverse}
+                                    color="primary"
                                     style={styles.identifyIcon}
                                 />
                             )}
@@ -597,7 +597,7 @@ export default function EnhancedManual() {
                     {/* Show prediction confidence if available */}
                     {draft.audioPrediction && (
                         <View style={styles.predictionInfo}>
-                            <Feather name="check-circle" size={16} color={colors.success} />
+                            <ThemedIcon name="check-circle" size={16} color="success" />
                             <ThemedText variant="bodySmall" color="secondary" style={styles.predictionInfoText}>
                                 {draft.audioPrediction}
                             </ThemedText>
@@ -680,7 +680,7 @@ export default function EnhancedManual() {
                 >
                     <Card style={styles.metadataCardInner}>
                     <View style={styles.metadataContent}>
-                        <Feather name="calendar" size={20} color={colors.primary} />
+                        <ThemedIcon name="calendar" size={20} color="accent" />
                         <View style={styles.metadataText}>
                             <ThemedText variant="label" color="secondary">
                                 {t('log.date')}
@@ -705,7 +705,7 @@ export default function EnhancedManual() {
                         {isLoadingLocation ? (
                             <ActivityIndicator size="small" color={colors.primary} />
                         ) : (
-                            <Feather name="map-pin" size={20} color={colors.primary} />
+                            <ThemedIcon name="map-pin" size={20} color="accent" />
                         )}
                         <View style={styles.metadataText}>
                             <ThemedText variant="label" color="secondary">
@@ -733,7 +733,7 @@ export default function EnhancedManual() {
                     {draft.imagePrediction && (
                         <Card style={styles.predictionCard}>
                             <View style={styles.predictionContent}>
-                                <Feather name="camera" size={16} color={colors.primary} />
+                                <ThemedIcon name="camera" size={16} color="accent" />
                                 <ThemedText variant="bodySmall" style={styles.predictionText}>
                                     {draft.imagePrediction}
                                 </ThemedText>
@@ -744,7 +744,7 @@ export default function EnhancedManual() {
                     {draft.audioPrediction && (
                         <Card style={styles.predictionCard}>
                             <View style={styles.predictionContent}>
-                                <Feather name="mic" size={16} color={colors.primary} />
+                                <ThemedIcon name="mic" size={16} color="accent" />
                                 <ThemedText variant="bodySmall" style={styles.predictionText}>
                                     {draft.audioPrediction}
                                 </ThemedText>
@@ -818,7 +818,7 @@ export default function EnhancedManual() {
                     {isSaving ? (
                         <ActivityIndicator size="small" color={colors.textInverse} />
                     ) : (
-                        <Feather name="save" size={20} color={colors.textInverse} />
+                        <ThemedIcon name="save" size={20} color="primary" />
                     )}
                     <ThemedText variant="button" color="inverse">
                         {isSaving ? t('common.saving') : t('common.save')}
@@ -898,7 +898,7 @@ export default function EnhancedManual() {
                             onPress={() => setIsVideoModalVisible(false)}
                             style={styles.videoButton}
                         >
-                            <Feather name="x" size={20} color={colors.text} />
+                            <ThemedIcon name="x" size={20} color="primary" />
                             <ThemedText variant="button">
                                 {t('common.close')}
                             </ThemedText>
@@ -911,7 +911,7 @@ export default function EnhancedManual() {
                             }}
                             style={styles.videoButton}
                         >
-                            <Feather name="refresh-cw" size={20} color={colors.textInverse} />
+                            <ThemedIcon name="refresh-cw" size={20} color="primary" />
                             <ThemedText variant="button" color="inverse">
                                 {t('camera.retake')}
                             </ThemedText>
@@ -938,7 +938,7 @@ export default function EnhancedManual() {
                                     style={styles.modalCloseButton}
                                     onPress={() => setShowPredictions(false)}
                                 >
-                                    <Feather name="x" size={24} color={colors.text} />
+                                    <ThemedIcon name="x" size={24} color="primary" />
                                 </ThemedPressable>
                             </View>
                             
@@ -962,7 +962,7 @@ export default function EnhancedManual() {
                                                 <ThemedText variant="label" color="primary">
                                                     {BirdNetService.formatConfidenceScore(prediction.confidence)}
                                                 </ThemedText>
-                                                <Feather name="chevron-right" size={20} color={colors.textSecondary} />
+                                                <ThemedIcon name="chevron-right" size={20} color="secondary" />
                                             </View>
                                         </View>
                                     </ThemedPressable>

@@ -91,7 +91,7 @@ function PermissionError({ onRetry }: { onRetry: () => void }) {
       <ThemedView style={styles.centered}>
         <ModernCard elevated={false} bordered={true} style={styles.errorCard}>
           <View style={[styles.errorIcon]}>
-            <Feather name="video-off" size={32} />
+            <ThemedIcon name="video-off" size={32} color="primary" />
           </View>
 
           <ThemedText variant="h2" style={styles.errorTitle}>
@@ -175,7 +175,7 @@ function VideoPreview({
                 style={[styles.previewButton, { backgroundColor: colors.surface + '33' }]}
                 onPress={onRetake}
             >
-              <Feather name="refresh-cw" size={20} color="white" />
+              <ThemedIcon name="refresh-cw" size={20} color="primary" />
               <Text style={[styles.buttonText, { color: 'white' }]}>
                 {t('camera.retake')}
               </Text>
@@ -186,7 +186,7 @@ function VideoPreview({
                 style={[styles.previewButton]}
                 onPress={onConfirm}
             >
-              <Feather name="check" size={20}/>
+              <ThemedIcon name="check" size={20} color="primary" />
               <Text style={[styles.buttonText]}>
                 {t('common.confirm')}
               </Text>
@@ -427,7 +427,7 @@ export default function VideoScreen() {
               onPress={() => router.back()}
               disabled={state === 'recording'}
           >
-            <Feather name="arrow-left" size={24} color="white" />
+            <ThemedIcon name="arrow-left" size={24} color="primary" />
           </ThemedPressable>
         </View>
 

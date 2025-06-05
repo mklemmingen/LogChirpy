@@ -3,7 +3,7 @@ import {Alert, SafeAreaView, StyleSheet, useColorScheme, View,} from 'react-nati
 import {router, Stack} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {Camera, useCameraDevice, useCameraFormat, useCameraPermission,} from 'react-native-vision-camera';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 
 import {theme} from '@/constants/theme';
@@ -137,7 +137,7 @@ export default function ModernCamera() {
                     style={[styles.controlButton, { backgroundColor: pal.colors.overlay.dark }]}
                     onPress={() => router.back()}
                 >
-                    <Feather name="arrow-left" size={24} color="white" />
+                    <ThemedIcon name="arrow-left" size={24} color="primary" />
                 </ThemedPressable>
 
                 <View style={styles.topCenter}>
@@ -150,7 +150,7 @@ export default function ModernCamera() {
                     style={[styles.controlButton, { backgroundColor: pal.colors.overlay.dark }]}
                     onPress={toggleFlash}
                 >
-                    <Feather name={getFlashIcon()} size={24} color="white" />
+                    <ThemedIcon name={getFlashIcon()} size={24} color="primary" />
                 </ThemedPressable>
             </View>
 
@@ -165,7 +165,7 @@ export default function ModernCamera() {
                         styles.thumbnailContainer,
                         { opacity: capturedPhotos.length > 0 ? 1 : 0.3 }
                     ]}>
-                        <Feather name="grid" size={24} color="white" />
+                        <ThemedIcon name="grid" size={24} color="primary" />
                         {capturedPhotos.length > 0 && (
                             <View style={styles.badge}>
                                 <ThemedText style={styles.badgeText}>{capturedPhotos.length}</ThemedText>
@@ -189,7 +189,7 @@ export default function ModernCamera() {
                     style={styles.sideButton}
                     onPress={toggleCamera}
                 >
-                    <Feather name="rotate-ccw" size={24} color="white" />
+                    <ThemedIcon name="rotate-ccw" size={24} color="primary" />
                 </ThemedPressable>
             </View>
 

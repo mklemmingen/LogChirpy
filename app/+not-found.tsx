@@ -1,7 +1,7 @@
 import React, {useEffect} from 'react';
 import {Dimensions, StyleSheet, View} from 'react-native';
 import {Link, Stack} from 'expo-router';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -73,7 +73,7 @@ function LostBirdIcon() {
             animatedStyle,
           ]}
       >
-        <Feather name="help-circle" size={48} color={colors.primary} />
+        <ThemedIcon name="help-circle" size={48} color="primary" />
       </Animated.View>
   );
 }
@@ -142,10 +142,10 @@ function FloatingElements() {
                         alignItems: 'center',
                       }}
                   >
-                    <Feather
-                        name={element.icon as any}
+                    <ThemedIcon
+                        name={element.icon}
                         size={20}
-                        color={colors.border}
+                        color="tertiary"
                     />
                   </View>
                 </Animated.View>
@@ -233,7 +233,7 @@ export default function NotFoundScreen() {
                     size="lg"
                     style={styles.primaryAction}
                 >
-                  <Feather name="home" size={20} color={colors.textInverse} />
+                  <ThemedIcon name="home" size={20} color="inverse" />
                   <ThemedText
                       variant="labelLarge"
                       color="inverse"
@@ -249,7 +249,7 @@ export default function NotFoundScreen() {
                     size="lg"
                     style={styles.secondaryAction}
                 >
-                  <Feather name="map" size={20} color={colors.text} />
+                  <ThemedIcon name="map" size={20} color="primary" />
                   <ThemedText variant="labelLarge">
                     Explore BirdDex
                   </ThemedText>
@@ -259,7 +259,7 @@ export default function NotFoundScreen() {
 
             {/* Fun fact */}
             <View style={[styles.funFact, { backgroundColor: colors.backgroundSecondary }]}>
-              <Feather name="info" size={16} color={colors.primary} />
+              <ThemedIcon name="info" size={16} color="primary" />
               <ThemedText
                   variant="labelMedium"
                   color="primary"
