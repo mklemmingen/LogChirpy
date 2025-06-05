@@ -1,6 +1,3 @@
-// Minimal theme hooks for black and white design
-// Simple, clean, and professional
-
 import { useColorScheme } from 'react-native';
 import { theme, type Theme, buttonStyles } from '@/constants/theme';
 
