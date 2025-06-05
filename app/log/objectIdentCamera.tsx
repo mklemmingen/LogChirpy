@@ -33,7 +33,7 @@ import {useTranslation} from 'react-i18next';
 
 import Slider from '@react-native-community/slider';
 
-import {ModernSnackbar} from "@/components/ThemedSnackbar";
+import {ThemedSnackbar} from "@/components/ThemedSnackbar";
 
 import * as Haptics from 'expo-haptics';
 
@@ -51,6 +51,18 @@ const { width: W, height: H } = Dimensions.get('window');
 interface Detection {
     frame: { origin: { x: number; y: number }; size: { x: number; y: number } };
     labels: Array<{ text: string; confidence: number; index: number }>;
+}
+
+interface CropBox {
+    origin: { x: number; y: number };
+    size: { x: number; y: number };
+}
+
+interface SnackbarOptions {
+    bird?: string;
+    confidence?: number;
+    message?: string;
+    [key: string]: any;
 }
 
 function getBoxStyle(confidence: number) {
@@ -123,7 +135,7 @@ async function handleClassifiedSave(
     label: { text: string; confidence: number },
     threshold: number,
     prefix: 'bird' | 'full',
-    showSnackbar: (key: string, options?: any) => void,
+    showSnackbar: (key: string, options?: SnackbarOptions) => void,
     setDebugText: (txt: string) => void
 ): Promise<void> {
     if (label.confidence < threshold) return;
@@ -201,17 +213,22 @@ function ObjectIdentCameraContent() {
 
     const device = useCameraDevice('back');
 
+    // i18n (internationalization)
+    const { t } = useTranslation();
+
     // Add this check
     if (!device) {
         return (
             <View style={styles.centered}>
-                <Text>No camera device found</Text>
+                <Text>{t('camera_advanced.no_camera_found')}</Text>
             </View>
         );
     }
-
-    // i18n (internationalization)
-    const { t } = useTranslation();
+    
+    // Theme setup
+    const raw = useColorScheme()
+    const colorScheme: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light'
+    const currentTheme = theme[colorScheme]
 
     // Camera setup and permissions
     const cameraRef = useRef<Camera>(null);
@@ -257,7 +274,7 @@ function ObjectIdentCameraContent() {
     // Snackbar notification logic
     const [snackbarVisible, setSnackbarVisible] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
-    const showSnackbar = useCallback((key: string, options?: Record<string, any>) => {
+    const showSnackbar = useCallback((key: string, options?: SnackbarOptions) => {
         setSnackbarMessage(t(key, options));
         setSnackbarVisible(true);
         setTimeout(() => setSnackbarVisible(false), 2500);
@@ -417,14 +434,16 @@ function ObjectIdentCameraContent() {
 
                     setPhotoPath(savedPath);
 
-                } catch (copyError: any) {
+                } catch (copyError: unknown) {
                     console.error('Error copying photo to document directory:', copyError);
-                    setDebugText(t('errors.save_photo_failed', { message: copyError.message }));
+                    const message = copyError instanceof Error ? copyError.message : String(copyError);
+                    setDebugText(t('errors.save_photo_failed', { message }));
                     return;
                 }
-            } catch (err: any) {
-                console.error(t('errors.capture_failed', { message: err.message }));
-                setDebugText(t('errors.capture_failed', { message: err.message }));
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                console.error(t('errors.capture_failed', { message }));
+                setDebugText(t('errors.capture_failed', { message }));
             } finally {
                 setIsProcessing(false);
             }
@@ -438,7 +457,7 @@ function ObjectIdentCameraContent() {
         captureLoop();
     }, [detector, device, isInitialized, isDetectionPaused]);
 
-    async function cropImage(imageUri: string, box: any) : Promise<string> {
+    async function cropImage(imageUri: string, box: CropBox) : Promise<string> {
         const cropAction = {
             crop: {
                 originX: box.origin.x,
@@ -659,9 +678,10 @@ function ObjectIdentCameraContent() {
                     console.warn('Failed to classify full image:', e);
                 }
 
-            } catch (err: any) {
-                console.error(t('errors.detection_failed', { message: err.message }));
-                setDebugText(t('errors.detection_failed', { message: err.message }));
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                console.error(t('errors.detection_failed', { message }));
+                setDebugText(t('errors.detection_failed', { message }));
             }
         })();
     }, [photoPath, classifier]);
@@ -791,7 +811,7 @@ function ObjectIdentCameraContent() {
                         position: 'absolute',
                         top: 10,
                         right: 10,
-                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        backgroundColor: currentTheme.colors.overlay.dark,
                         padding: 6,
                         borderRadius: 20,
                         zIndex: 15,
@@ -814,7 +834,7 @@ function ObjectIdentCameraContent() {
                     }}
                 />
                 {isCameraActive && (
-                    <View style={styles.statusBadge}>
+                    <View style={[styles.statusBadge, { backgroundColor: currentTheme.colors.overlay.dark }]}>
                         <View style={[
                             styles.statusDot,
                             { backgroundColor: isProcessing ? 'limegreen' : 'red' }
@@ -825,7 +845,7 @@ function ObjectIdentCameraContent() {
                     </View>
                 )}
                 {showSettings && (
-                    <View style={styles.sliderBlock}>
+                    <View style={[styles.sliderBlock, { backgroundColor: currentTheme.colors.overlay.medium }]}>
                         <View style={styles.sliderRow}>
                             <Text style={styles.sliderLabel}>{t('camera.zoom')}</Text>
                             <Slider
@@ -858,7 +878,7 @@ function ObjectIdentCameraContent() {
                             />
                             <Text style={styles.sliderValue}>{pipelineDelay.toFixed(2)}s</Text>
                             {showDelayTooltip && (
-                                <View style={styles.tooltipBox}>
+                                <View style={[styles.tooltipBox, { backgroundColor: currentTheme.colors.overlay.dark }]}>
                                     <Text style={styles.tooltipText}>{delayPresetLabel}</Text>
                                 </View>
                             )}
@@ -881,7 +901,7 @@ function ObjectIdentCameraContent() {
                             />
                             <Text style={styles.sliderValue}>{Math.round(confidenceThreshold * 100)}%</Text>
                             {showConfidenceTooltip && (
-                                <View style={styles.tooltipBox}>
+                                <View style={[styles.tooltipBox, { backgroundColor: currentTheme.colors.overlay.dark }]}>
                                     <Text style={styles.tooltipText}>{confidencePresetLabel}</Text>
                                 </View>
                             )}
@@ -918,7 +938,7 @@ function ObjectIdentCameraContent() {
                         />
                     </TouchableOpacity>
                 )}
-                <View style={styles.debugTextContainer}>
+                <View style={[styles.debugTextContainer, { backgroundColor: currentTheme.colors.overlay.heavy }]}>
                     <Text
                         style={styles.debugText}
                         accessibilityRole="alert"
@@ -927,14 +947,14 @@ function ObjectIdentCameraContent() {
                         {debugText}
                     </Text>
                 </View>
-                <ModernSnackbar
+                <ThemedSnackbar
                     visible={snackbarVisible}
                     message={snackbarMessage}
                     onHide={() => setSnackbarVisible(false)}
                 />
             </View>
             {!hasMediaPermission && (
-                <View style={styles.permissionWarning}>
+                <View style={[styles.permissionWarning, { backgroundColor: currentTheme.colors.status.error }]}>
                     <Text style={styles.permissionWarningText}>
                         {t('warnings.media_permission_required')}
                     </Text>
@@ -979,7 +999,7 @@ function ObjectIdentCameraContent() {
                             })}
                         </View>
                         <View style={styles.modalButtons}>
-                            <Button title="Close" onPress={() => {
+                            <Button title={t('buttons.close')} onPress={() => {
                                 setModalVisible(false);
                                 setModalPhotoUri(null); // clear frozen image of the modal
                                 setShowOverlays(true);
@@ -997,7 +1017,6 @@ function ObjectIdentCameraContent() {
 
 const styles = StyleSheet.create({
     tooltipBox: {
-        backgroundColor: 'rgba(0,0,0,0.6)',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,
@@ -1045,7 +1064,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 10,
         left: 10,
-        backgroundColor: 'rgba(0,0,0,0.6)',
         borderRadius: 16,
         paddingHorizontal: 10,
         paddingVertical: 4,
@@ -1108,7 +1126,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 40,
         alignSelf: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 8,
@@ -1121,7 +1138,6 @@ const styles = StyleSheet.create({
         left: 20,
         right: 20,
         padding: 10,
-        backgroundColor: 'rgba(0,0,0,0.4)',
         borderRadius: 10,
         zIndex: 10,
     },
@@ -1140,7 +1156,6 @@ const styles = StyleSheet.create({
         bottom: 100,
         left: 20,
         right: 20,
-        backgroundColor: 'rgba(255, 0, 0, 0.9)',
         padding: 15,
         borderRadius: 10,
         zIndex: 25, // Higher than other UI elements

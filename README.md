@@ -15,10 +15,10 @@
 1. [Introduction / Motivation](#1-introduction--motivation)
 2. [Goal(s) of the Project](#2-goals-of-the-project)
 3. [Requirements Analysis](#3-requirements-analysis)
-   - [Personas](#personas)
-   - [Storyboards](#storyboards)
-   - [User Stories](#user-stories)
-   - [Requirement Specification](#requirement-specification)
+    - [Personas](#personas)
+    - [Storyboards](#storyboards)
+    - [User Stories](#user-stories)
+    - [Requirement Specification](#requirement-specification)
 4. [Conceptual Model of the Solution](#4-conceptual-model-of-the-solution)
 5. [Design Decisions About the Implementation](#5-design-decisions-about-the-implementation)
 6. [Results](#6-results)
@@ -226,11 +226,11 @@ LogChirpy is built with a modular and maintainable software stack that enables m
 #### Tech Stack
 - **Frontend:** React Native with Expo for iOS & Android
 - **Machine Learning:**
-  - BirdNET API (cloud-based for audio recognition)
-  - TensorFlow.js (local for image or audio analysis)
+    - BirdNET API (cloud-based for audio recognition)
+    - TensorFlow.js (local for image or audio analysis)
 - **Backend/Cloud:**
-  - Firebase Authentication (user management & login)
-  - Firebase Firestore (cloud database for user and observation data)
+    - Firebase Authentication (user management & login)
+    - Firebase Firestore (cloud database for user and observation data)
 - **Maps & Geodata:** OpenStreetMap via suitable React Native wrapper
 
 #### Modular Structure
@@ -373,6 +373,10 @@ Each Feature Folder contains:
 - ✅ Performance optimization for Android devices (2020+)
 - ✅ Media logging components (photo, video, audio)
 - ✅ BirdyDex database of all 30k earth bird species is loaded in different stages with user feedback
+- ✅ Full localization of the app with 5 languages (English, German, Spanish, Ukrainian, Arabic) 
+- ✅ Full localization of the BirdyDex database with 15,000+ species names in 5 languages
+- ✅ Full test coverage and pipeline tests with mocks
+- ✅ .h5 birdnet model to tflite conversion and integration
 
 **Luis Wehrberger:**
 - ✅ Firebase and Firestore setup

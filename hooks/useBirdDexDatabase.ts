@@ -13,7 +13,7 @@ export function useBirdDexDatabase() {
         }
 
         return unsubscribe;
-    }, []);
+    }, [state.status]);
 
     const retry = () => {
         birdDexDB.initialize().catch(console.error);

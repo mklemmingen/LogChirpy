@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { View, Text, PanResponder, StyleSheet } from 'react-native';
 
 type CustomSliderProps = {
-    style?: any;
+    style?: object;
     minimumValue?: number;
     maximumValue?: number;
     value: number;
@@ -28,7 +28,7 @@ export default function CustomSliderHorizontal({
                                                    label,
                                                    description,
                                                }: CustomSliderProps) {
-    const trackWidth = style?.width || 300;
+    const trackWidth = (style as any)?.width || 300;
     const clamp = (val: number, min: number, max: number) =>
         Math.max(min, Math.min(val, max));
 

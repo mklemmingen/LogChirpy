@@ -1,216 +1,115 @@
 import { useColorScheme } from 'react-native';
-import { theme, type Theme, type ColorSystem, createColorVariant } from '@/constants/theme';
+import { theme, type Theme, buttonStyles } from '@/constants/theme';
 
-// Type-safe color path helper
-type ColorPath<T> = T extends string
-    ? []
-    : {
-      [K in keyof T]: [K, ...ColorPath<T[K]>]
-    }[keyof T];
-
-type GetColorByPath<T, P extends readonly unknown[]> = P extends readonly [infer Head, ...infer Tail]
-    ? Head extends keyof T
-        ? GetColorByPath<T[Head], Tail>
-        : never
-    : T;
-
-// Enhanced theme hook with better TypeScript support
 export function useTheme(): Theme {
   const colorScheme = useColorScheme() ?? 'light';
   return theme[colorScheme];
 }
 
-// Get colors with dot notation support
-export function useThemeColor<P extends ColorPath<ColorSystem>>(
-    colorPath: P,
-    fallback?: string
-): GetColorByPath<ColorSystem, P> {
+export function useThemeColor(colorPath: string, fallback?: string): string {
   const currentTheme = useTheme();
-
+  const keys = colorPath.split('.');
+  
   try {
     let result: any = currentTheme.colors;
-    for (const key of colorPath) {
+    for (const key of keys) {
       result = result[key];
       if (result === undefined) break;
     }
     return result ?? fallback ?? '#000000';
   } catch {
-    return fallback ?? '#000000' as any;
+    return fallback ?? '#000000';
   }
 }
 
-// Semantic color shortcuts for common use cases
-export function useSemanticColors() {
+// Core colors for the minimal design
+export function useColors() {
   const colors = useTheme().colors;
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
 
   return {
-    // Surfaces
-    background: colors.surface.primary,
-    backgroundSecondary: colors.surface.secondary,
-    backgroundTertiary: colors.surface.tertiary,
-    backgroundElevated: colors.surface.elevated,
-    overlay: colors.surface.overlay,
+    // Backgrounds
+    background: colors.background.primary,
+    backgroundSecondary: colors.background.secondary,
+    backgroundTertiary: colors.background.tertiary,
+    surface: colors.surface,
+    overlay: colors.background.overlay,
 
-    // Content
-    text: colors.content.primary,
-    textSecondary: colors.content.secondary,
-    textTertiary: colors.content.tertiary,
-    textInverse: colors.content.inverse,
-    textDisabled: colors.content.disabled,
+    // Text
+    text: colors.text.primary,
+    textSecondary: colors.text.secondary,
+    textTertiary: colors.text.tertiary,
+    textInverse: colors.text.inverse,
+    textDisabled: colors.text.disabled,
 
     // Interactive
-    primary: colors.brand.primary,
-    primaryContainer: colors.brand.primaryContainer,
-    onPrimary: colors.brand.onPrimary,
-    onPrimaryContainer: colors.brand.onPrimaryContainer,
-
-    accent: colors.accent.primary,
-    accentContainer: colors.accent.primaryContainer,
-    onAccent: colors.accent.onPrimary,
-    onAccentContainer: colors.accent.onPrimaryContainer,
-
-    // States
+    primary: colors.interactive.primary,
+    secondary: colors.interactive.secondary,
     hover: colors.interactive.hover,
     pressed: colors.interactive.pressed,
-    focus: colors.interactive.focus,
     disabled: colors.interactive.disabled,
 
     // Borders
     border: colors.border.primary,
     borderSecondary: colors.border.secondary,
-    borderFocus: colors.border.focus,
+    borderStrong: colors.border.strong,
 
-    // Semantic
-    success: colors.semantic.success,
-    warning: colors.semantic.warning,
-    error: colors.semantic.error,
-    info: colors.semantic.info,
-    successContainer: colors.semantic.successContainer,
-    warningContainer: colors.semantic.warningContainer,
-    errorContainer: colors.semantic.errorContainer,
-    infoContainer: colors.semantic.infoContainer,
+    // Status (only when necessary)
+    success: colors.status.success,
+    warning: colors.status.warning,
+    error: colors.status.error,
+    info: colors.status.info,
+
+    // Helpers
+    isDark,
   };
 }
 
-// Create color variants with opacity
-export function useColorVariants() {
-  const colors = useSemanticColors();
+// Button styling helper
+export function useButtonStyles() {
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
+  
+  return {
+    primary: buttonStyles.primary(isDark),
+    secondary: buttonStyles.secondary(isDark),
+    ghost: buttonStyles.ghost(isDark),
+  };
+}
+
+// Typography with colors
+export function useTypography() {
+  const { typography } = useTheme();
+  const colors = useColors();
 
   return {
-    // Primary variants
-    primarySubtle: createColorVariant(colors.primary, 0.1),
-    primaryMuted: createColorVariant(colors.primary, 0.2),
-    primaryHover: createColorVariant(colors.primary, 0.8),
-    primaryPressed: createColorVariant(colors.primary, 0.9),
-
-    // Accent variants
-    accentSubtle: createColorVariant(colors.accent, 0.1),
-    accentMuted: createColorVariant(colors.accent, 0.2),
-    accentHover: createColorVariant(colors.accent, 0.8),
-    accentPressed: createColorVariant(colors.accent, 0.9),
-
-    // Text variants
-    textSubtle: createColorVariant(colors.text, 0.6),
-    textMuted: createColorVariant(colors.text, 0.4),
-
-    // Surface variants
-    surfaceHover: createColorVariant(colors.text, 0.05),
-    surfacePressed: createColorVariant(colors.text, 0.1),
-    surfaceSelected: createColorVariant(colors.primary, 0.15),
+    h1: { ...typography.h1, color: colors.text },
+    h2: { ...typography.h2, color: colors.text },
+    h3: { ...typography.h3, color: colors.text },
+    body: { ...typography.body, color: colors.text },
+    bodySmall: { ...typography.bodySmall, color: colors.textSecondary },
+    bodyMedium: { ...typography.body, color: colors.text }, // Alias for body
+    button: { ...typography.button, color: colors.text },
+    caption: { ...typography.caption, color: colors.textTertiary },
+    label: { ...typography.label, color: colors.textSecondary },
+    labelMedium: { ...typography.label, color: colors.textSecondary }, // Alias for label
+    headlineSmall: { ...typography.h3, color: colors.text }, // Alias for h3
   };
 }
 
-// Component-specific theme helpers
-export function useCardTheme() {
-  const theme = useTheme();
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
-
-  return {
-    default: {
-      backgroundColor: semanticColors.backgroundElevated,
-      borderColor: semanticColors.border,
-      ...theme.shadows.sm,
-    },
-    elevated: {
-      backgroundColor: semanticColors.backgroundElevated,
-      borderColor: 'transparent',
-      ...theme.shadows.md,
-    },
-    outlined: {
-      backgroundColor: 'transparent',
-      borderColor: semanticColors.border,
-      borderWidth: 1,
-    },
-    filled: {
-      backgroundColor: semanticColors.backgroundSecondary,
-      borderColor: 'transparent',
-    },
-    primary: {
-      backgroundColor: variants.primarySubtle,
-      borderColor: variants.primaryMuted,
-      borderWidth: 1,
-    },
-    accent: {
-      backgroundColor: variants.accentSubtle,
-      borderColor: variants.accentMuted,
-      borderWidth: 1,
-    },
-  };
-}
-
-export function useButtonTheme() {
-  const theme = useTheme();
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
-
-  return {
-    primary: {
-      backgroundColor: semanticColors.primary,
-      color: semanticColors.onPrimary,
-      borderColor: 'transparent',
-      ...theme.shadows.sm,
-    },
-    secondary: {
-      backgroundColor: semanticColors.backgroundSecondary,
-      color: semanticColors.text,
-      borderColor: semanticColors.border,
-      borderWidth: 1,
-    },
-    tertiary: {
-      backgroundColor: 'transparent',
-      color: semanticColors.primary,
-      borderColor: 'transparent',
-    },
-    destructive: {
-      backgroundColor: semanticColors.error,
-      color: semanticColors.onPrimary,
-      borderColor: 'transparent',
-      ...theme.shadows.sm,
-    },
-    ghost: {
-      backgroundColor: 'transparent',
-      color: semanticColors.text,
-      borderColor: 'transparent',
-    },
-    outline: {
-      backgroundColor: 'transparent',
-      color: semanticColors.text,
-      borderColor: semanticColors.border,
-      borderWidth: 1,
-    },
-  };
-}
-
-// Animation/transition helpers
-export function useMotionValues() {
+// Animation helpers
+export function useAnimations() {
   const { motion } = useTheme();
+  
   return {
-    ...motion,
-    // Common animation presets
+    duration: motion.duration,
+    easing: motion.easing,
+    
+    // Common presets
     fadeIn: {
       opacity: 1,
-      duration: motion.duration.medium,
+      duration: motion.duration.normal,
     },
     fadeOut: {
       opacity: 0,
@@ -218,47 +117,102 @@ export function useMotionValues() {
     },
     slideUp: {
       transform: [{ translateY: 0 }],
-      duration: motion.duration.medium,
+      opacity: 1,
+      duration: motion.duration.normal,
     },
-    slideDown: {
-      transform: [{ translateY: 20 }],
-      duration: motion.duration.medium,
-    },
-    scale: {
-      transform: [{ scale: 1.05 }],
+    press: {
+      transform: [{ scale: 0.98 }],
       duration: motion.duration.fast,
     },
   };
 }
 
-// Typography helpers
-export function useTypography() {
-  const { typography } = useTheme();
-  const semanticColors = useSemanticColors();
+// Spacing helpers
+export function useSpacing() {
+  return useTheme().spacing;
+}
 
+// Border radius helpers
+export function useBorderRadius() {
+  return useTheme().borderRadius;
+}
+
+// Shadow helpers
+export function useShadows() {
+  return useTheme().shadows;
+}
+
+// Additional semantic color helpers for compatibility
+export function useSemanticColors() {
+  const colors = useColors();
+  
   return {
-    // Display styles
-    displayLarge: { ...typography.display.large, color: semanticColors.text },
-    displayMedium: { ...typography.display.medium, color: semanticColors.text },
-    displaySmall: { ...typography.display.small, color: semanticColors.text },
+    primary: colors.primary,
+    secondary: colors.secondary,
+    background: colors.background,
+    surface: colors.surface,
+    error: colors.error,
+    success: colors.success,
+    warning: colors.warning,
+    info: colors.info,
+    onPrimary: colors.textInverse,
+    onSecondary: colors.text,
+    onBackground: colors.text,
+    onSurface: colors.text,
+    onError: colors.textInverse,
+  };
+}
 
-    // Headlines
-    headlineLarge: { ...typography.headline.large, color: semanticColors.text },
-    headlineMedium: { ...typography.headline.medium, color: semanticColors.text },
-    headlineSmall: { ...typography.headline.small, color: semanticColors.text },
+// Color variant helpers
+export function useColorVariants() {
+  const colors = useColors();
+  const { isDark } = colors;
+  
+  return {
+    primary: {
+      main: colors.primary,
+      light: isDark ? colors.backgroundSecondary : colors.backgroundTertiary,
+      dark: isDark ? colors.backgroundTertiary : colors.backgroundSecondary,
+      contrast: colors.textInverse,
+    },
+    secondary: {
+      main: colors.secondary,
+      light: colors.backgroundSecondary,
+      dark: colors.backgroundTertiary,
+      contrast: colors.text,
+    },
+    neutral: {
+      main: colors.textSecondary,
+      light: colors.backgroundSecondary,
+      dark: colors.textTertiary,
+      contrast: colors.text,
+    },
+  };
+}
 
-    // Body text
-    bodyLarge: { ...typography.body.large, color: semanticColors.text },
-    bodyMedium: { ...typography.body.medium, color: semanticColors.text },
-    bodySmall: { ...typography.body.small, color: semanticColors.text },
-
-    // Labels
-    labelLarge: { ...typography.label.large, color: semanticColors.textSecondary },
-    labelMedium: { ...typography.label.medium, color: semanticColors.textSecondary },
-    labelSmall: { ...typography.label.small, color: semanticColors.textSecondary },
-
-    // Special
-    caption: { ...typography.caption, color: semanticColors.textTertiary },
-    overline: { ...typography.overline, color: semanticColors.textTertiary },
+// Motion/animation value helpers
+export function useMotionValues() {
+  const animations = useAnimations();
+  
+  return {
+    spring: {
+      damping: 15,
+      stiffness: 150,
+      mass: 1,
+    },
+    timing: {
+      duration: animations.duration.normal,
+      easing: animations.easing,
+    },
+    gesture: {
+      scale: { pressed: 0.98, released: 1.0 },
+      opacity: { pressed: 0.8, released: 1.0 },
+    },
+    transition: {
+      fadeIn: animations.fadeIn,
+      fadeOut: animations.fadeOut,
+      slideUp: animations.slideUp,
+      press: animations.press,
+    },
   };
 }

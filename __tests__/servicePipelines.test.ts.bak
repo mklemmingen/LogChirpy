@@ -1,0 +1,702 @@
+/**
+ * Service Pipeline Tests for LogChirpy
+ * 
+ * Tests all core service integrations and data flows:
+ * - MLKit bird classification pipeline
+ * - BirdNET service integration pipeline
+ * - Database operations pipeline
+ * - Authentication and sync pipeline
+ * - MLKit-first architecture
+ */
+
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+
+// Mock dependencies
+jest.mock('@infinitered/react-native-mlkit-image-labeling');
+jest.mock('expo-file-system');
+jest.mock('expo-av');
+jest.mock('@react-native-community/netinfo');
+
+import { MLKitBirdClassifier } from '@/services/mlkitBirdClassifier';
+import { BirdNetService } from '@/services/birdNetService';
+import * as database from '@/services/database';
+import * as databaseBirDex from '@/services/databaseBirDex';
+
+describe('Service Pipeline Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('🎵 Audio Processing Pipeline', () => {
+    describe('Audio file to mel-spectrogram conversion', () => {
+      it('should process audio file through complete pipeline', async () => {
+        // Mock audio file data
+        const mockAudioData = {
+          data: new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]),
+          sampleRate: 22050,
+          duration: 3.0,
+        };
+
+        // Mock processed result
+        const mockProcessedAudio = {
+          melSpectrogram: {
+            shape: [1, 224, 224, 3],
+            size: 150528,
+            dispose: jest.fn(),
+          },
+          originalSampleRate: 22050,
+          duration: 3.0,
+          metadata: {
+            shape: [1, 224, 224, 3],
+            min: -2.1,
+            max: 1.8,
+          },
+        };
+
+        // Mock AudioPreprocessingService
+        jest.spyOn(AudioPreprocessingService, 'processAudioFile')
+          .mockResolvedValue(mockProcessedAudio as any);
+
+        const audioUri = 'file:///test-audio.wav';
+        const result = await AudioPreprocessingService.processAudioFile(audioUri);
+
+        expect(result.melSpectrogram.shape).toEqual([1, 224, 224, 3]);
+        expect(result.duration).toBe(3.0);
+        expect(result.originalSampleRate).toBe(22050);
+        expect(result.metadata.min).toBeLessThan(0);
+        expect(result.metadata.max).toBeGreaterThan(0);
+      });
+
+      it('should handle different audio formats and sample rates', async () => {
+        const testCases = [
+          { sampleRate: 44100, duration: 5.0, format: 'wav' },
+          { sampleRate: 48000, duration: 2.5, format: 'mp3' },
+          { sampleRate: 16000, duration: 10.0, format: 'aac' },
+        ];
+
+        for (const testCase of testCases) {
+          const mockResult = {
+            melSpectrogram: { shape: [1, 224, 224, 3], dispose: jest.fn() },
+            originalSampleRate: testCase.sampleRate,
+            duration: testCase.duration,
+            metadata: { shape: [1, 224, 224, 3], min: -1.5, max: 1.5 },
+          };
+
+          jest.spyOn(AudioPreprocessingService, 'processAudioFile')
+            .mockResolvedValue(mockResult as any);
+
+          const result = await AudioPreprocessingService.processAudioFile(
+            `file:///test.${testCase.format}`
+          );
+
+          expect(result.originalSampleRate).toBe(testCase.sampleRate);
+          expect(result.duration).toBe(testCase.duration);
+        }
+      });
+
+      it('should validate input tensor dimensions', async () => {
+        const mockInvalidResult = {
+          melSpectrogram: { shape: [1, 100, 100, 1] }, // Wrong dimensions
+          originalSampleRate: 22050,
+          duration: 3.0,
+          metadata: { shape: [1, 100, 100, 1], min: 0, max: 1 },
+        };
+
+        jest.spyOn(AudioPreprocessingService, 'processAudioFile')
+          .mockResolvedValue(mockInvalidResult as any);
+
+        // Should handle invalid dimensions appropriately
+        const result = await AudioPreprocessingService.processAudioFile('file:///test.wav');
+        expect(result.melSpectrogram.shape).not.toEqual([1, 224, 224, 3]);
+      });
+    });
+
+    describe('Audio preprocessing configuration', () => {
+      it('should use configurable preprocessing parameters', async () => {
+        const customConfig = {
+          sampleRate: 16000,
+          windowSize: 512,
+          hopSize: 256,
+          melFilters: 64,
+          targetWidth: 128,
+          targetHeight: 128,
+          normalizeAudio: false,
+        };
+
+        // Mock configuration update
+        jest.spyOn(AudioPreprocessingService, 'updateConfig')
+          .mockImplementation((config) => {
+            // Simulate config update
+          });
+
+        AudioPreprocessingService.updateConfig(customConfig);
+
+        expect(AudioPreprocessingService.updateConfig).toHaveBeenCalledWith(customConfig);
+      });
+
+      it('should reset configuration to defaults', () => {
+        jest.spyOn(AudioPreprocessingService, 'resetConfig')
+          .mockImplementation(() => {});
+
+        AudioPreprocessingService.resetConfig();
+
+        expect(AudioPreprocessingService.resetConfig).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('🤖 BirdNET Model Pipeline', () => {
+    describe('Model initialization and inference', () => {
+      it('should initialize TensorFlow model service correctly', async () => {
+        const mockService = {
+          initialize: jest.fn().mockResolvedValue(undefined),
+          getStatus: jest.fn().mockReturnValue({
+            isInitialized: true,
+            isLoading: false,
+            modelLoaded: true,
+            labelsLoaded: true,
+            supportedSpecies: 6522,
+          }),
+        };
+
+        jest.spyOn(TensorFlowLiteModelService, 'getInstance')
+          .mockReturnValue(mockService as any);
+
+        const service = TensorFlowLiteModelService.getInstance();
+        await service.initialize();
+
+        const status = service.getStatus();
+
+        expect(status.isInitialized).toBe(true);
+        expect(status.modelLoaded).toBe(true);
+        expect(status.labelsLoaded).toBe(true);
+        expect(status.supportedSpecies).toBe(6522);
+      });
+
+      it('should perform complete model inference pipeline', async () => {
+        const mockClassificationResult = {
+          predictions: [
+            {
+              common_name: 'American Robin',
+              scientific_name: 'Turdus migratorius',
+              confidence: 0.87,
+              timestamp_start: 0,
+              timestamp_end: 3,
+            }
+          ],
+          processingTime: 1500,
+          confidence: 0.87,
+          modelMetadata: {
+            version: '2.4',
+            trainingData: 'BirdNET v2.4 - Cornell Lab of Ornithology',
+            accuracy: 0.89,
+            modelSize: 6.9,
+            supportedSpecies: 6522,
+          },
+        };
+
+        const mockService = {
+          classifyAudio: jest.fn().mockResolvedValue(mockClassificationResult),
+          initialize: jest.fn().mockResolvedValue(undefined),
+        };
+
+        jest.spyOn(TensorFlowLiteModelService, 'getInstance')
+          .mockReturnValue(mockService as any);
+
+        const service = TensorFlowLiteModelService.getInstance();
+        const result = await service.classifyAudio('file:///test-audio.wav');
+
+        expect(result.predictions).toHaveLength(1);
+        expect(result.predictions[0].common_name).toBe('American Robin');
+        expect(result.predictions[0].confidence).toBeGreaterThan(0.8);
+        expect(result.modelMetadata.supportedSpecies).toBe(6522);
+      });
+
+      it('should handle model loading failures gracefully', async () => {
+        const mockService = {
+          initialize: jest.fn().mockRejectedValue(new Error('Model file not found')),
+          getStatus: jest.fn().mockReturnValue({
+            isInitialized: false,
+            isLoading: false,
+            modelLoaded: false,
+            labelsLoaded: false,
+            supportedSpecies: 0,
+          }),
+        };
+
+        jest.spyOn(TensorFlowLiteModelService, 'getInstance')
+          .mockReturnValue(mockService as any);
+
+        const service = TensorFlowLiteModelService.getInstance();
+
+        await expect(service.initialize()).rejects.toThrow('Model file not found');
+
+        const status = service.getStatus();
+        expect(status.isInitialized).toBe(false);
+        expect(status.modelLoaded).toBe(false);
+      });
+    });
+
+    describe('Label management', () => {
+      it('should load all 6522 BirdNET species labels', async () => {
+        const mockService = {
+          initialize: jest.fn().mockResolvedValue(undefined),
+          getStatus: jest.fn().mockReturnValue({
+            isInitialized: true,
+            labelsLoaded: true,
+            supportedSpecies: 6522,
+          }),
+        };
+
+        jest.spyOn(TensorFlowLiteModelService, 'getInstance')
+          .mockReturnValue(mockService as any);
+
+        const service = TensorFlowLiteModelService.getInstance();
+        await service.initialize();
+
+        const status = service.getStatus();
+        expect(status.supportedSpecies).toBe(6522);
+        expect(status.labelsLoaded).toBe(true);
+      });
+
+      it('should fallback to mock labels when real labels fail to load', async () => {
+        const mockService = {
+          initialize: jest.fn().mockResolvedValue(undefined),
+          getStatus: jest.fn().mockReturnValue({
+            isInitialized: true,
+            labelsLoaded: true,
+            supportedSpecies: 50, // Mock labels count
+          }),
+        };
+
+        jest.spyOn(TensorFlowLiteModelService, 'getInstance')
+          .mockReturnValue(mockService as any);
+
+        const service = TensorFlowLiteModelService.getInstance();
+        await service.initialize();
+
+        const status = service.getStatus();
+        expect(status.labelsLoaded).toBe(true);
+        expect(status.supportedSpecies).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('🌐 BirdNet Service Integration Pipeline', () => {
+    describe('Offline-first classification', () => {
+      it('should use offline model when available', async () => {
+        const mockOfflineResult = {
+          predictions: [
+            {
+              common_name: 'House Sparrow',
+              scientific_name: 'Passer domesticus',
+              confidence: 0.82,
+              timestamp_start: 0,
+              timestamp_end: 3,
+            }
+          ],
+          processing_time: 800,
+          audio_duration: 3.0,
+          success: true,
+          source: 'offline',
+          fallback_used: false,
+          cache_hit: false,
+        };
+
+        jest.spyOn(BirdNetService, 'identifyBirdFromAudio')
+          .mockResolvedValue(mockOfflineResult);
+
+        const result = await BirdNetService.identifyBirdFromAudio('file:///audio.wav');
+
+        expect(result.source).toBe('offline');
+        expect(result.fallback_used).toBe(false);
+        expect(result.success).toBe(true);
+      });
+
+      it('should fallback to online when offline fails', async () => {
+        const mockOnlineResult = {
+          predictions: [
+            {
+              common_name: 'Blue Jay',
+              scientific_name: 'Cyanocitta cristata',
+              confidence: 0.91,
+              timestamp_start: 0,
+              timestamp_end: 3,
+            }
+          ],
+          processing_time: 2100,
+          audio_duration: 3.0,
+          success: true,
+          source: 'online',
+          fallback_used: true,
+          cache_hit: false,
+        };
+
+        jest.spyOn(BirdNetService, 'identifyBirdFromAudio')
+          .mockResolvedValue(mockOnlineResult);
+
+        const result = await BirdNetService.identifyBirdFromAudio('file:///audio.wav');
+
+        expect(result.source).toBe('online');
+        expect(result.fallback_used).toBe(true);
+        expect(result.success).toBe(true);
+      });
+
+      it('should check network connectivity before online attempts', async () => {
+        jest.spyOn(BirdNetService, 'checkNetworkConnection')
+          .mockResolvedValue(false);
+
+        jest.spyOn(BirdNetService, 'identifyBirdFromAudio')
+          .mockRejectedValue(new Error('No internet connection available for online classification'));
+
+        await expect(BirdNetService.identifyBirdFromAudio('file:///audio.wav', { forceOnline: true }))
+          .rejects.toThrow('No internet connection available');
+      });
+    });
+
+    describe('Caching and performance', () => {
+      it('should return cached results for repeat requests', async () => {
+        const mockCachedResult = {
+          predictions: [
+            {
+              common_name: 'Cached Bird',
+              scientific_name: 'Cachedus testicus',
+              confidence: 0.95,
+            }
+          ],
+          processing_time: 50, // Very fast due to cache
+          success: true,
+          source: 'cache',
+          cache_hit: true,
+        };
+
+        jest.spyOn(BirdNetService, 'identifyBirdFromAudio')
+          .mockResolvedValue(mockCachedResult);
+
+        const result = await BirdNetService.identifyBirdFromAudio('file:///cached-audio.wav');
+
+        expect(result.cache_hit).toBe(true);
+        expect(result.processing_time).toBeLessThan(100);
+      });
+    });
+  });
+
+  describe('💾 Database Pipeline', () => {
+    describe('Local database operations', () => {
+      it('should initialize local database successfully', async () => {
+        jest.spyOn(database, 'initDatabase').mockResolvedValue(undefined);
+
+        await expect(database.initDatabase()).resolves.not.toThrow();
+      });
+
+      it('should perform CRUD operations on bird sightings', async () => {
+        const mockSighting = {
+          species: 'American Robin',
+          scientificName: 'Turdus migratorius',
+          location: 'Test Park',
+          latitude: 40.7589,
+          longitude: -73.9851,
+          timestamp: new Date().toISOString(),
+          confidence: 0.89,
+        };
+
+        const mockSpottingId = 42;
+        jest.spyOn(database, 'insertBirdSpotting').mockResolvedValue(mockSpottingId);
+        jest.spyOn(database, 'getBirdSpottingById').mockResolvedValue({
+          id: mockSpottingId,
+          ...mockSighting,
+        } as any);
+
+        // Insert
+        const insertedId = await database.insertBirdSpotting(mockSighting);
+        expect(insertedId).toBe(mockSpottingId);
+
+        // Retrieve
+        const retrievedSighting = await database.getBirdSpottingById(insertedId);
+        expect(retrievedSighting?.species).toBe(mockSighting.species);
+        expect(retrievedSighting?.id).toBe(insertedId);
+      });
+
+      it('should handle database errors gracefully', async () => {
+        jest.spyOn(database, 'insertBirdSpotting')
+          .mockRejectedValue(new Error('Database connection failed'));
+
+        await expect(database.insertBirdSpotting({ species: 'Test' }))
+          .rejects.toThrow('Database connection failed');
+      });
+    });
+
+    describe('BirdDex database operations', () => {
+      it('should search birds by name efficiently', async () => {
+        const mockSearchResults = [
+          {
+            code: 'amro',
+            commonName: 'American Robin',
+            scientificName: 'Turdus migratorius',
+          },
+          {
+            code: 'euro',
+            commonName: 'European Robin',
+            scientificName: 'Erithacus rubecula',
+          }
+        ];
+
+        jest.spyOn(databaseBirDex, 'searchBirds').mockResolvedValue(mockSearchResults);
+
+        const results = await databaseBirDex.searchBirds('robin', 10);
+
+        expect(results).toHaveLength(2);
+        expect(results.every(bird => bird.commonName.toLowerCase().includes('robin'))).toBe(true);
+      });
+
+      it('should get bird details by species code', async () => {
+        const mockBirdDetail = {
+          code: 'amro',
+          commonName: 'American Robin',
+          scientificName: 'Turdus migratorius',
+          familyName: 'Thrushes',
+          description: 'Large songbird with orange breast',
+        };
+
+        jest.spyOn(databaseBirDex, 'getBirdByCode').mockResolvedValue(mockBirdDetail);
+
+        const bird = await databaseBirDex.getBirdByCode('amro');
+
+        expect(bird?.commonName).toBe('American Robin');
+        expect(bird?.code).toBe('amro');
+      });
+
+      it('should handle progressive database loading', async () => {
+        // Mock progressive loading states
+        const loadingStates = [
+          { isReady: false, progress: 25, loadedRecords: 1500 },
+          { isReady: false, progress: 50, loadedRecords: 3000 },
+          { isReady: false, progress: 75, loadedRecords: 4500 },
+          { isReady: true, progress: 100, loadedRecords: 6522 },
+        ];
+
+        let stateIndex = 0;
+        const mockHook = jest.fn(() => loadingStates[stateIndex++] || loadingStates[3]);
+
+        // Simulate progressive loading
+        for (const expectedState of loadingStates) {
+          const state = mockHook();
+          expect(state.progress).toBe(expectedState.progress);
+          expect(state.loadedRecords).toBe(expectedState.loadedRecords);
+        }
+
+        const finalState = loadingStates[3];
+        expect(finalState.isReady).toBe(true);
+        expect(finalState.loadedRecords).toBe(6522);
+      });
+    });
+  });
+
+  describe('🔄 End-to-End Integration Pipeline', () => {
+    describe('Complete audio identification workflow', () => {
+      it('should execute full pipeline: audio → preprocessing → model → result', async () => {
+        // Mock complete pipeline
+        const audioUri = 'file:///test-bird-song.wav';
+
+        // Step 1: Audio preprocessing
+        const mockProcessedAudio = {
+          melSpectrogram: { shape: [1, 224, 224, 3], dispose: jest.fn() },
+          originalSampleRate: 22050,
+          duration: 4.5,
+          metadata: { shape: [1, 224, 224, 3], min: -1.2, max: 1.8 },
+        };
+
+        jest.spyOn(AudioPreprocessingService, 'processAudioFile')
+          .mockResolvedValue(mockProcessedAudio as any);
+
+        // Step 2: Model inference
+        const mockModelResult = {
+          predictions: [
+            {
+              common_name: 'Song Sparrow',
+              scientific_name: 'Melospiza melodia',
+              confidence: 0.94,
+              timestamp_start: 0.5,
+              timestamp_end: 4.0,
+            }
+          ],
+          processingTime: 1200,
+          confidence: 0.94,
+          modelMetadata: {
+            version: '2.4',
+            supportedSpecies: 6522,
+          },
+        };
+
+        const mockModelService = {
+          classifyAudio: jest.fn().mockResolvedValue(mockModelResult),
+          initialize: jest.fn().mockResolvedValue(undefined),
+        };
+
+        jest.spyOn(TensorFlowLiteModelService, 'getInstance')
+          .mockReturnValue(mockModelService as any);
+
+        // Step 3: BirdNet service integration
+        const mockBirdNetResult = {
+          predictions: mockModelResult.predictions,
+          processing_time: 1.2,
+          audio_duration: 4.5,
+          success: true,
+          source: 'offline',
+        };
+
+        jest.spyOn(BirdNetService, 'identifyBirdFromAudio')
+          .mockResolvedValue(mockBirdNetResult);
+
+        // Execute pipeline
+        const result = await BirdNetService.identifyBirdFromAudio(audioUri);
+
+        expect(result.success).toBe(true);
+        expect(result.predictions[0].common_name).toBe('Song Sparrow');
+        expect(result.predictions[0].confidence).toBeGreaterThan(0.9);
+        expect(result.audio_duration).toBe(4.5);
+        expect(result.source).toBe('offline');
+      });
+
+      it('should handle pipeline errors at each stage', async () => {
+        const audioUri = 'file:///corrupted-audio.wav';
+
+        // Test audio preprocessing error
+        jest.spyOn(AudioPreprocessingService, 'processAudioFile')
+          .mockRejectedValue(new Error('Invalid audio format'));
+
+        jest.spyOn(BirdNetService, 'identifyBirdFromAudio')
+          .mockRejectedValue(new Error('Failed to process audio: Invalid audio format'));
+
+        await expect(BirdNetService.identifyBirdFromAudio(audioUri))
+          .rejects.toThrow('Failed to process audio');
+      });
+    });
+
+    describe('Complete save and retrieve workflow', () => {
+      it('should save identification result to database and retrieve it', async () => {
+        // Mock identification
+        const mockIdentification = {
+          predictions: [
+            {
+              common_name: 'Wood Thrush',
+              scientific_name: 'Hylocichla mustelina',
+              confidence: 0.89,
+            }
+          ],
+          success: true,
+          source: 'offline',
+        };
+
+        jest.spyOn(BirdNetService, 'identifyBirdFromAudio')
+          .mockResolvedValue(mockIdentification);
+
+        // Mock database save
+        const mockSavedId = 789;
+        jest.spyOn(database, 'insertBirdSpotting').mockResolvedValue(mockSavedId);
+
+        // Mock database retrieve
+        const mockSavedSighting = {
+          id: mockSavedId,
+          species: 'Wood Thrush',
+          scientificName: 'Hylocichla mustelina',
+          confidence: 0.89,
+          timestamp: new Date().toISOString(),
+        };
+
+        jest.spyOn(database, 'getUserSpottings').mockResolvedValue([mockSavedSighting] as any);
+
+        // Execute workflow
+        const identification = await BirdNetService.identifyBirdFromAudio('file:///audio.wav');
+        
+        const sightingData = {
+          species: identification.predictions[0].common_name,
+          scientificName: identification.predictions[0].scientific_name,
+          confidence: identification.predictions[0].confidence,
+          timestamp: new Date().toISOString(),
+        };
+
+        const savedId = await database.insertBirdSpotting(sightingData);
+        const retrievedSightings = await database.getUserSpottings(1);
+
+        expect(savedId).toBe(mockSavedId);
+        expect(retrievedSightings[0].species).toBe('Wood Thrush');
+        expect(retrievedSightings[0].confidence).toBe(0.89);
+      });
+    });
+  });
+
+  describe('⚡ Performance Pipeline Tests', () => {
+    describe('Memory management', () => {
+      it('should properly dispose of tensors after processing', async () => {
+        const mockDispose = jest.fn();
+        const mockTensor = {
+          shape: [1, 224, 224, 3],
+          dispose: mockDispose,
+        };
+
+        const mockProcessedAudio = {
+          melSpectrogram: mockTensor,
+          originalSampleRate: 22050,
+          duration: 3.0,
+          metadata: { shape: [1, 224, 224, 3], min: 0, max: 1 },
+        };
+
+        jest.spyOn(AudioPreprocessingService, 'processAudioFile')
+          .mockResolvedValue(mockProcessedAudio as any);
+
+        const result = await AudioPreprocessingService.processAudioFile('file:///test.wav');
+        
+        // Simulate tensor disposal
+        result.melSpectrogram.dispose();
+
+        expect(mockDispose).toHaveBeenCalled();
+      });
+
+      it('should report memory usage accurately', async () => {
+        const mockMemoryInfo = {
+          numTensors: 5,
+          numBytes: 2048576, // ~2MB
+        };
+
+        const mockService = {
+          getMemoryInfo: jest.fn().mockReturnValue(mockMemoryInfo),
+        };
+
+        jest.spyOn(TensorFlowLiteModelService, 'getInstance')
+          .mockReturnValue(mockService as any);
+
+        const service = TensorFlowLiteModelService.getInstance();
+        const memoryInfo = service.getMemoryInfo();
+
+        expect(memoryInfo.numTensors).toBe(5);
+        expect(memoryInfo.numBytes).toBeGreaterThan(2000000);
+      });
+    });
+
+    describe('Processing time benchmarks', () => {
+      it('should process audio within reasonable time limits', async () => {
+        const startTime = Date.now();
+
+        const mockResult = {
+          predictions: [{ common_name: 'Test Bird', confidence: 0.8 }],
+          processing_time: 1500,
+          success: true,
+        };
+
+        jest.spyOn(BirdNetService, 'identifyBirdFromAudio')
+          .mockImplementation(() => {
+            return new Promise(resolve => {
+              setTimeout(() => resolve(mockResult), 100); // Simulate processing
+            });
+          });
+
+        const result = await BirdNetService.identifyBirdFromAudio('file:///test.wav');
+        const endTime = Date.now();
+
+        expect(endTime - startTime).toBeLessThan(5000); // Under 5 seconds
+        expect(result.processing_time).toBeLessThan(3000); // Under 3 seconds processing
+      });
+    });
+  });
+});

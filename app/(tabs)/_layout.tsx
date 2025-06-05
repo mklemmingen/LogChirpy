@@ -1,7 +1,6 @@
 import React from 'react';
 import {Tabs} from 'expo-router';
-import {Platform, View} from 'react-native';
-import {Feather} from '@expo/vector-icons';
+import {Platform} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {BlurView} from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -13,7 +12,9 @@ import Animated, {
     withTiming,
 } from 'react-native-reanimated';
 
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
+import {useTheme} from '@/hooks/useThemeColor';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedIcon} from '@/components/ThemedIcon';
 
 // Enhanced Tab Icon Component
 function EnhancedTabIcon({
@@ -27,10 +28,7 @@ function EnhancedTabIcon({
     focused: boolean;
     size: number;
 }) {
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
     const theme = useTheme();
-    const motion = useMotionValues();
 
     // Animation values
     const scale = useSharedValue(focused ? 1.1 : 1);
@@ -46,19 +44,19 @@ function EnhancedTabIcon({
 
         // Indicator animation
         indicatorScale.value = withTiming(focused ? 1 : 0, {
-            duration: motion.duration.medium,
+            duration: theme.motion.duration.normal,
         });
 
         // Container background animation
         containerOpacity.value = withTiming(focused ? 1 : 0, {
-            duration: motion.duration.medium,
+            duration: theme.motion.duration.normal,
         });
 
         // Haptic feedback on focus change
         if (focused) {
             Haptics.selectionAsync();
         }
-    }, [focused]);
+    }, [focused, containerOpacity, indicatorScale, scale, theme.motion.duration.normal]);
 
     const iconAnimatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
@@ -75,7 +73,7 @@ function EnhancedTabIcon({
     }));
 
     return (
-        <View style={{
+        <ThemedView style={{
             alignItems: 'center',
             justifyContent: 'center',
             position: 'relative',
@@ -89,7 +87,8 @@ function EnhancedTabIcon({
                         width: 40,
                         height: 40,
                         borderRadius: theme.borderRadius.md,
-                        backgroundColor: variants.primarySubtle,
+                        backgroundColor: theme.colors.text.primary,
+                        opacity: 0.1,
                     },
                     containerAnimatedStyle,
                 ]}
@@ -97,10 +96,10 @@ function EnhancedTabIcon({
 
             {/* Main icon */}
             <Animated.View style={iconAnimatedStyle}>
-                <Feather
+                <ThemedIcon
                     name={iconName as any}
                     size={size}
-                    color={focused ? semanticColors.primary : color}
+                    color={focused ? 'primary' : 'secondary'}
                 />
             </Animated.View>
 
@@ -113,26 +112,25 @@ function EnhancedTabIcon({
                         width: 4,
                         height: 4,
                         borderRadius: 2,
-                        backgroundColor: semanticColors.primary,
+                        backgroundColor: theme.colors.text.primary,
                     },
                     indicatorAnimatedStyle,
                 ]}
             />
-        </View>
+        </ThemedView>
     );
 }
 
 // Enhanced Tab Background Component for iOS
 function EnhancedTabBackground() {
-    const semanticColors = useSemanticColors();
     const theme = useTheme();
 
     return (
         <>
             {/* Blur effect */}
             <BlurView
-                intensity={semanticColors.background === '#FFFFFF' ? 100 : 80}
-                tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+                intensity={theme.colors.background.primary === '#FFFFFF' ? 100 : 80}
+                tint={theme.colors.background.primary === '#FFFFFF' ? 'light' : 'dark'}
                 style={{
                     position: 'absolute',
                     top: 0,
@@ -143,14 +141,14 @@ function EnhancedTabBackground() {
             />
 
             {/* Subtle gradient overlay for depth */}
-            <View
+            <ThemedView
                 style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     right: 0,
                     height: 1,
-                    backgroundColor: semanticColors.border,
+                    backgroundColor: theme.colors.border.primary,
                     opacity: 0.5,
                 }}
             />
@@ -160,59 +158,56 @@ function EnhancedTabBackground() {
 
 export default function ModernTabLayout() {
     const { t } = useTranslation();
-    const semanticColors = useSemanticColors();
     const theme = useTheme();
-    const typography = useTypography();
-    const variants = useColorVariants();
 
-    // Tab configuration with enhanced UX
-    const tabsConfig = [
-        {
-            name: 'index',
-            title: t('tabs.home'),
-            icon: 'home',
-            description: 'Home and overview',
-        },
-        {
-            name: 'birdex',
-            title: t('tabs.birdex'),
-            icon: 'book-open',
-            description: 'Bird encyclopedia',
-        },
-        {
-            name: 'smart-search',
-            title: t('tabs.smartSearch'),
-            icon: 'search',
-            description: 'Smart bird search',
-        },
-        {
-            name: 'archive',
-            title: t('tabs.archive'),
-            icon: 'archive',
-            description: 'Your bird archives',
-        },
-        {
-            name: 'account',
-            title: t('tabs.account'),
-            icon: 'user',
-            description: 'Account settings',
-        },
-        {
-            name: 'settings',
-            title: t('tabs.settings'),
-            icon: 'settings',
-            description: 'App settings',
-        },
-    ];
+    // Tab configuration available for future enhancements
+    // const tabsConfig = [
+    //     {
+    //         name: 'index',
+    //         title: t('tabs.home'),
+    //         icon: 'home',
+    //         description: t('navigation.home_description'),
+    //     },
+    //     {
+    //         name: 'birdex',
+    //         title: t('tabs.birdex'),
+    //         icon: 'book-open',
+    //         description: t('navigation.birdex_description'),
+    //     },
+    //     {
+    //         name: 'smart-search',
+    //         title: t('tabs.smartSearch'),
+    //         icon: 'search',
+    //         description: t('navigation.smart_search_description'),
+    //     },
+    //     {
+    //         name: 'archive',
+    //         title: t('tabs.archive'),
+    //         icon: 'archive',
+    //         description: t('navigation.archive_description'),
+    //     },
+    //     {
+    //         name: 'account',
+    //         title: t('tabs.account'),
+    //         icon: 'user',
+    //         description: t('navigation.account_description'),
+    //     },
+    //     {
+    //         name: 'settings',
+    //         title: t('tabs.settings'),
+    //         icon: 'settings',
+    //         description: t('navigation.settings_description'),
+    //     },
+    // ];
 
     return (
         <Tabs
             screenOptions={{
                 // Modern tab bar styling with semantic colors
                 tabBarStyle: {
-                    backgroundColor: semanticColors.backgroundElevated,
+                    backgroundColor: theme.colors.background.secondary,
                     borderTopWidth: 1,
-                    borderTopColor: semanticColors.border,
+                    borderTopColor: theme.colors.border.primary,
                     height: Platform.OS === 'ios' ? 88 : 72,
                     paddingBottom: Platform.OS === 'ios' ? 24 : theme.spacing.sm,
                     paddingTop: theme.spacing.sm,
@@ -224,17 +219,17 @@ export default function ModernTabLayout() {
                     // Platform-specific enhancements
                     ...(Platform.OS === 'android' && {
                         elevation: 8,
-                        shadowColor: semanticColors.text,
+                        shadowColor: theme.colors.text.primary,
                     }),
                 },
 
                 // Enhanced color system
-                tabBarActiveTintColor: semanticColors.primary,
-                tabBarInactiveTintColor: semanticColors.textSecondary,
+                tabBarActiveTintColor: theme.colors.text.primary,
+                tabBarInactiveTintColor: theme.colors.text.secondary,
 
                 // Modern typography with proper hierarchy
                 tabBarLabelStyle: {
-                    ...typography.labelSmall,
+                    ...theme.typography.caption,
                     fontWeight: '600',
                     marginTop: theme.spacing.xs,
                     letterSpacing: 0.5,
@@ -251,12 +246,12 @@ export default function ModernTabLayout() {
 
                 // Enhanced header styling
                 headerStyle: {
-                    backgroundColor: semanticColors.backgroundElevated,
+                    backgroundColor: theme.colors.background.secondary,
                     ...theme.shadows.sm,
                 },
-                headerTintColor: semanticColors.text,
+                headerTintColor: theme.colors.text.primary,
                 headerTitleStyle: {
-                    ...typography.headlineMedium,
+                    ...theme.typography.h2,
                     fontWeight: '600',
                 },
             }}

@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import {Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, useColorScheme, View,} from 'react-native';
 import {router, useLocalSearchParams} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 
 import {ThemedView} from '@/components/ThemedView';
@@ -10,6 +10,7 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {theme} from '@/constants/theme';
 import {useLogDraft} from '../context/LogDraftContext';
+import {useColors} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_SIZE = (SCREEN_WIDTH - 48) / 2;
@@ -18,6 +19,7 @@ export default function PhotoSelection() {
     const { t } = useTranslation();
     const colorScheme = useColorScheme() ?? 'light';
     const pal = theme[colorScheme];
+    const colors = useColors();
     const { update } = useLogDraft();
     const params = useLocalSearchParams();
 
@@ -41,13 +43,40 @@ export default function PhotoSelection() {
         router.back();
     };
 
+    const dynamicStyles = StyleSheet.create({
+        topCenter: {
+            backgroundColor: colors.background + '99',
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 20,
+        },
+        sideButton: {
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            backgroundColor: colors.background + '99',
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        captureButton: {
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: 'white',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderWidth: 4,
+            borderColor: colors.surface + '4D',
+        },
+    });
+
     return (
-        <ThemedView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+        <ThemedView style={[styles.container, { backgroundColor: pal.colors.background.primary }]}>
             <View style={styles.header}>
-                <ThemedText variant="headlineLarge">
+                <ThemedText variant="h1">
                     {t('photo.select_best_photo')}
                 </ThemedText>
-                <ThemedText variant="bodyMedium" color="secondary">
+                <ThemedText variant="bodySmall" color="secondary">
                     {t('photo.tap_to_select')}
                 </ThemedText>
             </View>
@@ -68,7 +97,7 @@ export default function PhotoSelection() {
                         <Image source={{ uri: photoUri }} style={styles.photoImage} />
                         {selectedPhoto === photoUri && (
                             <View style={[styles.selectedOverlay, { backgroundColor: pal.colors.primary }]}>
-                                <Feather name="check" size={24} color="white" />
+                                <ThemedIcon name="check" size={24} color="primary" />
                             </View>
                         )}
                     </TouchableOpacity>
@@ -81,7 +110,7 @@ export default function PhotoSelection() {
                     onPress={handleRetakePhotos}
                     style={styles.actionButton}
                 >
-                    <Feather name="camera" size={20} color={pal.colors.content.primary} />
+                    <ThemedIcon name="camera" size={20} color="primary" />
                     <ThemedText variant="labelLarge">
                         {t('photo.take_more')}
                     </ThemedText>
@@ -93,8 +122,8 @@ export default function PhotoSelection() {
                     disabled={!selectedPhoto}
                     style={[styles.actionButton, styles.primaryButton]}
                 >
-                    <Feather name="check" size={20} color={pal.colors.content.inverse} />
-                    <ThemedText variant="labelLarge" style={{ color: pal.colors.content.inverse }}>
+                    <ThemedIcon name="check" size={20} color="primary" />
+                    <ThemedText variant="labelLarge" color="primary">
                         {t('photo.use_this_photo')}
                     </ThemedText>
                 </ThemedPressable>
@@ -174,12 +203,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         zIndex: 10,
     },
-    topCenter: {
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-    },
     photoCount: {
         color: 'white',
         fontSize: 14,
@@ -203,14 +226,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 40,
         zIndex: 10,
     },
-    sideButton: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     thumbnailContainer: {
         position: 'relative',
     },
@@ -229,16 +244,6 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 12,
         fontWeight: 'bold',
-    },
-    captureButton: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'white',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 4,
-        borderColor: 'rgba(255,255,255,0.3)',
     },
     capturingButton: {
         transform: [{ scale: 0.95 }],

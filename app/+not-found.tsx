@@ -1,7 +1,9 @@
 import React, {useEffect} from 'react';
 import {Dimensions, StyleSheet, View} from 'react-native';
 import {Link, Stack} from 'expo-router';
-import {Feather} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
+import { Feather } from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -16,14 +18,13 @@ import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Animated Bird Icon Component
 function LostBirdIcon() {
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
+  const colors = useColors();
 
   const rotation = useSharedValue(0);
   const scale = useSharedValue(1);
@@ -66,7 +67,7 @@ function LostBirdIcon() {
               width: 120,
               height: 120,
               borderRadius: 60,
-              backgroundColor: variants.primarySubtle,
+              backgroundColor: colors.backgroundSecondary,
               justifyContent: 'center',
               alignItems: 'center',
               marginBottom: 32,
@@ -74,16 +75,16 @@ function LostBirdIcon() {
             animatedStyle,
           ]}
       >
-        <Feather name="help-circle" size={48} color={semanticColors.primary} />
+        <ThemedIcon name="help-circle" size={48} color="primary" />
       </Animated.View>
   );
 }
 
 // Floating Elements Background
 function FloatingElements() {
-  const variants = useColorVariants();
+  const colors = useColors();
 
-  const elements = [
+  const elements: Array<{ icon: keyof typeof Feather.glyphMap; delay: number }> = [
     { icon: 'feather', delay: 0 },
     { icon: 'map-pin', delay: 500 },
     { icon: 'camera', delay: 1000 },
@@ -138,15 +139,15 @@ function FloatingElements() {
                         width: 50,
                         height: 50,
                         borderRadius: 25,
-                        backgroundColor: variants.primarySubtle,
+                        backgroundColor: colors.backgroundSecondary,
                         justifyContent: 'center',
                         alignItems: 'center',
                       }}
                   >
-                    <Feather
-                        name={element.icon as any}
+                    <ThemedIcon
+                        name={element.icon}
                         size={20}
-                        color={variants.primaryMuted}
+                        color="tertiary"
                     />
                   </View>
                 </Animated.View>
@@ -161,10 +162,9 @@ function FloatingElements() {
 
 export default function NotFoundScreen() {
   const theme = useTheme();
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
+  const colors = useColors();
   const typography = useTypography();
-  const motion = useMotionValues();
+  const { t } = useTranslation();
 
   // Animation values for the main content
   const contentOpacity = useSharedValue(0);
@@ -174,7 +174,7 @@ export default function NotFoundScreen() {
     // Staggered entrance animation
     setTimeout(() => {
       contentOpacity.value = withTiming(1, {
-        duration: motion.duration.medium
+        duration: theme.motion.duration.normal
       });
       contentTranslateY.value = withSpring(0, {
         damping: 20,
@@ -189,9 +189,9 @@ export default function NotFoundScreen() {
   }));
 
   return (
-      <ThemedView surface="primary" style={styles.container}>
+      <ThemedView background="primary" style={styles.container}>
         <Stack.Screen options={{
-          title: 'Page Not Found',
+          title: t('not_found.page_title'),
           headerShown: false
         }} />
 
@@ -201,9 +201,9 @@ export default function NotFoundScreen() {
         {/* Main content */}
         <Animated.View style={[styles.content, contentAnimatedStyle]}>
           <ModernCard
-              variant="glass"
+              elevated={false}
+              bordered={true}
               style={styles.card}
-              glowOnHover={false}
           >
             {/* Lost bird illustration */}
             <View style={styles.illustration}>
@@ -216,7 +216,7 @@ export default function NotFoundScreen() {
                   variant="displayMedium"
                   style={[styles.title, { textAlign: 'center' }]}
               >
-                Nest Not Found
+                {t('not_found.nest_not_found')}
               </ThemedText>
 
               <ThemedText
@@ -224,7 +224,7 @@ export default function NotFoundScreen() {
                   color="secondary"
                   style={[styles.subtitle, { textAlign: 'center' }]}
               >
-                This bird seems to have flown away! The page you're looking for doesn't exist in our aviary.
+                {t('not_found.page_description')}
               </ThemedText>
             </View>
 
@@ -233,16 +233,15 @@ export default function NotFoundScreen() {
               <Link href="/" asChild>
                 <ThemedPressable
                     variant="primary"
-                    size="large"
+                    size="lg"
                     style={styles.primaryAction}
-                    glowOnHover
                 >
-                  <Feather name="home" size={20} color={semanticColors.onPrimary} />
+                  <ThemedIcon name="home" size={20} color="primary" />
                   <ThemedText
                       variant="labelLarge"
-                      style={{ color: semanticColors.onPrimary }}
+                      color="primary"
                   >
-                    Return to Nest
+                    {t('not_found.return_to_nest')}
                   </ThemedText>
                 </ThemedPressable>
               </Link>
@@ -250,26 +249,26 @@ export default function NotFoundScreen() {
               <Link href="/(tabs)" asChild>
                 <ThemedPressable
                     variant="secondary"
-                    size="large"
+                    size="lg"
                     style={styles.secondaryAction}
                 >
-                  <Feather name="map" size={20} color={semanticColors.text} />
+                  <ThemedIcon name="map" size={20} color="primary" />
                   <ThemedText variant="labelLarge">
-                    Explore BirdDex
+                    {t('not_found.explore_birdex')}
                   </ThemedText>
                 </ThemedPressable>
               </Link>
             </View>
 
             {/* Fun fact */}
-            <View style={[styles.funFact, { backgroundColor: variants.primarySubtle }]}>
-              <Feather name="info" size={16} color={semanticColors.primary} />
+            <View style={[styles.funFact, { backgroundColor: colors.backgroundSecondary }]}>
+              <ThemedIcon name="info" size={16} color="primary" />
               <ThemedText
                   variant="labelMedium"
                   color="primary"
                   style={{ flex: 1, lineHeight: 18 }}
               >
-                Did you know? Migratory birds can navigate using Earth's magnetic field!
+                {t('not_found.fun_fact')}
               </ThemedText>
             </View>
           </ModernCard>

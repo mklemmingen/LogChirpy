@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import {
     View,
     Text,
@@ -6,7 +6,7 @@ import {
     Dimensions,
     SafeAreaView,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -21,14 +21,14 @@ import { ModernCard } from '@/components/ModernCard';
 import { ThemedPressable } from '@/components/ThemedPressable';
 import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
 import {
-    useTheme,
+    // useTheme,
     useSemanticColors,
     useColorVariants,
     useTypography,
     useMotionValues
 } from '@/hooks/useThemeColor';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 // Floating Bird Animation Component
 function FloatingBird({ delay = 0, index = 0 }: { delay?: number; index?: number }) {
@@ -41,7 +41,7 @@ function FloatingBird({ delay = 0, index = 0 }: { delay?: number; index?: number
             -1,
             true
         );
-    }, [index]);
+    }, [index, floatAnimation]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [
@@ -58,7 +58,7 @@ function FloatingBird({ delay = 0, index = 0 }: { delay?: number; index?: number
 
     return (
         <Animated.View style={[styles.floatingBird, animatedStyle]}>
-            <Feather name="feather" size={16} color={semanticColors.primary} />
+            <ThemedIcon name="feather" size={16} color="primary" />
         </Animated.View>
     );
 }
@@ -67,7 +67,7 @@ function FloatingBird({ delay = 0, index = 0 }: { delay?: number; index?: number
 function ModernProgressBar({ progress }: { progress: number }) {
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
-    const theme = useTheme();
+    // const theme = useTheme();
 
     const progressAnimation = useSharedValue(0);
 
@@ -76,7 +76,7 @@ function ModernProgressBar({ progress }: { progress: number }) {
             damping: 20,
             stiffness: 100,
         });
-    }, [progress]);
+    }, [progress, progressAnimation]);
 
     const progressStyle = useAnimatedStyle(() => ({
         width: `${progressAnimation.value * 100}%`,
@@ -84,7 +84,7 @@ function ModernProgressBar({ progress }: { progress: number }) {
 
     return (
         <View style={styles.progressContainer}>
-            <View style={[styles.progressTrack, { backgroundColor: variants.primarySubtle }]}>
+            <View style={[styles.progressTrack, { backgroundColor: variants.primary.light }]}>
                 <Animated.View
                     style={[
                         styles.progressFill,
@@ -107,7 +107,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const typography = useTypography();
-    const theme = useTheme();
+    // const theme = useTheme();
     const motion = useMotionValues();
 
     // Main animation values
@@ -117,13 +117,13 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
 
     React.useEffect(() => {
         if (isReady) {
-            fadeAnim.value = withTiming(0, { duration: motion.duration.medium });
-            setTimeout(onReady, motion.duration.medium);
+            fadeAnim.value = withTiming(0, { duration: 200 });
+            setTimeout(onReady, 200);
         } else {
-            fadeAnim.value = withTiming(1, { duration: motion.duration.medium });
+            fadeAnim.value = withTiming(1, { duration: 200 });
             slideAnim.value = withSpring(0, { damping: 20, stiffness: 300 });
         }
-    }, [isReady]);
+    }, [isReady, fadeAnim, onReady, slideAnim]);
 
     React.useEffect(() => {
         logoAnimation.value = withRepeat(
@@ -131,7 +131,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
             -1,
             true
         );
-    }, []);
+    }, [logoAnimation]);
 
     const containerStyle = useAnimatedStyle(() => ({
         opacity: fadeAnim.value,
@@ -150,19 +150,18 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
         return "Almost ready to fly...";
     };
 
-    const getFloatingStyle = (delay: number) => {
-        return useAnimatedStyle(() => ({
-            transform: [
-                {
-                    translateY: interpolate(
-                        logoAnimation.value,
-                        [1, 1.05],
-                        [0, -8]
-                    ) * Math.sin(Date.now() / 1000 + delay),
-                },
-            ],
-        }));
-    };
+    // Simplified floating animation
+    const floatingStyle = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(
+                    logoAnimation.value,
+                    [1, 1.05],
+                    [0, -8]
+                ),
+            },
+        ],
+    }));
 
     if (hasError) {
         return (
@@ -175,37 +174,36 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     </View>
 
                     <Animated.View style={[styles.logoContainer, logoStyle]}>
-                        <View style={[styles.logoIcon, { backgroundColor: variants.primarySubtle }]}>
-                            <Feather name="alert-triangle" size={48} color={semanticColors.error} />
+                        <View style={[styles.logoIcon, { backgroundColor: variants.primary.light }]}>
+                            <ThemedIcon name="alert-triangle" size={48} color="error" />
                         </View>
                     </Animated.View>
 
-                    <Text style={[typography.displayMedium, styles.title]}>
+                    <Text style={[typography.h1, styles.title]}>
                         Nest Building Failed
                     </Text>
 
-                    <Text style={[typography.bodyLarge, styles.subtitle, { color: semanticColors.textSecondary }]}>
+                    <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
                         We encountered a problem setting up your bird database
                     </Text>
 
-                    <Animated.View style={getFloatingStyle(0.5)}>
+                    <Animated.View style={floatingStyle}>
                         <ModernCard
-                            variant="outlined"
                             style={styles.errorCard}
                         >
                             <View style={styles.errorContent}>
-                                <Text style={[typography.bodyMedium, { color: semanticColors.textSecondary }]}>
+                                <Text style={[typography.body, { color: semanticColors.secondary }]}>
                                     {error || 'Check your storage space and network connection'}
                                 </Text>
 
                                 <ThemedPressable
                                     variant="primary"
-                                    size="large"
+                                    size="lg"
                                     onPress={retry}
                                     style={styles.retryButton}
                                 >
-                                    <Feather name="refresh-cw" size={20} color={semanticColors.onPrimary} />
-                                    <Text style={[typography.labelLarge, { color: semanticColors.onPrimary }]}>
+                                    <ThemedIcon name="refresh-cw" size={20} color="primary" />
+                                    <Text style={[typography.label, { color: semanticColors.primary }]}>
                                         Try Again
                                     </Text>
                                 </ThemedPressable>
@@ -231,31 +229,30 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     {/* Hero Section */}
                     <View style={styles.heroSection}>
                         <Animated.View style={[styles.logoContainer, logoStyle]}>
-                            <View style={[styles.logoIcon, { backgroundColor: variants.primarySubtle }]}>
-                                <Feather name="feather" size={48} color={semanticColors.primary} />
+                            <View style={[styles.logoIcon, { backgroundColor: variants.primary.light }]}>
+                                <ThemedIcon name="feather" size={48} color="primary" />
                             </View>
                         </Animated.View>
 
-                        <Text style={[typography.displayMedium, styles.title]}>
+                        <Text style={[typography.h1, styles.title]}>
                             LogChirpy
                         </Text>
 
-                        <Text style={[typography.bodyLarge, styles.subtitle, { color: semanticColors.textSecondary }]}>
+                        <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
                             Building your bird database
                         </Text>
                     </View>
 
                     {/* Progress Section */}
-                    <Animated.View style={getFloatingStyle(0.8)}>
+                    <Animated.View style={floatingStyle}>
                         <ModernCard
-                            variant="glass"
                             style={{
                                 ...styles.progressCard,
-                                borderColor: variants.primaryMuted,
+                                borderColor: variants.primary.light,
                             }}
                         >
                             <View style={styles.progressContent}>
-                                <Text style={[typography.headlineSmall, { color: semanticColors.text }]}>
+                                <Text style={[typography.h2, { color: semanticColors.primary }]}>
                                     {getStatusMessage()}
                                 </Text>
 
@@ -264,22 +261,22 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                                 {/* Stats */}
                                 <View style={styles.statsContainer}>
                                     <View style={styles.statItem}>
-                                        <Text style={[typography.headlineMedium, { color: semanticColors.primary }]}>
+                                        <Text style={[typography.h2, { color: semanticColors.primary }]}>
                                             {loadedRecords.toLocaleString()}
                                         </Text>
-                                        <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
+                                        <Text style={[typography.label, { color: semanticColors.secondary }]}>
                                             Species Loaded
                                         </Text>
                                     </View>
 
                                     {totalRecords > 0 && (
                                         <>
-                                            <View style={[styles.statDivider, { backgroundColor: variants.primaryMuted }]} />
+                                            <View style={[styles.statDivider, { backgroundColor: variants.primary.light }]} />
                                             <View style={styles.statItem}>
-                                                <Text style={[typography.headlineMedium, { color: semanticColors.accent }]}>
+                                                <Text style={[typography.h2, { color: semanticColors.primary }]}>
                                                     {totalRecords.toLocaleString()}
                                                 </Text>
-                                                <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
+                                                <Text style={[typography.label, { color: semanticColors.secondary }]}>
                                                     Total Species
                                                 </Text>
                                             </View>
@@ -291,7 +288,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     </Animated.View>
 
                     {/* Loading Hint */}
-                    <Text style={[typography.labelMedium, styles.hint, { color: semanticColors.textTertiary }]}>
+                    <Text style={[typography.label, styles.hint, { color: semanticColors.secondary }]}>
                         This may take a moment on first launch
                     </Text>
                 </Animated.View>

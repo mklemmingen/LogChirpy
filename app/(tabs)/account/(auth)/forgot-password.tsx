@@ -2,7 +2,6 @@ import React, {useRef, useState} from 'react';
 import {KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, TextInput, View,} from 'react-native';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, {
     FadeInDown,
@@ -15,9 +14,10 @@ import Animated, {
 
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import {ModernCard} from '@/components/ModernCard';
 import {useSnackbar} from '@/components/ThemedSnackbar';
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {useTheme, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
 import {sendPasswordResetEmail} from 'firebase/auth';
 import {auth} from '@/firebase/config';
 
@@ -32,8 +32,6 @@ export default function ForgotPasswordScreen() {
     const theme = useTheme();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
-    const typography = useTypography();
-    const motion = useMotionValues();
     const snackbar = useSnackbar();
 
     // Form state
@@ -53,8 +51,8 @@ export default function ForgotPasswordScreen() {
     React.useEffect(() => {
         // Entrance animation
         cardScale.value = withSpring(1, { damping: 20, stiffness: 300 });
-        cardOpacity.value = withTiming(1, { duration: motion.duration.medium });
-    }, []);
+        cardOpacity.value = withTiming(1, { duration: theme.motion.duration.normal });
+    }, [cardOpacity, cardScale, theme.motion.duration.normal]);
 
     // Form validation
     const validateForm = (): boolean => {
@@ -85,20 +83,21 @@ export default function ForgotPasswordScreen() {
             await sendPasswordResetEmail(auth, email.trim());
 
             // Success animation
-            formOpacity.value = withTiming(0, { duration: motion.duration.fast });
+            formOpacity.value = withTiming(0, { duration: theme.motion.duration.fast });
 
             setTimeout(() => {
                 setEmailSent(true);
-                formOpacity.value = withTiming(1, { duration: motion.duration.medium });
+                formOpacity.value = withTiming(1, { duration: theme.motion.duration.normal });
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            }, motion.duration.fast);
+            }, theme.motion.duration.fast);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Password reset error:', error);
 
             // Handle Firebase Auth specific error codes
             let errorMessage = t('errors.sending_reset_error');
-            switch (error.code) {
+            if (error && typeof error === 'object' && 'code' in error) {
+                switch ((error as { code: string }).code) {
                 case 'auth/user-not-found':
                     errorMessage = t('errors.user_not_found');
                     break;
@@ -113,6 +112,9 @@ export default function ForgotPasswordScreen() {
                     break;
                 default:
                     errorMessage = t('errors.sending_reset_error');
+                }
+            } else {
+                errorMessage = error instanceof Error ? error.message : t('errors.sending_reset_error');
             }
 
             snackbar.showError(errorMessage);
@@ -141,11 +143,11 @@ export default function ForgotPasswordScreen() {
     // Success screen content
     const renderSuccessScreen = () => (
         <Animated.View
-            entering={FadeInDown.duration(motion.duration.medium)}
+            entering={FadeInDown.duration(theme.motion.duration.normal)}
             style={styles.successContainer}
         >
-            <View style={[styles.successIcon, { backgroundColor: variants.primarySubtle }]}>
-                <Feather name="mail" size={48} color={semanticColors.primary} />
+            <View style={[styles.successIcon, { backgroundColor: theme.colors.text.primary, opacity: 0.1 }]}>
+                <ThemedIcon name="mail" size={48} color="primary" />
             </View>
 
             <ThemedText variant="headlineLarge" style={styles.successTitle}>
@@ -162,11 +164,11 @@ export default function ForgotPasswordScreen() {
 
             <ThemedPressable
                 variant="primary"
-                size="large"
+                size="lg"
                 onPress={handleBack}
                 style={styles.backButton}
             >
-                <ThemedText variant="labelLarge" color="inverse">
+                <ThemedText variant="labelLarge" color="primary">
                     {t('auth.back_to_login')}
                 </ThemedText>
             </ThemedPressable>
@@ -203,21 +205,21 @@ export default function ForgotPasswordScreen() {
                         styles.inputWrapper,
                         {
                             borderColor: errors.email
-                                ? semanticColors.error
-                                : semanticColors.border,
-                            backgroundColor: semanticColors.backgroundSecondary,
+                                ? theme.colors.status.error
+                                : theme.colors.border.primary,
+                            backgroundColor: theme.colors.background.secondary,
                         }
                     ]}>
-                        <Feather
+                        <ThemedIcon
                             name="mail"
                             size={20}
-                            color={errors.email ? semanticColors.error : semanticColors.textSecondary}
+                            color={errors.email ? 'error' : 'tertiary'}
                         />
                         <TextInput
                             ref={emailInputRef}
-                            style={[styles.textInput, { color: semanticColors.text }]}
+                            style={[styles.textInput, { color: theme.colors.text.primary }]}
                             placeholder={t('auth.email_placeholder')}
-                            placeholderTextColor={semanticColors.textTertiary}
+                            placeholderTextColor={theme.colors.text.tertiary}
                             value={email}
                             onChangeText={(text) => {
                                 setEmail(text);
@@ -242,8 +244,8 @@ export default function ForgotPasswordScreen() {
                             exiting={FadeOutUp.duration(200)}
                             style={styles.errorContainer}
                         >
-                            <Feather name="alert-circle" size={14} color={semanticColors.error} />
-                            <ThemedText variant="labelSmall" style={[styles.errorText, { color: semanticColors.error }]}>
+                            <ThemedIcon name="alert-circle" size={14} color="error" />
+                            <ThemedText variant="labelSmall" color="error" style={styles.errorText}>
                                 {errors.email}
                             </ThemedText>
                         </Animated.View>
@@ -253,14 +255,12 @@ export default function ForgotPasswordScreen() {
                 {/* Submit Button */}
                 <ThemedPressable
                     variant="primary"
-                    size="large"
+                    size="lg"
                     onPress={handleSubmit}
-                    loading={isLoading}
                     disabled={isLoading || !email.trim()}
                     style={styles.submitButton}
-                    glowOnHover
                 >
-                    <ThemedText variant="labelLarge" color="inverse">
+                    <ThemedText variant="labelLarge" color="primary">
                         {t('auth.send_reset')}
                     </ThemedText>
                 </ThemedPressable>
@@ -272,7 +272,7 @@ export default function ForgotPasswordScreen() {
                     disabled={isLoading}
                     style={styles.backToLoginButton}
                 >
-                    <Feather name="arrow-left" size={16} color={semanticColors.primary} />
+                    <ThemedIcon name="arrow-left" size={16} color="primary" />
                     <ThemedText variant="labelMedium" color="accent">
                         {t('auth.back_to_login')}
                     </ThemedText>
@@ -298,20 +298,21 @@ export default function ForgotPasswordScreen() {
                     <View style={StyleSheet.absoluteFillObject}>
                         <View style={[
                             styles.backgroundCircle,
-                            { backgroundColor: variants.primarySubtle }
+                            { backgroundColor: variants.primary.light }
                         ]} />
                         <View style={[
                             styles.backgroundCircle2,
-                            { backgroundColor: variants.accentSubtle }
+                            { backgroundColor: variants.secondary.light }
                         ]} />
                     </View>
 
                     {/* Main Card */}
                     <Animated.View style={[styles.cardContainer, cardAnimatedStyle]}>
                         <ModernCard
-                            variant="glass"
+                            elevated={false}
+                            bordered={true}
                             style={{
-                                borderColor: variants.primaryMuted,
+                                borderColor: variants.primary.light,
                                 ...theme.shadows.lg,
                             }}
                         >
