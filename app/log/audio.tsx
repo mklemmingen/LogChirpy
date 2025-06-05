@@ -3,7 +3,7 @@ import {ActivityIndicator, Alert, BackHandler, Dimensions, Linking, StatusBar,} 
 import {Audio} from 'expo-av';
 import {router, Stack, useFocusEffect} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import {BlurView} from 'expo-blur';
 import Animated, {
@@ -21,7 +21,8 @@ import {ModernCard} from '@/components/ModernCard';
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
-import {useColorVariants, useSemanticColors, useTheme,} from '@/hooks/useThemeColor';
+import {useTheme,} from '@/hooks/useThemeColor';
+import {theme} from "@/constants/theme";
 
 type RecordingStatus = 'idle' | 'recording' | 'stopping' | 'playback';
 
@@ -53,8 +54,8 @@ const AUDIO_QUALITY = {
 
 // Animated Wave Visualization Component
 function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
-    const semanticColors = useSemanticColors();
     const waveAnim = useSharedValue(0);
+    const theme = useTheme();
 
     useEffect(() => {
         if (isRecording) {
@@ -90,7 +91,7 @@ function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
                         style={[
                             {
                                 width: 4,
-                                backgroundColor: semanticColors.primary,
+                                backgroundColor: theme.colors.primary,
                                 borderRadius: 2,
                             },
                             animatedStyle,
@@ -112,8 +113,6 @@ function RecordingButton({
     onPress: () => void;
     duration: number;
 }) {
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
     const theme = useTheme();
 
     const scale = useSharedValue(1);
@@ -147,7 +146,7 @@ function RecordingButton({
     }));
 
     const isRecording = status === 'recording';
-    const buttonColor = isRecording ? semanticColors.error : semanticColors.primary;
+    const buttonColor = isRecording ? theme.colors.status.success : theme.colors.status.error;
 
     return (
         <ThemedView style={{ alignItems: 'center', gap: 16 }}>
@@ -184,10 +183,10 @@ function RecordingButton({
                     onPress={onPress}
                     disabled={status === 'stopping'}
                 >
-                    <Feather
+                    <ThemedIcon
                         name={isRecording ? 'square' : 'mic'}
                         size={48}
-                        color={semanticColors.onPrimary}
+                        color="primary"
                     />
                 </AnimatedPressable>
             </ThemedView>
@@ -203,11 +202,10 @@ function RecordingButton({
             {/* Duration Display */}
             {(isRecording || duration > 0) && (
                 <ThemedView
-                    surface="elevated"
-                    rounded="pill"
+                    rounded="md"
                     style={{ paddingHorizontal: 20, paddingVertical: 8 }}
                 >
-                    <ThemedText variant="headlineSmall" color="primary">
+                    <ThemedText variant="h3" color="primary">
                         {formatDuration(duration)}
                     </ThemedText>
                 </ThemedView>
@@ -227,26 +225,26 @@ function PermissionError({
     isRequesting: boolean;
 }) {
     const { t } = useTranslation();
-    const semanticColors = useSemanticColors();
+    const theme = useTheme();
 
     return (
-        <ThemedView surface="primary" style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
-            <ModernCard variant="glass" style={{ alignItems: 'center', padding: 32 }}>
+        <ThemedView style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
+            <ModernCard elevated={false} bordered={true} style={{ alignItems: 'center', padding: 32 }}>
                 <ThemedView
                     style={{
                         width: 80,
                         height: 80,
                         borderRadius: 40,
-                        backgroundColor: semanticColors.errorContainer,
+                        backgroundColor: theme.colors.surface,
                         justifyContent: 'center',
                         alignItems: 'center',
                         marginBottom: 24,
                     }}
                 >
-                    <Feather name="mic-off" size={32} color={semanticColors.error} />
+                    <ThemedIcon name="mic-off" size={32} color="error" />
                 </ThemedView>
 
-                <ThemedText variant="headlineMedium" style={{ textAlign: 'center', marginBottom: 12 }}>
+                <ThemedText variant="h2" style={{ textAlign: 'center', marginBottom: 12 }}>
                     {t('audio.permission_required')}
                 </ThemedText>
 
@@ -276,7 +274,7 @@ function PermissionError({
                         {isRequesting ? (
                             <ActivityIndicator size="small" color="white" />
                         ) : (
-                            <ThemedText color="inverse">{t('audio.grant_permission')}</ThemedText>
+                            <ThemedText color="primary">{t('audio.grant_permission')}</ThemedText>
                         )}
                     </ThemedPressable>
                 </ThemedView>
@@ -326,16 +324,16 @@ function PlaybackControls({
                     style={{ flex: 1, flexDirection: 'row', gap: 8 }}
                     onPress={onPlay}
                 >
-                    <Feather name={isPlaying ? 'pause' : 'play'} size={20} />
+                    <ThemedIcon name={isPlaying ? 'pause' : 'play'} size={20} color="primary" />
                     <ThemedText>{isPlaying ? t('audio.pause') : t('audio.play')}</ThemedText>
                 </ThemedPressable>
 
                 <ThemedPressable
-                    variant="outline"
+                    variant="secondary"
                     style={{ paddingHorizontal: 20 }}
                     onPress={onRetake}
                 >
-                    <Feather name="refresh-cw" size={20} />
+                    <ThemedIcon name="refresh-cw" size={20} color="primary" />
                 </ThemedPressable>
 
                 <ThemedPressable
@@ -343,8 +341,8 @@ function PlaybackControls({
                     style={{ flex: 1, flexDirection: 'row', gap: 8 }}
                     onPress={onConfirm}
                 >
-                    <Feather name="check" size={20} color="white" />
-                    <ThemedText color="inverse">{t('common.confirm')}</ThemedText>
+                    <ThemedIcon name="check" size={20} color="primary" />
+                    <ThemedText color="primary">{t('common.confirm')}</ThemedText>
                 </ThemedPressable>
             </ThemedView>
         </BlurView>
@@ -361,7 +359,6 @@ const formatDuration = (seconds: number): string => {
 export default function AudioScreen() {
     const { t } = useTranslation();
     const { update } = useLogDraft();
-    const semanticColors = useSemanticColors();
     const theme = useTheme();
 
     // State management
@@ -620,33 +617,32 @@ export default function AudioScreen() {
     // Processing state
     if (status === 'stopping') {
         return (
-            <ThemedView surface="primary" style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <StatusBar barStyle="dark-content" />
                 <Stack.Screen options={{ headerShown: false }} />
 
                 <ThemedView style={{ alignItems: 'center', gap: 24 }}>
-                    <ActivityIndicator size="large" color={semanticColors.primary} />
-                    <ThemedText variant="headlineSmall">{t('audio.processing')}</ThemedText>
+                    <ActivityIndicator size="large" color={theme.colors.status.error} />
+                    <ThemedText variant="h3">{t('audio.processing')}</ThemedText>
                 </ThemedView>
             </ThemedView>
         );
     }
 
     return (
-        <ThemedView surface="primary" style={{ flex: 1 }}>
+        <ThemedView style={{ flex: 1 }}>
             <StatusBar barStyle="dark-content" />
             <Stack.Screen options={{ headerShown: false }} />
 
             {/* Header */}
             <ThemedView
-                surface="elevated"
                 style={{
                     flexDirection: 'row',
                     alignItems: 'center',
                     paddingHorizontal: 16,
                     paddingVertical: 12,
                     borderBottomWidth: 1,
-                    borderBottomColor: semanticColors.border,
+                    borderBottomColor: theme.colors.border.primary
                 }}
             >
                 <ThemedPressable
@@ -654,10 +650,10 @@ export default function AudioScreen() {
                     style={{ padding: 8 }}
                     onPress={() => router.back()}
                 >
-                    <Feather name="arrow-left" size={24} color={semanticColors.text} />
+                    <ThemedIcon name="arrow-left" size={24} color="primary" />
                 </ThemedPressable>
 
-                <ThemedText variant="headlineSmall" style={{ marginLeft: 16 }}>
+                <ThemedText variant="h3" style={{ marginLeft: 16 }}>
                     {t('audio.record_audio')}
                 </ThemedText>
             </ThemedView>
@@ -665,7 +661,6 @@ export default function AudioScreen() {
             {/* Main Content */}
             <ThemedView style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
                 <ModernCard
-                    variant="glass"
                     style={{
                         alignItems: 'center',
                         padding: 40,
@@ -683,8 +678,8 @@ export default function AudioScreen() {
                                     gap: 8,
                                     paddingHorizontal: 16,
                                     paddingVertical: 8,
-                                    backgroundColor: semanticColors.errorContainer,
-                                    borderRadius: theme.borderRadius.pill,
+                                    backgroundColor: theme.colors.surface,
+                                    borderRadius: theme.borderRadius.sm,
                                 }}
                             >
                                 <ThemedView
@@ -692,7 +687,7 @@ export default function AudioScreen() {
                                         width: 8,
                                         height: 8,
                                         borderRadius: 4,
-                                        backgroundColor: semanticColors.error,
+                                        backgroundColor: theme.colors.surface,
                                     }}
                                 />
                                 <ThemedText variant="labelMedium" color="error">

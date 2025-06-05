@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import React, {useEffect, useMemo, useState} from 'react';
 import {ThemeProvider} from '@react-navigation/native';
 import {useFonts} from 'expo-font';
@@ -7,7 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import {StatusBar} from 'expo-status-bar';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {BlurView} from 'expo-blur';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -20,7 +19,8 @@ import 'react-native-reanimated';
 import "@/i18n/i18n";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
+import { useColors, useTheme, useTypography } from '@/hooks/useThemeColor';
+import { AuthProvider } from '@/app/context/AuthContext';
 import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
 
 import {
@@ -37,6 +37,8 @@ import {
 
 // Database imports
 import {initDB} from '@/services/database';
+import {BirdNetService} from '@/services/birdNetService';
+import {fastTfliteBirdClassifier} from '@/services/fastTfliteBirdClassifier';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -67,11 +69,9 @@ const FONTS = {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
 };
 
-// Enhanced Loading Animation Component
+// Clean loading animation with minimal design
 function LoadingAnimation() {
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
-    const motion = useMotionValues();
+    const colors = useColors();
 
     const rotation = useSharedValue(0);
     const scale = useSharedValue(1);
@@ -112,14 +112,14 @@ function LoadingAnimation() {
                     width: 64,
                     height: 64,
                     borderRadius: 32,
-                    backgroundColor: variants.primarySubtle,
+                    backgroundColor: colors.backgroundSecondary,
                     justifyContent: 'center',
                     alignItems: 'center',
                 },
                 animatedStyle,
             ]}
         >
-            <Feather name="feather" size={32} color={semanticColors.primary} />
+            <ThemedIcon name="feather" size={32} color="primary" />
         </Animated.View>
     );
 }
@@ -127,23 +127,21 @@ function LoadingAnimation() {
 // Enhanced Database Loading Screen Component
 function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
     const { isReady, isLoading, hasError, progress, loadedRecords, error, retry } = useBirdDexDatabase();
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
+    const colors = useColors();
     const typography = useTypography();
     const theme = useTheme();
-    const motion = useMotionValues();
 
     const fadeAnim = useSharedValue(0);
     const slideAnim = useSharedValue(30);
 
     React.useEffect(() => {
         if (isReady) {
-            fadeAnim.value = withTiming(0, { duration: motion.duration.medium });
-            slideAnim.value = withTiming(30, { duration: motion.duration.medium });
-            setTimeout(onReady, motion.duration.medium);
+            fadeAnim.value = withTiming(0, { duration: theme.motion.duration.normal });
+            slideAnim.value = withTiming(30, { duration: theme.motion.duration.normal });
+            setTimeout(onReady, theme.motion.duration.normal);
         } else {
-            fadeAnim.value = withTiming(1, { duration: motion.duration.medium });
-            slideAnim.value = withTiming(0, { duration: motion.duration.medium });
+            fadeAnim.value = withTiming(1, { duration: theme.motion.duration.normal });
+            slideAnim.value = withTiming(0, { duration: theme.motion.duration.normal });
         }
     }, [isReady]);
 
@@ -154,30 +152,30 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
 
     if (hasError) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: semanticColors.background }]}>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <BlurView
                     intensity={80}
-                    tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+                    tint={colors.background === '#FFFFFF' ? 'light' : 'dark'}
                     style={styles.errorCard}
                 >
-                    <View style={[styles.errorIconContainer, { backgroundColor: variants.primaryHover }]}>
-                        <Feather name="alert-triangle" size={48} color={semanticColors.error} />
+                    <View style={[styles.errorIconContainer, { backgroundColor: colors.backgroundSecondary }]}>
+                        <ThemedIcon name="alert-triangle" size={48} color="error" />
                     </View>
 
-                    <Text style={[typography.headlineMedium, { color: semanticColors.text }]}>
+                    <Text style={[typography.h2, { color: colors.text }]}>
                         Database Error
                     </Text>
 
-                    <Text style={[typography.bodyMedium, { color: semanticColors.textSecondary, textAlign: 'center' }]}>
+                    <Text style={[typography.body, { color: colors.textSecondary, textAlign: 'center' }]}>
                         {error || 'Failed to load bird database. Check your storage and connection.'}
                     </Text>
 
                     <Pressable
-                        style={[styles.retryButton, { backgroundColor: semanticColors.primary }]}
+                        style={[styles.retryButton, { backgroundColor: colors.primary }]}
                         onPress={retry}
                     >
-                        <Feather name="refresh-cw" size={20} color={semanticColors.onPrimary} />
-                        <Text style={[typography.labelLarge, { color: semanticColors.onPrimary }]}>
+                        <ThemedIcon name="refresh-cw" size={20} color="secondary" />
+                        <Text style={[typography.label, { color: colors.textInverse }]}>
                             Retry Loading
                         </Text>
                     </Pressable>
@@ -191,7 +189,7 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
             <Animated.View
                 style={[
                     styles.loadingContainer,
-                    { backgroundColor: semanticColors.background },
+                    { backgroundColor: colors.background },
                     containerStyle
                 ]}
             >
@@ -199,10 +197,10 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     {/* Brand Header */}
                     <View style={styles.brandContainer}>
                         <LoadingAnimation />
-                        <Text style={[typography.displayMedium, { color: semanticColors.text }]}>
+                        <Text style={[typography.h1, { color: colors.text }]}>
                             LogChirpy
                         </Text>
-                        <Text style={[typography.bodyLarge, { color: semanticColors.textSecondary }]}>
+                        <Text style={[typography.body, { color: colors.textSecondary }]}>
                             Preparing Your Bird Database
                         </Text>
                     </View>
@@ -210,21 +208,21 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     {/* Progress Section */}
                     <BlurView
                         intensity={60}
-                        tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
-                        style={[styles.progressCard, { borderColor: variants.primaryMuted }]}
+                        tint={colors.background === '#FFFFFF' ? 'light' : 'dark'}
+                        style={[styles.progressCard, { borderColor: colors.border }]}
                     >
-                        <Text style={[typography.headlineSmall, { color: semanticColors.text }]}>
+                        <Text style={[typography.h3, { color: colors.text }]}>
                             Loading Species Data
                         </Text>
 
                         {/* Progress Bar */}
                         <View style={styles.progressSection}>
-                            <View style={[styles.progressTrack, { backgroundColor: semanticColors.border }]}>
+                            <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
                                 <Animated.View
                                     style={[
                                         styles.progressFill,
                                         {
-                                            backgroundColor: semanticColors.primary,
+                                            backgroundColor: colors.primary,
                                             width: `${Math.max(5, progress)}%`
                                         }
                                     ]}
@@ -232,24 +230,24 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                             </View>
 
                             <View style={styles.progressStats}>
-                                <Text style={[typography.labelLarge, { color: semanticColors.primary }]}>
+                                <Text style={[typography.label, { color: colors.primary }]}>
                                     {progress}%
                                 </Text>
                                 {loadedRecords > 0 && (
-                                    <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
+                                    <Text style={[typography.label, { color: colors.textSecondary }]}>
                                         {loadedRecords.toLocaleString()} species loaded
                                     </Text>
                                 )}
                             </View>
                         </View>
 
-                        <Text style={[typography.bodySmall, { color: semanticColors.textTertiary, textAlign: 'center' }]}>
+                        <Text style={[typography.bodySmall, { color: colors.textTertiary, textAlign: 'center' }]}>
                             Building comprehensive bird identification database...
                         </Text>
                     </BlurView>
 
                     {/* Loading Hint */}
-                    <Text style={[typography.labelMedium, { color: semanticColors.textTertiary, textAlign: 'center' }]}>
+                    <Text style={[typography.label, { color: colors.textTertiary, textAlign: 'center' }]}>
                         This may take a moment on first launch
                     </Text>
                 </View>
@@ -266,33 +264,32 @@ function AppInitializationScreen({ message, error, onRetry }: {
     error?: string;
     onRetry?: () => void;
 }) {
-    const semanticColors = useSemanticColors();
+    const colors = useColors();
     const typography = useTypography();
-    const variants = useColorVariants();
 
     if (error) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: semanticColors.background }]}>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <View style={styles.errorContent}>
-                    <View style={[styles.errorIconContainer, { backgroundColor: variants.primaryHover }]}>
-                        <Feather name="alert-circle" size={48} color={semanticColors.error} />
+                    <View style={[styles.errorIconContainer, { backgroundColor: colors.backgroundSecondary }]}>
+                        <ThemedIcon name="alert-circle" size={48} color="error" />
                     </View>
 
-                    <Text style={[typography.headlineMedium, { color: semanticColors.text }]}>
+                    <Text style={[typography.h2, { color: colors.text }]}>
                         Initialization Failed
                     </Text>
 
-                    <Text style={[typography.bodyMedium, { color: semanticColors.textSecondary, textAlign: 'center' }]}>
+                    <Text style={[typography.body, { color: colors.textSecondary, textAlign: 'center' }]}>
                         {error}
                     </Text>
 
                     {onRetry && (
                         <Pressable
-                            style={[styles.retryButton, { backgroundColor: semanticColors.primary }]}
+                            style={[styles.retryButton, { backgroundColor: colors.primary }]}
                             onPress={onRetry}
                         >
-                            <Feather name="refresh-cw" size={18} color={semanticColors.onPrimary} />
-                            <Text style={[typography.labelLarge, { color: semanticColors.onPrimary }]}>
+                            <ThemedIcon name="refresh-cw" size={18} color="error" />
+                            <Text style={[typography.label, { color: colors.textInverse }]}>
                                 Try Again
                             </Text>
                         </Pressable>
@@ -303,13 +300,13 @@ function AppInitializationScreen({ message, error, onRetry }: {
     }
 
     return (
-        <View style={[styles.loadingContainer, { backgroundColor: semanticColors.background }]}>
+        <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
             <View style={styles.loadingContent}>
                 <LoadingAnimation />
-                <Text style={[typography.headlineMedium, { color: semanticColors.text }]}>
+                <Text style={[typography.h2, { color: colors.text }]}>
                     LogChirpy
                 </Text>
-                <Text style={[typography.bodyMedium, { color: semanticColors.textSecondary }]}>
+                <Text style={[typography.body, { color: colors.textSecondary }]}>
                     {message}
                 </Text>
             </View>
@@ -319,7 +316,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
 
 export default function EnhancedRootLayout() {
     const theme = useTheme();
-    const semanticColors = useSemanticColors();
+    const colors = useColors();
     const typography = useTypography();
     const [loaded] = useFonts(FONTS);
     const segments = useSegments();
@@ -329,6 +326,7 @@ export default function EnhancedRootLayout() {
     const [localDbReady, setLocalDbReady] = useState(false);
     const [localDbError, setLocalDbError] = useState<string | null>(null);
     const [birdDexReady, setBirdDexReady] = useState(false);
+    const [offlineModelReady, setOfflineModelReady] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
 
     // ML Models setup (same as before)
@@ -363,12 +361,33 @@ export default function EnhancedRootLayout() {
         initializeLocalDB();
     }, [retryCount]);
 
+    // Initialize offline bird classification model
+    useEffect(() => {
+        const initializeOfflineModel = async () => {
+            try {
+                console.log('Initializing offline bird classification model...');
+                await BirdNetService.initializeOfflineMode();
+                setOfflineModelReady(true);
+                console.log('Offline bird classification model initialized successfully');
+            } catch (error) {
+                console.error('Offline model initialization failed:', error);
+                // Continue without offline model - it will fallback to online
+                setOfflineModelReady(true);
+            }
+        };
+
+        // Only initialize after local DB is ready
+        if (localDbReady) {
+            initializeOfflineModel();
+        }
+    }, [localDbReady]);
+
     // Hide splash screen when ready
     useEffect(() => {
-        if (loaded && localDbReady) {
+        if (loaded && localDbReady && offlineModelReady) {
             SplashScreen.hideAsync();
         }
-    }, [loaded, localDbReady]);
+    }, [loaded, localDbReady, offlineModelReady]);
 
     const handleRetry = () => {
         setRetryCount(prev => prev + 1);
@@ -377,10 +396,19 @@ export default function EnhancedRootLayout() {
     };
 
     // Show app initialization screen
-    if (!loaded || !localDbReady) {
+    if (!loaded || !localDbReady || !offlineModelReady) {
+        let message = "Loading application...";
+        if (!loaded) {
+            message = "Loading fonts and assets...";
+        } else if (!localDbReady) {
+            message = "Initializing local database...";
+        } else if (!offlineModelReady) {
+            message = "Loading AI models...";
+        }
+
         return (
             <AppInitializationScreen
-                message={!loaded ? "Loading fonts and assets..." : "Initializing local database..."}
+                message={message}
                 error={localDbError || undefined}
                 onRetry={localDbError ? handleRetry : undefined}
             />
@@ -402,57 +430,59 @@ export default function EnhancedRootLayout() {
     // Main app with enhanced theming
     return (
         <SafeAreaProvider>
-            <ThemeProvider
-                value={{
-                    dark: theme === theme,
-                    colors: {
-                        notification: semanticColors.accent,
-                        background: semanticColors.background,
-                        card: semanticColors.backgroundElevated,
-                        text: semanticColors.text,
-                        border: semanticColors.border,
-                        primary: semanticColors.primary,
-                    },
-                    fonts: {
-                        regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
-                        medium: { fontFamily: 'SpaceMono', fontWeight: '500' },
-                        bold: { fontFamily: 'SpaceMono', fontWeight: 'bold' },
-                        heavy: { fontFamily: 'SpaceMono', fontWeight: '800' },
-                    },
-                }}
-            >
-                <ImageLabelingModelProvider>
-                    <ObjectDetectionProvider>
-                        <View style={[styles.container, { backgroundColor: semanticColors.background }]}>
-                            <Stack
-                                screenOptions={() => ({
-                                    headerStyle: {
-                                        backgroundColor:
-                                            current === 'photo' || current === 'video'
-                                                ? 'transparent'
-                                                : semanticColors.backgroundElevated,
-                                        ...theme.shadows.sm,
-                                    },
-                                    headerTransparent: current === 'photo' || current === 'video',
-                                    headerTintColor: semanticColors.text,
-                                    headerTitleStyle: {
-                                        ...typography.headlineMedium,
-                                        fontWeight: '600',
-                                    },
-                                    headerBackTitleVisible: false,
-                                    headerBackImage: () => (
-                                        <Feather name="arrow-left" size={24} color={semanticColors.text} />
-                                    ),
-                                })}
-                            >
-                                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                                <Stack.Screen name="+not-found" />
-                            </Stack>
-                        </View>
-                        <StatusBar style="auto" />
-                    </ObjectDetectionProvider>
-                </ImageLabelingModelProvider>
-            </ThemeProvider>
+            <AuthProvider>
+                <ThemeProvider
+                    value={{
+                        dark: colors.isDark,
+                        colors: {
+                            notification: colors.primary,
+                            background: colors.background,
+                            card: colors.surface,
+                            text: colors.text,
+                            border: colors.border,
+                            primary: colors.primary,
+                        },
+                        fonts: {
+                            regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
+                            medium: { fontFamily: 'SpaceMono', fontWeight: '500' },
+                            bold: { fontFamily: 'SpaceMono', fontWeight: 'bold' },
+                            heavy: { fontFamily: 'SpaceMono', fontWeight: '800' },
+                        },
+                    }}
+                >
+                    <ImageLabelingModelProvider>
+                        <ObjectDetectionProvider>
+                            <View style={[styles.container, { backgroundColor: colors.background }]}>
+                                <Stack
+                                    screenOptions={() => ({
+                                        headerStyle: {
+                                            backgroundColor:
+                                                current === 'photo' || current === 'video'
+                                                    ? 'transparent'
+                                                    : colors.surface,
+                                            ...theme.shadows.sm,
+                                        },
+                                        headerTransparent: current === 'photo' || current === 'video',
+                                        headerTintColor: colors.text,
+                                        headerTitleStyle: {
+                                            ...typography.h2,
+                                            fontWeight: '600',
+                                        },
+                                        headerBackTitleVisible: false,
+                                        headerBackImage: () => (
+                                            <ThemedIcon name="arrow-left" size={24} color="primary" />
+                                        ),
+                                    })}
+                                >
+                                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                    <Stack.Screen name="+not-found" />
+                                </Stack>
+                            </View>
+                            <StatusBar style="auto" />
+                        </ObjectDetectionProvider>
+                    </ImageLabelingModelProvider>
+                </ThemeProvider>
+            </AuthProvider>
         </SafeAreaProvider>
     );
 }

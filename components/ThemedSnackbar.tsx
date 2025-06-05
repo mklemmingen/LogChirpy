@@ -1,11 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
     ViewStyle,
     Pressable,
     Text,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
+import { ThemedIcon } from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
     useAnimatedStyle,
@@ -25,7 +25,7 @@ import {
     useColorVariants,
     useTypography,
     useMotionValues,
-} from '@/hooks/useThemeColor';
+} from '../hooks/useThemeColor';
 import {PanGestureHandler} from "react-native-gesture-handler";
 
 // Snackbar variants with semantic meaning
@@ -50,7 +50,7 @@ interface ModernSnackbarProps {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function ModernSnackbar({
+export function ThemedSnackbar({
                                    visible,
                                    message,
                                    onHide,
@@ -84,28 +84,28 @@ export function ModernSnackbar({
         switch (variant) {
             case 'success':
                 return {
-                    backgroundColor: semanticColors.successContainer,
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
                     borderColor: semanticColors.success,
                     iconColor: semanticColors.success,
                     iconName: icon || 'check-circle',
                 };
             case 'error':
                 return {
-                    backgroundColor: semanticColors.errorContainer,
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
                     borderColor: semanticColors.error,
                     iconColor: semanticColors.error,
                     iconName: icon || 'alert-circle',
                 };
             case 'warning':
                 return {
-                    backgroundColor: semanticColors.warningContainer,
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
                     borderColor: semanticColors.warning,
                     iconColor: semanticColors.warning,
                     iconName: icon || 'alert-triangle',
                 };
             case 'info':
                 return {
-                    backgroundColor: semanticColors.infoContainer,
+                    backgroundColor: 'rgba(115, 115, 115, 0.1)',
                     borderColor: semanticColors.info,
                     iconColor: semanticColors.info,
                     iconName: icon || 'info',
@@ -113,7 +113,7 @@ export function ModernSnackbar({
             default:
                 return {
                     backgroundColor: 'transparent',
-                    borderColor: variants.primaryMuted,
+                    borderColor: variants.primary.light,
                     iconColor: semanticColors.primary,
                     iconName: icon || 'message-circle',
                 };
@@ -123,7 +123,7 @@ export function ModernSnackbar({
     const variantStyle = getVariantStyle();
 
     // Enhanced entrance animation
-    const showSnackbar = () => {
+    const showSnackbar = useCallback(() => {
         // Haptic feedback on show
         Haptics.notificationAsync(
             variant === 'error'
@@ -141,7 +141,7 @@ export function ModernSnackbar({
         });
 
         opacity.value = withTiming(1, {
-            duration: motion.duration.medium,
+            duration: 200,
             easing: Easing.out(Easing.exp),
         });
 
@@ -153,13 +153,13 @@ export function ModernSnackbar({
         // Auto-dismiss timer
         if (duration > 0) {
             timeoutRef.current = setTimeout(() => {
-                hideSnackbar();
+                onHide();
             }, duration);
         }
-    };
+    }, [variant, translateY, opacity, scale, duration, onHide]);
 
     // Enhanced exit animation
-    const hideSnackbar = () => {
+    const hideSnackbar = useCallback(() => {
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
         }
@@ -170,16 +170,16 @@ export function ModernSnackbar({
         });
 
         opacity.value = withTiming(0, {
-            duration: motion.duration.fast,
+            duration: 150,
         });
 
         scale.value = withTiming(0.9, {
-            duration: motion.duration.fast,
+            duration: 150,
         });
 
         // Call onHide after animation
-        setTimeout(onHide, motion.duration.fast);
-    };
+        setTimeout(onHide, 150);
+    }, [position, translateY, opacity, scale, onHide]);
 
     // Swipe to dismiss gesture handler
     const gestureHandler = useAnimatedGestureHandler({
@@ -212,13 +212,13 @@ export function ModernSnackbar({
             if (translation > 50 || velocity > 500) {
                 // Dismiss
                 gestureTranslateY.value = withTiming(200 * dismissDirection, {
-                    duration: motion.duration.fast,
+                    duration: 150,
                 });
                 gestureOpacity.value = withTiming(0, {
-                    duration: motion.duration.fast,
+                    duration: 150,
                 });
 
-                setTimeout(() => runOnJS(onHide)(), motion.duration.fast);
+                setTimeout(() => runOnJS(onHide)(), 150);
             } else {
                 // Snap back
                 gestureTranslateY.value = withSpring(0);
@@ -247,7 +247,7 @@ export function ModernSnackbar({
                 clearTimeout(timeoutRef.current);
             }
         };
-    }, [visible]);
+    }, [visible, hideSnackbar, showSnackbar]);
 
     // Animated styles
     const containerStyle = useAnimatedStyle(() => ({
@@ -314,23 +314,23 @@ export function ModernSnackbar({
                             gap: theme.spacing.sm,
                         }}
                         onPress={action ? undefined : hideSnackbar}
-                        android_ripple={!action ? { color: variants.surfacePressed } : null}
+                        android_ripple={!action ? { color: variants.neutral.dark } : null}
                     >
                         {/* Icon */}
                         {variantStyle.iconName && (
-                            <Feather
+                            <ThemedIcon
                                 name={variantStyle.iconName as any}
                                 size={20}
-                                color={variantStyle.iconColor}
+                                color="accent"
                             />
                         )}
 
                         {/* Message */}
                         <Text
                             style={[
-                                typography.bodyMedium,
+                                typography.body,
                                 {
-                                    color: semanticColors.text,
+                                    color: semanticColors.primary,
                                     flex: 1,
                                     lineHeight: 20,
                                 },
@@ -347,18 +347,18 @@ export function ModernSnackbar({
                                     paddingVertical: theme.spacing.xs,
                                     paddingHorizontal: theme.spacing.sm,
                                     borderRadius: theme.borderRadius.sm,
-                                    backgroundColor: variants.primarySubtle,
+                                    backgroundColor: variants.primary.light,
                                 }}
                                 onPress={() => {
                                     Haptics.selectionAsync();
                                     action.onPress();
                                     hideSnackbar();
                                 }}
-                                android_ripple={{ color: variants.primaryPressed }}
+                                android_ripple={{ color: variants.primary.dark }}
                             >
                                 <Text
                                     style={[
-                                        typography.labelMedium,
+                                        typography.label,
                                         {
                                             color: semanticColors.primary,
                                             fontWeight: '600',
@@ -378,12 +378,12 @@ export function ModernSnackbar({
                                     borderRadius: theme.borderRadius.sm,
                                 }}
                                 onPress={hideSnackbar}
-                                android_ripple={{ color: variants.surfacePressed }}
+                                android_ripple={{ color: variants.neutral.dark }}
                             >
-                                <Feather
+                                <ThemedIcon
                                     name="x"
                                     size={16}
-                                    color={semanticColors.textSecondary}
+                                    color="secondary"
                                 />
                             </Pressable>
                         )}
@@ -400,7 +400,7 @@ export function ModernSnackbar({
                                 width: 24,
                                 height: 3,
                                 borderRadius: 1.5,
-                                backgroundColor: semanticColors.border,
+                                backgroundColor: semanticColors.secondary,
                                 opacity: 0.5,
                             }}
                         />
@@ -461,7 +461,7 @@ export const useSnackbar = () => {
         showWarning,
         showInfo,
         SnackbarComponent: () => (
-            <ModernSnackbar
+            <ThemedSnackbar
                 visible={snackbarState.visible}
                 message={snackbarState.message}
                 variant={snackbarState.variant}

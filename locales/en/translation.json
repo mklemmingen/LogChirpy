@@ -1,15 +1,16 @@
 {
-  "welcome": "Logging the Birdies here",
-  "start_logging": "Start logging, saving and exploring chirps 🐦",
+  "welcome": "Welcome to LogChirpy",
+  "start_logging": "Discover, log, and explore the world of birds",
   "tabs": {
     "home": "Home",
-    "birdex": "BirdyDex",
-    "smartSearch": "Name?",
+    "birdex": "BirdDex",
+    "smartSearch": "Identify",
     "archive": "Archive",
-    "account": "Account"
+    "account": "Account",
+    "settings": "Settings"
   },
   "archive": {
-    "title":            "Archive | My Spottings",
+    "title":            "My Bird Sightings",
     "entry_name":       "Name",
     "entry_date":       "Date",
     "entry_picture":    "Picture",
@@ -58,6 +59,24 @@
     "audio_play_failed": "Failed to play audio",
     "load_detail_failed": "Failed to load spotting details",
     "location_unknown": "Location not recorded"
+  },
+  "birdnet": {
+    "identify_button": "Identify Bird from Audio",
+    "identify_button_offline": "Identify Bird (AI)",
+    "identifying": "Identifying Bird...",
+    "identification_success": "Bird identification completed!",
+    "identification_failed": "Bird identification failed",
+    "no_audio_error": "No audio file available for identification",
+    "no_internet_error": "No internet connection available",
+    "network_error": "Network error. Please check your internet connection.",
+    "audio_not_found": "Audio file not found",
+    "no_birds_detected": "No bird sounds detected with sufficient confidence",
+    "prediction_selected": "Prediction selected!",
+    "predictions_title": "Bird Identification Results",
+    "disclaimer": "Tap a prediction to select it. Results are AI-generated and may not be 100% accurate.",
+    "offline_mode": "Offline AI",
+    "online_mode": "Online API",
+    "cached_result": "Cached Result"
   },
   "birddex": {
     "error": "Error",
@@ -180,7 +199,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "confirm": "Confirm",
-    "grant_permission": "Grant Permission"
+    "grant_permission": "Grant Permission",
+    "close": "Close"
   },
   "auth": {
     "login_title": "Welcome Back",
@@ -229,7 +249,19 @@
   },
   "account": {
     "title": "Account Details",
-    "email_label": "Email"
+    "email_label": "Email",
+    "subtitle": "Manage your profile and preferences",
+    "signOutTitle": "Sign Out",
+    "signOutMessage": "Are you sure you want to sign out?",
+    "signOutError": "Failed to sign out. Please try again.",
+    "signOutWarning": "You will need to sign in again to access your data",
+    "profileInfo": "Profile Information",
+    "verified": "Verified",
+    "actions": "Actions",
+    "syncStatus": "Sync Status",
+    "syncDescription": "Your data is automatically synced to the cloud",
+    "privacy": "Privacy & Data",
+    "privacyDescription": "Your data is encrypted and secure"
   },
   "settings": {
     "language": "Change Language",
@@ -239,7 +271,24 @@
   "audio": {
     "start": "Start recording",
     "stop": "Stop & use recording",
-    "saving": "Processing audio…"
+    "saving": "Processing audio…",
+    "permission_required": "Microphone Permission Required",
+    "permission_explanation": "LogChirpy needs access to your microphone to record bird sounds",
+    "grant_permission": "Grant Permission",
+    "permission_denied": "Microphone Permission Denied",
+    "permission_denied_message": "You need to enable microphone access in your device settings to record audio",
+    "permission_message": "Please grant microphone access to record bird sounds",
+    "play": "Play",
+    "pause": "Pause",
+    "stop_recording_title": "Stop Recording?",
+    "stop_recording_message": "Are you sure you want to stop recording?",
+    "stop_and_exit": "Stop & Exit",
+    "recording_failed": "Recording failed",
+    "save_failed": "Failed to save audio",
+    "playback_failed": "Audio playback failed",
+    "processing": "Processing audio...",
+    "record_audio": "Record Audio",
+    "recording": "Recording..."
   },
   "log": {
     "save_success": "Successfully saved entry",
@@ -328,9 +377,176 @@
     "error": "Error",
     "confirm": "Confirm",
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "settings": "Settings",
+    "continue": "Continue",
+    "close": "Close"
   },
   "warnings": {
     "media_permission_required": "Media access is required to save photos and recordings. Please enable access in settings."
-  }
+  },
+  "navigation": {
+    "home_description": "Home and overview",
+    "birdex_description": "Bird encyclopedia", 
+    "smart_search_description": "Smart bird search",
+    "archive_description": "Your bird archives",
+    "account_description": "Account settings",
+    "settings_description": "App settings"
+  },
+  "home": {
+    "camera_description": "Real-time AI bird detection and classification",
+    "photo_description": "Capture and identify birds from photos",
+    "audio_description": "Record and analyze bird songs",
+    "manual_description": "Manual entry for field observations"
+  },
+  "app_errors": {
+    "password_reset_error": "Unable to reset password",
+    "login_successful": "Successfully signed in",
+    "login_error": "Sign in failed",
+    "user_created": "Account created successfully",
+    "signup_error": "Unable to create account",
+    "error_signing_out": "Unable to sign out",
+    "confirm_password_required": "Please confirm your password",
+    "passwords_do_not_match": "Passwords do not match",
+    "confirm_password_placeholder": "Confirm password",
+    "audio_playback_error": "Unable to play audio",
+    "share_error": "Unable to share",
+    "save_image_error": "Unable to save image",
+    "failed_load_spottings": "Unable to load sightings",
+    "sync_failed": "Unable to sync data",
+    "load_bird_detail_error": "Unable to load bird details",
+    "failed_load_categories": "Unable to load categories",
+    "load_data_error": "Unable to load data",
+    "failed_load_settings": "Unable to load settings",
+    "failed_change_language": "Unable to change language",
+    "failed_save_gps_setting": "Unable to save location preference",
+    "smart_search_error": "Search failed",
+    "local_db_init_failed": "Database initialization failed",
+    "failed_init_local_db": "Unable to initialize database",
+    "auth_provider_error": "useAuth must be used within an AuthProvider",
+    "log_draft_provider_error": "useLogDraft must be inside <LogDraftProvider>",
+    "failed_load_draft": "Unable to load draft"
+  },
+  "loading_messages": {
+    "initializing_offline_model": "Initializing offline bird classification model...",
+    "offline_model_success": "Offline bird classification model initialized successfully",
+    "offline_model_failed": "Unable to initialize offline model",
+    "loading_application": "Loading application...",
+    "loading_fonts_assets": "Loading fonts and assets...",
+    "initializing_local_db": "Initializing local database...",
+    "loading_ai_models": "Loading AI models..."
+  },
+  "log_screens": {
+    "manual_title": "Manual input / saving entry",
+    "photo_title": "Take the photo", 
+    "video_title": "Take a video",
+    "audio_title": "Record an audio",
+    "permission_check_failed": "Unable to check permissions",
+    "failed_open_settings": "Unable to open settings",
+    "permission_request_failed": "Permission request failed",
+    "recording_failed": "Recording failed",
+    "no_recording_uri": "No recording URI available",
+    "stop_recording_failed": "Unable to stop recording",
+    "playback_failed": "Unable to play audio",
+    "photo_capture_failed": "Unable to capture photo",
+    "bird_identification_error": "Bird identification failed",
+    "location_error": "Unable to determine location",
+    "save_error": "Unable to save",
+    "image_picker_error": "Unable to select image",
+    "gallery_picker_error": "Unable to access gallery",
+    "recording_error": "Recording error",
+    "recording_failed_start": "Recording failed to start",
+    "failed_stop_recording": "Unable to stop recording"
+  },
+  "camera_advanced": {
+    "media_permission_denied": "Media library permission denied",
+    "asset_created": "Photo saved",
+    "saved_to_album": "Photo saved to gallery",
+    "failed_save_media": "Unable to save to gallery",
+    "failed_save_image": "Unable to save image",
+    "deleted_old_file": "Cleared old file",
+    "no_camera_found": "No camera device found",
+    "failed_load_settings": "Unable to load settings",
+    "media_permission_denied_short": "Media permission denied",
+    "error_checking_permissions": "Unable to check permissions",
+    "classifier_result": "Bird identified",
+    "classification_failed": "Unable to identify bird",
+    "photo_taken": "Photo captured",
+    "photo_saved_document": "Photo saved",
+    "error_copying_photo": "Unable to save photo",
+    "classifier_ready": "Classifier is ready",
+    "object_detector_not_loaded": "Detection system not ready",
+    "image_classifier_not_ready": "Bird identification system loading...",
+    "deleted_previous_photo": "Previous photo removed",
+    "error_deleting_photo": "Unable to remove previous photo",
+    "rendering_saving_image": "Processing image...",
+    "original_result_uri": "Image processed",
+    "mlkit_path": "AI model loaded",
+    "detection_results": "Birds detected",
+    "classifier_method_unavailable": "Classifier method not available",
+    "failed_classify_crop": "Failed to classify crop:",
+    "deleted_crop": "Deleted crop:",
+    "could_not_delete_crop": "Could not delete crop file:",
+    "full_image_classification": "Analyzing full image",
+    "failed_classify_full_image": "Unable to analyze full image",
+    "cleaning_old_files": "Cleaning up temporary files...",
+    "cleanup_failed": "Unable to clean up files",
+    "camera_initialized": "Camera initialized!"
+  },
+  "components": {
+    "bird_animation_screen_focused": "Animation started",
+    "bird_animation_screen_unfocused": "Animation paused",
+    "bird_animation_starting": "Initializing animations",
+    "bird_animation_cleanup": "Cleaning up animations",
+    "bird_animation_setup": "Setting up animations",
+    "error_playing_sound": "Unable to play bird sound",
+    "bird_animation_rendering": "Rendering bird animations",
+    "haptic_tab_error": "Touch feedback error",
+    "no_camera_found": "No Camera Found",
+    "camera_permission_check": "Please check your device's camera settings or permissions.",
+    "retry": "Retry"
+  },
+  "not_found": {
+    "page_title": "Page Not Found",
+    "nest_not_found": "Nest Not Found",
+    "page_description": "This bird seems to have flown away! The page you're looking for doesn't exist in our aviary.",
+    "return_to_nest": "Return to Nest",
+    "explore_birdex": "Explore BirdDex",
+    "fun_fact": "Did you know? Migratory birds can navigate using Earth's magnetic field!"
+  },
+  "photo": {
+    "select_best_photo": "Select Your Best Photo",
+    "use_this_photo": "Use This Photo",
+    "choose_existing": "Choose from Gallery",
+    "take_photos": "Take Photos",
+    "tap_to_select": "Tap to select photos",
+    "take_more": "Take More Photos",
+    "add_photo": "Add Photo",
+    "capture_description": "Capture beautiful bird moments",
+    "no_photos": "No Photos Yet",
+    "take_at_least_one": "Please take at least one photo to continue",
+    "photos_taken": "{{count}} photo(s) captured",
+    "continue_with_photos": "Continue with {{count}} Photo(s)"
+  },
+  "video": {
+    "recording_failed": "Recording failed",
+    "stop_recording_title": "Stop Recording?",
+    "stop_recording_message": "You're currently recording. Would you like to stop and save the video?",
+    "stop_and_exit": "Stop & Save",
+    "processing": "Processing video...",
+    "preview_title": "Video Preview"
+  },
+  "location": {
+    "success": "Location updated",
+    "failed_to_get": "Unable to determine location",
+    "permission_denied": "Location permission denied"
+  },
+  "validation": {
+    "bird_type_required": "Please specify the bird type",
+    "media_or_notes_required": "Please add at least one photo, audio, video, or notes"
+  },
+  "warnings": {
+    "media_permission_required": "Media Library Permission Required"
+  },
+  "window": "LogChirpy"
 }

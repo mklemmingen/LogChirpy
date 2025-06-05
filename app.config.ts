@@ -42,6 +42,11 @@ export default {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#FAFAFA" // Light neutral
+      },
+      gradleProperties: {
+        "android.useAndroidX": "true",
+        "android.enableJetifier": "true",
+        "expo.useLegacyPackaging": "false"
       }
     },
     newArchEnabled: false,

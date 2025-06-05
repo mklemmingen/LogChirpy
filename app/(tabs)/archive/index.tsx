@@ -3,6 +3,7 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   SafeAreaView,
@@ -11,7 +12,8 @@ import {
   View,
 } from 'react-native';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import { Feather } from '@expo/vector-icons';
 import {BlurView} from 'expo-blur';
 import {router} from 'expo-router';
 import Animated, {
@@ -24,10 +26,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import {BirdSpottingCard} from '@/components/ModernCard';
+import {ThemedView, Card} from '@/components/ThemedView';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {Button} from '@/components/Button';
+import {useColors, useTypography, useBorderRadius, useShadows, useSpacing} from '@/hooks/useThemeColor';
 import {type BirdSpotting, getBirdSpottings} from '@/services/database';
 import {syncDatabase} from '@/services/sync_layer';
 
@@ -38,10 +41,8 @@ const CARD_WIDTH = (width - (CARD_MARGIN * 3)) / CARDS_PER_ROW;
 
 // Enhanced empty state component
 function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) {
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
+  const colors = useColors();
   const typography = useTypography();
-  const theme = useTheme();
   const { t } = useTranslation();
 
   const floatAnimation = useSharedValue(0);
@@ -57,16 +58,16 @@ function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) 
 
   return (
       <Animated.View style={[styles.emptyState, animatedStyle]}>
-        <View style={[styles.emptyIcon, { backgroundColor: variants.primarySubtle }]}>
-          <Feather name="archive" size={48} color={semanticColors.primary} />
+        <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
+          <ThemedIcon name="archive" size={48} color="primary" />
         </View>
 
-        <ThemedText variant="headlineMedium" style={styles.emptyTitle}>
+        <ThemedText variant="h2" style={styles.emptyTitle}>
           {t('archive.empty')}
         </ThemedText>
 
         <ThemedText
-            variant="bodyMedium"
+            variant="body"
             color="secondary"
             style={styles.emptyDescription}
         >
@@ -75,13 +76,12 @@ function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) 
 
         <ThemedPressable
             variant="primary"
-            size="large"
+            size="lg"
             onPress={onStartLogging}
             style={styles.startButton}
-            glowOnHover
         >
-          <Feather name="plus" size={20} color={semanticColors.onPrimary} />
-          <ThemedText variant="labelLarge" style={{ color: semanticColors.onPrimary }}>
+          <ThemedIcon name="plus" size={20} color="primary" />
+          <ThemedText variant="label" color="primary">
             {t('archive.start_logging')}
           </ThemedText>
         </ThemedPressable>
@@ -105,10 +105,8 @@ function SearchHeader({
   onSync: () => void;
   isLoading: boolean;
 }) {
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
+  const colors = useColors();
   const typography = useTypography();
-  const theme = useTheme();
   const { t } = useTranslation();
 
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -134,50 +132,46 @@ function SearchHeader({
   return (
       <View style={styles.searchHeader}>
         {/* Search Bar */}
-        <BlurView
-            intensity={60}
-            tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
-            style={[styles.searchContainer, { borderColor: variants.primaryMuted }]}
-        >
-          <Feather name="search" size={20} color={semanticColors.textSecondary} />
+        <Card style={styles.searchContainer}>
+          <ThemedIcon name="search" size={20} color="secondary" />
           <TextInput
-              style={[styles.searchInput, typography.bodyMedium, { color: semanticColors.text }]}
+              style={[styles.searchInput, { color: colors.text }]}
               placeholder={t('archive.search_placeholder')}
-              placeholderTextColor={semanticColors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               value={searchQuery}
               onChangeText={onSearchChange}
           />
           {searchQuery.length > 0 && (
               <Pressable onPress={() => onSearchChange('')}>
-                <Feather name="x" size={18} color={semanticColors.textSecondary} />
+                <ThemedIcon name="x" size={18} color="secondary" />
               </Pressable>
           )}
-        </BlurView>
+        </Card>
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           {/* Sort Button */}
-          <Pressable
-              style={[styles.actionButton, { backgroundColor: variants.surfaceHover }]}
+          <ThemedPressable
+              variant="ghost"
+              style={styles.actionButton}
               onPress={() => setShowSortMenu(!showSortMenu)}
-              android_ripple={{ color: variants.surfacePressed }}
           >
-            <Feather name={getSortIcon()} size={18} color={semanticColors.text} />
-          </Pressable>
+            <ThemedIcon name={getSortIcon()} size={18} color="primary" />
+          </ThemedPressable>
 
           {/* Sync Button */}
-          <Pressable
-              style={[styles.actionButton, { backgroundColor: variants.surfaceHover }]}
+          <ThemedPressable
+              variant="ghost"
+              style={styles.actionButton}
               onPress={onSync}
               disabled={isLoading}
-              android_ripple={{ color: variants.surfacePressed }}
           >
-            <Feather
+            <ThemedIcon
                 name="refresh-cw"
                 size={18}
-                color={isLoading ? semanticColors.disabled : semanticColors.text}
+                color={isLoading ? 'secondary' : 'primary'}
             />
-          </Pressable>
+          </ThemedPressable>
         </View>
 
         {/* Sort Menu */}
@@ -187,43 +181,38 @@ function SearchHeader({
                 exiting={FadeOutUp.duration(150)}
                 style={styles.sortMenu}
             >
-              <BlurView
-                  intensity={80}
-                  tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
-                  style={[styles.sortMenuContent, { borderColor: variants.primaryMuted }]}
-              >
+              <Card style={styles.sortMenuContent}>
                 {[
-                  { key: 'newest', label: t('archive.sort_newest'), icon: 'arrow-down' },
-                  { key: 'oldest', label: t('archive.sort_oldest'), icon: 'arrow-up' },
-                  { key: 'alphabetical', label: t('archive.sort_alphabetical'), icon: 'a-z' },
+                  { key: 'newest', label: t('archive.sort_newest'), icon: 'arrow-down' as keyof typeof Feather.glyphMap },
+                  { key: 'oldest', label: t('archive.sort_oldest'), icon: 'arrow-up' as keyof typeof Feather.glyphMap },
+                  { key: 'alphabetical', label: t('archive.sort_alphabetical'), icon: 'type' as keyof typeof Feather.glyphMap },
                 ].map((option) => (
                     <Pressable
                         key={option.key}
                         style={[
                           styles.sortOption,
-                          sortOrder === option.key && { backgroundColor: variants.primarySubtle }
+                          sortOrder === option.key && { backgroundColor: colors.backgroundSecondary }
                         ]}
                         onPress={() => {
                           onSortChange(option.key as any);
                           setShowSortMenu(false);
                           Haptics.selectionAsync();
                         }}
-                        android_ripple={{ color: variants.surfacePressed }}
                     >
-                      <Feather
-                          name={option.icon as any}
+                      <ThemedIcon
+                          name={option.icon}
                           size={16}
-                          color={sortOrder === option.key ? semanticColors.primary : semanticColors.textSecondary}
+                          color={sortOrder === option.key ? 'primary' : 'secondary'}
                       />
                       <ThemedText
-                          variant="bodyMedium"
+                          variant="body"
                           color={sortOrder === option.key ? 'primary' : 'secondary'}
                       >
                         {option.label}
                       </ThemedText>
                     </Pressable>
                 ))}
-              </BlurView>
+              </Card>
             </Animated.View>
         )}
       </View>
@@ -232,11 +221,8 @@ function SearchHeader({
 
 export default function ArchiveScreen() {
   const {t} = useTranslation();
-  const semanticColors = useSemanticColors();
-  const variants = useColorVariants();
+  const colors = useColors();
   const typography = useTypography();
-  const theme = useTheme();
-  const motion = useMotionValues();
 
   // State management
   const [spottings, setSpottings] = useState<BirdSpotting[]>([]);
@@ -350,26 +336,49 @@ export default function ArchiveScreen() {
           layout={Layout.springify()}
           style={[styles.cardContainer, {width: CARD_WIDTH}]}
       >
-        <BirdSpottingCard
-            birdName={item.birdType || t('archive.unknown_bird')}
-            scientificName={item.latinBirDex}
-            date={formatDate(item.date)}
-            location={formatLocation(item.gpsLat, item.gpsLng)}
-            image={item.imageUri ? {uri: item.imageUri} : undefined}
-            hasAudio={!!item.audioUri}
-            hasVideo={!!item.videoUri}
+        <ThemedPressable
+            variant="ghost"
             onPress={() => handleSpottingPress(item)}
-        />
+            style={styles.spottingCard}
+        >
+          <Card style={styles.spottingCardInner}>
+            {item.imageUri && (
+              <Image source={{uri: item.imageUri}} style={styles.spottingImage} />
+            )}
+            <View style={styles.spottingContent}>
+              <ThemedText variant="body" numberOfLines={1} style={styles.birdName}>
+                {item.birdType || t('archive.unknown_bird')}
+              </ThemedText>
+              {item.latinBirDex && (
+                <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
+                  {item.latinBirDex}
+                </ThemedText>
+              )}
+              <ThemedText variant="caption" color="secondary">
+                {formatDate(item.date)}
+              </ThemedText>
+              {formatLocation(item.gpsLat, item.gpsLng) && (
+                <ThemedText variant="caption" color="secondary" numberOfLines={1}>
+                  {formatLocation(item.gpsLat, item.gpsLng)}
+                </ThemedText>
+              )}
+              <View style={styles.mediaIndicators}>
+                {item.audioUri && <ThemedIcon name="mic" size={12} color="primary" />}
+                {item.videoUri && <ThemedIcon name="video" size={12} color="primary" />}
+              </View>
+            </View>
+          </Card>
+        </ThemedPressable>
       </Animated.View>
-  ), [handleSpottingPress, t]);
+  ), [handleSpottingPress, t, colors]);
 
   // Loading state
   if (loading) {
     return (
-        <SafeAreaView style={[styles.container, {backgroundColor: semanticColors.background}]}>
+        <SafeAreaView style={[styles.container, {backgroundColor: colors.background}]}>
           <View style={styles.loadingContainer}>
-            <Feather name="archive" size={48} color={semanticColors.primary}/>
-            <ThemedText variant="bodyMedium" color="secondary" style={styles.loadingText}>
+            <ThemedIcon name="archive" size={48} color="primary"/>
+            <ThemedText variant="body" color="secondary" style={styles.loadingText}>
               {t('archive.loading')}
             </ThemedText>
           </View>
@@ -378,13 +387,13 @@ export default function ArchiveScreen() {
   }
 
   return (
-      <SafeAreaView style={[styles.container, {backgroundColor: semanticColors.background}]}>
+      <SafeAreaView style={[styles.container, {backgroundColor: colors.background}]}>
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText variant="displaySmall" style={styles.title}>
+          <ThemedText variant="h2" style={styles.title}>
             {t('archive.title')}
           </ThemedText>
-          <ThemedText variant="bodyMedium" color="secondary" style={styles.subtitle}>
+          <ThemedText variant="body" color="secondary" style={styles.subtitle}>
             {t('archive.subtitle', {count: filteredSpottings.length})}
           </ThemedText>
         </View>
@@ -403,11 +412,11 @@ export default function ArchiveScreen() {
         {filteredSpottings.length === 0 ? (
             searchQuery ? (
                 <View style={styles.noResultsContainer}>
-                  <Feather name="search" size={48} color={semanticColors.textSecondary}/>
-                  <ThemedText variant="headlineSmall" color="secondary">
+                  <ThemedIcon name="search" size={48} color="secondary"/>
+                  <ThemedText variant="h3" color="secondary">
                     {t('archive.no_search_results')}
                   </ThemedText>
-                  <ThemedText variant="bodyMedium" color="tertiary">
+                  <ThemedText variant="body" color="secondary">
                     {t('archive.try_different_search')}
                   </ThemedText>
                 </View>
@@ -427,8 +436,8 @@ export default function ArchiveScreen() {
                   <RefreshControl
                       refreshing={refreshing}
                       onRefresh={() => loadSpottings(true)}
-                      tintColor={semanticColors.primary}
-                      colors={[semanticColors.primary]}
+                      tintColor={colors.primary}
+                      colors={[colors.primary]}
                   />
                 }
                 ItemSeparatorComponent={() => <View style={styles.separator}/>}
@@ -523,6 +532,30 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     marginBottom: 16,
+  },
+  spottingCard: {
+    borderRadius: 12,
+  },
+  spottingCardInner: {
+    overflow: 'hidden',
+    padding: 0,
+  },
+  spottingImage: {
+    width: '100%',
+    height: 80,
+    resizeMode: 'cover',
+  },
+  spottingContent: {
+    padding: 12,
+    gap: 4,
+  },
+  birdName: {
+    fontWeight: '600',
+  },
+  mediaIndicators: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
   },
   separator: {
     height: 8,

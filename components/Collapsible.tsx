@@ -1,14 +1,14 @@
 import React, { PropsWithChildren, useState } from 'react';
 import { Pressable, StyleSheet, ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
+// import { BlurView } from 'expo-blur';
+import { ThemedIcon } from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
-  interpolate,
+  // interpolate,
   Layout,
   FadeInDown,
   FadeOutUp,
@@ -19,9 +19,10 @@ import { ThemedView } from '@/components/ThemedView';
 import {
   useSemanticColors,
   useColorVariants,
-  useTypography,
+  // useTypography,
   useTheme,
   useMotionValues,
+  useColors,
 } from '@/hooks/useThemeColor';
 
 interface CollapsibleProps extends PropsWithChildren {
@@ -53,9 +54,10 @@ export function Collapsible({
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const semanticColors = useSemanticColors();
   const variants = useColorVariants();
-  const typography = useTypography();
+  // const typography = useTypography();
   const theme = useTheme();
   const motion = useMotionValues();
+  const colors = useColors();
 
   // Animation values
   const rotation = useSharedValue(defaultOpen ? 180 : 0);
@@ -67,7 +69,7 @@ export function Collapsible({
     switch (variant) {
       case 'card':
         return {
-          backgroundColor: semanticColors.backgroundElevated,
+          backgroundColor: semanticColors.surface,
           borderRadius: theme.borderRadius.lg,
           borderWidth: 0,
           ...theme.shadows.sm,
@@ -77,11 +79,11 @@ export function Collapsible({
           backgroundColor: 'transparent',
           borderRadius: theme.borderRadius.md,
           borderWidth: 1,
-          borderColor: semanticColors.border,
+          borderColor: colors.border,
         };
       case 'subtle':
         return {
-          backgroundColor: variants.surfaceHover,
+          backgroundColor: variants.neutral.light,
           borderRadius: theme.borderRadius.md,
           borderWidth: 0,
         };
@@ -174,8 +176,8 @@ export function Collapsible({
   }));
 
   const rippleColor = variant === 'card'
-      ? variants.surfacePressed
-      : variants.primarySubtle;
+      ? variants.neutral.dark
+      : variants.primary.light;
 
   return (
       <ThemedView style={[styles.container, variantStyle, style]}>
@@ -200,7 +202,7 @@ export function Collapsible({
               style={[
                 StyleSheet.absoluteFillObject,
                 {
-                  backgroundColor: variants.surfaceHover,
+                  backgroundColor: variants.neutral.light,
                   borderRadius: variant === 'default' ? 0 : theme.borderRadius.md,
                 },
                 backgroundAnimatedStyle,
@@ -208,28 +210,28 @@ export function Collapsible({
               pointerEvents="none"
           />
 
-          <ThemedView surface="transparent" style={styles.headerContent}>
+          <ThemedView background="transparent" style={styles.headerContent}>
             {/* Leading icon (optional) */}
             {icon && (
                 <ThemedView style={[
                   styles.leadingIcon,
-                  { backgroundColor: variants.primarySubtle }
+                  { backgroundColor: variants.primary.light }
                 ]}>
-                  <Feather
+                  <ThemedIcon
                       name={icon as any}
                       size={sizeConfig.iconSize - 4}
-                      color={semanticColors.primary}
+                      color="accent"
                   />
                 </ThemedView>
             )}
 
             {/* Title and subtitle */}
-            <ThemedView surface="transparent" style={styles.titleContainer}>
+            <ThemedView background="transparent" style={styles.titleContainer}>
               <ThemedText
-                  variant={size === 'large' ? 'headlineSmall' : 'bodyLarge'}
+                  variant={size === 'large' ? 'h3' : 'body'}
                   style={[
                     styles.title,
-                    { color: semanticColors.text },
+                    { color: semanticColors.primary },
                     disabled && { opacity: 0.5 }
                   ]}
                   numberOfLines={1}
@@ -238,7 +240,7 @@ export function Collapsible({
               </ThemedText>
               {subtitle && (
                   <ThemedText
-                      variant={size === 'large' ? 'bodyMedium' : 'bodySmall'}
+                      variant={size === 'large' ? 'body' : 'bodySmall'}
                       color="secondary"
                       style={[
                         styles.subtitle,
@@ -253,10 +255,10 @@ export function Collapsible({
 
             {/* Chevron icon */}
             <Animated.View style={chevronAnimatedStyle}>
-              <Feather
+              <ThemedIcon
                   name="chevron-down"
                   size={sizeConfig.iconSize}
-                  color={disabled ? semanticColors.disabled : semanticColors.textSecondary}
+                  color={disabled ? "tertiary" : "secondary"}
               />
             </Animated.View>
           </ThemedView>
@@ -265,8 +267,8 @@ export function Collapsible({
         {/* Content */}
         {isOpen && (
             <Animated.View
-                entering={FadeInDown.duration(motion.duration.medium).springify()}
-                exiting={FadeOutUp.duration(motion.duration.fast).springify()}
+                entering={FadeInDown.duration(200).springify()}
+                exiting={FadeOutUp.duration(150).springify()}
                 layout={Layout.springify()}
                 style={[
                   styles.content,
@@ -281,7 +283,7 @@ export function Collapsible({
                   <ThemedView
                       style={[
                         styles.separator,
-                        { backgroundColor: semanticColors.border }
+                        { backgroundColor: colors.border }
                       ]}
                   />
               )}

@@ -1,10 +1,12 @@
 {
-  "welcome": "Hier werden die Vögel protokolliert",
-  "start_logging": "Beginne mit dem Protokollieren, Speichern und Erkunden von Zwitschern 🐦",
+  "welcome": "Willkommen bei LogChirpy",
+  "start_logging": "Entdecken, dokumentieren und erforschen Sie die Welt der Vögel",
   "tabs": {
+    "home": "Startseite",
+    "birdex": "VogelDex",
+    "smartSearch": "Identifizieren",
     "archive": "Archiv",
-    "log": "Zwitscher protokollieren",
-    "account": "Cloud-Synchronisierung",
+    "account": "Konto",
     "settings": "Einstellungen"
   },
   "archive": {
@@ -217,6 +219,152 @@
   "common": {
     "ok": "OK",
     "error": "Fehler",
-    "confirm": "Bestätigen"
-  }
+    "confirm": "Bestätigen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "settings": "Einstellungen",
+    "continue": "Fortfahren",
+    "close": "Schließen"
+  },
+  "birdnet": {
+    "identify_button": "Vogel identifizieren (KI)",
+    "identify_button_offline": "Vogel identifizieren (Offline-KI)",
+    "identifying": "Identifiziere Vogel...",
+    "no_audio_error": "Keine Audiodatei hinzugefügt",
+    "no_internet_error": "Keine Internetverbindung verfügbar",
+    "identification_success": "Vogel erfolgreich identifiziert",
+    "no_birds_detected": "Keine Vögel in der Aufnahme erkannt",
+    "identification_failed": "Vogelidentifikation fehlgeschlagen",
+    "network_error": "Netzwerkfehler bei der Identifikation",
+    "audio_not_found": "Audiodatei nicht gefunden",
+    "prediction_selected": "Vorhersage ausgewählt: {{species}}",
+    "predictions_title": "Vogelidentifikationsergebnisse",
+    "disclaimer": "Tippen Sie eine Vorhersage an, um sie auszuwählen. Ergebnisse sind KI-generiert und können ungenau sein.",
+    "offline_mode": "Offline-KI",
+    "online_mode": "Online-API",
+    "cached_result": "Zwischengespeichertes Ergebnis"
+  },
+  "smartSearch": {
+    "title": "Intelligente Vogelsuche",
+    "subtitle": "Finden Sie Vögel anhand von Namen",
+    "placeholder": "Vogelnamen eingeben...",
+    "tipsTitle": "Suchtipps",
+    "tip1": "Versuchen Sie deutsche oder wissenschaftliche Namen",
+    "tip2": "Machen Sie sich keine Sorgen um die exakte Schreibweise - wir finden ähnliche Treffer",
+    "tip3": "Beispiele: 'Amsel', 'Turdus merula', 'Rotkehlchen'",
+    "searching": "Suche...",
+    "noResults": "Keine Ergebnisse gefunden",
+    "tryDifferent": "Versuchen Sie einen anderen Suchbegriff",
+    "exactMatch": "Exakte Übereinstimmung",
+    "veryClose": "Sehr ähnlich",
+    "closeMatch": "Ähnlich",
+    "possibleMatch": "Mögliche Übereinstimmung",
+    "english": "Englisch",
+    "scientific": "Wissenschaftlich",
+    "german": "Deutsch",
+    "spanish": "Spanisch",
+    "ukrainian": "Ukrainisch",
+    "arabic": "Arabisch"
+  },
+  "app_errors": {
+    "password_reset_error": "Passwort kann nicht zurückgesetzt werden",
+    "login_successful": "Erfolgreich angemeldet",
+    "login_error": "Anmeldung fehlgeschlagen",
+    "user_created": "Konto erfolgreich erstellt",
+    "signup_error": "Konto kann nicht erstellt werden",
+    "error_signing_out": "Abmeldung nicht möglich",
+    "confirm_password_required": "Bitte bestätigen Sie Ihr Passwort",
+    "passwords_do_not_match": "Passwörter stimmen nicht überein",
+    "confirm_password_placeholder": "Passwort bestätigen"
+  },
+  "loading_messages": {
+    "initializing_offline_model": "Initialisiere Offline-Vogelklassifikationsmodell...",
+    "offline_model_success": "Offline-Vogelklassifikationsmodell erfolgreich initialisiert",
+    "offline_model_failed": "Offline-Modell kann nicht initialisiert werden",
+    "loading_application": "Lade Anwendung...",
+    "loading_fonts_assets": "Lade Schriftarten und Assets...",
+    "initializing_local_db": "Initialisiere lokale Datenbank...",
+    "loading_ai_models": "Lade KI-Modelle..."
+  },
+  "camera_advanced": {
+    "media_permission_denied": "Medienbibliothek-Berechtigung verweigert",
+    "asset_created": "Foto gespeichert",
+    "saved_to_album": "Foto in Galerie gespeichert",
+    "failed_save_media": "Kann nicht in Galerie speichern",
+    "failed_save_image": "Bild kann nicht gespeichert werden",
+    "deleted_old_file": "Alte Datei gelöscht",
+    "no_camera_found": "Kein Kameragerät gefunden",
+    "failed_load_settings": "Einstellungen können nicht geladen werden",
+    "classifier_ready": "Klassifizierer ist bereit",
+    "object_detector_not_loaded": "Erkennungssystem nicht bereit",
+    "image_classifier_not_ready": "Vogelidentifikationssystem lädt..."
+  },
+  "components": {
+    "no_camera_found": "Keine Kamera gefunden",
+    "camera_permission_check": "Bitte überprüfen Sie Ihre Gerätekamera-Einstellungen oder -Berechtigungen.",
+    "retry": "Wiederholen"
+  },
+  "home": {
+    "camera_description": "Echtzeit-KI-Vogelerkennung und -klassifikation",
+    "photo_description": "Vögel in Fotos erfassen und identifizieren",
+    "audio_description": "Vogelgesänge aufnehmen und analysieren",
+    "manual_description": "Manuelle Eingabe für Feldbeobachtungen"
+  },
+  "navigation": {
+    "home_description": "Startseite und Übersicht",
+    "birdex_description": "Vogelenzyklopädie",
+    "smart_search_description": "Intelligente Vogelsuche",
+    "archive_description": "Ihre Vogelarchive",
+    "account_description": "Kontoeinstellungen",
+    "settings_description": "App-Einstellungen"
+  },
+  "not_found": {
+    "page_title": "Seite nicht gefunden",
+    "nest_not_found": "Nest nicht gefunden",
+    "page_description": "Dieser Vogel scheint weggeflogen zu sein! Die gesuchte Seite existiert nicht in unserer Voliere.",
+    "return_to_nest": "Zurück zum Nest",
+    "explore_birdex": "BirdDex erkunden",
+    "fun_fact": "Wussten Sie schon? Zugvögel können mit Hilfe des Erdmagnetfelds navigieren!"
+  },
+  "photo": {
+    "select_best_photo": "Wählen Sie Ihr bestes Foto",
+    "use_this_photo": "Dieses Foto verwenden",
+    "choose_existing": "Aus Galerie wählen",
+    "take_photos": "Fotos aufnehmen",
+    "tap_to_select": "Zum Auswählen antippen",
+    "take_more": "Weitere Fotos aufnehmen",
+    "add_photo": "Foto hinzufügen",
+    "capture_description": "Schöne Vogelmomente einfangen",
+    "no_photos": "Noch keine Fotos",
+    "take_at_least_one": "Bitte nehmen Sie mindestens ein Foto auf, um fortzufahren",
+    "photos_taken": "{{count}} Foto(s) aufgenommen",
+    "continue_with_photos": "Mit {{count}} Foto(s) fortfahren"
+  },
+  "video": {
+    "recording_failed": "Aufnahme fehlgeschlagen",
+    "stop_recording_title": "Aufnahme stoppen?",
+    "stop_recording_message": "Sie nehmen gerade auf. Möchten Sie stoppen und das Video speichern?",
+    "stop_and_exit": "Stoppen & Speichern",
+    "processing": "Video wird verarbeitet...",
+    "preview_title": "Videovorschau"
+  },
+  "location": {
+    "success": "Standort aktualisiert",
+    "failed_to_get": "Standort kann nicht ermittelt werden",
+    "permission_denied": "Standortberechtigung verweigert"
+  },
+  "log_screens": {
+    "manual_title": "Manuelle Eingabe / Eintrag speichern",
+    "photo_title": "Foto aufnehmen",
+    "video_title": "Video aufnehmen",
+    "audio_title": "Audio aufnehmen"
+  },
+  "validation": {
+    "bird_type_required": "Bitte geben Sie die Vogelart an",
+    "media_or_notes_required": "Bitte fügen Sie mindestens ein Foto, Audio, Video oder Notizen hinzu"
+  },
+  "warnings": {
+    "media_permission_required": "Medienbibliothek-Berechtigung erforderlich"
+  },
+  "window": "LogChirpy"
 }

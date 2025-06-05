@@ -1,50 +1,41 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect} from 'react';
 import {Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View,} from 'react-native';
-import {signOut} from 'firebase/auth';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
 import {ModernCard} from '@/components/ModernCard';
-import {auth} from '@/firebase/config';
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {useTheme, useTypography, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
+import { useAuth } from '@/app/context/AuthContext';
+import { Feather } from '@expo/vector-icons';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function ModernAccountScreen() {
     const { t } = useTranslation();
-    const semanticColors = useSemanticColors();
     const theme = useTheme();
     const typography = useTypography();
+    const semanticColors = useSemanticColors();
     const variants = useColorVariants();
-    const motion = useMotionValues();
     const insets = useSafeAreaInsets();
-
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [userEmail, setUserEmail] = useState<string | null>(null);
+    const { user, isAuthenticated, signOut: authSignOut, isLoading } = useAuth();
 
     // Animation values
     const signOutScale = useSharedValue(1);
     const fadeInOpacity = useSharedValue(0);
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(user => {
-            setIsLoggedIn(!!user);
-            setUserEmail(user?.email || null);
-
-            if (!user) {
-                requestAnimationFrame(() =>
-                    router.replace('/(tabs)/account/(auth)/login')
-                );
-            } else {
-                // Fade in animation when user loads
-                fadeInOpacity.value = withTiming(1, { duration: motion.duration.medium });
-            }
-        });
-        return unsubscribe;
-    }, []);
+        if (!isLoading && !isAuthenticated) {
+            requestAnimationFrame(() =>
+                router.replace('/(tabs)/account/(auth)/login')
+            );
+        } else if (isAuthenticated) {
+            // Fade in animation when user loads
+            fadeInOpacity.value = withTiming(1, { duration: 300 });
+        }
+    }, [isAuthenticated, isLoading, fadeInOpacity]);
 
     const fadeInStyle = useAnimatedStyle(() => ({
         opacity: fadeInOpacity.value,
@@ -69,8 +60,7 @@ export default function ModernAccountScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await signOut(auth);
-                            setIsLoggedIn(false);
+                            await authSignOut();
                         } catch (error) {
                             console.error('Error signing out:', error);
                             Alert.alert(
@@ -92,7 +82,7 @@ export default function ModernAccountScreen() {
         signOutScale.value = withSpring(1);
     };
 
-    if (!isLoggedIn) {
+    if (isLoading || !isAuthenticated) {
         return null; // Will redirect to login
     }
 
@@ -100,10 +90,10 @@ export default function ModernAccountScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
             {/* Header */}
             <View style={[styles.header, { marginTop: insets.top }]}>
-                <Text style={[typography.displayMedium, styles.headerTitle]}>
+                <Text style={[styles.headerTitle]}>
                     {t('account.title')}
                 </Text>
-                <Text style={[typography.bodyMedium, styles.headerSubtitle, { color: semanticColors.textSecondary }]}>
+                <Text style={[styles.headerSubtitle, { color: semanticColors.secondary }]}>
                     {t('account.subtitle', 'Manage your LogChirpy account')}
                 </Text>
             </View>
@@ -116,31 +106,23 @@ export default function ModernAccountScreen() {
                 <Animated.View style={fadeInStyle}>
                     {/* Profile Section */}
                     <ModernCard
-                        variant="elevated"
+                        elevated={true}
+                        bordered={false}
                         style={styles.profileCard}
-                        title={t('account.profileInfo', 'Profile Information')}
-                        headerAction={
-                            <View style={[styles.statusBadge, { backgroundColor: variants.primarySubtle }]}>
-                                <Feather name="check-circle" size={14} color={semanticColors.primary} />
-                                <Text style={[typography.labelSmall, { color: semanticColors.primary }]}>
-                                    {t('account.verified', 'Verified')}
-                                </Text>
-                            </View>
-                        }
                     >
                         <View style={styles.profileContent}>
                             {/* Avatar */}
-                            <View style={[styles.avatarContainer, { backgroundColor: variants.primarySubtle }]}>
+                            <View style={[styles.avatarContainer, { backgroundColor: variants.primary.light }]}>
                                 <Feather name="user" size={32} color={semanticColors.primary} />
                             </View>
 
                             {/* User Info */}
                             <View style={styles.userInfo}>
-                                <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
+                                <Text style={[typography.body, { color: semanticColors.secondary }]}>
                                     {t('account.email_label')}
                                 </Text>
-                                <Text style={[typography.bodyLarge, { color: semanticColors.text }]}>
-                                    {userEmail}
+                                <Text style={[typography.body, { color: semanticColors.primary }]}>
+                                    {user?.email}
                                 </Text>
                             </View>
                         </View>
@@ -148,9 +130,9 @@ export default function ModernAccountScreen() {
 
                     {/* Account Actions */}
                     <ModernCard
-                        variant="outlined"
+                        elevated={false}
+                        bordered={true}
                         style={styles.actionsCard}
-                        title={t('account.actions', 'Account Actions')}
                     >
                         <View style={styles.actionsList}>
                             {/* Sync Status */}
@@ -159,22 +141,22 @@ export default function ModernAccountScreen() {
                                 onPress={() => {
                                     // Navigate to sync settings or show sync status
                                 }}
-                                android_ripple={{ color: variants.surfacePressed }}
+                                android_ripple={{ color: variants.secondary.light }}
                             >
                                 <View style={styles.actionLeft}>
-                                    <View style={[styles.actionIcon, { backgroundColor: variants.accentSubtle }]}>
-                                        <Feather name="refresh-cw" size={18} color={semanticColors.accent} />
+                                    <View style={[styles.actionIcon, { backgroundColor: variants.secondary.light }]}>
+                                        <Feather name="refresh-cw" size={18} color={semanticColors.secondary} />
                                     </View>
                                     <View style={styles.actionText}>
-                                        <Text style={[typography.bodyMedium, { color: semanticColors.text }]}>
+                                        <Text style={[typography.body, { color: semanticColors.primary }]}>
                                             {t('account.syncStatus', 'Sync Status')}
                                         </Text>
-                                        <Text style={[typography.labelSmall, { color: semanticColors.textSecondary }]}>
+                                        <Text style={[typography.label, { color: semanticColors.secondary }]}>
                                             {t('account.syncDescription', 'Cloud synchronization settings')}
                                         </Text>
                                     </View>
                                 </View>
-                                <Feather name="chevron-right" size={18} color={semanticColors.textSecondary} />
+                                <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
                             </Pressable>
 
                             {/* Privacy Settings */}
@@ -183,22 +165,22 @@ export default function ModernAccountScreen() {
                                 onPress={() => {
                                     // Navigate to privacy settings
                                 }}
-                                android_ripple={{ color: variants.surfacePressed }}
+                                android_ripple={{ color: variants.secondary.light }}
                             >
                                 <View style={styles.actionLeft}>
-                                    <View style={[styles.actionIcon, { backgroundColor: variants.primarySubtle }]}>
+                                    <View style={[styles.actionIcon, { backgroundColor: variants.primary.light }]}>
                                         <Feather name="shield" size={18} color={semanticColors.primary} />
                                     </View>
                                     <View style={styles.actionText}>
-                                        <Text style={[typography.bodyMedium, { color: semanticColors.text }]}>
+                                        <Text style={[typography.body, { color: semanticColors.primary }]}>
                                             {t('account.privacy', 'Privacy Settings')}
                                         </Text>
-                                        <Text style={[typography.labelSmall, { color: semanticColors.textSecondary }]}>
+                                        <Text style={[typography.label, { color: semanticColors.secondary }]}>
                                             {t('account.privacyDescription', 'Manage your data and privacy')}
                                         </Text>
                                     </View>
                                 </View>
-                                <Feather name="chevron-right" size={18} color={semanticColors.textSecondary} />
+                                <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
                             </Pressable>
 
                             {/* Export Data */}
@@ -207,22 +189,22 @@ export default function ModernAccountScreen() {
                                 onPress={() => {
                                     // Handle data export
                                 }}
-                                android_ripple={{ color: variants.surfacePressed }}
+                                android_ripple={{ color: variants.secondary.light }}
                             >
                                 <View style={styles.actionLeft}>
-                                    <View style={[styles.actionIcon, { backgroundColor: variants.accentSubtle }]}>
-                                        <Feather name="download" size={18} color={semanticColors.accent} />
+                                    <View style={[styles.actionIcon, { backgroundColor: variants.secondary.light }]}>
+                                        <Feather name="download" size={18} color={semanticColors.secondary} />
                                     </View>
                                     <View style={styles.actionText}>
-                                        <Text style={[typography.bodyMedium, { color: semanticColors.text }]}>
+                                        <Text style={[typography.body, { color: semanticColors.primary }]}>
                                             {t('account.exportData', 'Export Data')}
                                         </Text>
-                                        <Text style={[typography.labelSmall, { color: semanticColors.textSecondary }]}>
+                                        <Text style={[typography.label, { color: semanticColors.secondary }]}>
                                             {t('account.exportDescription', 'Download your bird sightings')}
                                         </Text>
                                     </View>
                                 </View>
-                                <Feather name="chevron-right" size={18} color={semanticColors.textSecondary} />
+                                <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
                             </Pressable>
                         </View>
                     </ModernCard>
@@ -238,15 +220,15 @@ export default function ModernAccountScreen() {
                             onPress={handleSignOut}
                             onPressIn={handleSignOutPressIn}
                             onPressOut={handleSignOutPressOut}
-                            android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                            android_ripple={{ color: theme.colors.surface + '33' }}
                         >
-                            <Feather name="log-out" size={20} color={semanticColors.onPrimary} />
-                            <Text style={[typography.bodyLarge, styles.signOutText, { color: semanticColors.onPrimary }]}>
+                            <ThemedIcon name="log-out" size={20} color="primary" />
+                            <Text style={[typography.body, styles.signOutText, { color: semanticColors.background }]}>
                                 {t('buttons.signout')}
                             </Text>
                         </AnimatedPressable>
 
-                        <Text style={[typography.labelSmall, styles.signOutWarning, { color: semanticColors.textTertiary }]}>
+                        <Text style={[typography.label, styles.signOutWarning, { color: semanticColors.secondary }]}>
                             {t('account.signOutWarning', 'You will need to sign in again to access cloud features')}
                         </Text>
                     </View>

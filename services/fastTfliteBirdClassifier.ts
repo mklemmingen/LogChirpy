@@ -1,0 +1,406 @@
+/**
+ * FastTfliteBirdClassifier Service
+ * 
+ * High-performance bird audio classification using react-native-fast-tflite.
+ * Provides offline-first bird identification with intelligent fallback strategies.
+ */
+
+import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
+import * as FileSystem from 'expo-file-system';
+
+export interface BirdClassificationResult {
+  species: string;
+  scientificName: string;
+  confidence: number;
+  index: number;
+}
+
+export interface ClassificationMetadata {
+  modelVersion: string;
+  processingTime: number;
+  modelSource: 'tflite' | 'fallback' | 'cache';
+  inputShape: number[];
+  timestamp: number;
+}
+
+export interface ModelPerformanceMetrics {
+  avgInferenceTime: number;
+  totalInferences: number;
+  memoryUsage: number;
+  modelSize: number;
+  cacheHitRate: number;
+}
+
+interface CachedResult {
+  result: BirdClassificationResult[];
+  metadata: ClassificationMetadata;
+  expiry: number;
+  audioHash: string;
+}
+
+interface FastTfliteConfig {
+  modelPath: any;
+  labelsPath: string;
+  confidenceThreshold: number;
+  maxResults: number;
+  enableCaching: boolean;
+  cacheExpiryMs: number;
+  maxCacheSize: number;
+  useGpuDelegate: boolean;
+}
+
+class FastTfliteBirdClassifierService {
+  private model: TensorflowModel | null = null;
+  private labels: any[] = [];
+  private modelLoaded = false;
+  private config: FastTfliteConfig;
+  private cache = new Map<string, CachedResult>();
+  private performanceMetrics: ModelPerformanceMetrics = {
+    avgInferenceTime: 0,
+    totalInferences: 0,
+    memoryUsage: 0,
+    modelSize: 0,
+    cacheHitRate: 0
+  };
+
+  constructor() {
+    this.config = {
+      modelPath: require('../assets/models/birdnet/birdnet_v24.tflite'),
+      labelsPath: '../assets/models/birdnet/labels.json',
+      confidenceThreshold: 0.1,
+      maxResults: 5,
+      enableCaching: true,
+      cacheExpiryMs: 24 * 60 * 60 * 1000, // 24 hours
+      maxCacheSize: 100,
+      useGpuDelegate: false
+    };
+  }
+
+  /**
+   * Initialize the TensorFlow Lite model
+   */
+  async initialize(): Promise<boolean> {
+    try {
+      console.log('Initializing FastTflite bird classifier...');
+      
+      // Load labels first
+      await this.loadLabels();
+      
+      // Load TensorFlow Lite model  
+      this.model = await loadTensorflowModel(this.config.modelPath);
+      
+      // Get model size for metrics
+      const modelUri = this.config.modelPath;
+      if (typeof modelUri === 'string') {
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(modelUri);
+          if (fileInfo.exists && 'size' in fileInfo) {
+            this.performanceMetrics.modelSize = fileInfo.size;
+          }
+        } catch (error) {
+          console.warn('Could not get model file size:', error);
+        }
+      }
+
+      this.modelLoaded = true;
+      console.log('FastTflite model loaded successfully', {
+        labelCount: this.labels.length,
+        modelSize: this.performanceMetrics.modelSize,
+        gpuDelegate: this.config.useGpuDelegate
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize FastTflite model:', error);
+      this.modelLoaded = false;
+      return false;
+    }
+  }
+
+  /**
+   * Load species labels from JSON file
+   */
+  private async loadLabels(): Promise<void> {
+    try {
+      // Use static require for Metro bundler compatibility
+      const labelsData = require('../assets/models/birdnet/labels.json');
+      if (labelsData && labelsData.labels) {
+        this.labels = labelsData.labels;
+      } else {
+        throw new Error('Invalid labels format');
+      }
+      
+      console.log(`Loaded ${this.labels.length} species labels`);
+    } catch (error) {
+      console.error('Failed to load labels:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Classify bird audio from preprocessed mel-spectrogram data
+   */
+  async classifyBirdAudio(
+    spectrogramData: Float32Array,
+    audioUri?: string
+  ): Promise<{
+    results: BirdClassificationResult[];
+    metadata: ClassificationMetadata;
+  }> {
+    const startTime = Date.now();
+
+    try {
+      if (!this.modelLoaded || !this.model) {
+        throw new Error('Model not loaded. Call initialize() first.');
+      }
+
+      // Check cache if audio URI is provided
+      if (audioUri && this.config.enableCaching) {
+        const cached = await this.getCachedResult(audioUri);
+        if (cached) {
+          this.updateCacheHitRate(true);
+          return {
+            results: cached.result,
+            metadata: {
+              ...cached.metadata,
+              modelSource: 'cache'
+            }
+          };
+        }
+        this.updateCacheHitRate(false);
+      }
+
+      // Run inference
+      const outputs = await this.model.run([spectrogramData]);
+      const predictions = outputs[0] as Float32Array;
+
+      // Process results
+      const results = this.processModelOutput(predictions);
+      
+      const processingTime = Date.now() - startTime;
+      const metadata: ClassificationMetadata = {
+        modelVersion: '2.4',
+        processingTime,
+        modelSource: 'tflite',
+        inputShape: [1, 224, 224, 3], // Typical BirdNET input shape
+        timestamp: Date.now()
+      };
+
+      // Update performance metrics
+      this.updatePerformanceMetrics(processingTime);
+
+      // Cache result if audio URI is provided
+      if (audioUri && this.config.enableCaching) {
+        await this.cacheResult(audioUri, results, metadata);
+      }
+
+      console.log('Bird classification completed', {
+        resultsCount: results.length,
+        processingTime,
+        topConfidence: results[0]?.confidence || 0
+      });
+
+      return { results, metadata };
+
+    } catch (error) {
+      console.error('Classification failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process raw model output into bird classification results
+   */
+  private processModelOutput(predictions: Float32Array): BirdClassificationResult[] {
+    const results: BirdClassificationResult[] = [];
+
+    // Convert predictions to results with labels
+    for (let i = 0; i < predictions.length; i++) {
+      const confidence = predictions[i];
+      
+      if (confidence >= this.config.confidenceThreshold) {
+        const label = this.labels[i];
+        if (label) {
+          results.push({
+            species: label.common_name || label.label || `Unknown Species ${i}`,
+            scientificName: label.scientific_name || '',
+            confidence: confidence,
+            index: i
+          });
+        }
+      }
+    }
+
+    // Sort by confidence and limit results
+    return results
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, this.config.maxResults);
+  }
+
+  /**
+   * Get cached classification result
+   */
+  private async getCachedResult(audioUri: string): Promise<CachedResult | null> {
+    try {
+      const audioHash = await this.generateAudioHash(audioUri);
+      const cached = this.cache.get(audioHash);
+
+      if (cached && cached.expiry > Date.now()) {
+        return cached;
+      }
+
+      // Remove expired entry
+      if (cached) {
+        this.cache.delete(audioHash);
+      }
+
+      return null;
+    } catch (error) {
+      console.warn('Failed to get cached result:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Cache classification result
+   */
+  private async cacheResult(
+    audioUri: string,
+    results: BirdClassificationResult[],
+    metadata: ClassificationMetadata
+  ): Promise<void> {
+    try {
+      // Clean cache if it's too large
+      if (this.cache.size >= this.config.maxCacheSize) {
+        this.cleanCache();
+      }
+
+      const audioHash = await this.generateAudioHash(audioUri);
+      const cached: CachedResult = {
+        result: results,
+        metadata,
+        expiry: Date.now() + this.config.cacheExpiryMs,
+        audioHash
+      };
+
+      this.cache.set(audioHash, cached);
+    } catch (error) {
+      console.warn('Failed to cache result:', error);
+    }
+  }
+
+  /**
+   * Generate hash for audio file (simplified version using file size and modified time)
+   */
+  private async generateAudioHash(audioUri: string): Promise<string> {
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(audioUri);
+      if (fileInfo.exists && 'size' in fileInfo && 'modificationTime' in fileInfo) {
+        return `${fileInfo.size}_${fileInfo.modificationTime}`;
+      }
+      return audioUri; // Fallback to URI
+    } catch {
+      return audioUri; // Fallback to URI
+    }
+  }
+
+  /**
+   * Clean old entries from cache
+   */
+  private cleanCache(): void {
+    const now = Date.now();
+    const entries = Array.from(this.cache.entries());
+    
+    // Remove expired entries first
+    entries.forEach(([key, cached]) => {
+      if (cached.expiry <= now) {
+        this.cache.delete(key);
+      }
+    });
+
+    // If still too large, remove oldest entries
+    if (this.cache.size >= this.config.maxCacheSize) {
+      const sortedEntries = entries
+        .filter(([, cached]) => cached.expiry > now)
+        .sort((a, b) => a[1].metadata.timestamp - b[1].metadata.timestamp);
+
+      const toRemove = this.cache.size - Math.floor(this.config.maxCacheSize * 0.8);
+      for (let i = 0; i < toRemove; i++) {
+        if (sortedEntries[i]) {
+          this.cache.delete(sortedEntries[i][0]);
+        }
+      }
+    }
+  }
+
+  /**
+   * Update performance metrics
+   */
+  private updatePerformanceMetrics(processingTime: number): void {
+    this.performanceMetrics.totalInferences++;
+    
+    // Update average inference time
+    const totalTime = (this.performanceMetrics.avgInferenceTime * (this.performanceMetrics.totalInferences - 1)) + processingTime;
+    this.performanceMetrics.avgInferenceTime = totalTime / this.performanceMetrics.totalInferences;
+  }
+
+  /**
+   * Update cache hit rate
+   */
+  private updateCacheHitRate(hit: boolean): void {
+    const totalRequests = this.performanceMetrics.totalInferences + 1;
+    const currentHits = this.performanceMetrics.cacheHitRate * this.performanceMetrics.totalInferences;
+    this.performanceMetrics.cacheHitRate = (currentHits + (hit ? 1 : 0)) / totalRequests;
+  }
+
+  /**
+   * Get current performance metrics
+   */
+  getPerformanceMetrics(): ModelPerformanceMetrics {
+    return { ...this.performanceMetrics };
+  }
+
+  /**
+   * Update configuration
+   */
+  updateConfig(newConfig: Partial<FastTfliteConfig>): void {
+    this.config = { ...this.config, ...newConfig };
+    console.log('FastTflite config updated', newConfig);
+  }
+
+  /**
+   * Clear cache
+   */
+  clearCache(): void {
+    this.cache.clear();
+    console.log('FastTflite cache cleared');
+  }
+
+  /**
+   * Dispose of model and clean up resources
+   */
+  dispose(): void {
+    this.model = null;
+    this.modelLoaded = false;
+    this.cache.clear();
+    console.log('FastTflite service disposed');
+  }
+
+  /**
+   * Check if model is loaded and ready
+   */
+  isReady(): boolean {
+    return this.modelLoaded && this.model !== null;
+  }
+}
+
+// Create singleton instance
+export const fastTfliteBirdClassifier = new FastTfliteBirdClassifierService();
+
+// Convenience functions
+export const initializeFastTflite = () => fastTfliteBirdClassifier.initialize();
+export const classifyBirdWithFastTflite = (
+  spectrogramData: Float32Array,
+  audioUri?: string
+) => fastTfliteBirdClassifier.classifyBirdAudio(spectrogramData, audioUri);
+export const getFastTfliteMetrics = () => fastTfliteBirdClassifier.getPerformanceMetrics();

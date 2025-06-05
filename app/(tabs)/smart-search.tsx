@@ -2,7 +2,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {ActivityIndicator, FlatList, Pressable, SafeAreaView, StyleSheet, TextInput, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import {BlurView} from 'expo-blur';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {
@@ -18,7 +18,7 @@ import * as Haptics from 'expo-haptics';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
+import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 import {type BirdDexRecord, searchBirdsByName} from '@/services/databaseBirDex';
 
 type SmartSearchResult = BirdDexRecord & {
@@ -37,8 +37,8 @@ function SearchResultCard({
     index: number;
     onPress: () => void;
 }) {
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
+    const theme = useTheme();
+    const colors = useColors();
     const typography = useTypography();
     const { t } = useTranslation();
 
@@ -57,9 +57,9 @@ function SearchResultCard({
     }));
 
     const getConfidenceColor = (confidence: number) => {
-        if (confidence >= 80) return semanticColors.success;
-        if (confidence >= 60) return semanticColors.primary;
-        return semanticColors.textSecondary;
+        if (confidence >= 80) return colors.success;
+        if (confidence >= 60) return colors.primary;
+        return colors.textSecondary;
     };
 
     const getConfidenceText = (confidence: number) => {
@@ -77,7 +77,8 @@ function SearchResultCard({
             style={animatedStyle}
         >
             <ModernCard
-                variant="elevated"
+                elevated={true}
+                bordered={false}
                 onPress={onPress}
                 // Remove these lines:
                 // onPressIn={handlePressIn}
@@ -89,7 +90,7 @@ function SearchResultCard({
                 <View style={styles.resultHeader}>
                     <View style={styles.matchInfo}>
                         <ThemedText
-                            variant="headlineSmall"
+                            variant="h3"
                             style={[styles.matchedName, { color: getConfidenceColor(item.confidence) }]}
                             numberOfLines={1}
                         >
@@ -102,11 +103,11 @@ function SearchResultCard({
 
                     <View style={[
                         styles.confidenceBadge,
-                        { backgroundColor: variants.primarySubtle }
+                        { backgroundColor: colors.backgroundSecondary }
                     ]}>
                         <ThemedText
                             variant="labelSmall"
-                            style={[styles.confidenceText, { color: semanticColors.primary }]}
+                            style={[styles.confidenceText, { color: colors.primary }]}
                         >
                             {Math.round(item.confidence)}%
                         </ThemedText>
@@ -118,7 +119,7 @@ function SearchResultCard({
                     {item.english_name && (
                         <View style={styles.nameRow}>
                             <ThemedText variant="labelSmall" style={styles.nameLabel}>🇬🇧</ThemedText>
-                            <ThemedText variant="bodyMedium" numberOfLines={1}>
+                            <ThemedText variant="labelMedium" numberOfLines={1}>
                                 {item.english_name}
                             </ThemedText>
                         </View>
@@ -127,7 +128,7 @@ function SearchResultCard({
                         <View style={styles.nameRow}>
                             <ThemedText variant="labelSmall" style={styles.nameLabel}>🔬</ThemedText>
                             <ThemedText
-                                variant="bodyMedium"
+                                variant="labelMedium"
                                 color="secondary"
                                 style={styles.scientific}
                                 numberOfLines={1}
@@ -172,7 +173,7 @@ function SearchResultCard({
 
                 {/* Chevron indicator */}
                 <View style={styles.chevronContainer}>
-                    <Feather name="chevron-right" size={20} color={semanticColors.textSecondary} />
+                    <ThemedIcon name="chevron-right" size={20} color="secondary" />
                 </View>
             </ModernCard>
         </Animated.View>
@@ -182,11 +183,9 @@ function SearchResultCard({
 export default function SmartSearch() {
     const { t } = useTranslation();
     const router = useRouter();
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
+    const colors = useColors();
     const typography = useTypography();
     const theme = useTheme();
-    const motion = useMotionValues();
     const insets = useSafeAreaInsets();
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -344,7 +343,7 @@ export default function SmartSearch() {
     ), [handleResultPress]);
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
             <Animated.View
                 entering={FadeInDown.springify()}
@@ -352,18 +351,18 @@ export default function SmartSearch() {
             >
                 <ThemedPressable
                     variant="ghost"
-                    size="small"
+                    size="sm"
                     onPress={() => router.back()}
                     style={styles.backButton}
                 >
-                    <Feather name="arrow-left" size={24} color={semanticColors.text} />
+                    <ThemedIcon name="arrow-left" size={24} color="primary" />
                 </ThemedPressable>
 
                 <View style={styles.headerText}>
                     <ThemedText variant="displaySmall" style={styles.headerTitle}>
                         {t('smartSearch.title')}
                     </ThemedText>
-                    <ThemedText variant="bodyMedium" color="secondary">
+                    <ThemedText variant="labelMedium" color="secondary">
                         {t('smartSearch.subtitle')}
                     </ThemedText>
                 </View>
@@ -376,14 +375,13 @@ export default function SmartSearch() {
             >
                 <BlurView
                     intensity={60}
-                    tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
-                    style={[styles.searchContainer, { borderColor: variants.primaryMuted }]}
-                >
-                    <Feather name="search" size={20} color={semanticColors.textSecondary} />
+                    tint={colors.background === '#FFFFFF' ? 'light' : 'dark'}
+                    style={[styles.searchContainer, { borderColor: colors.border }]}>
+                    <ThemedIcon name="search" size={20} color="secondary" />
                     <TextInput
-                        style={[styles.searchInput, typography.bodyLarge, { color: semanticColors.text }]}
+                        style={[styles.searchInput, typography.h2, { color: colors.text }]}
                         placeholder={t('smartSearch.placeholder')}
-                        placeholderTextColor={semanticColors.textSecondary}
+                        placeholderTextColor={colors.textSecondary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         returnKeyType="search"
@@ -392,7 +390,7 @@ export default function SmartSearch() {
                     />
                     {searchQuery.length > 0 && (
                         <Pressable onPress={() => setSearchQuery('')}>
-                            <Feather name="x" size={20} color={semanticColors.textSecondary} />
+                            <ThemedIcon name="x" size={20} color="secondary" />
                         </Pressable>
                     )}
                 </BlurView>
@@ -405,31 +403,31 @@ export default function SmartSearch() {
                     entering={FadeInDown.delay(200).springify()}
                     style={styles.tipsContainer}
                 >
-                    <ModernCard variant="glass" style={styles.tipsCard}>
-                        <View style={[styles.tipsIcon, { backgroundColor: variants.primarySubtle }]}>
-                            <Feather name="help-circle" size={24} color={semanticColors.primary} />
+                    <ModernCard elevated={false} bordered={true} style={styles.tipsCard}>
+                        <View style={[styles.tipsIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                            <ThemedIcon name="help-circle" size={24} color="primary" />
                         </View>
 
-                        <ThemedText variant="headlineSmall" style={styles.tipsTitle}>
+                        <ThemedText variant="h3" style={styles.tipsTitle}>
                             {t('smartSearch.tipsTitle')}
                         </ThemedText>
 
                         <View style={styles.tipsList}>
                             <View style={styles.tipItem}>
-                                <Feather name="check" size={16} color={semanticColors.success} />
-                                <ThemedText variant="bodyMedium" color="secondary" style={styles.tipText}>
+                                <ThemedIcon name="check" size={16} color="success" />
+                                <ThemedText variant="bodySmall" color="secondary" style={styles.tipText}>
                                     {t('smartSearch.tip1')}
                                 </ThemedText>
                             </View>
                             <View style={styles.tipItem}>
-                                <Feather name="check" size={16} color={semanticColors.success} />
-                                <ThemedText variant="bodyMedium" color="secondary" style={styles.tipText}>
+                                <ThemedIcon name="check" size={16} color="success" />
+                                <ThemedText variant="bodySmall" color="secondary" style={styles.tipText}>
                                     {t('smartSearch.tip2')}
                                 </ThemedText>
                             </View>
                             <View style={styles.tipItem}>
-                                <Feather name="check" size={16} color={semanticColors.success} />
-                                <ThemedText variant="bodyMedium" color="secondary" style={styles.tipText}>
+                                <ThemedIcon name="check" size={16} color="success" />
+                                <ThemedText variant="bodySmall" color="secondary" style={styles.tipText}>
                                     {t('smartSearch.tip3')}
                                 </ThemedText>
                             </View>
@@ -439,8 +437,8 @@ export default function SmartSearch() {
             ) : loading ? (
                 // Loading state
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={semanticColors.primary} />
-                    <ThemedText variant="bodyMedium" color="secondary" style={styles.loadingText}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <ThemedText variant="bodySmall" color="secondary" style={styles.loadingText}>
                         {t('smartSearch.searching')}
                     </ThemedText>
                 </View>
@@ -454,13 +452,13 @@ export default function SmartSearch() {
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <View style={[styles.emptyIcon, { backgroundColor: variants.surfaceHover }]}>
-                                <Feather name="search" size={48} color={semanticColors.textSecondary} />
+                            <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                                <ThemedIcon name="search" size={48} color="secondary" />
                             </View>
-                            <ThemedText variant="headlineSmall" color="secondary" style={styles.emptyText}>
+                            <ThemedText variant="h3" color="secondary" style={styles.emptyText}>
                                 {t('smartSearch.noResults')}
                             </ThemedText>
-                            <ThemedText variant="bodyMedium" color="tertiary" style={styles.emptySubtext}>
+                            <ThemedText variant="bodySmall" color="tertiary" style={styles.emptySubtext}>
                                 {t('smartSearch.tryDifferent')}
                             </ThemedText>
                         </View>

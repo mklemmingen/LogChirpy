@@ -3,12 +3,17 @@ import { Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 
-export function HapticTab({ children, onPress, ...props }: any) {
+interface HapticTabProps extends Omit<React.ComponentProps<typeof Pressable>, 'onPress'> {
+  children: React.ReactNode;
+  onPress?: () => void;
+}
+
+export function HapticTab({ children, onPress, ...props }: HapticTabProps) {
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [audioModeOK, setAudioModeOK] = useState(false);
 
     useEffect(() => {
-        async function loadSound() {
+        async function loadSoundAsync() { // eslint-disable-line @typescript-eslint/no-unused-vars
             // Preload the sound once when component mounts
             const { sound } = await Audio.Sound.createAsync(
                 require('@/assets/sounds/click.mp3'),
@@ -25,14 +30,14 @@ export function HapticTab({ children, onPress, ...props }: any) {
             setAudioModeOK(true);
         }
 
-        // loadSound(); # commented out for now TODO
+        // loadSoundAsync(); # commented out for now TODO
 
         return () => {
             sound?.unloadAsync(); // Clean up
         };
-    }, []);
+    }, [sound]);
 
-    const handlePress = async (e: any) => {
+    const handlePress = async () => {
         try {
             // Always trigger haptic feedback
             await Haptics.selectionAsync();
@@ -48,7 +53,7 @@ export function HapticTab({ children, onPress, ...props }: any) {
         }
 
         if (onPress) {
-            onPress(e);
+            onPress();
         }
     };
 

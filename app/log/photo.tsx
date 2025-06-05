@@ -4,7 +4,7 @@ import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {launchImageLibrary, ImagePickerResponse, MediaType, ImageLibraryOptions} from 'react-native-image-picker';
 import * as Haptics from 'expo-haptics';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedPressable} from '@/components/ThemedPressable';
@@ -56,11 +56,11 @@ export default function PhotoCapture() {
   };
 
   return (
-      <ThemedView style={[styles.container, { backgroundColor: pal.colors.background }]}>
+      <ThemedView style={[styles.container, { backgroundColor: pal.colors.background.primary }]}>
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={[styles.iconContainer, { backgroundColor: pal.colors.primary + '20' }]}>
-              <Feather name="camera" size={48} color={pal.colors.primary} />
+              <ThemedIcon name="camera" size={48} color="primary" />
             </View>
 
             <ThemedText variant="displaySmall" style={styles.title}>
@@ -75,25 +75,24 @@ export default function PhotoCapture() {
           <View style={styles.actions}>
             <ThemedPressable
                 variant="primary"
-                size="large"
+                size="lg"
                 onPress={handleCameraLaunch}
                 style={styles.actionButton}
-                glowOnHover
             >
-              <Feather name="camera" size={24} color={pal.colors.content.inverse} />
-              <ThemedText variant="labelLarge" style={{ color: pal.colors.content.inverse }}>
+              <ThemedIcon name="camera" size={24} color="primary" />
+              <ThemedText variant="labelLarge" color="primary">
                 {t('photo.take_photos')}
               </ThemedText>
             </ThemedPressable>
 
             <ThemedPressable
                 variant="secondary"
-                size="large"
+                size="lg"
                 onPress={handleGalleryPick}
                 style={styles.actionButton}
             >
-              <Feather name="image" size={24} color={pal.colors.content.primary} />
-              <ThemedText variant="labelLarge" style={{ color: pal.colors.content.primary }}>
+              <ThemedIcon name="image" size={24} color="primary" />
+              <ThemedText variant="labelLarge" color="primary">
                 {t('photo.choose_existing')}
               </ThemedText>
             </ThemedPressable>

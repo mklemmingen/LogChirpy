@@ -1,10 +1,11 @@
 // services/databaseBirDex.ts - Simplified and Reliable BirdDex Database Service
-const SQLite: any = require('expo-sqlite');
-type SQLiteDatabase = any;
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
-import Papa from 'papaparse';
+import * as Papa from 'papaparse';
 import { Platform } from 'react-native';
+
+const SQLite: any = require('expo-sqlite');
+type SQLiteDatabase = any;
 
 // -----------------------------------------------------------------------------------
 // Simplified BirdDex Database Service with Better UX
@@ -67,8 +68,8 @@ export function DB(): SQLiteDatabase {
     if (!db) {
         try {
             db = SQLite.openDatabaseSync('logchirpy.db');
-        } catch (error) {
-            console.error('Failed to open database:', error);
+        } catch (err) {
+            console.error('Failed to open database:', err);
             throw new Error('Database initialization failed');
         }
     }
@@ -110,8 +111,8 @@ class BirdDexDatabase {
         this.subscribers.forEach(callback => {
             try {
                 callback({ ...this.state });
-            } catch (error) {
-                console.error('Subscriber callback error:', error);
+            } catch (err) {
+                console.error('Subscriber callback error:', err);
             }
         });
     }
@@ -198,13 +199,13 @@ class BirdDexDatabase {
                 currentOperation: 'Database ready'
             });
 
-        } catch (error) {
-            console.error('Database initialization failed:', error);
+        } catch (err) {
+            console.error('Database initialization failed:', err);
             this.updateState({
                 status: 'error',
-                error: error instanceof Error ? error.message : 'Unknown initialization error'
+                error: err instanceof Error ? err.message : 'Unknown initialization error'
             });
-            throw error;
+            throw err;
         } finally {
             this.initializationPromise = null;
         }
@@ -216,8 +217,8 @@ class BirdDexDatabase {
             database.execSync('PRAGMA journal_mode = WAL;');
             database.execSync('PRAGMA temp_store = MEMORY;');
             database.execSync('PRAGMA cache_size = -8000;'); // 8MB cache
-        } catch (error) {
-            console.warn('Database optimization failed:', error);
+        } catch (err) {
+            console.warn('Database optimization failed:', err);
         }
     }
 
@@ -244,7 +245,7 @@ class BirdDexDatabase {
             } finally {
                 stmt.finalizeSync();
             }
-        } catch (error) {
+        } catch {
             console.log('Database not initialized yet');
             return false;
         }
@@ -259,7 +260,7 @@ class BirdDexDatabase {
             } finally {
                 stmt.finalizeSync();
             }
-        } catch (error) {
+        } catch {
             return 0;
         }
     }
@@ -437,8 +438,8 @@ class BirdDexDatabase {
                     }
                 });
                 resolve();
-            } catch (error) {
-                reject(error);
+            } catch (err) {
+                reject(err);
             }
         });
     }
@@ -458,8 +459,8 @@ class BirdDexDatabase {
             // Optimize database
             database.execSync('PRAGMA optimize;');
             database.execSync('ANALYZE birddex;');
-        } catch (error) {
-            console.warn('Index creation failed:', error);
+        } catch (err) {
+            console.warn('Index creation failed:', err);
         }
     }
 
@@ -551,8 +552,8 @@ export function queryBirdDexPage(
         } finally {
             stmt.finalizeSync();
         }
-    } catch (error) {
-        console.error('Query error:', error);
+    } catch (err) {
+        console.error('Query error:', err);
         return [];
     }
 }
@@ -583,8 +584,8 @@ export function getBirdDexRowCount(filter: string, categoryFilter: BirdCategory 
         } finally {
             stmt.finalizeSync();
         }
-    } catch (error) {
-        console.error('Row count error:', error);
+    } catch (err) {
+        console.error('Row count error:', err);
         return 0;
     }
 }
@@ -605,8 +606,8 @@ export function getAvailableCategories(): { category: string; count: number }[] 
         } finally {
             stmt.finalizeSync();
         }
-    } catch (error) {
-        console.error('Categories query error:', error);
+    } catch (err) {
+        console.error('Categories query error:', err);
         return [];
     }
 }
@@ -659,8 +660,8 @@ export function searchBirdsByName(
         } finally {
             stmt.finalizeSync();
         }
-    } catch (error) {
-        console.error('Search error:', error);
+    } catch (err) {
+        console.error('Search error:', err);
         return [];
     }
 }
@@ -686,8 +687,8 @@ export function getBirdBySpeciesCode(speciesCode: string): BirdDexRecord | null 
         } finally {
             stmt.finalizeSync();
         }
-    } catch (error) {
-        console.error('Get bird by code error:', error);
+    } catch (err) {
+        console.error('Get bird by code error:', err);
         return null;
     }
 }
@@ -699,8 +700,8 @@ export function cleanupDatabase(): void {
             DB().execSync('PRAGMA optimize;');
             DB().execSync('PRAGMA wal_checkpoint(TRUNCATE);');
         }
-    } catch (error) {
-        console.error('Database cleanup error:', error);
+    } catch (err) {
+        console.error('Database cleanup error:', err);
     }
 }
 

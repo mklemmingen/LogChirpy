@@ -1,18 +1,21 @@
 import React from 'react';
 import { View, Text, StyleSheet, Button } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface NoCameraErrorViewProps {
     onRetry: () => void;  // A function that is triggered when the user presses retry
 }
 
 export const NoCameraErrorView: React.FC<NoCameraErrorViewProps> = ({ onRetry }) => {
+    const { t } = useTranslation();
+    
     return (
         <View style={styles.container}>
-            <Text style={styles.errorMessage}>No Camera Found</Text>
+            <Text style={styles.errorMessage}>{t('components.no_camera_found')}</Text>
             <Text style={styles.suggestion}>
-                Please check your device's camera settings or permissions.
+                {t('components.camera_permission_check')}
             </Text>
-            <Button title="Retry" onPress={onRetry} />
+            <Button title={t('components.retry')} onPress={onRetry} />
         </View>
     );
 };

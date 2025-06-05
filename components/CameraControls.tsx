@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
+import { ThemedIcon } from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
     useAnimatedStyle,
@@ -23,7 +23,7 @@ interface EnhancedCameraControlsProps {
     onFlip: () => void;
     isRecording?: boolean;
     isFlipDisabled?: boolean;
-    style?: any;
+    style?: object;
     // Enhanced props for design system consistency
     size?: 'small' | 'medium' | 'large';
     variant?: 'default' | 'glass';
@@ -107,10 +107,10 @@ export function EnhancedCameraControls({
         // Glow effect for visual feedback
         if (!isRecording) {
             captureGlow.value = withTiming(1, {
-                duration: motion.duration.fast
+                duration: 150
             }, () => {
                 captureGlow.value = withTiming(0, {
-                    duration: motion.duration.medium
+                    duration: 200
                 });
             });
         }
@@ -137,7 +137,7 @@ export function EnhancedCameraControls({
         // Smooth rotation animation
         flipRotation.value = withTiming(
             flipRotation.value + 180,
-            { duration: motion.duration.medium }
+            { duration: 200 }
         );
 
         onFlip();
@@ -206,8 +206,8 @@ export function EnhancedCameraControls({
                         ]}
                         android_ripple={{
                             color: isRecording
-                                ? variants.primaryPressed
-                                : variants.primaryPressed,
+                                ? variants.primary.dark
+                                : variants.primary.dark,
                             borderless: true
                         }}
                     >
@@ -253,11 +253,11 @@ export function EnhancedCameraControls({
                                 borderRadius: sizeConfig.flipSize / 2,
                                 backgroundColor: variant === 'glass'
                                     ? 'transparent'
-                                    : 'rgba(0,0,0,0.3)',
+                                    : theme.colors.overlay.light,
                             }
                         ]}
                         android_ripple={{
-                            color: variants.surfacePressed,
+                            color: variants.neutral.dark,
                             borderless: true
                         }}
                     >
@@ -270,10 +270,10 @@ export function EnhancedCameraControls({
                             />
                         )}
 
-                        <Feather
+                        <ThemedIcon
                             name="refresh-ccw"
                             size={sizeConfig.flipIcon}
-                            color={semanticColors.text}
+                            color="primary"
                         />
                     </AnimatedPressable>
                 </Animated.View>
@@ -312,6 +312,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(255, 255, 255, 0.2)',
     },
 });

@@ -7,14 +7,13 @@ import {
     SafeAreaView,
     ScrollView,
     StyleSheet,
-    Text,
     TextInput,
     View,
 } from 'react-native';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {BlurView} from 'expo-blur';
-import {Feather} from '@expo/vector-icons';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
     interpolate,
     SlideInRight,
@@ -32,10 +31,11 @@ import {auth} from '@/firebase/config';
 
 // Local component imports
 import {ModernCard} from '@/components/ModernCard';
-import {PrimaryButton, ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {useSnackbar} from '@/components/ThemedSnackbar';
-import {useColorVariants, useSemanticColors, useTypography,} from '@/hooks/useThemeColor';
+import {useTheme, useSemanticColors, useTypography, useColorVariants} from '@/hooks/useThemeColor';
+// import { useAuth } from '@/app/context/AuthContext';
 
 // Constants
 const { width, height } = Dimensions.get('window');
@@ -55,8 +55,8 @@ interface ModernTextInputProps {
     onChangeText: (text: string) => void;
     placeholder: string;
     secureTextEntry?: boolean;
-    keyboardType?: any;
-    autoCapitalize?: any;
+    keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad' | 'ascii-capable' | 'numbers-and-punctuation' | 'url' | 'number-pad' | 'name-phone-pad' | 'decimal-pad' | 'twitter' | 'web-search' | 'visible-password';
+    autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
     error?: string;
     disabled?: boolean;
     icon?: string;
@@ -84,7 +84,7 @@ function LoginBirdAnimation() {
 
     return (
         <Animated.View style={[styles.floatingBird, animatedStyle]}>
-            <Feather name="feather" size={24} color={semanticColors.primary} />
+            <ThemedIcon name="feather" size={24} color="accent" />
         </Animated.View>
     );
 }
@@ -131,7 +131,7 @@ function ModernTextInput({
             ? semanticColors.error
             : isFocused
                 ? semanticColors.primary
-                : semanticColors.border,
+                : semanticColors.secondary,
         borderWidth: interpolate(focusAnim.value, [0, 1], [1, 2]),
         transform: [{ scale: interpolate(errorAnim.value, [0, 1], [1, 1.02]) }],
     }));
@@ -141,14 +141,14 @@ function ModernTextInput({
             ? semanticColors.error
             : isFocused
                 ? semanticColors.primary
-                : semanticColors.textSecondary,
+                : semanticColors.secondary,
     }));
 
     return (
         <View style={styles.inputContainer}>
-            <Animated.Text style={[typography.labelMedium, styles.inputLabel, labelStyle]}>
+            <ThemedText variant="label" style={[styles.inputLabel, labelStyle]}>
                 {label}
-            </Animated.Text>
+            </ThemedText>
 
             <Animated.View style={[styles.inputWrapper, containerStyle]}>
                 <BlurView
@@ -160,24 +160,24 @@ function ModernTextInput({
                 <View style={styles.inputContent}>
                     {icon && (
                         <View style={styles.inputIcon}>
-                            <Feather
+                            <ThemedIcon
                                 name={icon as any}
                                 size={18}
-                                color={error ? semanticColors.error : semanticColors.textSecondary}
+                                color={error ? "error" : "secondary"}
                             />
                         </View>
                     )}
 
                     <AnimatedTextInput
                         style={[
-                            typography.bodyMedium,
+                            typography.body,
                             styles.textInput,
-                            { color: semanticColors.text }
+                            { color: semanticColors.primary }
                         ]}
                         value={value}
                         onChangeText={onChangeText}
                         placeholder={placeholder}
-                        placeholderTextColor={semanticColors.textTertiary}
+                        placeholderTextColor={semanticColors.secondary}
                         secureTextEntry={secureTextEntry && !showPassword}
                         keyboardType={keyboardType}
                         autoCapitalize={autoCapitalize}
@@ -195,10 +195,10 @@ function ModernTextInput({
                                 Haptics.selectionAsync();
                             }}
                         >
-                            <Feather
+                            <ThemedIcon
                                 name={showPassword ? 'eye-off' : 'eye'}
                                 size={18}
-                                color={semanticColors.textSecondary}
+                                color="secondary"
                             />
                         </Pressable>
                     )}
@@ -210,10 +210,10 @@ function ModernTextInput({
                     entering={SlideInRight.duration(200)}
                     style={styles.errorContainer}
                 >
-                    <Feather name="alert-circle" size={14} color={semanticColors.error} />
-                    <Text style={[typography.labelSmall, { color: semanticColors.error }]}>
+                    <ThemedIcon name="alert-circle" size={14} color="error" />
+                    <ThemedText variant="caption" color="error">
                         {error}
-                    </Text>
+                    </ThemedText>
                 </Animated.View>
             )}
         </View>
@@ -287,13 +287,13 @@ export default function ModernLoginScreen() {
                 router.replace('/(tabs)');
             }, 1000);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Login error:', error);
 
             // Map Firebase errors to user-friendly messages
             let errorMessage = t('errors.sign_in_error');
 
-            if (error?.code) {
+            if (error && typeof error === 'object' && 'code' in error) {
                 switch (error.code) {
                     case 'auth/user-not-found':
                         errorMessage = t('errors.user_not_found');
@@ -357,7 +357,7 @@ export default function ModernLoginScreen() {
             <View style={styles.backgroundElements}>
                 <View style={[
                     styles.backgroundCircle,
-                    { backgroundColor: variants.primarySubtle }
+                    { backgroundColor: variants.primary.light }
                 ]} />
                 <LoginBirdAnimation />
             </View>
@@ -375,8 +375,8 @@ export default function ModernLoginScreen() {
                 >
                     {/* Header Section */}
                     <Animated.View style={[styles.header, headerStyle]}>
-                        <View style={[styles.logoContainer, { backgroundColor: variants.primarySubtle }]}>
-                            <Feather name="feather" size={40} color={semanticColors.primary} />
+                        <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
+                            <ThemedIcon name="feather" size={40} color="accent" />
                         </View>
 
                         <ThemedText
@@ -398,7 +398,8 @@ export default function ModernLoginScreen() {
                     {/* Login Form */}
                     <Animated.View style={cardStyle}>
                         <ModernCard
-                            variant="glass"
+                            elevated={false}
+                            bordered={true}
                         >
                             <View style={styles.formContainer}>
                                 <ModernTextInput
@@ -438,31 +439,30 @@ export default function ModernLoginScreen() {
                                 </ThemedPressable>
 
                                 {/* Login Button */}
-                                <PrimaryButton
-                                    size="large"
+                                <ThemedPressable
+                                    variant="primary"
+                                    size="lg"
                                     fullWidth
-                                    loading={isLoading}
                                     disabled={isLoading}
                                     onPress={handleLogin}
                                     style={styles.loginButton}
-                                    glowOnHover
                                 >
                                     <View style={styles.buttonContent}>
                                         {!isLoading && (
-                                            <Feather
+                                            <ThemedIcon
                                                 name="log-in"
                                                 size={20}
-                                                color={semanticColors.onPrimary}
+                                                color="primary"
                                             />
                                         )}
                                         <ThemedText
                                             variant="labelLarge"
-                                            style={{ color: semanticColors.onPrimary }}
+                                            color="primary"
                                         >
                                             {isLoading ? 'Signing In...' : t('auth.signin')}
                                         </ThemedText>
                                     </View>
-                                </PrimaryButton>
+                                </ThemedPressable>
 
                                 {/* Sign Up Link */}
                                 <ThemedPressable
@@ -471,7 +471,7 @@ export default function ModernLoginScreen() {
                                     onPress={handleSignUp}
                                 >
                                     <ThemedText
-                                        variant="bodyMedium"
+                                        variant="body"
                                         color="secondary"
                                         style={styles.signupText}
                                     >
