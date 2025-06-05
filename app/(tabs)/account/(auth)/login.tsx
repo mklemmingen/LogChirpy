@@ -34,7 +34,7 @@ import {ModernCard} from '@/components/ModernCard';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {useSnackbar} from '@/components/ThemedSnackbar';
-import {useTheme} from '@/hooks/useThemeColor';
+import {useTheme, useSemanticColors, useTypography, useColorVariants} from '@/hooks/useThemeColor';
 // import { useAuth } from '@/app/context/AuthContext';
 
 // Constants
@@ -131,7 +131,7 @@ function ModernTextInput({
             ? semanticColors.error
             : isFocused
                 ? semanticColors.primary
-                : semanticColors.border,
+                : semanticColors.secondary,
         borderWidth: interpolate(focusAnim.value, [0, 1], [1, 2]),
         transform: [{ scale: interpolate(errorAnim.value, [0, 1], [1, 1.02]) }],
     }));
@@ -141,7 +141,7 @@ function ModernTextInput({
             ? semanticColors.error
             : isFocused
                 ? semanticColors.primary
-                : semanticColors.textSecondary,
+                : semanticColors.secondary,
     }));
 
     return (
@@ -170,14 +170,14 @@ function ModernTextInput({
 
                     <AnimatedTextInput
                         style={[
-                            typography.bodyMedium,
+                            typography.body,
                             styles.textInput,
-                            { color: semanticColors.text }
+                            { color: semanticColors.primary }
                         ]}
                         value={value}
                         onChangeText={onChangeText}
                         placeholder={placeholder}
-                        placeholderTextColor={semanticColors.textTertiary}
+                        placeholderTextColor={semanticColors.secondary}
                         secureTextEntry={secureTextEntry && !showPassword}
                         keyboardType={keyboardType}
                         autoCapitalize={autoCapitalize}
@@ -357,7 +357,7 @@ export default function ModernLoginScreen() {
             <View style={styles.backgroundElements}>
                 <View style={[
                     styles.backgroundCircle,
-                    { backgroundColor: variants.primarySubtle }
+                    { backgroundColor: variants.primary.light }
                 ]} />
                 <LoginBirdAnimation />
             </View>
@@ -375,7 +375,7 @@ export default function ModernLoginScreen() {
                 >
                     {/* Header Section */}
                     <Animated.View style={[styles.header, headerStyle]}>
-                        <View style={[styles.logoContainer, { backgroundColor: variants.primarySubtle }]}>
+                        <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
                             <ThemedIcon name="feather" size={40} color="accent" />
                         </View>
 
@@ -457,7 +457,7 @@ export default function ModernLoginScreen() {
                                         )}
                                         <ThemedText
                                             variant="labelLarge"
-                                            color="inverse"
+                                            color="primary"
                                         >
                                             {isLoading ? 'Signing In...' : t('auth.signin')}
                                         </ThemedText>
@@ -471,7 +471,7 @@ export default function ModernLoginScreen() {
                                     onPress={handleSignUp}
                                 >
                                     <ThemedText
-                                        variant="bodyMedium"
+                                        variant="body"
                                         color="secondary"
                                         style={styles.signupText}
                                     >

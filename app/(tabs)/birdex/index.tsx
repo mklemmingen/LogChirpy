@@ -12,6 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { ThemedIcon } from '@/components/ThemedIcon';
+import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import Animated, {
     FadeInDown,
@@ -34,7 +35,10 @@ import {
     useTypography,
     useBorderRadius,
     useShadows,
-    useSpacing
+    useSpacing,
+    useSemanticColors,
+    useColorVariants,
+    useTheme
 } from '@/hooks/useThemeColor';
 
 // Services
@@ -59,7 +63,7 @@ type SortOption = 'name' | 'scientific' | 'family' | 'logged';
 interface CategoryOption {
     key: BirdCategory;
     label: string;
-    icon: string;
+    icon: keyof typeof Feather.glyphMap;
     count: number;
 }
 
@@ -121,7 +125,7 @@ function BirdCard({
                                     styles.loggedBadge,
                                     { backgroundColor: colors.primary }
                                 ]}>
-                                    <ThemedIcon name="check" size={12} color="inverse" />
+                                    <ThemedIcon name="check" size={12} color="primary" />
                                 </View>
                             )}
                             <ThemedIcon name="chevron-right" size={16} color="secondary" />
@@ -174,6 +178,7 @@ function SearchHeader({
     totalCount: number;
 }) {
     const { t } = useTranslation();
+    const colors = useColors();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const theme = useTheme();
@@ -181,14 +186,14 @@ function SearchHeader({
     const [showSortMenu, setShowSortMenu] = useState(false);
     const [showCategoryMenu, setShowCategoryMenu] = useState(false);
 
-    const sortOptions: Array<{ key: SortOption; label: string; icon: string }> = [
+    const sortOptions: Array<{ key: SortOption; label: string; icon: keyof typeof Feather.glyphMap }> = [
         { key: 'name', label: t('birddex.sortByName'), icon: 'type' },
         { key: 'scientific', label: t('birddex.sortByScientific'), icon: 'book' },
         { key: 'family', label: t('birddex.sortByFamily'), icon: 'users' },
         { key: 'logged', label: t('birddex.sortByLogged'), icon: 'check-circle' },
     ];
 
-    const getCategoryIcon = (category: string) => {
+    const getCategoryIcon = (category: string): keyof typeof Feather.glyphMap => {
         switch (category) {
             case 'species': return 'circle';
             case 'subspecies': return 'disc';
@@ -239,11 +244,11 @@ function SearchHeader({
                     <ThemedIcon
                         name={getCategoryIcon(categoryFilter)}
                         size={16}
-                        color={categoryFilter !== 'all' ? 'inverse' : 'primary'}
+                        color={categoryFilter !== 'all' ? 'primary' : 'secondary'}
                     />
                     <ThemedText
                         variant="label"
-                        color={categoryFilter !== 'all' ? 'inverse' : 'primary'}
+                        color={categoryFilter !== 'all' ? 'primary' : 'secondary'}
                     >
                         {categoryFilter === 'all' ? t('birddex.categories.all') : categoryFilter}
                     </ThemedText>
@@ -321,7 +326,7 @@ function SearchHeader({
                                 key={category.key}
                                 style={[
                                     styles.menuOption,
-                                    categoryFilter === category.key && { backgroundColor: variants.primarySubtle }
+                                    categoryFilter === category.key && { backgroundColor: variants.primary.light }
                                 ]}
                                 onPress={() => {
                                     onCategoryChange(category.key);
@@ -365,6 +370,7 @@ function ErrorState({
     onRetry: () => void;
 }) {
     const { t } = useTranslation();
+    const colors = useColors();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
 
@@ -387,8 +393,8 @@ function ErrorState({
                 onPress={onRetry}
                 style={styles.retryButton}
             >
-                <ThemedIcon name="refresh-cw" size={18} color="inverse" />
-                <ThemedText variant="label" color="inverse">
+                <ThemedIcon name="refresh-cw" size={18} color="primary" />
+                <ThemedText variant="label" color="primary">
                     {t('birddex.reload')}
                 </ThemedText>
             </ThemedPressable>
@@ -415,6 +421,7 @@ function LoadingState() {
 export default function ModernBirdDexIndex() {
     const { i18n, t } = useTranslation();
     const router = useRouter();
+    const colors = useColors();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const theme = useTheme();
@@ -742,6 +749,9 @@ const styles = StyleSheet.create({
     },
     birdCard: {
         marginBottom: 12,
+    },
+    birdCardInner: {
+        overflow: 'hidden',
     },
     cardContent: {
         padding: 16,

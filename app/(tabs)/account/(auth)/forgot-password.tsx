@@ -17,7 +17,7 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import {ModernCard} from '@/components/ModernCard';
 import {useSnackbar} from '@/components/ThemedSnackbar';
-import {useTheme} from '@/hooks/useThemeColor';
+import {useTheme, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
 import {sendPasswordResetEmail} from 'firebase/auth';
 import {auth} from '@/firebase/config';
 
@@ -30,6 +30,8 @@ const validateEmail = (email: string): boolean => {
 export default function ForgotPasswordScreen() {
     const { t } = useTranslation();
     const theme = useTheme();
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
     const snackbar = useSnackbar();
 
     // Form state
@@ -162,11 +164,11 @@ export default function ForgotPasswordScreen() {
 
             <ThemedPressable
                 variant="primary"
-                size="large"
+                size="lg"
                 onPress={handleBack}
                 style={styles.backButton}
             >
-                <ThemedText variant="labelLarge" color="inverse">
+                <ThemedText variant="labelLarge" color="primary">
                     {t('auth.back_to_login')}
                 </ThemedText>
             </ThemedPressable>
@@ -253,14 +255,12 @@ export default function ForgotPasswordScreen() {
                 {/* Submit Button */}
                 <ThemedPressable
                     variant="primary"
-                    size="large"
+                    size="lg"
                     onPress={handleSubmit}
-                    loading={isLoading}
                     disabled={isLoading || !email.trim()}
                     style={styles.submitButton}
-                    glowOnHover
                 >
-                    <ThemedText variant="labelLarge" color="inverse">
+                    <ThemedText variant="labelLarge" color="primary">
                         {t('auth.send_reset')}
                     </ThemedText>
                 </ThemedPressable>
@@ -298,11 +298,11 @@ export default function ForgotPasswordScreen() {
                     <View style={StyleSheet.absoluteFillObject}>
                         <View style={[
                             styles.backgroundCircle,
-                            { backgroundColor: variants.primarySubtle }
+                            { backgroundColor: variants.primary.light }
                         ]} />
                         <View style={[
                             styles.backgroundCircle2,
-                            { backgroundColor: variants.accentSubtle }
+                            { backgroundColor: variants.secondary.light }
                         ]} />
                     </View>
 
@@ -312,7 +312,7 @@ export default function ForgotPasswordScreen() {
                             elevated={false}
                             bordered={true}
                             style={{
-                                borderColor: variants.primaryMuted,
+                                borderColor: variants.primary.light,
                                 ...theme.shadows.lg,
                             }}
                         >
