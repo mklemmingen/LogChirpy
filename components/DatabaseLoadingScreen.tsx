@@ -84,7 +84,7 @@ function ModernProgressBar({ progress }: { progress: number }) {
 
     return (
         <View style={styles.progressContainer}>
-            <View style={[styles.progressTrack, { backgroundColor: variants.primarySubtle }]}>
+            <View style={[styles.progressTrack, { backgroundColor: variants.primary.light }]}>
                 <Animated.View
                     style={[
                         styles.progressFill,
@@ -117,13 +117,13 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
 
     React.useEffect(() => {
         if (isReady) {
-            fadeAnim.value = withTiming(0, { duration: motion.duration.medium });
-            setTimeout(onReady, motion.duration.medium);
+            fadeAnim.value = withTiming(0, { duration: 200 });
+            setTimeout(onReady, 200);
         } else {
-            fadeAnim.value = withTiming(1, { duration: motion.duration.medium });
+            fadeAnim.value = withTiming(1, { duration: 200 });
             slideAnim.value = withSpring(0, { damping: 20, stiffness: 300 });
         }
-    }, [isReady, fadeAnim, motion.duration.medium, onReady, slideAnim]);
+    }, [isReady, fadeAnim, onReady, slideAnim]);
 
     React.useEffect(() => {
         logoAnimation.value = withRepeat(
@@ -174,37 +174,36 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     </View>
 
                     <Animated.View style={[styles.logoContainer, logoStyle]}>
-                        <View style={[styles.logoIcon, { backgroundColor: variants.primarySubtle }]}>
+                        <View style={[styles.logoIcon, { backgroundColor: variants.primary.light }]}>
                             <ThemedIcon name="alert-triangle" size={48} color="error" />
                         </View>
                     </Animated.View>
 
-                    <Text style={[typography.displayMedium, styles.title]}>
+                    <Text style={[typography.h1, styles.title]}>
                         Nest Building Failed
                     </Text>
 
-                    <Text style={[typography.bodyLarge, styles.subtitle, { color: semanticColors.textSecondary }]}>
+                    <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
                         We encountered a problem setting up your bird database
                     </Text>
 
                     <Animated.View style={floatingStyle}>
                         <ModernCard
-                            variant="outlined"
                             style={styles.errorCard}
                         >
                             <View style={styles.errorContent}>
-                                <Text style={[typography.bodyMedium, { color: semanticColors.textSecondary }]}>
+                                <Text style={[typography.bodyMedium, { color: semanticColors.secondary }]}>
                                     {error || 'Check your storage space and network connection'}
                                 </Text>
 
                                 <ThemedPressable
                                     variant="primary"
-                                    size="large"
+                                    size="lg"
                                     onPress={retry}
                                     style={styles.retryButton}
                                 >
                                     <ThemedIcon name="refresh-cw" size={20} color="primary" />
-                                    <Text style={[typography.labelLarge, { color: semanticColors.onPrimary }]}>
+                                    <Text style={[typography.label, { color: semanticColors.primary }]}>
                                         Try Again
                                     </Text>
                                 </ThemedPressable>
@@ -230,16 +229,16 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     {/* Hero Section */}
                     <View style={styles.heroSection}>
                         <Animated.View style={[styles.logoContainer, logoStyle]}>
-                            <View style={[styles.logoIcon, { backgroundColor: variants.primarySubtle }]}>
+                            <View style={[styles.logoIcon, { backgroundColor: variants.primary.light }]}>
                                 <ThemedIcon name="feather" size={48} color="primary" />
                             </View>
                         </Animated.View>
 
-                        <Text style={[typography.displayMedium, styles.title]}>
+                        <Text style={[typography.h1, styles.title]}>
                             LogChirpy
                         </Text>
 
-                        <Text style={[typography.bodyLarge, styles.subtitle, { color: semanticColors.textSecondary }]}>
+                        <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
                             Building your bird database
                         </Text>
                     </View>
@@ -247,14 +246,13 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     {/* Progress Section */}
                     <Animated.View style={floatingStyle}>
                         <ModernCard
-                            variant="glass"
                             style={{
                                 ...styles.progressCard,
-                                borderColor: variants.primaryMuted,
+                                borderColor: variants.primary.light,
                             }}
                         >
                             <View style={styles.progressContent}>
-                                <Text style={[typography.headlineSmall, { color: semanticColors.text }]}>
+                                <Text style={[typography.headlineSmall, { color: semanticColors.primary }]}>
                                     {getStatusMessage()}
                                 </Text>
 
@@ -263,22 +261,22 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                                 {/* Stats */}
                                 <View style={styles.statsContainer}>
                                     <View style={styles.statItem}>
-                                        <Text style={[typography.headlineMedium, { color: semanticColors.primary }]}>
+                                        <Text style={[typography.h2, { color: semanticColors.primary }]}>
                                             {loadedRecords.toLocaleString()}
                                         </Text>
-                                        <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
+                                        <Text style={[typography.labelMedium, { color: semanticColors.secondary }]}>
                                             Species Loaded
                                         </Text>
                                     </View>
 
                                     {totalRecords > 0 && (
                                         <>
-                                            <View style={[styles.statDivider, { backgroundColor: variants.primaryMuted }]} />
+                                            <View style={[styles.statDivider, { backgroundColor: variants.primary.light }]} />
                                             <View style={styles.statItem}>
-                                                <Text style={[typography.headlineMedium, { color: semanticColors.accent }]}>
+                                                <Text style={[typography.h2, { color: semanticColors.primary }]}>
                                                     {totalRecords.toLocaleString()}
                                                 </Text>
-                                                <Text style={[typography.labelMedium, { color: semanticColors.textSecondary }]}>
+                                                <Text style={[typography.labelMedium, { color: semanticColors.secondary }]}>
                                                     Total Species
                                                 </Text>
                                             </View>
@@ -290,7 +288,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     </Animated.View>
 
                     {/* Loading Hint */}
-                    <Text style={[typography.labelMedium, styles.hint, { color: semanticColors.textTertiary }]}>
+                    <Text style={[typography.labelMedium, styles.hint, { color: semanticColors.secondary }]}>
                         This may take a moment on first launch
                     </Text>
                 </Animated.View>

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
+import { Feather } from '@expo/vector-icons';
 import {BlurView} from 'expo-blur';
 import {router} from 'expo-router';
 import Animated, {
@@ -182,9 +183,9 @@ function SearchHeader({
             >
               <Card style={styles.sortMenuContent}>
                 {[
-                  { key: 'newest', label: t('archive.sort_newest'), icon: 'arrow-down' },
-                  { key: 'oldest', label: t('archive.sort_oldest'), icon: 'arrow-up' },
-                  { key: 'alphabetical', label: t('archive.sort_alphabetical'), icon: 'a-z' },
+                  { key: 'newest', label: t('archive.sort_newest'), icon: 'arrow-down' as keyof typeof Feather.glyphMap },
+                  { key: 'oldest', label: t('archive.sort_oldest'), icon: 'arrow-up' as keyof typeof Feather.glyphMap },
+                  { key: 'alphabetical', label: t('archive.sort_alphabetical'), icon: 'type' as keyof typeof Feather.glyphMap },
                 ].map((option) => (
                     <Pressable
                         key={option.key}

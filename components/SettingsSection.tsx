@@ -16,6 +16,7 @@ import {
     useTypography,
     useTheme,
     useMotionValues,
+    useColors,
 } from '../hooks/useThemeColor';
 
 interface SettingsSectionProps {
@@ -44,6 +45,7 @@ export default function SettingsSection({
     const typography = useTypography();
     const theme = useTheme();
     const motion = useMotionValues();
+    const colors = useColors();
 
     // Animation values
     const opacity = useSharedValue(animated ? 0 : 1);
@@ -55,12 +57,12 @@ export default function SettingsSection({
             const delayMs = delay * 100;
 
             setTimeout(() => {
-                opacity.value = withTiming(1, { duration: motion.duration.medium });
+                opacity.value = withTiming(1, { duration: 200 });
                 translateY.value = withSpring(0, { damping: 15, stiffness: 300 });
                 scale.value = withSpring(1, { damping: 20, stiffness: 400 });
             }, delayMs);
         }
-    }, [animated, delay, motion.duration.medium, opacity, scale, translateY]);
+    }, [animated, delay, opacity, scale, translateY]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,
@@ -75,7 +77,7 @@ export default function SettingsSection({
         switch (variant) {
             case 'elevated':
                 return {
-                    backgroundColor: semanticColors.backgroundElevated,
+                    backgroundColor: semanticColors.surface,
                     borderWidth: 0,
                     ...theme.shadows.md,
                 };
@@ -83,19 +85,19 @@ export default function SettingsSection({
                 return {
                     backgroundColor: 'transparent',
                     borderWidth: 1,
-                    borderColor: semanticColors.border,
+                    borderColor: colors.border,
                 };
             case 'glass':
                 return {
                     backgroundColor: 'transparent',
                     borderWidth: 1,
-                    borderColor: variants.primaryMuted,
+                    borderColor: variants.primary.light,
                 };
             default:
                 return {
-                    backgroundColor: semanticColors.backgroundElevated,
+                    backgroundColor: semanticColors.surface,
                     borderWidth: 1,
-                    borderColor: semanticColors.border,
+                    borderColor: colors.border,
                     ...theme.shadows.sm,
                 };
         }
@@ -115,7 +117,7 @@ export default function SettingsSection({
                         </Text>
                     )}
                     {subtitle && (
-                        <Text style={[typography.bodyMedium, styles.subtitle, { color: semanticColors.textSecondary }]}>
+                        <Text style={[typography.bodyMedium, styles.subtitle, { color: semanticColors.secondary }]}>
                             {subtitle}
                         </Text>
                     )}
@@ -142,7 +144,7 @@ export default function SettingsSection({
                     style={[
                         StyleSheet.absoluteFillObject,
                         {
-                            backgroundColor: variants.primarySubtle,
+                            backgroundColor: variants.primary.light,
                             opacity: 0.1,
                             borderRadius: theme.borderRadius.lg,
                         }

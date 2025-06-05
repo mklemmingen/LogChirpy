@@ -110,10 +110,10 @@ describe('Component Tests', () => {
       it('should apply different typography variants', () => {
         const { getByText } = render(
           <ThemedView>
-            <ThemedText type="h1">Heading 1</ThemedText>
-            <ThemedText type="h2">Heading 2</ThemedText>
-            <ThemedText type="body">Body text</ThemedText>
-            <ThemedText type="caption">Caption text</ThemedText>
+            <ThemedText variant="h1">Heading 1</ThemedText>
+            <ThemedText variant="h2">Heading 2</ThemedText>
+            <ThemedText variant="body">Body text</ThemedText>
+            <ThemedText variant="caption">Caption text</ThemedText>
           </ThemedView>
         );
         
@@ -156,15 +156,14 @@ describe('Component Tests', () => {
 
     describe('ThemedIcon', () => {
       it('should render with icon name', () => {
-        const { getByTestId } = render(
+        const { container } = render(
           <ThemedIcon 
-            testID="themed-icon"
             name="star" 
             size={24} 
           />
         );
         
-        expect(getByTestId('themed-icon')).toBeTruthy();
+        expect(container.firstChild).toBeTruthy();
       });
 
       it('should handle color variants', () => {

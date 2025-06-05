@@ -441,7 +441,7 @@ export default function ModernBirdDexIndex() {
     const [categories, setCategories] = useState<CategoryOption[]>([]);
 
     // Helper function for category icons
-    const getCategoryIcon = (category: string): string => {
+    const getCategoryIcon = (category: string): keyof typeof Feather.glyphMap => {
         switch (category) {
             case 'species': return 'circle';
             case 'subspecies': return 'target';

@@ -642,7 +642,7 @@ export default function AudioScreen() {
                     paddingHorizontal: 16,
                     paddingVertical: 12,
                     borderBottomWidth: 1,
-                    borderBottomColor: theme.colors.border
+                    borderBottomColor: theme.colors.border.primary
                 }}
             >
                 <ThemedPressable

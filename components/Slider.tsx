@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { View, Text, PanResponder, StyleSheet } from 'react-native';
-import { useTheme } from '@/hooks/useThemeColor';
+import { useTheme, useColors } from '@/hooks/useThemeColor';
 
 
 type CustomSliderProps = {
@@ -33,6 +33,7 @@ export default function CustomSlider({
                                             description,
                                      }: CustomSliderProps) {
     const theme = useTheme();
+    const colors = useColors();
     const trackHeight = (style as any)?.height || 200;
     const clamp = (val: number, min: number, max: number) =>
         Math.max(min, Math.min(val, max));
@@ -62,7 +63,7 @@ export default function CustomSlider({
         <View style={styles.wrapper}>
             {/* Top-right text overlay */}
                 {(label || description) && (
-                    <View style={styles.overlay}>
+                    <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
                         {label && <Text style={styles.label}>{label}</Text>}
                         {description && <Text style={styles.description}>{description}</Text>}
                     </View>
@@ -105,7 +106,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: -60,
         right: 0,
-        backgroundColor: theme.colors.overlay.heavy,
         padding: 8,
         borderRadius: 8,
         maxWidth: 160,
