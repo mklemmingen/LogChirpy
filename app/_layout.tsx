@@ -175,7 +175,7 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                         style={[styles.retryButton, { backgroundColor: colors.primary }]}
                         onPress={retry}
                     >
-                        <ThemedIcon name="refresh-cw" size={20} color="inverse" />
+                        <ThemedIcon name="refresh-cw" size={20} color="secondary" />
                         <Text style={[typography.label, { color: colors.textInverse }]}>
                             Retry Loading
                         </Text>
@@ -289,7 +289,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
                             style={[styles.retryButton, { backgroundColor: colors.primary }]}
                             onPress={onRetry}
                         >
-                            <ThemedIcon name="refresh-cw" size={18} color="inverse" />
+                            <ThemedIcon name="refresh-cw" size={18} color="error" />
                             <Text style={[typography.label, { color: colors.textInverse }]}>
                                 Try Again
                             </Text>

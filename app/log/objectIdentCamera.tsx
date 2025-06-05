@@ -217,7 +217,7 @@ function ObjectIdentCameraContent() {
     if (!device) {
         return (
             <View style={styles.centered}>
-                <Text>No camera device found</Text>
+                <Text>{t('camera_advanced.no_camera_found')}</Text>
             </View>
         );
     }
@@ -999,7 +999,7 @@ function ObjectIdentCameraContent() {
                             })}
                         </View>
                         <View style={styles.modalButtons}>
-                            <Button title="Close" onPress={() => {
+                            <Button title={t('buttons.close')} onPress={() => {
                                 setModalVisible(false);
                                 setModalPhotoUri(null); // clear frozen image of the modal
                                 setShowOverlays(true);

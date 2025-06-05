@@ -94,8 +94,8 @@ export default function ModernSignupScreen() {
     };
 
     const validateConfirmPassword = (password: string, confirmPassword: string): { valid: boolean; error: string } => {
-        if (!confirmPassword) return { valid: false, error: 'Please confirm your password' };
-        if (password !== confirmPassword) return { valid: false, error: 'Passwords do not match' };
+        if (!confirmPassword) return { valid: false, error: t('app_errors.confirm_password_required') };
+        if (password !== confirmPassword) return { valid: false, error: t('app_errors.passwords_do_not_match') };
         return { valid: true, error: '' };
     };
 
@@ -168,7 +168,7 @@ export default function ModernSignupScreen() {
                 formState.password.value
             );
 
-            console.log('User created:', userCredential.user);
+            console.log(t('app_errors.user_created'), userCredential.user);
 
             // Create user profile in Firestore
             await UserProfileService.createUserProfile(
@@ -185,7 +185,7 @@ export default function ModernSignupScreen() {
             }, 1000);
 
         } catch (error: unknown) {
-            console.error('Signup error:', error);
+            console.error(t('app_errors.signup_error'), error);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
             // Handle Firebase auth errors
@@ -396,7 +396,7 @@ export default function ModernSignupScreen() {
                                         <AnimatedTextInput
                                             ref={confirmPasswordRef}
                                             style={[styles.textInput, { color: semanticColors.text }]}
-                                            placeholder="Confirm your password"
+                                            placeholder={t('app_errors.confirm_password_placeholder')}
                                             placeholderTextColor={semanticColors.textTertiary}
                                             value={formState.confirmPassword.value}
                                             onChangeText={(text) => updateField('confirmPassword', text)}

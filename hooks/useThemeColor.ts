@@ -92,9 +92,12 @@ export function useTypography() {
     h3: { ...typography.h3, color: colors.text },
     body: { ...typography.body, color: colors.text },
     bodySmall: { ...typography.bodySmall, color: colors.textSecondary },
+    bodyMedium: { ...typography.body, color: colors.text }, // Alias for body
     button: { ...typography.button, color: colors.text },
     caption: { ...typography.caption, color: colors.textTertiary },
     label: { ...typography.label, color: colors.textSecondary },
+    labelMedium: { ...typography.label, color: colors.textSecondary }, // Alias for label
+    headlineSmall: { ...typography.h3, color: colors.text }, // Alias for h3
   };
 }
 
@@ -140,4 +143,79 @@ export function useBorderRadius() {
 // Shadow helpers
 export function useShadows() {
   return useTheme().shadows;
+}
+
+// Additional semantic color helpers for compatibility
+export function useSemanticColors() {
+  const colors = useColors();
+  
+  return {
+    primary: colors.primary,
+    secondary: colors.secondary,
+    background: colors.background,
+    surface: colors.surface,
+    error: colors.error,
+    success: colors.success,
+    warning: colors.warning,
+    info: colors.info,
+    onPrimary: colors.textInverse,
+    onSecondary: colors.text,
+    onBackground: colors.text,
+    onSurface: colors.text,
+    onError: colors.textInverse,
+  };
+}
+
+// Color variant helpers
+export function useColorVariants() {
+  const colors = useColors();
+  const { isDark } = colors;
+  
+  return {
+    primary: {
+      main: colors.primary,
+      light: isDark ? colors.backgroundSecondary : colors.backgroundTertiary,
+      dark: isDark ? colors.backgroundTertiary : colors.backgroundSecondary,
+      contrast: colors.textInverse,
+    },
+    secondary: {
+      main: colors.secondary,
+      light: colors.backgroundSecondary,
+      dark: colors.backgroundTertiary,
+      contrast: colors.text,
+    },
+    neutral: {
+      main: colors.textSecondary,
+      light: colors.backgroundSecondary,
+      dark: colors.textTertiary,
+      contrast: colors.text,
+    },
+  };
+}
+
+// Motion/animation value helpers
+export function useMotionValues() {
+  const animations = useAnimations();
+  
+  return {
+    spring: {
+      damping: 15,
+      stiffness: 150,
+      mass: 1,
+    },
+    timing: {
+      duration: animations.duration.normal,
+      easing: animations.easing,
+    },
+    gesture: {
+      scale: { pressed: 0.98, released: 1.0 },
+      opacity: { pressed: 0.8, released: 1.0 },
+    },
+    transition: {
+      fadeIn: animations.fadeIn,
+      fadeOut: animations.fadeOut,
+      slideUp: animations.slideUp,
+      press: animations.press,
+    },
+  };
 }

@@ -26,7 +26,7 @@ describe('MLKit Service Pipeline Tests', () => {
     jest.clearAllMocks();
   });
 
-  describe('🖼️ MLKit Image Classification Pipeline', () => {
+  describe('MLKit Image Classification Pipeline', () => {
     describe('Bird image classification', () => {
       it('should classify bird images using MLKit', async () => {
         // Mock MLKit labels response
@@ -119,7 +119,7 @@ describe('MLKit Service Pipeline Tests', () => {
     });
   });
 
-  describe('🌐 BirdNet Service Integration', () => {
+  describe('BirdNet Service Integration', () => {
     describe('Image identification service', () => {
       it('should process images through BirdNet service', async () => {
         const mockFileInfo = { exists: true, size: 1024 };
@@ -241,7 +241,7 @@ describe('MLKit Service Pipeline Tests', () => {
     });
   });
 
-  describe('🔄 Cache Management', () => {
+  describe('Cache Management', () => {
     describe('MLKit result caching', () => {
       it('should cache classification results', async () => {
         const classifier = MLKitBirdClassifier.getInstance();
@@ -277,7 +277,7 @@ describe('MLKit Service Pipeline Tests', () => {
     });
   });
 
-  describe('🔄 Complete Integration Flow', () => {
+  describe('Complete Integration Flow', () => {
     it('should execute full bird spotting pipeline', async () => {
       // Mock all dependencies
       const FileSystem = require('expo-file-system');

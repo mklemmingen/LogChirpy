@@ -1,6 +1,7 @@
 import React, {useEffect} from 'react';
 import {Dimensions, StyleSheet, View} from 'react-native';
 import {Link, Stack} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
   Easing,
@@ -162,6 +163,7 @@ export default function NotFoundScreen() {
   const theme = useTheme();
   const colors = useColors();
   const typography = useTypography();
+  const { t } = useTranslation();
 
   // Animation values for the main content
   const contentOpacity = useSharedValue(0);
@@ -188,7 +190,7 @@ export default function NotFoundScreen() {
   return (
       <ThemedView background="primary" style={styles.container}>
         <Stack.Screen options={{
-          title: 'Page Not Found',
+          title: t('not_found.page_title'),
           headerShown: false
         }} />
 
@@ -213,7 +215,7 @@ export default function NotFoundScreen() {
                   variant="displayMedium"
                   style={[styles.title, { textAlign: 'center' }]}
               >
-                Nest Not Found
+                {t('not_found.nest_not_found')}
               </ThemedText>
 
               <ThemedText
@@ -221,7 +223,7 @@ export default function NotFoundScreen() {
                   color="secondary"
                   style={[styles.subtitle, { textAlign: 'center' }]}
               >
-                This bird seems to have flown away! The page you're looking for doesn't exist in our aviary.
+                {t('not_found.page_description')}
               </ThemedText>
             </View>
 
@@ -238,7 +240,7 @@ export default function NotFoundScreen() {
                       variant="labelLarge"
                       color="inverse"
                   >
-                    Return to Nest
+                    {t('not_found.return_to_nest')}
                   </ThemedText>
                 </ThemedPressable>
               </Link>
@@ -251,7 +253,7 @@ export default function NotFoundScreen() {
                 >
                   <ThemedIcon name="map" size={20} color="primary" />
                   <ThemedText variant="labelLarge">
-                    Explore BirdDex
+                    {t('not_found.explore_birdex')}
                   </ThemedText>
                 </ThemedPressable>
               </Link>
@@ -265,7 +267,7 @@ export default function NotFoundScreen() {
                   color="primary"
                   style={{ flex: 1, lineHeight: 18 }}
               >
-                Did you know? Migratory birds can navigate using Earth's magnetic field!
+                {t('not_found.fun_fact')}
               </ThemedText>
             </View>
           </ModernCard>

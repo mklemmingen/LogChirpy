@@ -1,11 +1,13 @@
 {
-  "welcome": "Registrando los pajaritos aquí",
-  "start_logging": "Comienza a registrar, guardar y explorar gorjeos 🐦",
+  "welcome": "Bienvenido a LogChirpy",
+  "start_logging": "Descubre, registra y explora el mundo de las aves",
   "tabs": {
+    "home": "Inicio",
+    "birdex": "BirdDex",
+    "smartSearch": "Identificar",
     "archive": "Archivo",
-    "log": "Registrar Gorjeos",
-    "account": "Sincronización en la Nube",
-    "settings": "Ajustes"
+    "account": "Cuenta",
+    "settings": "Configuración"
   },
   "archive": {
     "title": "Archivo",
@@ -217,6 +219,152 @@
   "common": {
     "ok": "Aceptar",
     "error": "Error",
-    "confirm": "Confirmar"
-  }
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "settings": "Configuración",
+    "continue": "Continuar",
+    "close": "Cerrar"
+  },
+  "birdnet": {
+    "identify_button": "Identificar ave (IA)",
+    "identify_button_offline": "Identificar ave (IA sin conexión)",
+    "identifying": "Identificando ave...",
+    "no_audio_error": "No se ha añadido ningún archivo de audio",
+    "no_internet_error": "No hay conexión a internet disponible",
+    "identification_success": "Ave identificada exitosamente",
+    "no_birds_detected": "No se detectaron aves en la grabación",
+    "identification_failed": "Error en la identificación del ave",
+    "network_error": "Error de red durante la identificación",
+    "audio_not_found": "Archivo de audio no encontrado",
+    "prediction_selected": "Predicción seleccionada: {{species}}",
+    "predictions_title": "Resultados de identificación de aves",
+    "disclaimer": "Toque una predicción para seleccionarla. Los resultados son generados por IA y pueden ser inexactos.",
+    "offline_mode": "IA sin conexión",
+    "online_mode": "API en línea",
+    "cached_result": "Resultado en caché"
+  },
+  "smartSearch": {
+    "title": "Búsqueda inteligente de aves",
+    "subtitle": "Encuentra aves por nombre",
+    "placeholder": "Ingresa el nombre del ave...",
+    "tipsTitle": "Consejos de búsqueda",
+    "tip1": "Prueba nombres en español o científicos",
+    "tip2": "No te preocupes por la ortografía exacta - encontraremos coincidencias similares",
+    "tip3": "Ejemplos: 'Gorrión', 'Passer domesticus', 'Petirrojo'",
+    "searching": "Buscando...",
+    "noResults": "No se encontraron resultados",
+    "tryDifferent": "Prueba con un término de búsqueda diferente",
+    "exactMatch": "Coincidencia exacta",
+    "veryClose": "Muy similar",
+    "closeMatch": "Similar",
+    "possibleMatch": "Posible coincidencia",
+    "english": "Inglés",
+    "scientific": "Científico",
+    "german": "Alemán",
+    "spanish": "Español",
+    "ukrainian": "Ucraniano",
+    "arabic": "Árabe"
+  },
+  "app_errors": {
+    "password_reset_error": "No se puede restablecer la contraseña",
+    "login_successful": "Inicio de sesión exitoso",
+    "login_error": "Error en el inicio de sesión",
+    "user_created": "Cuenta creada exitosamente",
+    "signup_error": "No se puede crear la cuenta",
+    "error_signing_out": "No se puede cerrar sesión",
+    "confirm_password_required": "Por favor confirma tu contraseña",
+    "passwords_do_not_match": "Las contraseñas no coinciden",
+    "confirm_password_placeholder": "Confirmar contraseña"
+  },
+  "loading_messages": {
+    "initializing_offline_model": "Inicializando modelo de clasificación de aves sin conexión...",
+    "offline_model_success": "Modelo de clasificación de aves sin conexión inicializado exitosamente",
+    "offline_model_failed": "No se puede inicializar el modelo sin conexión",
+    "loading_application": "Cargando aplicación...",
+    "loading_fonts_assets": "Cargando fuentes y recursos...",
+    "initializing_local_db": "Inicializando base de datos local...",
+    "loading_ai_models": "Cargando modelos de IA..."
+  },
+  "camera_advanced": {
+    "media_permission_denied": "Permiso de biblioteca multimedia denegado",
+    "asset_created": "Foto guardada",
+    "saved_to_album": "Foto guardada en galería",
+    "failed_save_media": "No se puede guardar en galería",
+    "failed_save_image": "No se puede guardar la imagen",
+    "deleted_old_file": "Archivo antiguo eliminado",
+    "no_camera_found": "No se encontró dispositivo de cámara",
+    "failed_load_settings": "No se pueden cargar la configuración",
+    "classifier_ready": "Clasificador listo",
+    "object_detector_not_loaded": "Sistema de detección no está listo",
+    "image_classifier_not_ready": "Sistema de identificación de aves cargando..."
+  },
+  "components": {
+    "no_camera_found": "Cámara no encontrada",
+    "camera_permission_check": "Por favor verifica la configuración de cámara de tu dispositivo o los permisos.",
+    "retry": "Reintentar"
+  },
+  "home": {
+    "camera_description": "Detección e identificación de aves en tiempo real con IA",
+    "photo_description": "Captura e identifica aves desde fotos",
+    "audio_description": "Graba y analiza cantos de aves",
+    "manual_description": "Entrada manual para observaciones de campo"
+  },
+  "navigation": {
+    "home_description": "Inicio y resumen",
+    "birdex_description": "Enciclopedia de aves",
+    "smart_search_description": "Búsqueda inteligente de aves",
+    "archive_description": "Tus archivos de aves",
+    "account_description": "Configuración de cuenta",
+    "settings_description": "Configuración de la aplicación"
+  },
+  "not_found": {
+    "page_title": "Página no encontrada",
+    "nest_not_found": "Nido no encontrado",
+    "page_description": "¡Este pájaro parece haber volado! La página que buscas no existe en nuestro aviario.",
+    "return_to_nest": "Volver al nido",
+    "explore_birdex": "Explorar BirdDex",
+    "fun_fact": "¿Sabías que las aves migratorias pueden navegar usando el campo magnético de la Tierra?"
+  },
+  "photo": {
+    "select_best_photo": "Selecciona tu mejor foto",
+    "use_this_photo": "Usar esta foto",
+    "choose_existing": "Elegir de galería",
+    "take_photos": "Tomar fotos",
+    "tap_to_select": "Toca para seleccionar fotos",
+    "take_more": "Tomar más fotos",
+    "add_photo": "Añadir foto",
+    "capture_description": "Captura hermosos momentos de aves",
+    "no_photos": "Aún no hay fotos",
+    "take_at_least_one": "Por favor toma al menos una foto para continuar",
+    "photos_taken": "{{count}} foto(s) capturada(s)",
+    "continue_with_photos": "Continuar con {{count}} foto(s)"
+  },
+  "video": {
+    "recording_failed": "Grabación fallida",
+    "stop_recording_title": "¿Detener grabación?",
+    "stop_recording_message": "Estás grabando actualmente. ¿Quieres detener y guardar el video?",
+    "stop_and_exit": "Detener y guardar",
+    "processing": "Procesando video...",
+    "preview_title": "Vista previa del video"
+  },
+  "location": {
+    "success": "Ubicación actualizada",
+    "failed_to_get": "No se puede determinar la ubicación",
+    "permission_denied": "Permiso de ubicación denegado"
+  },
+  "log_screens": {
+    "manual_title": "Entrada manual / guardar registro",
+    "photo_title": "Tomar foto",
+    "video_title": "Tomar video",
+    "audio_title": "Grabar audio"
+  },
+  "validation": {
+    "bird_type_required": "Por favor especifica el tipo de ave",
+    "media_or_notes_required": "Por favor añade al menos una foto, audio, video o notas"
+  },
+  "warnings": {
+    "media_permission_required": "Permiso de biblioteca multimedia requerido"
+  },
+  "window": "LogChirpy"
 }

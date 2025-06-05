@@ -166,37 +166,37 @@ export default function ModernTabLayout() {
     //         name: 'index',
     //         title: t('tabs.home'),
     //         icon: 'home',
-    //         description: 'Home and overview',
+    //         description: t('navigation.home_description'),
     //     },
     //     {
     //         name: 'birdex',
     //         title: t('tabs.birdex'),
     //         icon: 'book-open',
-    //         description: 'Bird encyclopedia',
+    //         description: t('navigation.birdex_description'),
     //     },
     //     {
     //         name: 'smart-search',
     //         title: t('tabs.smartSearch'),
     //         icon: 'search',
-    //         description: 'Smart bird search',
+    //         description: t('navigation.smart_search_description'),
     //     },
     //     {
     //         name: 'archive',
     //         title: t('tabs.archive'),
     //         icon: 'archive',
-    //         description: 'Your bird archives',
+    //         description: t('navigation.archive_description'),
     //     },
     //     {
     //         name: 'account',
     //         title: t('tabs.account'),
     //         icon: 'user',
-    //         description: 'Account settings',
+    //         description: t('navigation.account_description'),
     //     },
     //     {
     //         name: 'settings',
     //         title: t('tabs.settings'),
     //         icon: 'settings',
-    //         description: 'App settings',
+    //         description: t('navigation.settings_description'),
     //     },
     // ];
 

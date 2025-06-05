@@ -12,7 +12,7 @@ import {
     useSemanticColors,
     useColorVariants,
     useTypography,
-} from '@/hooks/useThemeColor';
+} from '../hooks/useThemeColor';
 
 // Enhanced props interface
 interface SectionProps {

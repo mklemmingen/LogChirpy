@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '@/firebase/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 
 interface AuthContextType {
   user: User | null;
@@ -20,6 +21,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -43,7 +45,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await firebaseSignOut(auth);
       await AsyncStorage.removeItem('auth:hasUser');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error(t('app_errors.error_signing_out'), error);
       throw error;
     }
   };
