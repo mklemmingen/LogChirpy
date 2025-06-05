@@ -2,7 +2,7 @@
 // Converts audio files to mel-spectrograms for the BirdNET model
 
 import * as FileSystem from 'expo-file-system';
-import { Audio } from 'expo-av';
+// import { Audio } from 'expo-av';
 import * as tf from '@tensorflow/tfjs';
 // @ts-ignore - fft-js doesn't have type definitions
 import { fft } from 'fft-js';

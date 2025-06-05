@@ -346,7 +346,7 @@ export class TensorFlowLiteModelService {
           return labelsData.labels[index].scientific_name;
         }
       }
-    } catch (error) {
+    } catch {
       // Fall back to mock scientific name
     }
     

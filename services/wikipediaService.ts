@@ -47,7 +47,7 @@ export async function fetchLocalizedNamesPage(
 
             Object.values<any>(pages).forEach(page => {
                 const originalTitle = page.title.replace(/_/g, ' ');
-                const links = page.langlinks as Array<{ lang: string; '*': string }>;
+                const links = page.langlinks as { lang: string; '*': string }[];
                 if (Array.isArray(links) && links.length > 0) {
                     result[originalTitle] = links[0]['*'];
                 }
@@ -117,7 +117,7 @@ export async function fetchLocalizedNamesSingle(
         Object.values<any>(pages).forEach(page => {
             // Page.title is the English Wikipedia page title
             en = (page.title || defaultName).replace(/_/g, ' ');
-            const links = page.langlinks as Array<{ lang: string; '*': string }>;
+            const links = page.langlinks as { lang: string; '*': string }[];
             if (Array.isArray(links)) {
                 for (const ll of links) {
                     switch (ll.lang) {

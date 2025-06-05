@@ -1,11 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
     ViewStyle,
     Pressable,
     Text,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
+import { ThemedIcon } from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
     useAnimatedStyle,
@@ -50,7 +50,7 @@ interface ModernSnackbarProps {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function ModernSnackbar({
+export function ThemedSnackbar({
                                    visible,
                                    message,
                                    onHide,
@@ -123,7 +123,7 @@ export function ModernSnackbar({
     const variantStyle = getVariantStyle();
 
     // Enhanced entrance animation
-    const showSnackbar = () => {
+    const showSnackbar = useCallback(() => {
         // Haptic feedback on show
         Haptics.notificationAsync(
             variant === 'error'
@@ -153,13 +153,13 @@ export function ModernSnackbar({
         // Auto-dismiss timer
         if (duration > 0) {
             timeoutRef.current = setTimeout(() => {
-                hideSnackbar();
+                onHide();
             }, duration);
         }
-    };
+    }, [variant, translateY, opacity, scale, motion.duration.medium, duration, onHide]);
 
     // Enhanced exit animation
-    const hideSnackbar = () => {
+    const hideSnackbar = useCallback(() => {
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
         }
@@ -179,7 +179,7 @@ export function ModernSnackbar({
 
         // Call onHide after animation
         setTimeout(onHide, motion.duration.fast);
-    };
+    }, [position, translateY, opacity, scale, motion.duration.fast, onHide]);
 
     // Swipe to dismiss gesture handler
     const gestureHandler = useAnimatedGestureHandler({
@@ -247,7 +247,7 @@ export function ModernSnackbar({
                 clearTimeout(timeoutRef.current);
             }
         };
-    }, [visible]);
+    }, [visible, hideSnackbar, showSnackbar]);
 
     // Animated styles
     const containerStyle = useAnimatedStyle(() => ({
@@ -318,10 +318,10 @@ export function ModernSnackbar({
                     >
                         {/* Icon */}
                         {variantStyle.iconName && (
-                            <Feather
+                            <ThemedIcon
                                 name={variantStyle.iconName as any}
                                 size={20}
-                                color={variantStyle.iconColor}
+                                color="accent"
                             />
                         )}
 
@@ -380,10 +380,10 @@ export function ModernSnackbar({
                                 onPress={hideSnackbar}
                                 android_ripple={{ color: variants.surfacePressed }}
                             >
-                                <Feather
+                                <ThemedIcon
                                     name="x"
                                     size={16}
-                                    color={semanticColors.textSecondary}
+                                    color="secondary"
                                 />
                             </Pressable>
                         )}
@@ -461,7 +461,7 @@ export const useSnackbar = () => {
         showWarning,
         showInfo,
         SnackbarComponent: () => (
-            <ModernSnackbar
+            <ThemedSnackbar
                 visible={snackbarState.visible}
                 message={snackbarState.message}
                 variant={snackbarState.variant}

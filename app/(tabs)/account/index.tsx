@@ -1,8 +1,8 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect} from 'react';
 import {Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View,} from 'react-native';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
@@ -30,9 +30,9 @@ export default function ModernAccountScreen() {
             );
         } else if (isAuthenticated) {
             // Fade in animation when user loads
-            fadeInOpacity.value = withTiming(1, { duration: motion.duration.medium });
+            fadeInOpacity.value = withTiming(1, { duration: theme.motion.duration.normal });
         }
-    }, [isAuthenticated, isLoading]);
+    }, [isAuthenticated, isLoading, fadeInOpacity, theme.motion.duration.normal]);
 
     const fadeInStyle = useAnimatedStyle(() => ({
         opacity: fadeInOpacity.value,
@@ -84,13 +84,13 @@ export default function ModernAccountScreen() {
     }
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
             {/* Header */}
             <View style={[styles.header, { marginTop: insets.top }]}>
-                <Text style={[typography.displayMedium, styles.headerTitle]}>
+                <Text style={[styles.headerTitle]}>
                     {t('account.title')}
                 </Text>
-                <Text style={[typography.bodyMedium, styles.headerSubtitle, { color: semanticColors.textSecondary }]}>
+                <Text style={[styles.headerSubtitle, { color: theme.colors.text.primary }]}>
                     {t('account.subtitle', 'Manage your LogChirpy account')}
                 </Text>
             </View>
@@ -227,9 +227,9 @@ export default function ModernAccountScreen() {
                             onPress={handleSignOut}
                             onPressIn={handleSignOutPressIn}
                             onPressOut={handleSignOutPressOut}
-                            android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                            android_ripple={{ color: theme.colors.surface.primary + '33' }}
                         >
-                            <Feather name="log-out" size={20} color={semanticColors.onPrimary} />
+                            <ThemedIcon name="log-out" size={20} color="primary" />
                             <Text style={[typography.bodyLarge, styles.signOutText, { color: semanticColors.onPrimary }]}>
                                 {t('buttons.signout')}
                             </Text>

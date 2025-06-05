@@ -13,7 +13,7 @@ import {
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {BlurView} from 'expo-blur';
-import {Feather} from '@expo/vector-icons';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
     interpolate,
     SlideInRight,
@@ -34,8 +34,8 @@ import {ModernCard} from '@/components/ModernCard';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {useSnackbar} from '@/components/ThemedSnackbar';
-import {useColorVariants, useSemanticColors, useTypography,} from '@/hooks/useThemeColor';
-import { useAuth } from '@/app/context/AuthContext';
+import {useTheme} from '@/hooks/useThemeColor';
+// import { useAuth } from '@/app/context/AuthContext';
 
 // Constants
 const { width, height } = Dimensions.get('window');
@@ -55,8 +55,8 @@ interface ModernTextInputProps {
     onChangeText: (text: string) => void;
     placeholder: string;
     secureTextEntry?: boolean;
-    keyboardType?: any;
-    autoCapitalize?: any;
+    keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad' | 'ascii-capable' | 'numbers-and-punctuation' | 'url' | 'number-pad' | 'name-phone-pad' | 'decimal-pad' | 'twitter' | 'web-search' | 'visible-password';
+    autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
     error?: string;
     disabled?: boolean;
     icon?: string;
@@ -84,7 +84,7 @@ function LoginBirdAnimation() {
 
     return (
         <Animated.View style={[styles.floatingBird, animatedStyle]}>
-            <Feather name="feather" size={24} color={semanticColors.primary} />
+            <ThemedIcon name="feather" size={24} color="accent" />
         </Animated.View>
     );
 }
@@ -160,10 +160,10 @@ function ModernTextInput({
                 <View style={styles.inputContent}>
                     {icon && (
                         <View style={styles.inputIcon}>
-                            <Feather
+                            <ThemedIcon
                                 name={icon as any}
                                 size={18}
-                                color={error ? semanticColors.error : semanticColors.textSecondary}
+                                color={error ? "error" : "secondary"}
                             />
                         </View>
                     )}
@@ -195,10 +195,10 @@ function ModernTextInput({
                                 Haptics.selectionAsync();
                             }}
                         >
-                            <Feather
+                            <ThemedIcon
                                 name={showPassword ? 'eye-off' : 'eye'}
                                 size={18}
-                                color={semanticColors.textSecondary}
+                                color="secondary"
                             />
                         </Pressable>
                     )}
@@ -210,7 +210,7 @@ function ModernTextInput({
                     entering={SlideInRight.duration(200)}
                     style={styles.errorContainer}
                 >
-                    <Feather name="alert-circle" size={14} color={semanticColors.error} />
+                    <ThemedIcon name="alert-circle" size={14} color="error" />
                     <ThemedText variant="caption" color="error">
                         {error}
                     </ThemedText>
@@ -287,13 +287,13 @@ export default function ModernLoginScreen() {
                 router.replace('/(tabs)');
             }, 1000);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Login error:', error);
 
             // Map Firebase errors to user-friendly messages
             let errorMessage = t('errors.sign_in_error');
 
-            if (error?.code) {
+            if (error && typeof error === 'object' && 'code' in error) {
                 switch (error.code) {
                     case 'auth/user-not-found':
                         errorMessage = t('errors.user_not_found');
@@ -376,7 +376,7 @@ export default function ModernLoginScreen() {
                     {/* Header Section */}
                     <Animated.View style={[styles.header, headerStyle]}>
                         <View style={[styles.logoContainer, { backgroundColor: variants.primarySubtle }]}>
-                            <Feather name="feather" size={40} color={semanticColors.primary} />
+                            <ThemedIcon name="feather" size={40} color="accent" />
                         </View>
 
                         <ThemedText
@@ -449,10 +449,10 @@ export default function ModernLoginScreen() {
                                 >
                                     <View style={styles.buttonContent}>
                                         {!isLoading && (
-                                            <Feather
+                                            <ThemedIcon
                                                 name="log-in"
                                                 size={20}
-                                                color={semanticColors.onPrimary}
+                                                color="primary"
                                             />
                                         )}
                                         <ThemedText

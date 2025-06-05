@@ -1,9 +1,10 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { View, Text, PanResponder, StyleSheet } from 'react-native';
+import { useTheme } from '@/hooks/useThemeColor';
 
 
 type CustomSliderProps = {
-    style?: any;
+    style?: object;
     minimumValue?: number;
     maximumValue?: number;
     value: number;
@@ -31,7 +32,8 @@ export default function CustomSlider({
                                             label,
                                             description,
                                      }: CustomSliderProps) {
-    const trackHeight = style?.height || 200;
+    const theme = useTheme();
+    const trackHeight = (style as any)?.height || 200;
     const clamp = (val: number, min: number, max: number) =>
         Math.max(min, Math.min(val, max));
 
@@ -103,7 +105,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: -60,
         right: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: theme.colors.overlay.heavy,
         padding: 8,
         borderRadius: 8,
         maxWidth: 160,

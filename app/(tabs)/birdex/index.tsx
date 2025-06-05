@@ -146,6 +146,7 @@ function BirdCard({
                             </ThemedText>
                         </View>
                     </View>
+                </View>
                 </Card>
             </ThemedPressable>
         </Animated.View>

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import {useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -184,13 +184,17 @@ export default function ModernSignupScreen() {
                 router.replace('/(tabs)');
             }, 1000);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Signup error:', error);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
             // Handle Firebase auth errors
             let errorMessage = t('errors.signup_error');
-            switch (error.code) {
+            
+            // Type check for Firebase auth error
+            if (error && typeof error === 'object' && 'code' in error) {
+                const firebaseError = error as { code: string; message?: string };
+                switch (firebaseError.code) {
                 case 'auth/email-already-in-use':
                     errorMessage = t('errors.signup_email_in_use');
                     break;
@@ -210,7 +214,10 @@ export default function ModernSignupScreen() {
                     errorMessage = t('errors.too_many_requests');
                     break;
                 default:
-                    errorMessage = error.message || t('errors.signup_error');
+                    errorMessage = firebaseError.message || t('errors.signup_error');
+                }
+            } else {
+                errorMessage = error instanceof Error ? error.message : t('errors.signup_error');
             }
 
             showError(errorMessage);
@@ -273,7 +280,7 @@ export default function ModernSignupScreen() {
                         {/* Header Section */}
                         <Animated.View style={[styles.header, headerStyle]}>
                             <View style={[styles.logoContainer, { backgroundColor: variants.primarySubtle }]}>
-                                <Feather name="feather" size={32} color={semanticColors.primary} />
+                                <ThemedIcon name="feather" size={32} color="accent" />
                             </View>
 
                             <ThemedText variant="displayMedium" style={styles.title}>
@@ -298,10 +305,10 @@ export default function ModernSignupScreen() {
                                         {t('auth.email_placeholder')}
                                     </ThemedText>
                                     <View style={[styles.inputContainer, getInputStyle(formState.email)]}>
-                                        <Feather
+                                        <ThemedIcon
                                             name="mail"
                                             size={20}
-                                            color={formState.email.focused ? semanticColors.primary : semanticColors.textSecondary}
+                                            color={formState.email.focused ? "accent" : "secondary"}
                                         />
                                         <AnimatedTextInput
                                             ref={emailRef}
@@ -319,7 +326,7 @@ export default function ModernSignupScreen() {
                                             onSubmitEditing={() => passwordRef.current?.focus()}
                                         />
                                         {formState.email.valid && (
-                                            <Feather name="check" size={20} color={semanticColors.success} />
+                                            <ThemedIcon name="check" size={20} color="success" />
                                         )}
                                     </View>
                                     {formState.email.error ? (
@@ -335,10 +342,10 @@ export default function ModernSignupScreen() {
                                         {t('auth.password_placeholder')}
                                     </ThemedText>
                                     <View style={[styles.inputContainer, getInputStyle(formState.password)]}>
-                                        <Feather
+                                        <ThemedIcon
                                             name="lock"
                                             size={20}
-                                            color={formState.password.focused ? semanticColors.primary : semanticColors.textSecondary}
+                                            color={formState.password.focused ? "accent" : "secondary"}
                                         />
                                         <AnimatedTextInput
                                             ref={passwordRef}
@@ -361,10 +368,10 @@ export default function ModernSignupScreen() {
                                             }}
                                             style={styles.eyeButton}
                                         >
-                                            <Feather
+                                            <ThemedIcon
                                                 name={isPasswordVisible ? "eye-off" : "eye"}
                                                 size={20}
-                                                color={semanticColors.textSecondary}
+                                                color="secondary"
                                             />
                                         </Pressable>
                                     </View>
@@ -381,10 +388,10 @@ export default function ModernSignupScreen() {
                                         Confirm Password
                                     </ThemedText>
                                     <View style={[styles.inputContainer, getInputStyle(formState.confirmPassword)]}>
-                                        <Feather
+                                        <ThemedIcon
                                             name="shield"
                                             size={20}
-                                            color={formState.confirmPassword.focused ? semanticColors.primary : semanticColors.textSecondary}
+                                            color={formState.confirmPassword.focused ? "accent" : "secondary"}
                                         />
                                         <AnimatedTextInput
                                             ref={confirmPasswordRef}
@@ -407,10 +414,10 @@ export default function ModernSignupScreen() {
                                             }}
                                             style={styles.eyeButton}
                                         >
-                                            <Feather
+                                            <ThemedIcon
                                                 name={isConfirmPasswordVisible ? "eye-off" : "eye"}
                                                 size={20}
-                                                color={semanticColors.textSecondary}
+                                                color="secondary"
                                             />
                                         </Pressable>
                                     </View>
@@ -432,9 +439,9 @@ export default function ModernSignupScreen() {
                                     style={styles.signupButton}
                                 >
                                     {isLoading ? (
-                                        <Feather name="loader" size={20} color={semanticColors.onPrimary} />
+                                        <ThemedIcon name="loader" size={20} color="inverse" />
                                     ) : (
-                                        <Feather name="user-plus" size={20} color={semanticColors.onPrimary} />
+                                        <ThemedIcon name="user-plus" size={20} color="inverse" />
                                     )}
                                     <ThemedText variant="labelLarge" color="inverse">
                                         {isLoading ? 'Creating Account...' : t('auth.signup')}
