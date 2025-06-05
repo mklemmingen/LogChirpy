@@ -10,7 +10,7 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography, useColors} from '@/hooks/useThemeColor';
 import {type BirdSpotting, getBirdSpottings, updateLatinBirDex} from '@/services/database';
 
 interface SpottingCardProps {
@@ -166,6 +166,7 @@ export default function SelectSpottingScreen() {
     const { t } = useTranslation();
     const theme = useTheme();
     const semanticColors = useSemanticColors();
+    const colors = useColors();
     const variants = useColorVariants();
     const typography = useTypography();
     const motion = useMotionValues();
@@ -288,7 +289,7 @@ export default function SelectSpottingScreen() {
                     paddingHorizontal: theme.spacing.lg,
                     paddingVertical: theme.spacing.md,
                     borderBottomWidth: 1,
-                    borderBottomColor: semanticColors.border
+                    borderBottomColor: colors.border
                 },
                 headerAnimatedStyle
             ]}>
@@ -336,7 +337,7 @@ export default function SelectSpottingScreen() {
                     backgroundColor: semanticColors.surface,
                     borderRadius: theme.borderRadius.lg,
                     borderWidth: 1,
-                    borderColor: semanticColors.border,
+                    borderColor: colors.border,
                     paddingHorizontal: theme.spacing.md,
                     gap: 12
                 }}>
@@ -346,12 +347,12 @@ export default function SelectSpottingScreen() {
                             typography.body,
                             {
                                 flex: 1,
-                                color: semanticColors.text,
+                                color: colors.text,
                                 paddingVertical: theme.spacing.sm
                             }
                         ]}
                         placeholder={t('select.searchPlaceholder')}
-                        placeholderTextColor={semanticColors.textSecondary}
+                        placeholderTextColor={colors.textSecondary}
                         value={query}
                         onChangeText={setQuery}
                     />

@@ -125,6 +125,87 @@ export default function EnhancedManual() {
         }
     });
 
+    // Dynamic styles that need access to colors hook
+    const dynamicStyles = useMemo(() => StyleSheet.create({
+        videoOverlay: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: colors.background + '4D',
+        },
+        textInput: {
+            fontSize: 16,
+            minHeight: 44,
+            padding: 12,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: 'transparent',
+            backgroundColor: colors.backgroundSecondary + '1A',
+        },
+        videoModalControls: {
+            flexDirection: 'row',
+            justifyContent: 'space-around',
+            padding: 20,
+            backgroundColor: colors.background + 'CC',
+        },
+        predictionInfo: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 8,
+            backgroundColor: colors.backgroundSecondary + '1A',
+        },
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: colors.background + '80',
+        },
+        predictionsModalContainer: {
+            backgroundColor: colors.surface + 'F2',
+            borderRadius: 16,
+            maxHeight: '80%',
+            width: '100%',
+            maxWidth: 400,
+            overflow: 'hidden',
+        },
+        predictionsHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: 20,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border + '1A',
+        },
+        predictionItem: {
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border + '0D',
+        },
+        predictionsFooter: {
+            padding: 20,
+            borderTopWidth: 1,
+            borderTopColor: colors.border + '1A',
+        },
+        progressBar: {
+            flex: 1,
+            height: 6,
+            borderRadius: 3,
+            overflow: 'hidden',
+            backgroundColor: colors.backgroundSecondary,
+        },
+        progressFill: {
+            height: '100%',
+            borderRadius: 3,
+            backgroundColor: colors.primary,
+        },
+    }), [colors]);
+
     // Handle incoming media from navigation params
     useEffect(() => {
         const updates: Partial<BirdSpotting> = {};
@@ -514,7 +595,7 @@ export default function EnhancedManual() {
                                     contentFit="cover"
                                 />
                             )}
-                            <View style={styles.videoOverlay}>
+                            <View style={dynamicStyles.videoOverlay}>
                                 <ThemedIcon name="play" size={24} color="primary" />
                             </View>
                         </>
@@ -627,7 +708,7 @@ export default function EnhancedManual() {
                             {t('log.bird_type')} *
                         </ThemedText>
                         <TextInput
-                            style={[styles.textInput, { color: colors.text }]}
+                            style={[dynamicStyles.textInput, { color: colors.text }]}
                             value={draft.birdType || ''}
                             onChangeText={(text) => handleTextChange('birdType', text)}
                             placeholder={t('log.bird_type_placeholder')}
@@ -643,7 +724,7 @@ export default function EnhancedManual() {
                             {t('log.notes')}
                         </ThemedText>
                         <TextInput
-                            style={[styles.textInput, styles.notesInput, { color: colors.text }]}
+                            style={[dynamicStyles.textInput, styles.notesInput, { color: colors.text }]}
                             value={draft.textNote || ''}
                             onChangeText={(text) => handleTextChange('textNote', text)}
                             placeholder={t('log.notes_placeholder')}
@@ -777,12 +858,11 @@ export default function EnhancedManual() {
                     <ThemedText variant="label" color="secondary">
                         {completionPercentage}% {t('log.complete')}
                     </ThemedText>
-                    <View style={[styles.progressBar, { backgroundColor: colors.backgroundSecondary }]}>
+                    <View style={dynamicStyles.progressBar}>
                         <View
                             style={[
-                                styles.progressFill,
+                                dynamicStyles.progressFill,
                                 {
-                                    backgroundColor: colors.primary,
                                     width: `${completionPercentage}%`
                                 }
                             ]}
@@ -860,12 +940,12 @@ export default function EnhancedManual() {
                                     <ThemedPressable
                                         variant="primary"
                                         onPress={() => {
-                                            handleDateChange(null, selectedDate);
+                                            handleDateChange({ type: 'set' }, selectedDate);
                                             setIsDatePickerVisible(false);
                                         }}
                                         style={styles.dateButton}
                                     >
-                                        <ThemedText variant="button" color="inverse">
+                                        <ThemedText variant="button" color="primary">
                                             {t('common.confirm')}
                                         </ThemedText>
                                     </ThemedPressable>
@@ -1061,16 +1141,6 @@ const styles = StyleSheet.create({
         gap: 12,
         padding: 20,
     },
-    videoOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: colors.background + '4D',
-    },
 
     // Details Section
     detailsGrid: {
@@ -1094,15 +1164,6 @@ const styles = StyleSheet.create({
     inputLabel: {
         marginBottom: 8,
         fontWeight: '600',
-    },
-    textInput: {
-        fontSize: 16,
-        minHeight: 44,
-        padding: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'transparent',
-        backgroundColor: colors.backgroundSecondary + '1A',
     },
     notesInput: {
         height: 88,
@@ -1198,12 +1259,6 @@ const styles = StyleSheet.create({
     fullscreenVideo: {
         flex: 1,
     },
-    videoModalControls: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        padding: 20,
-        backgroundColor: colors.background + 'CC',
-    },
     videoButton: {
         flexDirection: 'row',
         gap: 8,
@@ -1237,24 +1292,11 @@ const styles = StyleSheet.create({
     identifyIcon: {
         marginRight: 4,
     },
-    predictionInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        backgroundColor: colors.backgroundSecondary + '1A',
-    },
     predictionInfoText: {
         flex: 1,
     },
 
     // Predictions Modal Styles
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: colors.background + '80',
-    },
     modalBlur: {
         flex: 1,
         justifyContent: 'center',
