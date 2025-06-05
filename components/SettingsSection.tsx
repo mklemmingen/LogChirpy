@@ -7,7 +7,7 @@ import Animated, {
     useSharedValue,
     withSpring,
     withTiming,
-    interpolate,
+    // interpolate,
 } from 'react-native-reanimated';
 
 import {
@@ -60,7 +60,7 @@ export default function SettingsSection({
                 scale.value = withSpring(1, { damping: 20, stiffness: 400 });
             }, delayMs);
         }
-    }, [animated, delay]);
+    }, [animated, delay, motion.duration.medium, opacity, scale, translateY]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,

@@ -1,14 +1,14 @@
 import React, { PropsWithChildren, useState } from 'react';
 import { Pressable, StyleSheet, ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
+// import { BlurView } from 'expo-blur';
+import { ThemedIcon } from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
-  interpolate,
+  // interpolate,
   Layout,
   FadeInDown,
   FadeOutUp,
@@ -19,7 +19,7 @@ import { ThemedView } from '@/components/ThemedView';
 import {
   useSemanticColors,
   useColorVariants,
-  useTypography,
+  // useTypography,
   useTheme,
   useMotionValues,
 } from '@/hooks/useThemeColor';
@@ -53,7 +53,7 @@ export function Collapsible({
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const semanticColors = useSemanticColors();
   const variants = useColorVariants();
-  const typography = useTypography();
+  // const typography = useTypography();
   const theme = useTheme();
   const motion = useMotionValues();
 
@@ -215,10 +215,10 @@ export function Collapsible({
                   styles.leadingIcon,
                   { backgroundColor: variants.primarySubtle }
                 ]}>
-                  <Feather
+                  <ThemedIcon
                       name={icon as any}
                       size={sizeConfig.iconSize - 4}
-                      color={semanticColors.primary}
+                      color="accent"
                   />
                 </ThemedView>
             )}
@@ -253,10 +253,10 @@ export function Collapsible({
 
             {/* Chevron icon */}
             <Animated.View style={chevronAnimatedStyle}>
-              <Feather
+              <ThemedIcon
                   name="chevron-down"
                   size={sizeConfig.iconSize}
-                  color={disabled ? semanticColors.disabled : semanticColors.textSecondary}
+                  color={disabled ? "disabled" : "secondary"}
               />
             </Animated.View>
           </ThemedView>

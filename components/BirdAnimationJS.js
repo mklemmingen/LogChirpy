@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { View, StyleSheet, Animated, Easing, Dimensions, TouchableWithoutFeedback, Platform } from 'react-native';
+import { View, StyleSheet, Animated, Easing, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import { Audio } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
+
+/* global setTimeout, clearTimeout, setInterval, clearInterval */
 
 const birdSprites = [
     require('@/assets/birds/spritesheet_magpie.png'),
@@ -46,7 +48,7 @@ const BirdAnimation = ({ numberOfBirds = 5 }) => {
             isComponentMounted.current = false;
             sounds.forEach((s) => s.unloadAsync());
         };
-    }, []);
+    }, [sounds]);
 
     // Handle screen focus for optimization
     useFocusEffect(
@@ -69,7 +71,7 @@ const BirdAnimation = ({ numberOfBirds = 5 }) => {
                     if (anim) anim.stop();
                 });
             };
-        }, []) // Empty dependency array is correct to prevent animation restarts
+        }, [moveBird]) // Include moveBird dependency
     );
 
     // Stable moveBird function that doesn't depend on birds state
@@ -201,7 +203,7 @@ const BirdAnimation = ({ numberOfBirds = 5 }) => {
         return () => {
             intervals.forEach(clearInterval);
         };
-    }, [birds.length]);
+    }, [birds]);
 
     const playRandomSound = useCallback(async () => {
         if (sounds.length > 0 && isComponentMounted.current) {

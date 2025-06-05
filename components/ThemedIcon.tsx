@@ -6,7 +6,7 @@ interface ThemedIconProps {
     name: keyof typeof Feather.glyphMap;
     size?: number;
     color?: 'primary' | 'secondary' | 'tertiary' | 'accent' | 'error' | 'success';
-    style?: any;
+    style?: object;
 }
 
 export function ThemedIcon({

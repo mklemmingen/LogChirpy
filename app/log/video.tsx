@@ -4,7 +4,7 @@ import {Stack, useFocusEffect, useRouter} from 'expo-router';
 import {Camera, useCameraDevice, useCameraPermission, useMicrophonePermission,} from 'react-native-vision-camera';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import {BlurView} from 'expo-blur';
 import Animated, {
@@ -172,7 +172,7 @@ function VideoPreview({
           <View style={styles.previewActions}>
             <AnimatedPressable
                 variant="secondary"
-                style={[styles.previewButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+                style={[styles.previewButton, { backgroundColor: colors.surface + '33' }]}
                 onPress={onRetake}
             >
               <Feather name="refresh-cw" size={20} color="white" />
@@ -423,7 +423,7 @@ export default function VideoScreen() {
         <View style={styles.backButton}>
           <ThemedPressable
               variant="ghost"
-              style={[styles.topButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+              style={[styles.topButton, { backgroundColor: colors.background + '99' }]}
               onPress={() => router.back()}
               disabled={state === 'recording'}
           >

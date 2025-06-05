@@ -2,19 +2,14 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     Image,
     Linking,
-    Pressable,
-    ScrollView,
     Share,
     StyleSheet,
-    View
 } from 'react-native';
 import {Audio} from 'expo-av';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {Feather} from '@expo/vector-icons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as MediaLibrary from 'expo-media-library';
 import Animated, {
@@ -32,11 +27,11 @@ import {ModernCard} from '@/components/ModernCard';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedView} from '@/components/ThemedView';
-import {useColorVariants, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
+import {ThemedScrollView} from '@/components/ThemedScrollView';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {useTheme} from '@/hooks/useThemeColor';
 
 type SpottingDetail = BirdSpotting | null;
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Enhanced Header Component
 function DetailHeader({
@@ -48,9 +43,6 @@ function DetailHeader({
     onBack: () => void;
     onShare: () => void;
 }) {
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
-    const typography = useTypography();
     const theme = useTheme();
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
@@ -77,26 +69,25 @@ function DetailHeader({
             <Animated.View style={backButtonStyle}>
                 <ThemedPressable
                     variant="secondary"
-                    size="medium"
+                    size="md"
                     onPress={handleBackPress}
                     style={styles.backButton}
                 >
-                    <Feather name="arrow-left" size={20} color={semanticColors.text} />
+                    <ThemedIcon name="arrow-left" size={20} color="primary" />
                 </ThemedPressable>
             </Animated.View>
 
-            <ThemedView surface="transparent" style={styles.headerInfo}>
+            <ThemedView style={styles.headerInfo}>
                 <ThemedText
-                    variant="headlineLarge"
+                    variant="h2"
                     style={styles.headerTitle}
                     numberOfLines={2}
                 >
                     {entry.birdType || t('archive.unknown_bird')}
                 </ThemedText>
                 <ThemedText
-                    variant="bodyMedium"
-                    color="secondary"
-                    style={styles.headerDate}
+                    variant="bodySmall"
+                    style={[styles.headerDate, { color: theme.colors.text.secondary }]}
                 >
                     {new Date(entry.date).toLocaleDateString()}
                 </ThemedText>
@@ -104,11 +95,11 @@ function DetailHeader({
 
             <ThemedPressable
                 variant="ghost"
-                size="medium"
+                size="md"
                 onPress={onShare}
                 style={styles.shareButton}
             >
-                <Feather name="share" size={18} color={semanticColors.text} />
+                <ThemedIcon name="share" size={18} color="primary" />
             </ThemedPressable>
         </Animated.View>
     );
@@ -128,8 +119,7 @@ function MediaSection({
     audioLoading: boolean;
     currentSound: Audio.Sound | null;
 }) {
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
+    const theme = useTheme();
     const { t } = useTranslation();
 
     if (!entry.imageUri && !entry.videoUri && !entry.audioUri) return null;
@@ -137,36 +127,36 @@ function MediaSection({
     return (
         <Animated.View entering={FadeInDown.delay(100).springify()} layout={Layout.springify()}>
             <ModernCard elevated={true} bordered={false} style={styles.section}>
-                <ThemedView surface="transparent" style={styles.sectionHeader}>
-                    <Feather name="camera" size={20} color={semanticColors.primary} />
-                    <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
+                <ThemedView style={styles.sectionHeader}>
+                    <ThemedIcon name="camera" size={20} color="primary" />
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
                         {t('archive.media')}
                     </ThemedText>
                 </ThemedView>
 
-                <ThemedView surface="transparent" style={styles.mediaContainer}>
+                <ThemedView style={styles.mediaContainer}>
                     {/* Image */}
                     {entry.imageUri && (
-                        <Pressable
+                        <ThemedPressable
+                            variant="ghost"
                             style={styles.mediaItem}
                             onLongPress={() => onImageSave(entry.imageUri)}
-                            android_ripple={{ color: variants.surfacePressed }}
                         >
                             <Image source={{ uri: entry.imageUri }} style={styles.mediaImage} />
-                            <ThemedView surface="overlay" style={styles.mediaOverlay}>
-                                <Feather name="maximize-2" size={20} color="white" />
+                            <ThemedView style={[styles.mediaOverlay, { backgroundColor: theme.colors.overlay.medium }]}>
+                                <ThemedIcon name="maximize-2" size={20} color="primary" />
                             </ThemedView>
-                        </Pressable>
+                        </ThemedPressable>
                     )}
 
                     {/* Video */}
                     {entry.videoUri && (
-                        <Pressable style={styles.mediaItem} android_ripple={null}>
+                        <ThemedPressable variant="ghost" style={styles.mediaItem}>
                             <Image source={{ uri: entry.videoUri }} style={styles.mediaImage} />
-                            <ThemedView surface="overlay" style={[styles.mediaOverlay, styles.videoOverlay]}>
-                                <Feather name="play" size={24} color="white" />
+                            <ThemedView style={[styles.mediaOverlay, { backgroundColor: theme.colors.overlay.medium }]}>
+                                <ThemedIcon name="play" size={24} color="primary" />
                             </ThemedView>
-                        </Pressable>
+                        </ThemedPressable>
                     )}
 
                     {/* Audio */}
@@ -178,15 +168,15 @@ function MediaSection({
                             style={styles.audioButton}
                         >
                             {audioLoading ? (
-                                <ActivityIndicator size="small" color={semanticColors.onPrimary} />
+                                <ActivityIndicator size="small" color={theme.colors.text.inverse} />
                             ) : (
-                                <Feather
+                                <ThemedIcon
                                     name={currentSound ? "pause" : "play"}
                                     size={18}
-                                    color={semanticColors.onPrimary}
+                                    color="primary"
                                 />
                             )}
-                            <ThemedText variant="labelLarge" color="inverse">
+                            <ThemedText variant="button" style={{ color: theme.colors.text.inverse }}>
                                 {t('archive.play_audio')}
                             </ThemedText>
                         </ThemedPressable>
@@ -209,21 +199,19 @@ function InfoSection({
     children: React.ReactNode;
     delay?: number;
 }) {
-    const semanticColors = useSemanticColors();
-
     return (
         <Animated.View
             entering={FadeInDown.delay(delay).springify()}
             layout={Layout.springify()}
         >
             <ModernCard elevated={true} bordered={false} style={styles.section}>
-                <ThemedView surface="transparent" style={styles.sectionHeader}>
-                    <Feather name={icon as any} size={20} color={semanticColors.primary} />
-                    <ThemedText variant="headlineSmall" style={styles.sectionTitle}>
+                <ThemedView style={styles.sectionHeader}>
+                    <ThemedIcon name={icon as any} size={20} color="primary" />
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
                         {title}
                     </ThemedText>
                 </ThemedView>
-                <ThemedView surface="transparent" style={styles.sectionContent}>
+                <ThemedView style={styles.sectionContent}>
                     {children}
                 </ThemedView>
             </ModernCard>
@@ -245,32 +233,45 @@ function InfoRow({
     onPress?: () => void;
     style?: any;
 }) {
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
+    const theme = useTheme();
 
-    const Component = onPress ? Pressable : View;
+    if (onPress) {
+        return (
+            <ThemedPressable
+                variant="ghost"
+                style={[styles.infoRow, styles.pressableRow]}
+                onPress={onPress}
+            >
+                <ThemedText variant="label" style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
+                    {label}
+                </ThemedText>
+                <ThemedView style={styles.infoValueContainer}>
+                    {icon && (
+                        <ThemedIcon name={icon as any} size={14} color="secondary" />
+                    )}
+                    <ThemedText variant="body" style={[styles.infoValue, style]}>
+                        {value}
+                    </ThemedText>
+                    <ThemedIcon name="external-link" size={14} color="tertiary" />
+                </ThemedView>
+            </ThemedPressable>
+        );
+    }
 
     return (
-        <Component
-            style={[styles.infoRow, onPress && styles.pressableRow]}
-            onPress={onPress}
-            android_ripple={onPress ? { color: variants.surfacePressed } : null}
-        >
-            <ThemedText variant="labelMedium" color="secondary" style={styles.infoLabel}>
+        <ThemedView style={styles.infoRow}>
+            <ThemedText variant="label" style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
                 {label}
             </ThemedText>
-            <ThemedView surface="transparent" style={styles.infoValueContainer}>
+            <ThemedView style={styles.infoValueContainer}>
                 {icon && (
-                    <Feather name={icon as any} size={14} color={semanticColors.accent} />
+                    <ThemedIcon name={icon as any} size={14} color="secondary" />
                 )}
-                <ThemedText variant="bodyMedium" style={[styles.infoValue, style]}>
+                <ThemedText variant="body" style={[styles.infoValue, style]}>
                     {value}
                 </ThemedText>
-                {onPress && (
-                    <Feather name="external-link" size={14} color={semanticColors.textSecondary} />
-                )}
             </ThemedView>
-        </Component>
+        </ThemedView>
     );
 }
 
@@ -278,9 +279,6 @@ export default function ModernArchiveDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const { t } = useTranslation();
     const router = useRouter();
-    const semanticColors = useSemanticColors();
-    const variants = useColorVariants();
-    const typography = useTypography();
     const theme = useTheme();
 
     const [entry, setEntry] = useState<SpottingDetail>(null);
@@ -399,9 +397,9 @@ export default function ModernArchiveDetailScreen() {
     // Loading state
     if (loading) {
         return (
-            <ThemedView surface="primary" style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={semanticColors.primary} />
-                <ThemedText variant="bodyMedium" color="secondary" style={styles.loadingText}>
+            <ThemedView style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.colors.text.primary} />
+                <ThemedText variant="body" style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
                     {t('archive.loading_detail')}
                 </ThemedText>
             </ThemedView>
@@ -411,9 +409,9 @@ export default function ModernArchiveDetailScreen() {
     // Error state
     if (!entry) {
         return (
-            <ThemedView surface="primary" style={styles.loadingContainer}>
-                <Feather name="alert-triangle" size={48} color={semanticColors.error} />
-                <ThemedText variant="headlineMedium" style={styles.errorText}>
+            <ThemedView style={styles.loadingContainer}>
+                <ThemedIcon name="alert-triangle" size={48} color="error" />
+                <ThemedText variant="h2" style={styles.errorText}>
                     {t('archive.not_found')}
                 </ThemedText>
             </ThemedView>
@@ -421,7 +419,7 @@ export default function ModernArchiveDetailScreen() {
     }
 
     return (
-        <ThemedView surface="primary" style={styles.container}>
+        <ThemedView style={styles.container}>
             {/* Header */}
             <DetailHeader
                 entry={entry}
@@ -430,7 +428,7 @@ export default function ModernArchiveDetailScreen() {
             />
 
             {/* Content */}
-            <ScrollView
+            <ThemedScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
@@ -465,7 +463,7 @@ export default function ModernArchiveDetailScreen() {
                         <InfoRow
                             label={t('archive.latin_name')}
                             value={entry.latinBirDex}
-                            style={[styles.latinText, { color: semanticColors.accent }]}
+                            style={[styles.latinText, { color: theme.colors.text.secondary }]}
                         />
                     )}
                 </InfoSection>
@@ -521,7 +519,7 @@ export default function ModernArchiveDetailScreen() {
                         style={styles.technicalText}
                     />
                 </InfoSection>
-            </ScrollView>
+            </ThemedScrollView>
         </ThemedView>
     );
 }
@@ -617,7 +615,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     videoOverlay: {
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        // backgroundColor applied dynamically via theme.colors.overlay.medium
     },
     audioButton: {
         flexDirection: 'row',

@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     classificationItem: {
         paddingBottom: 12,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(128, 128, 128, 0.1)',
+        borderBottomColor: colors.border + '1A',
     },
     classificationLabel: {
         textTransform: 'uppercase',

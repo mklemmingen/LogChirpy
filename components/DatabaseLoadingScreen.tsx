@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import {
     View,
     Text,
@@ -6,7 +6,7 @@ import {
     Dimensions,
     SafeAreaView,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -21,14 +21,14 @@ import { ModernCard } from '@/components/ModernCard';
 import { ThemedPressable } from '@/components/ThemedPressable';
 import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
 import {
-    useTheme,
+    // useTheme,
     useSemanticColors,
     useColorVariants,
     useTypography,
     useMotionValues
 } from '@/hooks/useThemeColor';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 // Floating Bird Animation Component
 function FloatingBird({ delay = 0, index = 0 }: { delay?: number; index?: number }) {
@@ -41,7 +41,7 @@ function FloatingBird({ delay = 0, index = 0 }: { delay?: number; index?: number
             -1,
             true
         );
-    }, [index]);
+    }, [index, floatAnimation]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [
@@ -58,7 +58,7 @@ function FloatingBird({ delay = 0, index = 0 }: { delay?: number; index?: number
 
     return (
         <Animated.View style={[styles.floatingBird, animatedStyle]}>
-            <Feather name="feather" size={16} color={semanticColors.primary} />
+            <ThemedIcon name="feather" size={16} color="primary" />
         </Animated.View>
     );
 }
@@ -67,7 +67,7 @@ function FloatingBird({ delay = 0, index = 0 }: { delay?: number; index?: number
 function ModernProgressBar({ progress }: { progress: number }) {
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
-    const theme = useTheme();
+    // const theme = useTheme();
 
     const progressAnimation = useSharedValue(0);
 
@@ -76,7 +76,7 @@ function ModernProgressBar({ progress }: { progress: number }) {
             damping: 20,
             stiffness: 100,
         });
-    }, [progress]);
+    }, [progress, progressAnimation]);
 
     const progressStyle = useAnimatedStyle(() => ({
         width: `${progressAnimation.value * 100}%`,
@@ -107,7 +107,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const typography = useTypography();
-    const theme = useTheme();
+    // const theme = useTheme();
     const motion = useMotionValues();
 
     // Main animation values
@@ -123,7 +123,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
             fadeAnim.value = withTiming(1, { duration: motion.duration.medium });
             slideAnim.value = withSpring(0, { damping: 20, stiffness: 300 });
         }
-    }, [isReady]);
+    }, [isReady, fadeAnim, motion.duration.medium, onReady, slideAnim]);
 
     React.useEffect(() => {
         logoAnimation.value = withRepeat(
@@ -131,7 +131,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
             -1,
             true
         );
-    }, []);
+    }, [logoAnimation]);
 
     const containerStyle = useAnimatedStyle(() => ({
         opacity: fadeAnim.value,
@@ -150,19 +150,18 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
         return "Almost ready to fly...";
     };
 
-    const getFloatingStyle = (delay: number) => {
-        return useAnimatedStyle(() => ({
-            transform: [
-                {
-                    translateY: interpolate(
-                        logoAnimation.value,
-                        [1, 1.05],
-                        [0, -8]
-                    ) * Math.sin(Date.now() / 1000 + delay),
-                },
-            ],
-        }));
-    };
+    // Simplified floating animation
+    const floatingStyle = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(
+                    logoAnimation.value,
+                    [1, 1.05],
+                    [0, -8]
+                ),
+            },
+        ],
+    }));
 
     if (hasError) {
         return (
@@ -176,7 +175,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
 
                     <Animated.View style={[styles.logoContainer, logoStyle]}>
                         <View style={[styles.logoIcon, { backgroundColor: variants.primarySubtle }]}>
-                            <Feather name="alert-triangle" size={48} color={semanticColors.error} />
+                            <ThemedIcon name="alert-triangle" size={48} color="error" />
                         </View>
                     </Animated.View>
 
@@ -188,7 +187,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                         We encountered a problem setting up your bird database
                     </Text>
 
-                    <Animated.View style={getFloatingStyle(0.5)}>
+                    <Animated.View style={floatingStyle}>
                         <ModernCard
                             variant="outlined"
                             style={styles.errorCard}
@@ -204,7 +203,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                                     onPress={retry}
                                     style={styles.retryButton}
                                 >
-                                    <Feather name="refresh-cw" size={20} color={semanticColors.onPrimary} />
+                                    <ThemedIcon name="refresh-cw" size={20} color="primary" />
                                     <Text style={[typography.labelLarge, { color: semanticColors.onPrimary }]}>
                                         Try Again
                                     </Text>
@@ -232,7 +231,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     <View style={styles.heroSection}>
                         <Animated.View style={[styles.logoContainer, logoStyle]}>
                             <View style={[styles.logoIcon, { backgroundColor: variants.primarySubtle }]}>
-                                <Feather name="feather" size={48} color={semanticColors.primary} />
+                                <ThemedIcon name="feather" size={48} color="primary" />
                             </View>
                         </Animated.View>
 
@@ -246,7 +245,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     </View>
 
                     {/* Progress Section */}
-                    <Animated.View style={getFloatingStyle(0.8)}>
+                    <Animated.View style={floatingStyle}>
                         <ModernCard
                             variant="glass"
                             style={{

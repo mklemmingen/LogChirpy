@@ -20,22 +20,28 @@ const typography = {
   label: { fontSize: 14, fontWeight: '500' as TextStyle['fontWeight'], lineHeight: 20 },
 };
 
-// Minimal spacing
+// Consistent spacing scale (4px base)
 const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
+  xs: 4,    // Tight spacing (1x)
+  sm: 8,    // Small elements (2x)
+  md: 12,   // Default spacing (3x)
+  lg: 16,   // Standard gaps (4x)
+  xl: 24,   // Section spacing (6x)
+  xxl: 32,  // Large sections (8x)
+  xxxl: 48, // Extra large gaps (12x)
+  huge: 64, // Page-level spacing (16x)
 };
 
-// Simple border radius
+// Comprehensive border radius scale
 const borderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  none: 0,    // No radius
+  xs: 4,      // Subtle rounding
+  sm: 8,      // Inputs, small cards
+  md: 12,     // Buttons, medium cards
+  lg: 16,     // Large cards, modals
+  xl: 24,     // Extra large elements
+  xxl: 32,    // Very large elements
+  full: 9999, // Pills, circles
 };
 
 // Subtle shadows
@@ -102,6 +108,15 @@ const createColorSystem = (isDark: boolean) => {
     },
   };
 
+  // Consistent overlay opacity values
+  const overlayOpacity = {
+    light: 0.1,    // Very subtle overlay
+    medium: 0.3,   // Medium overlay
+    heavy: 0.5,    // Heavy overlay
+    dark: 0.8,     // Dark overlay
+    full: 0.95,    // Almost opaque
+  };
+
   return {
     // Backgrounds
     background: {
@@ -109,6 +124,15 @@ const createColorSystem = (isDark: boolean) => {
       secondary: isDark ? colors.gray[900] : colors.gray[50],
       tertiary: isDark ? colors.gray[800] : colors.gray[100],
       overlay: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.6)',
+    },
+
+    // Overlay colors with consistent opacity
+    overlay: {
+      light: isDark ? `rgba(255,255,255,${overlayOpacity.light})` : `rgba(0,0,0,${overlayOpacity.light})`,
+      medium: isDark ? `rgba(255,255,255,${overlayOpacity.medium})` : `rgba(0,0,0,${overlayOpacity.medium})`,
+      heavy: isDark ? `rgba(255,255,255,${overlayOpacity.heavy})` : `rgba(0,0,0,${overlayOpacity.heavy})`,
+      dark: isDark ? `rgba(0,0,0,${overlayOpacity.dark})` : `rgba(0,0,0,${overlayOpacity.dark})`,
+      full: isDark ? `rgba(0,0,0,${overlayOpacity.full})` : `rgba(0,0,0,${overlayOpacity.full})`,
     },
 
     // Text colors

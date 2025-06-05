@@ -4,11 +4,11 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
+  // withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { useColors, useButtonStyles, useBorderRadius, useShadows } from '@/hooks/useThemeColor';
+import { useButtonStyles, useBorderRadius, useShadows } from '@/hooks/useThemeColor';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -40,7 +40,7 @@ export const ThemedPressable = forwardRef<
   onPressOut,
   ...rest
 }, ref) => {
-  const colors = useColors();
+  // const colors = useColors();
   const buttonStyles = useButtonStyles();
   const borderRadius = useBorderRadius();
   const shadows = useShadows();
@@ -86,7 +86,7 @@ export const ThemedPressable = forwardRef<
     opacity: opacity.value,
   }));
 
-  const handlePressIn = (event: any) => {
+  const handlePressIn = (event: Parameters<NonNullable<PressableProps['onPressIn']>>[0]) => {
     if (haptic) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -94,7 +94,7 @@ export const ThemedPressable = forwardRef<
     onPressIn?.(event);
   };
 
-  const handlePressOut = (event: any) => {
+  const handlePressOut = (event: Parameters<NonNullable<PressableProps['onPressOut']>>[0]) => {
     scale.value = withSpring(1, { damping: 15 });
     onPressOut?.(event);
   };

@@ -48,7 +48,7 @@ export default function Section({
             scale.value = withSpring(1, { damping: 15, stiffness: 300 });
             opacity.value = withSpring(1, { duration: 300 });
         }
-    }, [animated]);
+    }, [animated, opacity, scale]);
 
     // Get variant-specific styling
     const getVariantStyle = () => {

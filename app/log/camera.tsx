@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Alert, Dimensions, SafeAreaView, StyleSheet, Text, TouchableOpacity, useColorScheme, View,} from 'react-native';
+import {Alert, SafeAreaView, StyleSheet, useColorScheme, View,} from 'react-native';
 import {router, Stack} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {Camera, useCameraDevice, useCameraFormat, useCameraPermission,} from 'react-native-vision-camera';
@@ -7,8 +7,11 @@ import {Feather} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import {theme} from '@/constants/theme';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedText} from '@/components/ThemedText';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+// Screen dimensions available if needed
+// const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function ModernCamera() {
     const { t } = useTranslation();
@@ -19,7 +22,7 @@ export default function ModernCamera() {
     const { hasPermission, requestPermission } = useCameraPermission();
 
     const [cameraPosition, setCameraPosition] = useState<'back' | 'front'>('back');
-    const [isActive, setIsActive] = useState(true);
+    const [isActive] = useState(true);
     const [flash, setFlash] = useState<'off' | 'on' | 'auto'>('auto');
     const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
     const [isCapturing, setIsCapturing] = useState(false);
@@ -66,7 +69,7 @@ export default function ModernCamera() {
     };
 
     const toggleFlash = () => {
-        const flashModes: Array<'off' | 'on' | 'auto'> = ['off', 'auto', 'on'];
+        const flashModes: ('off' | 'on' | 'auto')[] = ['off', 'auto', 'on'];
         const currentIndex = flashModes.indexOf(flash);
         const nextIndex = (currentIndex + 1) % flashModes.length;
         setFlash(flashModes[nextIndex]);
@@ -96,9 +99,9 @@ export default function ModernCamera() {
     if (!hasPermission) {
         return (
             <View style={[styles.centered, { backgroundColor: pal.colors.background.secondary }]}>
-                <Text style={{ color: pal.colors.text.primary }}>
+                <ThemedText style={{ color: pal.colors.text.primary }}>
                     {t('camera.requesting_permission')}
-                </Text>
+                </ThemedText>
             </View>
         );
     }
@@ -106,9 +109,9 @@ export default function ModernCamera() {
     if (!device) {
         return (
             <View style={[styles.centered, { backgroundColor: pal.colors.background.secondary }]}>
-                <Text style={{ color: pal.colors.text.primary }}>
+                <ThemedText style={{ color: pal.colors.text.primary }}>
                     {t('camera.no_device')}
-                </Text>
+                </ThemedText>
             </View>
         );
     }
@@ -130,30 +133,30 @@ export default function ModernCamera() {
 
             {/* Top Controls */}
             <View style={styles.topControls}>
-                <TouchableOpacity
-                    style={[styles.controlButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+                <ThemedPressable
+                    style={[styles.controlButton, { backgroundColor: pal.colors.overlay.dark }]}
                     onPress={() => router.back()}
                 >
                     <Feather name="arrow-left" size={24} color="white" />
-                </TouchableOpacity>
+                </ThemedPressable>
 
                 <View style={styles.topCenter}>
-                    <Text style={styles.photoCount}>
+                    <ThemedText style={styles.photoCount}>
                         {capturedPhotos.length} {t('photo.photos_taken')}
-                    </Text>
+                    </ThemedText>
                 </View>
 
-                <TouchableOpacity
-                    style={[styles.controlButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+                <ThemedPressable
+                    style={[styles.controlButton, { backgroundColor: pal.colors.overlay.dark }]}
                     onPress={toggleFlash}
                 >
                     <Feather name={getFlashIcon()} size={24} color="white" />
-                </TouchableOpacity>
+                </ThemedPressable>
             </View>
 
             {/* Bottom Controls */}
             <View style={styles.bottomControls}>
-                <TouchableOpacity
+                <ThemedPressable
                     style={styles.sideButton}
                     onPress={() => router.push('/log/photo-selection')}
                     disabled={capturedPhotos.length === 0}
@@ -165,13 +168,13 @@ export default function ModernCamera() {
                         <Feather name="grid" size={24} color="white" />
                         {capturedPhotos.length > 0 && (
                             <View style={styles.badge}>
-                                <Text style={styles.badgeText}>{capturedPhotos.length}</Text>
+                                <ThemedText style={styles.badgeText}>{capturedPhotos.length}</ThemedText>
                             </View>
                         )}
                     </View>
-                </TouchableOpacity>
+                </ThemedPressable>
 
-                <TouchableOpacity
+                <ThemedPressable
                     style={[
                         styles.captureButton,
                         isCapturing && styles.capturingButton
@@ -180,26 +183,26 @@ export default function ModernCamera() {
                     disabled={isCapturing}
                 >
                     <View style={styles.captureInner} />
-                </TouchableOpacity>
+                </ThemedPressable>
 
-                <TouchableOpacity
+                <ThemedPressable
                     style={styles.sideButton}
                     onPress={toggleCamera}
                 >
                     <Feather name="rotate-ccw" size={24} color="white" />
-                </TouchableOpacity>
+                </ThemedPressable>
             </View>
 
             {/* Continue Button */}
             {capturedPhotos.length > 0 && (
-                <TouchableOpacity
+                <ThemedPressable
                     style={[styles.continueButton, { backgroundColor: pal.colors.primary }]}
                     onPress={proceedToSelection}
                 >
-                    <Text style={[styles.continueText, { color: pal.colors.text.inverse }]}>
+                    <ThemedText style={[styles.continueText, { color: pal.colors.text.inverse }]}>
                         {t('photo.continue_with_photos', { count: capturedPhotos.length })}
-                    </Text>
-                </TouchableOpacity>
+                    </ThemedText>
+                </ThemedPressable>
             )}
         </SafeAreaView>
     );
@@ -227,7 +230,7 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     topCenter: {
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: pal.colors.overlay.dark,
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
@@ -259,7 +262,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: pal.colors.overlay.dark,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -290,7 +293,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 4,
-        borderColor: 'rgba(255,255,255,0.3)',
+        borderColor: theme.colors.surface.primary + '4D',
     },
     capturingButton: {
         transform: [{ scale: 0.95 }],

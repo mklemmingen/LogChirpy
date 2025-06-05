@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     topCenter: {
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: colors.background + '99',
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: colors.background + '99',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 4,
-        borderColor: 'rgba(255,255,255,0.3)',
+        borderColor: colors.surface + '4D',
     },
     capturingButton: {
         transform: [{ scale: 0.95 }],

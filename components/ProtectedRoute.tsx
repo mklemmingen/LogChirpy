@@ -15,7 +15,7 @@ export function ProtectedRoute({ children, redirectTo = '/account/login' }: Prot
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace(redirectTo as any);
+      router.replace(redirectTo as '/');
     }
   }, [isAuthenticated, isLoading, redirectTo]);
 

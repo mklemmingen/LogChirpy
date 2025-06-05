@@ -58,7 +58,7 @@ export function IconSymbol({
   style?: StyleProp<ViewStyle>;
 }) {
   const iconName = MAPPING[name];
-  const LucideIconComponent = (LucideIcons as any)[iconName] as LucideIcon;
+  const LucideIconComponent = (LucideIcons as Record<string, LucideIcon>)[iconName] as LucideIcon;
 
   // Fallback in case the icon doesn't exist
   if (!LucideIconComponent) {

@@ -64,7 +64,7 @@ export async function initDB(): Promise<void> {
     // 2) Add latinBirDex column if it's not already there
     try {
       database.execSync(`ALTER TABLE bird_spottings ADD COLUMN latinBirDex TEXT;`);
-    } catch (_e) {
+    } catch {
       // column already exists → ignore
     }
   });

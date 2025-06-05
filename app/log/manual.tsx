@@ -384,7 +384,7 @@ export default function EnhancedManual() {
         setValidationErrors(prev => prev.filter(error => error.field !== key));
     }, [update]);
 
-    const handleDateChange = useCallback((event: any, date?: Date) => {
+    const handleDateChange = useCallback((event: { type: string; nativeEvent?: { timestamp?: number } }, date?: Date) => {
         if (Platform.OS === 'android') {
             setIsDatePickerVisible(false);
         }
@@ -1069,7 +1069,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        backgroundColor: colors.background + '4D',
     },
 
     // Details Section
@@ -1102,7 +1102,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: 'transparent',
-        backgroundColor: 'rgba(128,128,128,0.1)',
+        backgroundColor: colors.backgroundSecondary + '1A',
     },
     notesInput: {
         height: 88,
@@ -1202,7 +1202,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-around',
         padding: 20,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: colors.background + 'CC',
     },
     videoButton: {
         flexDirection: 'row',
@@ -1244,7 +1244,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 8,
-        backgroundColor: 'rgba(128, 128, 128, 0.1)',
+        backgroundColor: colors.backgroundSecondary + '1A',
     },
     predictionInfoText: {
         flex: 1,
@@ -1253,7 +1253,7 @@ const styles = StyleSheet.create({
     // Predictions Modal Styles
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: colors.background + '80',
     },
     modalBlur: {
         flex: 1,
@@ -1262,7 +1262,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     predictionsModalContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: colors.surface + 'F2',
         borderRadius: 16,
         maxHeight: '80%',
         width: '100%',
@@ -1275,7 +1275,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+        borderBottomColor: colors.border + '1A',
     },
     modalCloseButton: {
         padding: 8,
@@ -1288,7 +1288,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+        borderBottomColor: colors.border + '0D',
     },
     predictionItemContent: {
         flexDirection: 'row',
@@ -1310,7 +1310,7 @@ const styles = StyleSheet.create({
     predictionsFooter: {
         padding: 20,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0, 0, 0, 0.1)',
+        borderTopColor: colors.border + '1A',
     },
     predictionsDisclaimer: {
         textAlign: 'center',
