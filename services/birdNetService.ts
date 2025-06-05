@@ -4,6 +4,8 @@
 import * as FileSystem from 'expo-file-system';
 import NetInfo from '@react-native-community/netinfo';
 import { MLKitBirdClassifier, MLKitClassificationResult } from './mlkitBirdClassifier';
+import { fastTfliteBirdClassifier, BirdClassificationResult } from './fastTfliteBirdClassifier';
+import { AudioPreprocessingTFLite } from './audioPreprocessingTFLite';
 
 export interface BirdNetPrediction {
   common_name: string;
@@ -19,7 +21,7 @@ export interface BirdNetResponse {
   audio_duration: number;
   success: boolean;
   error?: string;
-  source?: 'mlkit' | 'online' | 'cache' | 'mock';
+  source?: 'mlkit' | 'tflite' | 'online' | 'cache' | 'mock';
   fallback_used?: boolean;
   cache_hit?: boolean;
 }
@@ -39,6 +41,7 @@ export class BirdNetService {
   };
 
   private static mlkitClassifier: MLKitBirdClassifier | null = null;
+  private static tfliteInitialized = false;
 
   static updateConfig(newConfig: Partial<BirdNetConfig>) {
     this.config = { ...this.config, ...newConfig };
@@ -52,6 +55,38 @@ export class BirdNetService {
     } catch (error) {
       console.error('BirdNetService: Failed to initialize MLKit mode:', error);
       // Continue without offline mode
+    }
+  }
+
+  // Initialize FastTflite for audio classification
+  static async initializeFastTflite(): Promise<void> {
+    try {
+      if (!this.tfliteInitialized) {
+        await fastTfliteBirdClassifier.initialize();
+        this.tfliteInitialized = true;
+        console.log('BirdNetService: FastTflite mode initialized');
+      }
+    } catch (error) {
+      console.error('BirdNetService: Failed to initialize FastTflite mode:', error);
+      this.tfliteInitialized = false;
+    }
+  }
+
+  // Initialize offline mode (both FastTflite and MLKit)
+  static async initializeOfflineMode(): Promise<void> {
+    try {
+      console.log('BirdNetService: Initializing offline mode...');
+      
+      // Initialize FastTflite for audio classification
+      await this.initializeFastTflite();
+      
+      // Initialize MLKit for image classification
+      await this.initializeMLKit();
+      
+      console.log('BirdNetService: Offline mode initialized successfully');
+    } catch (error) {
+      console.error('BirdNetService: Failed to initialize offline mode:', error);
+      throw error;
     }
   }
 
@@ -81,11 +116,50 @@ export class BirdNetService {
         throw new Error('Audio file not found');
       }
 
+      // Initialize FastTflite for audio processing
+      if (!this.tfliteInitialized) {
+        await this.initializeFastTflite();
+      }
+
+      // Try FastTflite first for audio classification
+      if (this.tfliteInitialized && !options?.forceOnline) {
+        try {
+          console.log('BirdNetService: Using FastTflite classification for audio');
+          
+          // Preprocess audio to mel-spectrogram
+          const processedAudio = await AudioPreprocessingTFLite.processAudioFile(audioUri);
+          
+          // Classify using FastTflite
+          const tfliteResult = await fastTfliteBirdClassifier.classifyBirdAudio(
+            processedAudio.melSpectrogram,
+            audioUri
+          );
+          
+          // Convert FastTflite result to BirdNet response format
+          const response = this.convertFastTfliteResultToBirdNetResponse(
+            tfliteResult.results,
+            tfliteResult.metadata,
+            processedAudio.metadata.duration
+          );
+          
+          return response;
+          
+        } catch (tfliteError) {
+          console.error('BirdNetService: FastTflite classification failed:', tfliteError);
+          
+          if (options?.forceOffline) {
+            throw tfliteError;
+          }
+          
+          console.log('BirdNetService: Falling back to MLKit/online classification');
+        }
+      }
+
+      // Fallback to MLKit if FastTflite fails
       if (!this.mlkitClassifier) {
         await this.initializeMLKit();
       }
 
-      // For audio, we'll use MLKit's fallback (which returns mock data) or online API
       if (this.mlkitClassifier && !options?.forceOnline) {
         try {
           console.log('BirdNetService: Using MLKit classification for audio (fallback)');
@@ -207,6 +281,31 @@ export class BirdNetService {
       source: mlkitResult.source,
       fallback_used: mlkitResult.fallbackUsed,
       cache_hit: mlkitResult.cacheHit,
+    };
+  }
+
+  // Convert FastTflite result to standard response format
+  private static convertFastTfliteResultToBirdNetResponse(
+    results: BirdClassificationResult[],
+    metadata: any,
+    audioDuration: number
+  ): BirdNetResponse {
+    const predictions: BirdNetPrediction[] = results.map(result => ({
+      common_name: result.species,
+      scientific_name: result.scientificName,
+      confidence: result.confidence,
+      timestamp_start: 0,
+      timestamp_end: audioDuration,
+    }));
+
+    return {
+      predictions,
+      processing_time: metadata.processingTime / 1000, // Convert to seconds
+      audio_duration: audioDuration,
+      success: predictions.length > 0,
+      source: metadata.modelSource,
+      fallback_used: false,
+      cache_hit: metadata.modelSource === 'cache',
     };
   }
 

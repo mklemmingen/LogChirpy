@@ -39,6 +39,7 @@ import {
 // Database imports
 import {initDB} from '@/services/database';
 import {BirdNetService} from '@/services/birdNetService';
+import {fastTfliteBirdClassifier} from '@/services/fastTfliteBirdClassifier';
 
 SplashScreen.preventAutoHideAsync();
 
