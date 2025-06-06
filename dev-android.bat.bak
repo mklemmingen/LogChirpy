@@ -100,41 +100,21 @@ echo %GREEN%[OK]%RESET% Caches cleared
 
 :: === Step 6: Prebuild ===
 echo %YELLOW%[6/12]%RESET% Running expo prebuild...
-
-:: Check if android already exists and is recent
-if exist "android\gradlew.bat" (
-    echo %YELLOW%[INFO]%RESET% Android folder already exists
-    set /p SKIP_PREBUILD="Skip prebuild? (Y/N): "
-    if /i "!SKIP_PREBUILD!"=="Y" (
-        echo %GREEN%[SKIPPED]%RESET% Using existing Android configuration
-        goto :PREBUILD_DONE
-    )
-)
-
-:: Run prebuild
 call npx expo prebuild --clean
 set PREBUILD_EXIT=%ERRORLEVEL%
 
-:PREBUILD_DONE
-:: Verify android folder exists
+:: Check if android folder was created (success indicator)
 if not exist "android\gradlew.bat" (
-    echo %RED%[ERROR]%RESET% Android folder not found - prebuild may have failed
-    echo %YELLOW%[DEBUG]%RESET% Checking current directory contents:
-    dir android 2>nul || echo No android directory found
-    echo.
+    echo %RED%[ERROR]%RESET% Prebuild failed - Android folder not created properly
     echo Common issues:
     echo        - Missing dependencies
-    echo        - Invalid app.json configuration  
-    echo        - Corrupted node_modules
-    if defined PREBUILD_EXIT if %PREBUILD_EXIT% NEQ 0 echo        - Prebuild exit code: %PREBUILD_EXIT%
-    echo.
-    set /p CONTINUE_ANYWAY="Continue anyway? (Y/N): "
-    if /i "!CONTINUE_ANYWAY!" NEQ "Y" (
-        pause
-        exit /b 1
-    )
+    echo        - Invalid app.json configuration
+    echo        - Corrupted node_modules (try deleting and npm install)
+    if %PREBUILD_EXIT% NEQ 0 echo        - Exit code: %PREBUILD_EXIT%
+    pause
+    exit /b 1
 ) else (
-    echo %GREEN%[OK]%RESET% Android configuration ready
+    echo %GREEN%[OK]%RESET% Prebuild completed successfully
 )
 
 :: === Step 7: Clean Android build ===
@@ -211,41 +191,20 @@ adb reverse tcp:19001 tcp:19001 2>nul && echo    Port 19001: Expo DevTools
 
 :: === Step 10: Start Metro bundler ===
 echo %YELLOW%[10/12]%RESET% Starting Metro bundler...
-echo %YELLOW%[INFO]%RESET% Using Expo start for better stability
+start "Metro Bundler" cmd /k "npx react-native start --reset-cache"
 
-:: Clean node_modules/.bin temp files that cause permission errors
-echo %YELLOW%[INFO]%RESET% Cleaning temporary files that cause Metro errors
-for /f "delims=" %%f in ('dir /b "node_modules\.bin\." 2^>nul') do (
-    del /f /q "node_modules\.bin\%%f" 2>nul
-)
-
-start "Metro Bundler" cmd /k "npx expo start --dev-client --clear"
-
-:: Wait for Metro to start
+:: Better Metro startup check
 echo Waiting for Metro bundler to start
-timeout /t 8 >nul
-
-:: Check if Metro is responding
+set METRO_ATTEMPTS=0
+:CHECK_METRO
+set /a METRO_ATTEMPTS+=1
 curl -s http://localhost:8081/status 2>nul | findstr "packager-status:running" >nul
 if errorlevel 1 (
-    echo %YELLOW%[WARNING]%RESET% Metro not responding on standard check
-    echo %YELLOW%[INFO]%RESET% Checking if server is listening on port 8081
-    netstat -an | findstr :8081 >nul
-    if errorlevel 1 (
-        echo %RED%[ERROR]%RESET% Metro failed to start! Check the Metro window for errors.
-        echo %YELLOW%[INFO]%RESET% Common fixes:
-        echo   1. Kill all node processes: taskkill /f /im node.exe
-        echo   2. Clear metro cache: npx expo start --clear
-        echo   3. Fix node_modules permissions: npm run postinstall
-        echo   4. Delete node_modules and reinstall: rm -rf node_modules; npm install
-        set /p CONTINUE_METRO="Continue anyway? (Y/N): "
-        if /i "!CONTINUE_METRO!" NEQ "Y" (
-            echo Stopping script. Please fix Metro issues first.
-            pause
-            exit /b 1
-        )
+    if %METRO_ATTEMPTS% LSS 10 (
+        timeout /t 2 >nul
+        goto :CHECK_METRO
     ) else (
-        echo %YELLOW%[OK]%RESET% Metro server is listening (may still be starting up)
+        echo %YELLOW%[WARNING]%RESET% Metro may not be fully ready yet
     )
 ) else (
     echo %GREEN%[OK]%RESET% Metro bundler is running!
