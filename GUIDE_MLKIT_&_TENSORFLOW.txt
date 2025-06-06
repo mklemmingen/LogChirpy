@@ -1,0 +1,821 @@
+# Complete Guide to React Native Development with Expo SDK 52+, MLKit, and TensorFlow Lite
+
+Setting up a React Native development environment with machine learning capabilities requires careful configuration of multiple components. This guide provides tested, production-ready configurations for building Android applications with Expo SDK 52+, MLKit, and react-native-fast-tflite.
+
+## Initial project setup with Expo SDK 52+
+
+The latest Expo SDK introduces significant changes, particularly the default enablement of React Native's New Architecture. Creating a new project with SDK 52+ requires specific considerations for native module compatibility.
+
+### Creating your project foundation
+
+```bash
+# Create new Expo app with SDK 52+
+npx create-expo-app@latest MLApp --template blank-typescript
+
+# Navigate to project
+cd MLApp
+
+# Verify SDK version
+npm list expo
+
+# Install essential development tools
+npm install -g eas-cli
+npx expo install expo-dev-client
+```
+
+### Core package configuration
+
+Your `package.json` should include these verified versions for SDK 52 compatibility:
+
+```json
+{
+  "dependencies": {
+    "expo": "~52.0.0",
+    "expo-dev-client": "~5.0.0",
+    "expo-constants": "~17.0.2",
+    "expo-status-bar": "~2.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.x"
+  }
+}
+```
+
+### App configuration for native modules
+
+Configure your `app.json` to support native modules and the New Architecture:
+
+```json
+{
+  "expo": {
+    "name": "MLApp",
+    "slug": "mlapp",
+    "version": "1.0.0",
+    "platforms": ["android"],
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.yourcompany.mlapp"
+    },
+    "plugins": [
+      [
+        "expo-dev-client",
+        {
+          "addGeneratedScheme": false
+        }
+      ]
+    ]
+  }
+}
+```
+
+## MLKit integration for object detection and image labeling
+
+MLKit integration requires the @infinitered packages, which are actively maintained and compatible with Expo SDK 52+. The latest versions provide seamless integration with development builds.
+
+### Installing MLKit packages
+
+```bash
+# Object detection module
+npm install @infinitered/react-native-mlkit-object-detection@3.1.0
+
+# Image labeling module
+npm install @infinitered/react-native-mlkit-image-labeling@1.4.1
+
+# Core utilities (installed automatically as dependency)
+# @infinitered/react-native-mlkit-core
+```
+
+### Implementing object detection
+
+Create a comprehensive object detection setup in your App.tsx:
+
+```typescript
+import {
+  ObjectDetectionConfig,
+  useObjectDetectionModels,
+  useObjectDetectionProvider,
+  useObjectDetection,
+  ObjectDetectionObject,
+} from "@infinitered/react-native-mlkit-object-detection";
+import { useState, useEffect } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+
+// Configure custom models if needed
+const MODELS: ObjectDetectionConfig = {
+  customDetector: {
+    model: require("./assets/models/custom-detector.tflite"),
+    options: {
+      shouldEnableClassification: true,
+      shouldEnableMultipleObjects: true,
+      detectorMode: "singleImage",
+      classificationConfidenceThreshold: 0.5,
+      maxPerObjectLabelCount: 3
+    }
+  },
+};
+
+export default function App() {
+  const models = useObjectDetectionModels({
+    assets: MODELS,
+    loadDefaultModel: true, // Use MLKit's default model
+    defaultModelOptions: {
+      shouldEnableMultipleObjects: true,
+      shouldEnableClassification: true,
+      detectorMode: "singleImage",
+    },
+  });
+
+  const { ObjectDetectionModelProvider } = useObjectDetectionProvider(models);
+
+  return (
+    <ObjectDetectionModelProvider>
+      <ObjectDetectionScreen />
+    </ObjectDetectionModelProvider>
+  );
+}
+
+function ObjectDetectionScreen() {
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [detectedObjects, setDetectedObjects] = useState<ObjectDetectionObject[]>([]);
+  const detector = useObjectDetection("default");
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  useEffect(() => {
+    if (imageUri && detector) {
+      detector.detectObjects(imageUri)
+        .then(setDetectedObjects)
+        .catch(console.error);
+    }
+  }, [imageUri, detector]);
+
+  return (
+    <View style={styles.container}>
+      <Button title="Select Image" onPress={pickImage} />
+      {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
+      {detectedObjects.map((obj, index) => (
+        <View key={index} style={styles.detectionResult}>
+          <Text>Object {index + 1}:</Text>
+          <Text>Labels: {obj.labels?.map(l => `${l.text} (${l.confidence})`).join(', ')}</Text>
+          <Text>Position: {JSON.stringify(obj.frame)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+```
+
+### Image labeling implementation
+
+```typescript
+import {
+  useImageLabeling,
+  useImageLabelingProvider,
+  useImageLabelingModels,
+  ImageLabelingConfig,
+} from "@infinitered/react-native-mlkit-image-labeling";
+
+const IMAGE_LABELING_MODELS: ImageLabelingConfig = {
+  customClassifier: {
+    model: require("./assets/models/classifier.tflite"),
+    options: {
+      maxResultCount: 5,
+      confidenceThreshold: 0.7,
+    },
+  },
+};
+
+function ImageClassifierComponent() {
+  const models = useImageLabelingModels(IMAGE_LABELING_MODELS);
+  const { ImageLabelingModelProvider } = useImageLabelingProvider(models);
+
+  return (
+    <ImageLabelingModelProvider>
+      <ImageClassifier />
+    </ImageLabelingModelProvider>
+  );
+}
+```
+
+## react-native-fast-tflite setup and configuration
+
+TensorFlow Lite integration provides high-performance inference capabilities with GPU acceleration support. The latest version (1.6.1) offers excellent compatibility with Expo SDK 52+.
+
+### Installation and basic setup
+
+```bash
+npm install react-native-fast-tflite@1.6.1
+```
+
+### Metro configuration for TFLite models
+
+Update your `metro.config.js` to support TFLite files:
+
+```javascript
+const { getDefaultConfig } = require('expo/metro-config');
+
+const config = getDefaultConfig(__dirname);
+
+// Add TFLite and other ML file extensions
+config.resolver.assetExts.push('tflite', 'mlmodel', 'bin', 'txt');
+
+module.exports = config;
+```
+
+### Expo plugin configuration
+
+Configure the plugin in your `app.json` for optimal performance:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-fast-tflite",
+        {
+          "enableAndroidGpuLibraries": [
+            "libOpenCL-pixel.so",
+            "libGLES_mali.so"
+          ]
+        }
+      ]
+    ]
+  }
+}
+```
+
+### Implementation with GPU acceleration
+
+```typescript
+import { loadTensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
+import { Platform } from 'react-native';
+
+// Async model loading with fallback
+const loadModelWithFallback = async () => {
+  try {
+    // Try GPU acceleration first
+    const model = await loadTensorflowModel(
+      require('./assets/models/optimized-model.tflite'),
+      Platform.OS === 'android' ? 'android-gpu' : 'core-ml'
+    );
+    return model;
+  } catch (error) {
+    console.warn('GPU delegate failed, using CPU:', error);
+    // Fallback to CPU
+    return await loadTensorflowModel(
+      require('./assets/models/optimized-model.tflite')
+    );
+  }
+};
+
+// Hook-based approach
+function TFLiteModelComponent() {
+  const model = useTensorflowModel(
+    require('./assets/models/model.tflite'),
+    Platform.OS === 'android' ? 'android-gpu' : undefined
+  );
+
+  const runInference = async (inputData: Float32Array) => {
+    if (model.state === 'loaded') {
+      try {
+        const output = model.model.runSync([inputData]);
+        return output;
+      } catch (error) {
+        console.error('Inference failed:', error);
+      }
+    }
+  };
+
+  return (
+    <View>
+      {model.state === 'loading' && <Text>Loading model...</Text>}
+      {model.state === 'error' && <Text>Error loading model</Text>}
+      {model.state === 'loaded' && <Text>Model ready</Text>}
+    </View>
+  );
+}
+```
+
+## Custom development client creation
+
+Development clients are essential for testing native modules that aren't available in Expo Go. Creating a custom client allows you to test MLKit and TFLite functionality during development.
+
+### EAS Build configuration
+
+Create an `eas.json` file for building development clients:
+
+```json
+{
+  "cli": {
+    "version": ">= 3.0.0",
+    "requireCommit": true
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "gradleCommand": ":app:assembleDebug",
+        "resourceClass": "medium"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "resourceClass": "medium"
+      }
+    },
+    "production": {
+      "android": {
+        "resourceClass": "large"
+      }
+    }
+  }
+}
+```
+
+### Building the development client
+
+```bash
+# Configure EAS for your project
+eas build:configure
+
+# Create Android development build
+eas build --platform android --profile development
+
+# Or build locally (requires Android Studio)
+npx expo run:android --device
+```
+
+### Starting the development server
+
+```bash
+# Start with development client
+npx expo start --dev-client
+
+# Clear cache if needed
+npx expo start --dev-client --clear
+```
+
+## Android build configuration and optimization
+
+Proper Android configuration ensures optimal performance and compatibility with ML libraries.
+
+### Gradle configuration updates
+
+Update `android/build.gradle` through Expo plugins:
+
+```javascript
+// app.json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24,
+            "kotlinVersion": "1.9.22",
+            "packagingOptions": {
+              "pickFirst": ["**/libc++_shared.so"]
+            }
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+### Native library declarations
+
+For Android 12+ GPU acceleration support:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "manifestQueries": {
+              "rawXML": "<uses-native-library android:name=\"libOpenCL.so\" android:required=\"false\" /><uses-native-library android:name=\"libOpenCL-pixel.so\" android:required=\"false\" /><uses-native-library android:name=\"libGLES_mali.so\" android:required=\"false\" />"
+            }
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+### ProGuard rules for production builds
+
+Create a custom ProGuard configuration:
+
+```javascript
+// app.json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "proguardRules": "# TensorFlow Lite\n-keep class org.tensorflow.lite.** { *; }\n-keep class com.google.android.gms.tflite.** { *; }\n\n# MLKit\n-keep class com.google.mlkit.** { *; }\n\n# React Native Fast TFLite\n-keep class com.tflite.** { *; }"
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+## Step-by-step development workflow
+
+A structured workflow ensures efficient development from initial setup to production deployment.
+
+### Initial project setup
+
+```bash
+# 1. Create and configure project
+npx create-expo-app@latest MLApp --template blank-typescript
+cd MLApp
+
+# 2. Install core dependencies
+npm install -g eas-cli
+npx expo install expo-dev-client
+
+# 3. Install ML libraries
+npm install @infinitered/react-native-mlkit-object-detection@3.1.0
+npm install @infinitered/react-native-mlkit-image-labeling@1.4.1
+npm install react-native-fast-tflite@1.6.1
+
+# 4. Configure EAS
+eas login
+eas build:configure
+
+# 5. Update configurations (app.json, metro.config.js)
+
+# 6. Create development build
+eas build --platform android --profile development
+```
+
+### Daily development cycle
+
+```bash
+# Morning setup
+git pull origin main
+npm install
+npx expo start --dev-client --clear
+
+# During development
+# - Make code changes
+# - Test on development build
+# - Hot reload for JS changes
+
+# Creating preview builds
+eas build --platform android --profile preview
+
+# Before merging
+npx expo-doctor@latest
+npm test
+```
+
+### Production deployment workflow
+
+```bash
+# 1. Update version
+npm version patch
+
+# 2. Run final checks
+npx expo-doctor@latest
+npx expo install --fix
+
+# 3. Create production build
+eas build --platform android --profile production
+
+# 4. Submit to store (if configured)
+eas submit --platform android
+```
+
+## Common issues and troubleshooting
+
+Understanding common pitfalls helps maintain development velocity when working with native modules.
+
+### Expo SDK 52 New Architecture issues
+
+**Exception in HostFunction errors** often occur after upgrading:
+
+```bash
+# Fix dependency issues
+npx expo-doctor@latest
+npx expo install --fix
+
+# Clean rebuild
+rm -rf node_modules package-lock.json
+npm install
+npx expo run:android --clear
+```
+
+### MLKit compatibility problems
+
+**Firebase dependency conflicts** require specific version overrides:
+
+```javascript
+// app.json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "pods": {
+              "GoogleDataTransport": "~> 10.0",
+              "GoogleUtilities": "~> 8.0"
+            }
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+### TensorFlow Lite build errors
+
+**CMake version issues** require updating Android build tools:
+
+```javascript
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "ndkVersion": "25.2.9519653",
+            "cmakeVersion": "3.22.1"
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+### Memory management
+
+Prevent memory leaks with proper cleanup:
+
+```typescript
+useEffect(() => {
+  let model: any = null;
+
+  const loadModel = async () => {
+    model = await loadTensorflowModel(require('./model.tflite'));
+  };
+
+  loadModel();
+
+  return () => {
+    // Cleanup on unmount
+    model?.dispose?.();
+  };
+}, []);
+```
+
+## Performance optimization techniques
+
+Optimizing ML applications requires attention to model efficiency, memory usage, and rendering performance.
+
+### Model optimization strategies
+
+```typescript
+// Use quantized models for better performance
+const modelPath = __DEV__
+  ? require('./models/debug-model.tflite')
+  : require('./models/quantized-model.tflite');
+
+// Batch processing for efficiency
+const batchInference = async (images: string[]) => {
+  const batchSize = 5;
+  const results = [];
+
+  for (let i = 0; i < images.length; i += batchSize) {
+    const batch = images.slice(i, i + batchSize);
+    const batchResults = await Promise.all(
+      batch.map(img => model.runSync([preprocessImage(img)]))
+    );
+    results.push(...batchResults);
+  }
+
+  return results;
+};
+```
+
+### Memory optimization
+
+```typescript
+// Efficient list rendering for results
+const OptimizedResultsList = ({ results }: { results: any[] }) => {
+  const renderItem = useCallback(({ item }) => (
+    <MemoizedResultItem result={item} />
+  ), []);
+
+  return (
+    <FlatList
+      data={results}
+      renderItem={renderItem}
+      keyExtractor={(item, index) => `result-${index}`}
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={10}
+      windowSize={10}
+      initialNumToRender={5}
+    />
+  );
+};
+
+const MemoizedResultItem = React.memo(({ result }) => (
+  <View style={styles.resultItem}>
+    <Text>{result.label}: {result.confidence.toFixed(2)}</Text>
+  </View>
+));
+```
+
+### Build size optimization
+
+Configure split APKs for smaller downloads:
+
+```javascript
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "splits": {
+              "abi": {
+                "enable": true,
+                "include": ["arm64-v8a", "armeabi-v7a"]
+              }
+            }
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+## EAS build configuration for production
+
+Production builds require careful configuration to ensure optimal performance and security.
+
+### Complete EAS configuration
+
+```json
+{
+  "cli": {
+    "version": ">= 3.0.0",
+    "appVersionSource": "remote",
+    "requireCommit": true
+  },
+  "build": {
+    "base": {
+      "node": "18.18.0",
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "production"
+      }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "development"
+      },
+      "android": {
+        "gradleCommand": ":app:assembleDebug",
+        "withoutCredentials": true,
+        "resourceClass": "medium"
+      }
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "staging"
+      },
+      "android": {
+        "buildType": "apk",
+        "resourceClass": "medium"
+      }
+    },
+    "production": {
+      "extends": "base",
+      "android": {
+        "buildType": "aab",
+        "resourceClass": "large"
+      }
+    }
+  }
+}
+```
+
+### Environment variables and secrets
+
+```bash
+# Set production secrets
+eas env:create --name API_KEY --value "your-prod-key" --visibility secret
+eas env:create --name SENTRY_DSN --value "your-sentry-dsn" --visibility secret
+
+# Pull for local development
+eas env:pull
+```
+
+### CI/CD integration
+
+```yaml
+# .github/workflows/eas-build.yml
+name: Production Build
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - run: npm ci
+      - run: npm install -g eas-cli
+
+      - name: Build for production
+        run: eas build --platform android --profile production --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+```
+
+## Local development setup versus cloud builds
+
+Understanding the trade-offs between local and cloud builds helps optimize your development workflow.
+
+### Local development advantages
+
+Local builds offer immediate feedback and debugging capabilities:
+
+```bash
+# Local Android build with logging
+EXPO_DEBUG=true npx expo run:android --device
+
+# Enable native debugging
+npx expo run:android --variant debug
+```
+
+### Cloud build benefits
+
+Cloud builds provide consistency and scalability:
+
+- Managed environment with correct tool versions
+- Automatic dependency caching
+- Support for EAS Secrets
+- Parallel builds across platforms
+- No local setup required
+
+### Hybrid approach
+
+```bash
+# Use local builds during active development
+npx expo run:android --device
+
+# Use cloud builds for distribution
+eas build --platform android --profile preview
+
+# Production always through cloud
+eas build --platform android --profile production
+```
+
+This comprehensive guide provides a production-ready foundation for building React Native applications with machine learning capabilities. The configurations and commands have been tested with the latest versions of Expo SDK 52+, ensuring compatibility with both MLKit and TensorFlow Lite for Android development.
