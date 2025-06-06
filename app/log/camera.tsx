@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Alert, SafeAreaView, StyleSheet, useColorScheme, View,} from 'react-native';
+import {Alert, StyleSheet, useColorScheme, View,} from 'react-native';
 import {router, Stack} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {Camera, useCameraDevice, useCameraFormat, useCameraPermission,} from 'react-native-vision-camera';
@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import {theme} from '@/constants/theme';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {useColors} from '@/hooks/useThemeColor';
 
 // Screen dimensions available if needed
@@ -119,7 +120,7 @@ export default function ModernCamera() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
 
             <Camera
@@ -206,7 +207,7 @@ export default function ModernCamera() {
                     </ThemedText>
                 </ThemedPressable>
             )}
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 

@@ -1,4 +1,4 @@
-// Minimal black and white design system
+// Minimal black and white design system with accent colors
 // Professional, clean, and accessible
 
 import { TextStyle } from "react-native";
@@ -6,18 +6,18 @@ import { TextStyle } from "react-native";
 // Clean typography system
 const typography = {
   // Headlines
-  h1: { fontSize: 28, fontWeight: '700' as TextStyle['fontWeight'], lineHeight: 34 },
-  h2: { fontSize: 22, fontWeight: '600' as TextStyle['fontWeight'], lineHeight: 28 },
-  h3: { fontSize: 18, fontWeight: '600' as TextStyle['fontWeight'], lineHeight: 24 },
-  
+  h1: { fontSize: 28, fontWeight: '700' as TextStyle['fontWeight'], lineHeight: 34, letterSpacing: -0.5 },
+  h2: { fontSize: 22, fontWeight: '600' as TextStyle['fontWeight'], lineHeight: 28, letterSpacing: -0.3 },
+  h3: { fontSize: 18, fontWeight: '600' as TextStyle['fontWeight'], lineHeight: 24, letterSpacing: -0.2 },
+
   // Body text
-  body: { fontSize: 16, fontWeight: '400' as TextStyle['fontWeight'], lineHeight: 24 },
-  bodySmall: { fontSize: 14, fontWeight: '400' as TextStyle['fontWeight'], lineHeight: 20 },
-  
+  body: { fontSize: 16, fontWeight: '400' as TextStyle['fontWeight'], lineHeight: 24, letterSpacing: 0 },
+  bodySmall: { fontSize: 14, fontWeight: '400' as TextStyle['fontWeight'], lineHeight: 20, letterSpacing: 0.1 },
+
   // UI elements
-  button: { fontSize: 16, fontWeight: '500' as TextStyle['fontWeight'], lineHeight: 24 },
-  caption: { fontSize: 12, fontWeight: '400' as TextStyle['fontWeight'], lineHeight: 16 },
-  label: { fontSize: 14, fontWeight: '500' as TextStyle['fontWeight'], lineHeight: 20 },
+  button: { fontSize: 16, fontWeight: '500' as TextStyle['fontWeight'], lineHeight: 24, letterSpacing: 0.2 },
+  caption: { fontSize: 12, fontWeight: '400' as TextStyle['fontWeight'], lineHeight: 16, letterSpacing: 0.2 },
+  label: { fontSize: 14, fontWeight: '500' as TextStyle['fontWeight'], lineHeight: 20, letterSpacing: 0.1 },
 };
 
 // Consistent spacing scale (4px base)
@@ -74,6 +74,13 @@ const shadows = {
     shadowRadius: 8,
     elevation: 4,
   },
+  xl: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
+  },
 };
 
 // Smooth animations
@@ -82,11 +89,18 @@ const motion = {
     fast: 150,
     normal: 200,
     slow: 300,
+    instant: 100,
   },
   easing: 'ease-out',
+  // Modern easing curves as optional
+  easingCurves: {
+    standard: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+    decelerate: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
+    accelerate: 'cubic-bezier(0.4, 0.0, 1, 1)',
+  },
 };
 
-// Pure black and white color system
+// Pure black and white color system with accent colors
 const createColorSystem = (isDark: boolean) => {
   // Base colors - only black, white, and necessary grays
   const colors = {
@@ -105,6 +119,31 @@ const createColorSystem = (isDark: boolean) => {
       700: '#404040',
       800: '#262626',
       900: '#171717',
+      950: '#0A0A0A',
+    },
+  };
+
+  // Accent colors for improved UX
+  const accents = {
+    blue: {
+      light: '#3B82F6',
+      main: '#2563EB',
+      dark: '#1D4ED8',
+    },
+    green: {
+      light: '#10B981',
+      main: '#059669',
+      dark: '#047857',
+    },
+    red: {
+      light: '#EF4444',
+      main: '#DC2626',
+      dark: '#B91C1C',
+    },
+    amber: {
+      light: '#F59E0B',
+      main: '#D97706',
+      dark: '#B45309',
     },
   };
 
@@ -124,6 +163,7 @@ const createColorSystem = (isDark: boolean) => {
       secondary: isDark ? colors.gray[900] : colors.gray[50],
       tertiary: isDark ? colors.gray[800] : colors.gray[100],
       overlay: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.6)',
+      elevated: isDark ? colors.gray[800] : colors.pure.white,
     },
 
     // Overlay colors with consistent opacity
@@ -142,6 +182,7 @@ const createColorSystem = (isDark: boolean) => {
       tertiary: isDark ? colors.gray[500] : colors.gray[400],
       inverse: isDark ? colors.pure.black : colors.pure.white,
       disabled: isDark ? colors.gray[600] : colors.gray[400],
+      placeholder: isDark ? colors.gray[500] : colors.gray[500],
     },
 
     // Interactive elements
@@ -151,6 +192,7 @@ const createColorSystem = (isDark: boolean) => {
       hover: isDark ? colors.gray[100] : colors.gray[900],
       pressed: isDark ? colors.gray[300] : colors.gray[700],
       disabled: isDark ? colors.gray[700] : colors.gray[300],
+      focus: isDark ? accents.blue.light : accents.blue.main,
     },
 
     // Borders
@@ -158,6 +200,7 @@ const createColorSystem = (isDark: boolean) => {
       primary: isDark ? colors.gray[700] : colors.gray[200],
       secondary: isDark ? colors.gray[600] : colors.gray[300],
       strong: isDark ? colors.gray[500] : colors.gray[400],
+      focus: isDark ? accents.blue.light : accents.blue.main,
     },
 
     // Status colors (minimal, only when necessary)
@@ -166,6 +209,15 @@ const createColorSystem = (isDark: boolean) => {
       warning: isDark ? '#F59E0B' : '#D97706',
       error: isDark ? '#EF4444' : '#DC2626',
       info: isDark ? colors.gray[300] : colors.gray[600],
+    },
+
+    // Accent colors for CTAs and important UI
+    accent: {
+      primary: isDark ? accents.blue.light : accents.blue.main,
+      primaryHover: isDark ? accents.blue.main : accents.blue.dark,
+      success: isDark ? accents.green.light : accents.green.main,
+      warning: isDark ? accents.amber.light : accents.amber.main,
+      error: isDark ? accents.red.light : accents.red.main,
     },
 
     // Legacy support
@@ -233,6 +285,13 @@ export const buttonStyles = {
   ghost: (isDark: boolean) => ({
     backgroundColor: 'transparent',
     color: isDark ? '#FFFFFF' : '#000000',
+    borderColor: 'transparent',
+    borderWidth: 0,
+  }),
+  // New accent button style for CTAs
+  accent: (isDark: boolean) => ({
+    backgroundColor: isDark ? '#3B82F6' : '#2563EB',
+    color: '#FFFFFF',
     borderColor: 'transparent',
     borderWidth: 0,
   }),

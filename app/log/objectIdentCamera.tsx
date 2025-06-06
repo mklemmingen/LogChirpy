@@ -7,7 +7,6 @@ import {
     LayoutAnimation,
     Modal,
     Platform,
-    SafeAreaView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -34,6 +33,7 @@ import {useTranslation} from 'react-i18next';
 import Slider from '@react-native-community/slider';
 
 import {ThemedSnackbar} from "@/components/ThemedSnackbar";
+import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
 
 import * as Haptics from 'expo-haptics';
 
@@ -724,7 +724,7 @@ function ObjectIdentCameraContent() {
     // @ts-ignore
     // @ts-ignore
     return (
-        <SafeAreaView style={{ flex: 1 }}>
+        <ThemedSafeAreaView style={{ flex: 1 }}>
             <View style={styles.container}>
                 {showOverlays && (
                     <View pointerEvents="none" style={styles.overlay}>
@@ -1005,7 +1005,7 @@ function ObjectIdentCameraContent() {
                     </View>
                 </Modal>
             )}
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 

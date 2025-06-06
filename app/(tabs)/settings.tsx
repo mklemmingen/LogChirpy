@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {I18nManager, SafeAreaView, ScrollView, StyleSheet, Switch, Text, useColorScheme, View,} from "react-native";
+import {I18nManager, ScrollView, StyleSheet, Switch, Text, useColorScheme, View,} from "react-native";
 import {useTranslation} from "react-i18next";
 import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
@@ -20,6 +20,7 @@ import {Config} from "@/constants/config";
 import {ThemedView, Card} from "@/components/ThemedView";
 import {ThemedText} from "@/components/ThemedText";
 import {ThemedPressable} from "@/components/ThemedPressable";
+import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
 import {Button} from "@/components/Button";
 import {useColors, useTheme, useTypography} from "@/hooks/useThemeColor";
 
@@ -363,10 +364,7 @@ export default function ModernSettingsScreen() {
     };
 
     return (
-        <SafeAreaView style={[
-            styles.container,
-            { backgroundColor: colors.background }
-        ]}>
+        <ThemedSafeAreaView style={styles.container}>
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
@@ -466,7 +464,7 @@ export default function ModernSettingsScreen() {
                     </Card>
                 </Animated.View>
             </ScrollView>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
@@ -512,39 +510,42 @@ const styles = StyleSheet.create({
     
     // Language Section
     languageGrid: {
-        gap: 12,
+        gap: 8,  // Reduced from 12
     },
     languageCard: {
         borderRadius: 12,
     },
     languageCardInner: {
-        minHeight: 72,
+        minHeight: 52,  // Reduced from 72
         padding: 0,
     },
     languageContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
-        gap: 16,
+        padding: 12,  // Reduced from 16
+        gap: 12,  // Reduced from 16
     },
     languageFlag: {
-        fontSize: 24,
-        lineHeight: 28,
+        fontSize: 20,  // Reduced from 24
+        lineHeight: 24,  // Reduced from 28
     },
     languageText: {
         flex: 1,
-        gap: 2,
+        gap: 0,  // Reduced from 2
     },
     languageName: {
-        // Dynamic styles applied via component
+        fontSize: 15,  // Add explicit size
+        lineHeight: 20,  // Tighter line height
     },
     languageCode: {
-        opacity: 0.8,
+        opacity: 0.7,  // Slightly less opacity
+        fontSize: 11,  // Smaller code text
+        lineHeight: 14,
     },
     activeIndicator: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 28,  // Reduced from 32
+        height: 28,  // Reduced from 32
+        borderRadius: 14,  // Reduced from 16
         justifyContent: 'center',
         alignItems: 'center',
     },

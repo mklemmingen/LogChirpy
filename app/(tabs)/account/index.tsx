@@ -1,12 +1,10 @@
 import React, {useEffect} from 'react';
 import {Alert, Pressable, ScrollView, StyleSheet, Text, View,} from 'react-native';
-import {router} from 'expo-router';
+import {router, useFocusEffect} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import { ThemedIcon } from '@/components/ThemedIcon';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 import {ModernCard} from '@/components/ModernCard';
 import {useTheme, useTypography, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
@@ -21,7 +19,6 @@ export default function ModernAccountScreen() {
     const typography = useTypography();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
-    const insets = useSafeAreaInsets();
     const { user, isAuthenticated, signOut: authSignOut, isLoading } = useAuth();
 
     // Animation values
@@ -33,10 +30,13 @@ export default function ModernAccountScreen() {
             // Fade in animation when user loads
             fadeInOpacity.value = withTiming(1, { duration: 300 });
         }
-    }, [isAuthenticated, fadeInOpacity]);
+    }, [isAuthenticated]);
 
     const fadeInStyle = useAnimatedStyle(() => ({
         opacity: fadeInOpacity.value,
+    }));
+
+    const slideInStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: withTiming(fadeInOpacity.value === 1 ? 0 : 20) }],
     }));
 
@@ -80,11 +80,26 @@ export default function ModernAccountScreen() {
         signOutScale.value = withSpring(1);
     };
 
+    useFocusEffect(
+        React.useCallback(() => {
+            if (!isLoading && !isAuthenticated) {
+                router.replace('/(tabs)/account/(auth)/login');
+            }
+        }, [isLoading, isAuthenticated])
+    );
+
+    if (isLoading) {
+        return null;
+    }
+
+    if (!isAuthenticated) {
+        return null;
+    }
+
     return (
-        <ProtectedRoute redirectTo="/(tabs)/account/(auth)/login">
-            <ThemedSafeAreaView style={styles.container}>
+        <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
-            <View style={[styles.header, { marginTop: insets.top }]}>
+            <View style={styles.header}>
                 <Text style={[styles.headerTitle]}>
                     {t('account.title')}
                 </Text>
@@ -99,8 +114,9 @@ export default function ModernAccountScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 <Animated.View style={fadeInStyle}>
-                    {/* Profile Section */}
-                    <ModernCard
+                    <Animated.View style={slideInStyle}>
+                        {/* Profile Section */}
+                        <ModernCard
                         elevated={true}
                         bordered={false}
                         style={styles.profileCard}
@@ -204,40 +220,40 @@ export default function ModernAccountScreen() {
                         </View>
                     </ModernCard>
 
-                    {/* Sign Out Section */}
-                    <View style={styles.signOutSection}>
-                        <AnimatedPressable
-                            style={[
-                                styles.signOutButton,
-                                { backgroundColor: semanticColors.error },
-                                signOutAnimatedStyle,
-                            ]}
-                            onPress={handleSignOut}
-                            onPressIn={handleSignOutPressIn}
-                            onPressOut={handleSignOutPressOut}
-                            android_ripple={{ color: theme.colors.surface + '33' }}
-                        >
-                            <ThemedIcon name="log-out" size={20} color="primary" />
-                            <Text style={[typography.body, styles.signOutText, { color: semanticColors.background }]}>
-                                {t('buttons.signout')}
-                            </Text>
-                        </AnimatedPressable>
+                        {/* Sign Out Section */}
+                        <View style={styles.signOutSection}>
+                            <Animated.View style={signOutAnimatedStyle}>
+                                <AnimatedPressable
+                                    style={[
+                                        styles.signOutButton,
+                                        { backgroundColor: semanticColors.error },
+                                    ]}
+                                    onPress={handleSignOut}
+                                    onPressIn={handleSignOutPressIn}
+                                    onPressOut={handleSignOutPressOut}
+                                    android_ripple={{ color: theme.colors.surface + '33' }}
+                                >
+                                    <ThemedIcon name="log-out" size={20} color="primary" />
+                                    <Text style={[typography.body, styles.signOutText, { color: semanticColors.background }]}>
+                                        {t('buttons.signout')}
+                                    </Text>
+                                </AnimatedPressable>
+                            </Animated.View>
 
-                        <Text style={[typography.label, styles.signOutWarning, { color: semanticColors.secondary }]}>
-                            {t('account.signOutWarning', 'You will need to sign in again to access cloud features')}
-                        </Text>
-                    </View>
+                            <Text style={[typography.label, styles.signOutWarning, { color: semanticColors.secondary }]}>
+                                {t('account.signOutWarning', 'You will need to sign in again to access cloud features')}
+                            </Text>
+                        </View>
+                    </Animated.View>
                 </Animated.View>
             </ScrollView>
-            </ThemedSafeAreaView>
-        </ProtectedRoute>
+        </ThemedSafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 40,
     },
 
     // Header

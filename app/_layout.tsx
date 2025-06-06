@@ -407,11 +407,16 @@ export default function EnhancedRootLayout() {
         }
 
         return (
-            <AppInitializationScreen
-                message={message}
-                error={localDbError || undefined}
-                onRetry={localDbError ? handleRetry : undefined}
-            />
+            <ImageLabelingModelProvider>
+                <ObjectDetectionProvider>
+                    <AppInitializationScreen
+                        message={message}
+                        error={localDbError || undefined}
+                        onRetry={localDbError ? handleRetry : undefined}
+                    />
+                    <StatusBar style="auto" />
+                </ObjectDetectionProvider>
+            </ImageLabelingModelProvider>
         );
     }
 

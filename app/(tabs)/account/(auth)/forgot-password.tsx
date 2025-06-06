@@ -1,5 +1,5 @@
 import React, {useRef, useState} from 'react';
-import {KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, TextInput, View,} from 'react-native';
+import {KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View,} from 'react-native';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import * as Haptics from 'expo-haptics';
@@ -16,6 +16,7 @@ import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import {ModernCard} from '@/components/ModernCard';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {useSnackbar} from '@/components/ThemedSnackbar';
 import {useTheme, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
 import {sendPasswordResetEmail} from 'firebase/auth';
@@ -282,7 +283,7 @@ export default function ForgotPasswordScreen() {
     );
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+        <ThemedSafeAreaView style={styles.container}>
             <KeyboardAvoidingView
                 style={styles.keyboardView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -326,7 +327,7 @@ export default function ForgotPasswordScreen() {
 
             {/* Snackbar */}
             <snackbar.SnackbarComponent />
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 

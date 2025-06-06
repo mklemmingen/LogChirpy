@@ -4,7 +4,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     Pressable,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     TextInput,
@@ -34,6 +33,7 @@ import {ModernCard} from '@/components/ModernCard';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {useSnackbar} from '@/components/ThemedSnackbar';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {useTheme, useSemanticColors, useTypography, useColorVariants} from '@/hooks/useThemeColor';
 // import { useAuth } from '@/app/context/AuthContext';
 
@@ -282,9 +282,9 @@ export default function ModernLoginScreen() {
 
             showSuccess('Welcome back!');
 
-            // Navigate to main app
+            // Navigate to account tab instead of tabs root to avoid navigation conflicts
             setTimeout(() => {
-                router.replace('/(tabs)');
+                router.replace('/(tabs)/account');
             }, 1000);
 
         } catch (error: unknown) {
@@ -352,7 +352,7 @@ export default function ModernLoginScreen() {
     }));
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+        <ThemedSafeAreaView style={styles.container}>
             {/* Background Elements */}
             <View style={styles.backgroundElements}>
                 <View style={[
@@ -486,7 +486,7 @@ export default function ModernLoginScreen() {
 
             {/* Snackbar */}
             <SnackbarComponent />
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 

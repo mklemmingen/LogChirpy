@@ -3,7 +3,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     Pressable,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     TextInput,
@@ -23,6 +22,7 @@ import { UserProfileService } from '@/services/userProfile';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {useSnackbar} from '@/components/ThemedSnackbar';
 import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
 
@@ -179,9 +179,9 @@ export default function ModernSignupScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             showSuccess('Account created successfully!');
 
-            // Navigate to main app
+            // Navigate to account tab instead of tabs root to avoid navigation conflicts
             setTimeout(() => {
-                router.replace('/(tabs)');
+                router.replace('/(tabs)/account');
             }, 1000);
 
         } catch (error: unknown) {
@@ -265,7 +265,7 @@ export default function ModernSignupScreen() {
     const isFormValid = formState.email.valid && formState.password.valid && formState.confirmPassword.valid;
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+        <ThemedSafeAreaView style={styles.container}>
             <KeyboardAvoidingView
                 style={styles.keyboardView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -469,7 +469,7 @@ export default function ModernSignupScreen() {
             </KeyboardAvoidingView>
 
             <SnackbarComponent />
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 

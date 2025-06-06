@@ -6,7 +6,6 @@ import {
   Image,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   StyleSheet,
   TextInput,
   View,
@@ -28,6 +27,7 @@ import * as Haptics from 'expo-haptics';
 
 import {ThemedView, Card} from '@/components/ThemedView';
 import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {ThemedText} from '@/components/ThemedText';
 import {Button} from '@/components/Button';
 import {useColors, useTypography, useBorderRadius, useShadows, useSpacing} from '@/hooks/useThemeColor';
@@ -375,19 +375,19 @@ export default function ArchiveScreen() {
   // Loading state
   if (loading) {
     return (
-        <SafeAreaView style={[styles.container, {backgroundColor: colors.background}]}>
+        <ThemedSafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
             <ThemedIcon name="archive" size={48} color="primary"/>
             <ThemedText variant="body" color="secondary" style={styles.loadingText}>
               {t('archive.loading')}
             </ThemedText>
           </View>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
   }
 
   return (
-      <SafeAreaView style={[styles.container, {backgroundColor: colors.background}]}>
+      <ThemedSafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <ThemedText variant="h2" style={styles.title}>
@@ -443,7 +443,7 @@ export default function ArchiveScreen() {
                 ItemSeparatorComponent={() => <View style={styles.separator}/>}
             />
         )}
-      </SafeAreaView>
+      </ThemedSafeAreaView>
   );
 }
 
