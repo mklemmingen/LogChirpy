@@ -1,0 +1,389 @@
+================================================================================
+                    REACT-NATIVE-FAST-TFLITE USAGE GUIDE
+================================================================================
+
+OVERVIEW
+--------
+react-native-fast-tflite is a high-performance TensorFlow Lite library for 
+React Native that enables running machine learning models directly on mobile 
+devices. It provides both synchronous and asynchronous inference capabilities 
+with GPU acceleration support.
+
+VERSION: 1.6.1
+AUTHOR: Marc Rousavy (https://github.com/mrousavy)
+REPO: https://github.com/mrousavy/react-native-fast-tflite
+
+
+INSTALLATION
+------------
+
+1. Install the package:
+   npm install react-native-fast-tflite
+   # or
+   yarn add react-native-fast-tflite
+
+2. For iOS, install pods:
+   cd ios && pod install
+
+3. Configure Metro bundler to handle .tflite files by adding to metro.config.js:
+   
+   const config = {
+     resolver: {
+       assetExts: ['tflite', 'png', 'jpg'], // Add 'tflite' extension
+     },
+   };
+
+4. For Expo projects, add the plugin to app.config.js:
+   
+   module.exports = {
+     plugins: ['react-native-fast-tflite'],
+   };
+
+
+BASIC USAGE
+-----------
+
+1. Import the library:
+   
+   import { 
+     loadTensorflowModel, 
+     useTensorflowModel,
+     TensorflowModel,
+     TensorflowModelDelegate 
+   } from 'react-native-fast-tflite';
+
+2. Load a model using the hook (recommended for React components):
+   
+   function MyComponent() {
+     const model = useTensorflowModel(
+       require('./assets/my_model.tflite'),
+       'default' // delegate type
+     );
+     
+     if (model.state === 'loading') {
+       return <Text>Loading model...</Text>;
+     }
+     
+     if (model.state === 'error') {
+       return <Text>Error: {model.error.message}</Text>;
+     }
+     
+     // model.state === 'loaded', model.model is available
+     const tensorflowModel = model.model;
+     // Use the model for inference
+   }
+
+3. Alternative: Load model manually:
+   
+   useEffect(() => {
+     const loadModel = async () => {
+       try {
+         const model = await loadTensorflowModel(
+           require('./assets/my_model.tflite')
+         );
+         setModel(model);
+       } catch (error) {
+         console.error('Failed to load model:', error);
+       }
+     };
+     loadModel();
+   }, []);
+
+
+MODEL DELEGATES
+---------------
+Choose the appropriate delegate based on your performance needs:
+
+- 'default': Standard CPU delegate (most compatible)
+- 'metal': iOS GPU acceleration using Metal
+- 'core-ml': iOS Core ML delegate for optimized inference
+- 'nnapi': Android Neural Networks API
+- 'android-gpu': Android GPU delegate
+
+Example with GPU acceleration:
+   const model = useTensorflowModel(
+     require('./assets/model.tflite'),
+     'metal' // Use Metal on iOS for GPU acceleration
+   );
+
+Note: GPU delegates may not work with all models. Test thoroughly and 
+fallback to 'default' if needed.
+
+
+LOADING MODELS
+--------------
+
+1. From app bundle (most common):
+   const model = useTensorflowModel(require('./assets/model.tflite'));
+
+2. From URL:
+   const model = useTensorflowModel({ url: 'https://example.com/model.tflite' });
+
+3. From local file:
+   const model = useTensorflowModel({ url: 'file:///path/to/model.tflite' });
+
+
+RUNNING INFERENCE
+-----------------
+
+1. Prepare input data as TypedArray:
+   
+   // Example: Image classification with 224x224x3 RGB image
+   const inputData = new Float32Array(224 * 224 * 3);
+   // Fill inputData with your processed image data...
+
+2. Run synchronous inference (faster, blocks UI thread):
+   
+   if (model.state === 'loaded') {
+     const outputs = model.model.runSync([inputData]);
+     const predictions = outputs[0]; // First output tensor
+     console.log('Predictions:', predictions);
+   }
+
+3. Run asynchronous inference (non-blocking):
+   
+   if (model.state === 'loaded') {
+     const outputs = await model.model.run([inputData]);
+     const predictions = outputs[0];
+     console.log('Predictions:', predictions);
+   }
+
+
+TENSOR INFORMATION
+------------------
+
+Access model tensor information:
+
+   if (model.state === 'loaded') {
+     console.log('Input tensors:', model.model.inputs);
+     console.log('Output tensors:', model.model.outputs);
+     
+     // Example output:
+     // Input: { name: 'input', dataType: 'float32', shape: [1, 224, 224, 3] }
+     // Output: { name: 'output', dataType: 'float32', shape: [1, 1000] }
+   }
+
+Each tensor has:
+- name: String identifier
+- dataType: 'bool', 'uint8', 'int8', 'int16', 'int32', 'int64', 
+           'float16', 'float32', 'float64', 'invalid'
+- shape: Array of dimensions [batch, height, width, channels]
+
+
+SUPPORTED DATA TYPES
+--------------------
+
+Input/Output TypedArrays:
+- Float32Array (most common for neural networks)
+- Float64Array
+- Int8Array
+- Int16Array  
+- Int32Array
+- Uint8Array (common for image data)
+- Uint16Array
+- Uint32Array
+- BigInt64Array
+- BigUint64Array
+
+Match your TypedArray to the model's expected dataType.
+
+
+COMPLETE EXAMPLE: IMAGE CLASSIFICATION
+--------------------------------------
+
+import React, { useState } from 'react';
+import { View, Text, Button, Image } from 'react-native';
+import { useTensorflowModel } from 'react-native-fast-tflite';
+
+function ImageClassifier() {
+  const [result, setResult] = useState('');
+  
+  const model = useTensorflowModel(
+    require('./assets/mobilenet_v2.tflite'),
+    'default'
+  );
+  
+  const classifyImage = async () => {
+    if (model.state !== 'loaded') return;
+    
+    // Prepare input data (this is simplified - you'd need actual image preprocessing)
+    const inputData = new Float32Array(224 * 224 * 3);
+    // ... fill with normalized pixel values from your image
+    
+    try {
+      const outputs = await model.model.run([inputData]);
+      const predictions = outputs[0]; // Shape: [1, 1000]
+      
+      // Find the class with highest probability
+      let maxIndex = 0;
+      let maxValue = predictions[0];
+      for (let i = 1; i < predictions.length; i++) {
+        if (predictions[i] > maxValue) {
+          maxValue = predictions[i];
+          maxIndex = i;
+        }
+      }
+      
+      setResult(`Class ${maxIndex}: ${(maxValue * 100).toFixed(2)}%`);
+    } catch (error) {
+      console.error('Inference failed:', error);
+      setResult('Classification failed');
+    }
+  };
+  
+  if (model.state === 'loading') {
+    return <Text>Loading model...</Text>;
+  }
+  
+  if (model.state === 'error') {
+    return <Text>Error loading model: {model.error.message}</Text>;
+  }
+  
+  return (
+    <View>
+      <Button title="Classify Image" onPress={classifyImage} />
+      <Text>{result}</Text>
+    </View>
+  );
+}
+
+
+INTEGRATION WITH REACT-NATIVE-VISION-CAMERA
+--------------------------------------------
+
+For real-time camera inference:
+
+import { useFrameProcessor } from 'react-native-vision-camera';
+import { useResizePlugin } from 'vision-camera-resize-plugin';
+
+function CameraScreen() {
+  const model = useTensorflowModel(require('./assets/model.tflite'));
+  const { resize } = useResizePlugin();
+  
+  const frameProcessor = useFrameProcessor((frame) => {
+    'worklet';
+    
+    if (model.state !== 'loaded') return;
+    
+    // Resize frame to model input size
+    const resized = resize(frame, {
+      scale: { width: 224, height: 224 },
+      pixelFormat: 'rgb',
+      dataType: 'uint8',
+    });
+    
+    // Run inference on resized frame
+    const result = model.model.runSync([resized]);
+    console.log('Frame inference result:', result[0]);
+  }, [model]);
+  
+  return (
+    <Camera
+      device={device}
+      isActive={true}
+      frameProcessor={frameProcessor}
+    />
+  );
+}
+
+
+PERFORMANCE OPTIMIZATION
+-------------------------
+
+1. Use synchronous inference (runSync) for real-time applications
+2. Choose appropriate delegate:
+   - iOS: Try 'metal' or 'core-ml' for GPU acceleration
+   - Android: Try 'nnapi' or 'android-gpu'
+3. Optimize model:
+   - Use quantized models (int8) for smaller size and faster inference
+   - Consider model pruning and compression
+4. Batch processing: Process multiple inputs at once when possible
+5. Memory management: Reuse TypedArrays to avoid garbage collection
+
+
+ERROR HANDLING
+--------------
+
+Common issues and solutions:
+
+1. Model loading fails:
+   - Ensure .tflite file is in assets and metro.config.js includes 'tflite'
+   - Check file path and permissions
+   - Verify model file is not corrupted
+
+2. Inference fails:
+   - Check input data shape matches model.inputs[0].shape
+   - Verify data type matches model.inputs[0].dataType
+   - Ensure input values are in expected range (often 0-1 or -1 to 1)
+
+3. Delegate not supported:
+   - Fallback to 'default' delegate if GPU delegates fail
+   - Not all models support all delegates
+
+4. Memory issues:
+   - Use smaller models or quantized versions
+   - Limit batch size
+   - Dispose of large TypedArrays when done
+
+
+TROUBLESHOOTING
+---------------
+
+1. Metro bundler not finding .tflite files:
+   Add 'tflite' to assetExts in metro.config.js
+
+2. iOS build fails:
+   Run 'cd ios && pod install' after installing the package
+
+3. Android build fails:
+   Ensure minSdkVersion >= 21 in android/build.gradle
+
+4. Model not loading:
+   Check console logs for detailed error messages
+   Verify model file integrity and format
+
+5. Poor performance:
+   - Try different delegates (metal, core-ml, nnapi)
+   - Use quantized models
+   - Profile your preprocessing pipeline
+
+
+EXAMPLE PROJECTS
+----------------
+
+See the example folder for a complete implementation with:
+- EfficientDet object detection model
+- Real-time camera inference
+- Vision Camera integration
+- Proper error handling
+
+To run the example:
+1. cd example
+2. npm install
+3. npx react-native run-ios # or run-android
+
+
+BEST PRACTICES
+--------------
+
+1. Always handle loading states and errors
+2. Use useTensorflowModel hook for React components
+3. Test different delegates to find optimal performance
+4. Preprocess data correctly (normalization, resizing)
+5. Profile inference time and memory usage
+6. Consider using quantized models for production
+7. Implement graceful fallbacks for unsupported devices
+8. Cache preprocessed data when possible
+9. Use runSync for real-time applications, run for background tasks
+10. Monitor app performance and memory usage in production
+
+
+RESOURCES
+---------
+
+- Package Repository: https://github.com/mrousavy/react-native-fast-tflite
+- TensorFlow Lite Models: https://www.tensorflow.org/lite/models
+- Model Optimization: https://www.tensorflow.org/lite/performance/optimization
+- Vision Camera: https://github.com/mrousavy/react-native-vision-camera
+
+================================================================================
