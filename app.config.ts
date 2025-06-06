@@ -27,6 +27,7 @@ export default {
       "**/*.csv" // include all CSVs anywhere
     ],
     android: {
+      edgeToEdgeEnabled: true, // Prepare for Android 16+
       package: "com.logchirpy.app",
       versionCode: 1,
       compileSdkVersion: 35,
