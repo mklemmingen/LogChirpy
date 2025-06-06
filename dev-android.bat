@@ -320,6 +320,10 @@ adb reverse tcp:19001 tcp:19001 2>nul && echo    Port 19001: Expo DevTools
 echo.
 echo [STEP 10/12] Starting Metro bundler...
 echo --------------------------------------------------------
+echo [INFO] Using Expo start for better stability
+
+:: Ensure we're in the right directory
+cd /d "%~dp0"
 
 :: Clean node_modules/.bin temp files that cause permission errors
 echo [INFO] Cleaning temporary files that cause Metro errors
@@ -327,13 +331,14 @@ for /f "delims=" %%f in ('dir /b "node_modules\.bin\." 2^>nul') do (
     del /f /q "node_modules\.bin\%%f" 2>nul
 )
 
+:: Start Metro with proper environment
 echo [INFO] Starting Metro bundler...
-start "Metro Bundler" cmd /k "cd /d "%CD%" && %METRO_CMD% --reset-cache"
+start "Metro Bundler" cmd /c "cd /d "%CD%" && call npm run start -- --clear"
 
-:: Wait for Metro to start
+:: Wait longer for Metro to initialize
 echo.
 echo Waiting for Metro bundler to start...
-timeout /t 8 >nul
+timeout /t 12 >nul
 
 :: Check if Metro is responding
 curl -s http://localhost:8081/status 2>nul | findstr "packager-status:running" >nul
