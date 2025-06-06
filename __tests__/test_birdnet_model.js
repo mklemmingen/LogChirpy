@@ -40,7 +40,7 @@ function testModelFiles() {
 }
 
 function testModelJson() {
-    console.log('\n📋 Testing model.json structure...');
+    console.log('\nTesting model.json structure...');
     
     const modelJsonPath = path.join(__dirname, 'assets', 'models', 'birdnet', 'model.json');
     
@@ -83,7 +83,7 @@ function testLabelsJson() {
         
         // Show first few species
         if (labelsData.labels && labelsData.labels.length > 0) {
-            console.log('\n📋 Sample species:');
+            console.log('\n Sample species:');
             for (let i = 0; i < Math.min(5, labelsData.labels.length); i++) {
                 const label = labelsData.labels[i];
                 console.log(`   ${i}: ${label.common_name} (${label.scientific_name})`);
