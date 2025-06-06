@@ -66,6 +66,8 @@ export default {
     },
     platforms: ["android", "ios"],
     plugins: [
+      "expo-font",
+      "expo-web-browser",
       "expo-router",
       "expo-dev-client",
       [
