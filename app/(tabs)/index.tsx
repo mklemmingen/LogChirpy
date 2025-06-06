@@ -1,6 +1,3 @@
-// Main home screen with bird logging features
-// Clean design with feature cards and smooth animations
-
 import React from 'react';
 import { Dimensions, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
