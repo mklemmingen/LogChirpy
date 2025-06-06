@@ -9,6 +9,29 @@ const defaultConfig = getDefaultConfig(__dirname);
 module.exports = (() => {
   const config = defaultConfig;
   
+  // Windows-specific path resolution fixes
+  config.resolver.platforms = ['ios', 'android', 'native', 'web'];
+  
+  // Disable new exports resolution that causes issues with expo-router
+  config.resolver.unstable_enablePackageExports = false;
+  config.resolver.unstable_conditionNames = ['require', 'import'];
+
+  // Windows path normalization
+  const originalResolveRequest = config.resolver.resolveRequest;
+  config.resolver.resolveRequest = (context, moduleName, platform) => {
+    // Fix the expo-router entry module resolution
+    if (moduleName === './node_modules/expo-router/entry') {
+      moduleName = 'expo-router/entry';
+    }
+
+    // Normalize Windows paths
+    const normalizedModuleName = moduleName.replace(/\\/g, '/');
+
+    return originalResolveRequest
+        ? originalResolveRequest(context, normalizedModuleName, platform)
+        : context.resolveRequest(context, normalizedModuleName, platform);
+  };
+  
   // Apply custom resolver settings
   config.resolver.assetExts.push('bin', 'json', 'tflite', 'csv', 'xml');
   config.resolver.sourceExts.push('cjs', 'mjs');
