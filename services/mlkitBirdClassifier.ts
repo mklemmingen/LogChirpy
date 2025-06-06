@@ -136,7 +136,7 @@ export class MLKitBirdClassifier {
       // Load the bird classifier model
       const modelSpec = {
         modelName: 'bird_classifier',
-        modelPath: require('../assets/models/birds_mobilenetv2/bird_classifier_metadata.tflite'),
+        modelPath: '../assets/models/birds_mobilenetv2/bird_classifier_metadata.tflite',
         options: {
           maxResultCount: this.config.maxResults,
           confidenceThreshold: this.config.confidenceThreshold

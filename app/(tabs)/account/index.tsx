@@ -1,10 +1,12 @@
 import React, {useEffect} from 'react';
-import {Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View,} from 'react-native';
+import {Alert, Pressable, ScrollView, StyleSheet, Text, View,} from 'react-native';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 import {ModernCard} from '@/components/ModernCard';
 import {useTheme, useTypography, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
@@ -27,15 +29,11 @@ export default function ModernAccountScreen() {
     const fadeInOpacity = useSharedValue(0);
 
     useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
-            requestAnimationFrame(() =>
-                router.replace('/(tabs)/account/(auth)/login')
-            );
-        } else if (isAuthenticated) {
+        if (isAuthenticated) {
             // Fade in animation when user loads
             fadeInOpacity.value = withTiming(1, { duration: 300 });
         }
-    }, [isAuthenticated, isLoading, fadeInOpacity]);
+    }, [isAuthenticated, fadeInOpacity]);
 
     const fadeInStyle = useAnimatedStyle(() => ({
         opacity: fadeInOpacity.value,
@@ -82,12 +80,9 @@ export default function ModernAccountScreen() {
         signOutScale.value = withSpring(1);
     };
 
-    if (isLoading || !isAuthenticated) {
-        return null; // Will redirect to login
-    }
-
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: semanticColors.background }]}>
+        <ProtectedRoute redirectTo="/(tabs)/account/(auth)/login">
+            <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
             <View style={[styles.header, { marginTop: insets.top }]}>
                 <Text style={[styles.headerTitle]}>
@@ -234,7 +229,8 @@ export default function ModernAccountScreen() {
                     </View>
                 </Animated.View>
             </ScrollView>
-        </SafeAreaView>
+            </ThemedSafeAreaView>
+        </ProtectedRoute>
     );
 }
 

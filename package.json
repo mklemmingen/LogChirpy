@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@expo/config-plugins": "^10.0.2",
-    "@expo/metro-config": "~0.20.0",
     "@expo/vector-icons": "^14.0.2",
     "@infinitered/react-native-mlkit-core": "^3.1.0",
     "@infinitered/react-native-mlkit-image-labeling": "^3.1.0",

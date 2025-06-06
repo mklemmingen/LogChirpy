@@ -1,0 +1,172 @@
+const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
+
+/** @type {import('expo/metro-config').MetroConfig} */
+const config = getDefaultConfig(__dirname, {
+  // Enable CSS support for web platform
+  isCSSEnabled: true,
+});
+  
+// Windows-specific path resolution fixes
+config.resolver.platforms = ['ios', 'android', 'native', 'web'];
+
+// Enable package exports by default (Metro 0.82+ feature)
+// Will selectively disable for problematic packages below
+config.resolver.unstable_enablePackageExports = true;
+
+// Selective package exports handling for problematic packages
+const originalResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Normalize Windows paths
+  const normalizedModuleName = moduleName.replace(/\\/g, '/');
+  
+  // Disable package exports for known problematic packages
+  if (normalizedModuleName.startsWith('@firebase/') || 
+      normalizedModuleName === '@supabase/supabase-js' ||
+      normalizedModuleName.startsWith('aws-amplify')) {
+    return context.resolveRequest(
+      { ...context, unstable_enablePackageExports: false },
+      normalizedModuleName,
+      platform
+    );
+  }
+  
+  return originalResolveRequest
+      ? originalResolveRequest(context, normalizedModuleName, platform)
+      : context.resolveRequest(context, normalizedModuleName, platform);
+};
+  
+// Apply custom resolver settings
+config.resolver.assetExts.push('bin', 'json', 'tflite', 'csv', 'xml');
+config.resolver.sourceExts.push('cjs', 'mjs');
+
+// Platform-specific conditions for better cross-platform support
+config.resolver.unstable_conditionsByPlatform = {
+  web: ['browser'],
+  native: ['react-native'],
+};
+  
+// Apply custom extraNodeModules
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  'react-native-fs': require.resolve('expo-file-system'),
+};
+
+// Module aliases for cleaner imports
+config.resolver.alias = {
+  '@': path.resolve(__dirname, 'src'),
+  '@components': path.resolve(__dirname, 'components'),
+  '@services': path.resolve(__dirname, 'services'),
+  '@hooks': path.resolve(__dirname, 'hooks'),
+  '@utils': path.resolve(__dirname, 'utils'),
+  '@constants': path.resolve(__dirname, 'constants'),
+};
+
+const pathSep = path.sep === '\\' ? '\\\\' : '\\/';
+
+// Apply custom blockList
+const exclusionList = require('metro-config/src/defaults/exclusionList');
+  config.resolver.blockList = exclusionList([
+    // PRIMARY FIX: Exclude temporary files in node_modules/.bin
+    //new RegExp(`node_modules[${pathSep}]\\.bin[${pathSep}]\\..*$`),
+    //new RegExp(`node_modules[${pathSep}].*[${pathSep}]android[${pathSep}].*`),
+    /.*\.tmp$/,
+    /.*\.temp$/,
+    
+    // Exclude all directories starting with underscore
+    new RegExp(`^.*[${pathSep}]_.*$`),
+    new RegExp(`_.*[${pathSep}].*`),
+    
+    // Specific non-essential directories
+    new RegExp(`model_conversion_env[${pathSep}].*`),
+    new RegExp(`_birdNetH5toTFlite[${pathSep}].*`),
+    new RegExp(`_birdyDex_massTranslationScripts[${pathSep}].*`),
+    new RegExp(`_deprecatedComps[${pathSep}].*`),
+    new RegExp(`_model_conversion_scripts[${pathSep}].*`),
+    
+    // Build and cache directories
+    new RegExp(`android[${pathSep}]build[${pathSep}].*`),
+    new RegExp(`android[${pathSep}]\\.gradle[${pathSep}].*`),
+    new RegExp(`ios[${pathSep}]build[${pathSep}].*`),
+    new RegExp(`\\.git[${pathSep}].*`),
+    new RegExp(`\\.expo[${pathSep}].*`),
+    new RegExp(`dist[${pathSep}].*`),
+    new RegExp(`coverage[${pathSep}].*`),
+    new RegExp(`\\.next[${pathSep}].*`),
+    new RegExp(`\\.turbo[${pathSep}].*`),
+
+    // Node modules subdirectories
+    /*
+    new RegExp(`node_modules[${pathSep}].*[${pathSep}]android[${pathSep}].*`),
+    new RegExp(`node_modules[${pathSep}].*[${pathSep}]ios[${pathSep}].*`),
+    new RegExp(`node_modules[${pathSep}].*[${pathSep}]windows[${pathSep}].*`),
+    new RegExp(`node_modules[${pathSep}].*[${pathSep}]macos[${pathSep}].*`),
+    */
+
+    // File patterns to exclude
+    /.*\.log$/,
+    /.*\.lock$/,
+    /.*\.pid$/,
+    /.*\.seed$/,
+    /.*\.pid\.lock$/,
+    
+    // Test and temporary files
+    /.*\.test\.js$/,
+    /.*\.spec\.js$/,
+    new RegExp(`temp[${pathSep}].*`),
+    new RegExp(`tmp[${pathSep}].*`),
+    new RegExp(`cache[${pathSep}].*`),
+    
+    // IDE and editor files
+    new RegExp(`\\.idea[${pathSep}].*`),
+    new RegExp(`\\.vscode[${pathSep}].*`),
+    new RegExp(`\\.vs[${pathSep}].*`),
+    
+    // OS specific files
+    /\.DS_Store$/,
+    /Thumbs\.db$/,
+    /desktop\.ini$/,
+  ]);
+  
+// Apply custom server middleware
+config.server = {
+  enhanceMiddleware: (middleware) => {
+    return (req, res, next) => {
+      // Skip if req doesn't have required properties
+      if (!req || typeof req !== 'object') {
+        return next();
+      }
+      return middleware(req, res, next);
+    };
+  },
+};
+
+// Production optimizations
+if (process.env.NODE_ENV === 'production') {
+  // Enable asset hashing for better caching
+  config.transformer.assetPlugins = ['expo-asset/tools/hashAssetFiles'];
+  
+  // Stable module IDs for better caching
+  config.serializer.createModuleIdFactory = () => {
+    return (path) => {
+      return require('crypto')
+        .createHash('sha1')
+        .update(path)
+        .digest('hex')
+        .substring(0, 8);
+    };
+  };
+}
+
+// Development optimizations
+if (process.env.NODE_ENV === 'development') {
+  // Faster rebuilds with inline requires
+  config.transformer.inlineRequires = true;
+  
+  // Enable the new deferred hashing for 3x faster startup (Metro 0.82+)
+  if (config.watcher) {
+    config.watcher.unstable_lazySha1 = true;
+  }
+}
+
+module.exports = config;

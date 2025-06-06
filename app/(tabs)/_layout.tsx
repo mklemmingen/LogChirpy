@@ -99,7 +99,7 @@ function EnhancedTabIcon({
                 <ThemedIcon
                     name={iconName as any}
                     size={size}
-                    color={focused ? 'primary' : 'secondary'}
+                    color={focused ? 'primary' : 'accent'}
                 />
             </Animated.View>
 
@@ -112,7 +112,7 @@ function EnhancedTabIcon({
                         width: 4,
                         height: 4,
                         borderRadius: 2,
-                        backgroundColor: theme.colors.text.primary,
+                        backgroundColor: theme.colors.text.secondary,
                     },
                     indicatorAnimatedStyle,
                 ]}
@@ -127,31 +127,6 @@ function EnhancedTabBackground() {
 
     return (
         <>
-            {/* Blur effect */}
-            <BlurView
-                intensity={theme.colors.background.primary === '#FFFFFF' ? 100 : 80}
-                tint={theme.colors.background.primary === '#FFFFFF' ? 'light' : 'dark'}
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    bottom: 0,
-                    right: 0,
-                }}
-            />
-
-            {/* Subtle gradient overlay for depth */}
-            <ThemedView
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 1,
-                    backgroundColor: theme.colors.border.primary,
-                    opacity: 0.5,
-                }}
-            />
         </>
     );
 }
