@@ -312,7 +312,7 @@ for /f "delims=" %%f in ('dir /b "node_modules\.bin\." 2^>nul') do (
     del /f /q "node_modules\.bin\%%f" 2>nul
 )
 
-:: Start Metro with legacy expo command that works
+:: Start Metro with modern expo command
 echo [INFO] Starting Metro bundler...
 start "Metro Bundler" cmd /c "cd /d "%CD%" && call npx expo start --dev-client --clear"
 
@@ -385,17 +385,9 @@ if defined DEVICE_ID (
     echo [INFO] Targeting device: %DEVICE_ID%
 )
 
-:: Try different expo commands based on what's available
-echo [INFO] Trying npx expo run:android command...
-call npx --yes expo run:android --no-bundler %BUILD_VARIANT% %DEVICE_ARGS%
-if errorlevel 1 (
-    echo [INFO] expo not available, trying local expo...
-    call npx expo run:android %BUILD_VARIANT% %DEVICE_ARGS%
-    if errorlevel 1 (
-        echo [INFO] Expo run:android failed, using npm script fallback...
-        call npm run android
-    )
-)
+:: Use modern expo commands
+echo [INFO] Running npx expo run:android command...
+call npx expo run:android --no-bundler %BUILD_VARIANT% %DEVICE_ARGS%
 if errorlevel 1 (
     echo.
     echo [WARNING] Expo run failed, trying direct gradle build

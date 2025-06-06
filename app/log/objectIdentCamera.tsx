@@ -705,6 +705,14 @@ function ObjectIdentCameraContent() {
     const scaleY = imageDims.height ? H / imageDims.height : 1;
 
     // ——— FALLBACKS & CONTENT ———
+    if (!device) {
+        return (
+            <View style={styles.centered}>
+                <Text>{t('camera_advanced.no_camera_found')}</Text>
+            </View>
+        );
+    }
+
     if (Platform.OS === 'web') {
         return (
             <View style={styles.centered}>

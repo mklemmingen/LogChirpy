@@ -1,34 +1,63 @@
 {
   "cli": {
-    "version": ">= 16.3.3",
+    "version": ">= 16.8.0",
     "appVersionSource": "remote"
   },
   "build": {
     "development": {
-      "android": {
-        "buildType": "apk"
-      },
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://dev.api.com"
+      }
     },
     "preview": {
+      "distribution": "internal",
+      "channel": "preview",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       },
-      "distribution": "internal"
+      "ios": {
+        "simulator": false
+      }
     },
     "production": {
-      "developmentClient": false,
+      "autoSubmit": false,
+      "channel": "production",
       "android": {
-        "buildType": "apk"
+        "buildType": "aab"
       },
       "ios": {
         "simulator": false
       },
-      "autoIncrement": true
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.com"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./android-upload-key.json",
+        "track": "internal"
+      },
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "1234567890",
+        "appleTeamId": "ABCDEFGHIJ"
+      }
+    }
+  },
+  "update": {
+    "url": "https://u.expo.dev/f3cad8d2-c8a4-4696-a73f-9f57db6f7f08"
   }
 }
