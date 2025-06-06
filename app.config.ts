@@ -91,6 +91,7 @@ export default {
       ],
       "expo-sqlite",
       "expo-video",
+      "./plugins/android-resources.js",
       [
         "expo-media-library",
         {

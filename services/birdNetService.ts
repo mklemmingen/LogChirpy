@@ -1,11 +1,11 @@
-// Bird identification service with MLKit and online API fallback
-// Uses MLKit for image classification and online services for audio
+// Bird identification service using local ML models only
+// Uses FastTflite for audio classification and MLKit for image classification
 
 import * as FileSystem from 'expo-file-system';
-import NetInfo from '@react-native-community/netinfo';
 import { MLKitBirdClassifier, MLKitClassificationResult } from './mlkitBirdClassifier';
 import { fastTfliteBirdClassifier, BirdClassificationResult } from './fastTfliteBirdClassifier';
 import { AudioPreprocessingTFLite } from './audioPreprocessingTFLite';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface BirdNetPrediction {
   common_name: string;
@@ -21,27 +21,28 @@ export interface BirdNetResponse {
   audio_duration: number;
   success: boolean;
   error?: string;
-  source?: 'mlkit' | 'tflite' | 'online' | 'cache' | 'mock';
-  fallback_used?: boolean;
+  source?: 'mlkit' | 'tflite' | 'cache' | 'offline';
   cache_hit?: boolean;
 }
 
 export interface BirdNetConfig {
-  apiUrl: string;
   minConfidence?: number;
-  latitude?: number;
-  longitude?: number;
-  week?: number;
+  enableCache?: boolean;
+  cacheExpirationHours?: number;
+  maxPredictions?: number;
 }
 
 export class BirdNetService {
   private static config: BirdNetConfig = {
-    apiUrl: 'https://your-birdnet-api.com/v1/predict', // Replace with real API
     minConfidence: 0.1,
+    enableCache: true,
+    cacheExpirationHours: 24,
+    maxPredictions: 5,
   };
 
   private static mlkitClassifier: MLKitBirdClassifier | null = null;
   private static tfliteInitialized = false;
+  private static readonly CACHE_KEY_PREFIX = '@birdnet_cache:';
 
   static updateConfig(newConfig: Partial<BirdNetConfig>) {
     this.config = { ...this.config, ...newConfig };
@@ -90,13 +91,47 @@ export class BirdNetService {
     }
   }
 
-  static async checkNetworkConnection(): Promise<boolean> {
+  // Cache management methods
+  private static async getCachedResult(key: string): Promise<BirdNetResponse | null> {
+    if (!this.config.enableCache) return null;
+    
     try {
-      const networkState = await NetInfo.fetch();
-      return networkState.isConnected === true && networkState.isInternetReachable === true;
+      const cacheKey = this.CACHE_KEY_PREFIX + key;
+      const cached = await AsyncStorage.getItem(cacheKey);
+      
+      if (cached) {
+        const parsedCache = JSON.parse(cached);
+        const cacheAge = Date.now() - parsedCache.timestamp;
+        const maxAge = (this.config.cacheExpirationHours || 24) * 60 * 60 * 1000;
+        
+        if (cacheAge < maxAge) {
+          console.log('BirdNetService: Cache hit for', key);
+          return {
+            ...parsedCache.data,
+            cache_hit: true,
+          };
+        }
+      }
     } catch (error) {
-      console.error('Network check failed:', error);
-      return false;
+      console.error('Cache retrieval error:', error);
+    }
+    
+    return null;
+  }
+  
+  private static async setCachedResult(key: string, result: BirdNetResponse): Promise<void> {
+    if (!this.config.enableCache) return;
+    
+    try {
+      const cacheKey = this.CACHE_KEY_PREFIX + key;
+      const cacheData = {
+        data: result,
+        timestamp: Date.now(),
+      };
+      
+      await AsyncStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    } catch (error) {
+      console.error('Cache storage error:', error);
     }
   }
 
@@ -106,8 +141,6 @@ export class BirdNetService {
       latitude?: number;
       longitude?: number;
       minConfidence?: number;
-      forceOffline?: boolean;
-      forceOnline?: boolean;
     }
   ): Promise<BirdNetResponse> {
     try {
@@ -116,13 +149,20 @@ export class BirdNetService {
         throw new Error('Audio file not found');
       }
 
+      // Check cache first
+      const cacheKey = `audio_${fileInfo.modificationTime}_${fileInfo.size}`;
+      const cachedResult = await this.getCachedResult(cacheKey);
+      if (cachedResult) {
+        return cachedResult;
+      }
+
       // Initialize FastTflite for audio processing
       if (!this.tfliteInitialized) {
         await this.initializeFastTflite();
       }
 
       // Try FastTflite first for audio classification
-      if (this.tfliteInitialized && !options?.forceOnline) {
+      if (this.tfliteInitialized) {
         try {
           console.log('BirdNetService: Using FastTflite classification for audio');
           
@@ -142,16 +182,14 @@ export class BirdNetService {
             processedAudio.metadata.duration
           );
           
+          // Cache the result
+          await this.setCachedResult(cacheKey, response);
+          
           return response;
           
         } catch (tfliteError) {
           console.error('BirdNetService: FastTflite classification failed:', tfliteError);
-          
-          if (options?.forceOffline) {
-            throw tfliteError;
-          }
-          
-          console.log('BirdNetService: Falling back to MLKit/online classification');
+          // Continue to MLKit fallback
         }
       }
 
@@ -160,69 +198,24 @@ export class BirdNetService {
         await this.initializeMLKit();
       }
 
-      if (this.mlkitClassifier && !options?.forceOnline) {
+      if (this.mlkitClassifier) {
         try {
           console.log('BirdNetService: Using MLKit classification for audio (fallback)');
+          // Note: MLKit is primarily for images, but some implementations support audio
           const mlkitResult = await this.mlkitClassifier.classifyBirdAudio(audioUri);
+          
+          // Cache the result
+          await this.setCachedResult(cacheKey, mlkitResult);
+          
           return mlkitResult;
         } catch (mlkitError) {
           console.error('BirdNetService: MLKit classification failed:', mlkitError);
-          
-          if (options?.forceOffline) {
-            throw mlkitError;
-          }
-          
-          console.log('BirdNetService: Falling back to online classification');
         }
       }
 
-      console.log('BirdNetService: Using online classification');
+      // If all local ML fails, return error
+      throw new Error('Local bird classification failed. Please ensure ML models are properly initialized.');
       
-      const isConnected = await this.checkNetworkConnection();
-      if (!isConnected && !options?.forceOffline) {
-        throw new Error('No internet connection available for online classification');
-      }
-
-      // Mock response for now - replace with real API
-      const mockResult = await this.mockBirdNetResponse(audioUri, options);
-      mockResult.source = 'mock';
-      mockResult.fallback_used = !!this.mlkitClassifier;
-      
-      return mockResult;
-      
-      // TODO: Real API implementation:
-      /*
-      const formData = new FormData();
-      formData.append('audio', {
-        uri: audioUri,
-        type: 'audio/wav',
-        name: 'bird_audio.wav',
-      } as any);
-      
-      if (options?.latitude && options?.longitude) {
-        formData.append('lat', options.latitude.toString());
-        formData.append('lon', options.longitude.toString());
-      }
-      
-      formData.append('min_conf', (options?.minConfidence || this.config.minConfidence).toString());
-      
-      const response = await fetch(this.config.apiUrl, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      result.source = 'online';
-      result.fallback_used = !!this.offlineClassifier;
-      return result as BirdNetResponse;
-      */
     } catch (error) {
       console.error('BirdNet identification error:', error);
       throw error;
@@ -290,85 +283,24 @@ export class BirdNetService {
     metadata: any,
     audioDuration: number
   ): BirdNetResponse {
-    const predictions: BirdNetPrediction[] = results.map(result => ({
-      common_name: result.species,
-      scientific_name: result.scientificName,
-      confidence: result.confidence,
-      timestamp_start: 0,
-      timestamp_end: audioDuration,
-    }));
+    const predictions: BirdNetPrediction[] = results
+      .filter(result => result.confidence >= (this.config.minConfidence || 0.1))
+      .slice(0, this.config.maxPredictions || 5)
+      .map(result => ({
+        common_name: result.species,
+        scientific_name: result.scientificName,
+        confidence: result.confidence,
+        timestamp_start: 0,
+        timestamp_end: audioDuration,
+      }));
 
     return {
       predictions,
       processing_time: metadata.processingTime / 1000, // Convert to seconds
       audio_duration: audioDuration,
       success: predictions.length > 0,
-      source: metadata.modelSource,
-      fallback_used: false,
+      source: 'tflite',
       cache_hit: metadata.modelSource === 'cache',
-    };
-  }
-
-  // Mock API response for testing
-  private static async mockBirdNetResponse(
-    audioUri: string,
-    options?: { latitude?: number; longitude?: number; minConfidence?: number }
-  ): Promise<BirdNetResponse> {
-    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
-
-    // Mock common bird predictions
-    const mockPredictions: BirdNetPrediction[] = [
-      {
-        common_name: 'American Robin',
-        scientific_name: 'Turdus migratorius',
-        confidence: 0.85,
-        timestamp_start: 0.5,
-        timestamp_end: 3.2,
-      },
-      {
-        common_name: 'House Sparrow',
-        scientific_name: 'Passer domesticus',
-        confidence: 0.72,
-        timestamp_start: 1.8,
-        timestamp_end: 4.1,
-      },
-      {
-        common_name: 'Blue Jay',
-        scientific_name: 'Cyanocitta cristata',
-        confidence: 0.45,
-        timestamp_start: 2.3,
-        timestamp_end: 5.0,
-      },
-    ];
-
-    // Filter by minimum confidence
-    const minConf = options?.minConfidence || this.config.minConfidence || 0.1;
-    const filteredPredictions = mockPredictions.filter(p => p.confidence >= minConf);
-
-    // Simulate some randomness - sometimes return fewer results
-    const shouldReturnResults = Math.random() > 0.2; // 80% chance of success
-    
-    if (!shouldReturnResults) {
-      return {
-        predictions: [],
-        processing_time: 2.5,
-        audio_duration: 5.0,
-        success: true,
-        error: 'No bird sounds detected with sufficient confidence',
-      };
-    }
-
-    // Randomly select 1-3 predictions
-    const numResults = Math.floor(Math.random() * Math.min(3, filteredPredictions.length)) + 1;
-    const selectedPredictions = filteredPredictions
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, numResults);
-
-    return {
-      predictions: selectedPredictions,
-      processing_time: 2.5 + Math.random() * 2,
-      audio_duration: 5.0,
-      success: true,
     };
   }
 
@@ -382,25 +314,41 @@ export class BirdNetService {
       current.confidence > best.confidence ? current : best
     );
   }
+  
+  // Clear cache utility
+  static async clearCache(): Promise<void> {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const cacheKeys = keys.filter(key => key.startsWith(this.CACHE_KEY_PREFIX));
+      await AsyncStorage.multiRemove(cacheKeys);
+      console.log(`BirdNetService: Cleared ${cacheKeys.length} cached results`);
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+    }
+  }
+  
+  // Get cache statistics
+  static async getCacheStats(): Promise<{ count: number; oldestTimestamp: number | null }> {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const cacheKeys = keys.filter(key => key.startsWith(this.CACHE_KEY_PREFIX));
+      
+      let oldestTimestamp: number | null = null;
+      
+      for (const key of cacheKeys) {
+        const cached = await AsyncStorage.getItem(key);
+        if (cached) {
+          const parsedCache = JSON.parse(cached);
+          if (!oldestTimestamp || parsedCache.timestamp < oldestTimestamp) {
+            oldestTimestamp = parsedCache.timestamp;
+          }
+        }
+      }
+      
+      return { count: cacheKeys.length, oldestTimestamp };
+    } catch (error) {
+      console.error('Failed to get cache stats:', error);
+      return { count: 0, oldestTimestamp: null };
+    }
+  }
 }
-
-// Configuration helper for different deployment scenarios
-export const BirdNetConfigs = {
-  // Local development with mock data
-  development: {
-    apiUrl: 'mock://birdnet',
-    minConfidence: 0.1,
-  },
-  
-  // Self-hosted BirdNET instance
-  selfHosted: (baseUrl: string) => ({
-    apiUrl: `${baseUrl}/api/v1/predict`,
-    minConfidence: 0.15,
-  }),
-  
-  // Cornell's demo endpoint (if available)
-  cornell: {
-    apiUrl: 'https://birdnet.cornell.edu/api/predict',
-    minConfidence: 0.2,
-  },
-};
