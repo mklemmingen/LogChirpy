@@ -334,6 +334,10 @@ export default function SmartSearch() {
         router.push(`/birdex/details/${item.species_code}`);
     }, [router]);
 
+    const handleBackPress = useCallback(() => {
+        router.back();
+    }, [router]);
+
     const renderSearchResult = useCallback(({ item, index }: { item: SmartSearchResult, index: number }) => (
         <SearchResultCard
             item={item}
@@ -352,7 +356,7 @@ export default function SmartSearch() {
                 <ThemedPressable
                     variant="ghost"
                     size="sm"
-                    onPress={() => router.back()}
+                    onPress={handleBackPress}
                     style={styles.backButton}
                 >
                     <ThemedIcon name="arrow-left" size={24} color="primary" />

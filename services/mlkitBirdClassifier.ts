@@ -212,25 +212,10 @@ export class MLKitBirdClassifier {
   }
 
   public async classifyBirdAudio(audioUri: string): Promise<BirdNetResponse> {
-    console.log('Audio classification requested, falling back to online service');
-    
-    // For audio, we'll return a mock response since MLKit doesn't support audio
-    // In a real implementation, this would call the online BirdNet API
-    return {
-      predictions: [{
-        common_name: 'Audio Classification Not Available',
-        scientific_name: 'MLKit does not support audio',
-        confidence: 0.1,
-        timestamp_start: 0,
-        timestamp_end: 3,
-      }],
-      processing_time: 1000,
-      audio_duration: 3,
-      success: false,
-      source: 'mlkit',
-      fallback_used: true,
-      cache_hit: false,
-    };
+
+    // PREDICT WITH LOCAL BIRDNET TENSORFLOW SPEED PACKAGE
+
+    return null;
   }
 
   private processMlkitLabels(labels: any[]): BirdNetPrediction[] {

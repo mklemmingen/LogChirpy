@@ -6,6 +6,7 @@ export default {
     name: "LogChirpy",
     slug: "logchirpy",
     version: "1.0.0",
+    runtimeVersion: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "logchirpy",
@@ -26,10 +27,11 @@ export default {
       "**/*.csv" // include all CSVs anywhere
     ],
     android: {
-      package: "com.logchirpy.app", // Cleaner package name
+      package: "com.logchirpy.app",
       versionCode: 1,
-      compileSdkVersion: 34,
-      targetSdkVersion: 34,
+      compileSdkVersion: 35,
+      targetSdkVersion: 35,
+      minSdkVersion: 23,
       permissions: [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -41,15 +43,15 @@ export default {
       ],
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#FAFAFA" // Light neutral
+        backgroundColor: "#FAFAFA"
       },
       gradleProperties: {
         "android.useAndroidX": "true",
         "android.enableJetifier": "true",
-        "expo.useLegacyPackaging": "false"
+        "expo.useLegacyPackaging": "false",
+        "newArchEnabled": "false"
       }
     },
-    newArchEnabled: false,
     ios: {
       bundleIdentifier: "com.logchirpy.app", // Consistent with Android
       buildNumber: "1",
@@ -65,6 +67,7 @@ export default {
     platforms: ["android", "ios"],
     plugins: [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-splash-screen",
         {
@@ -103,6 +106,9 @@ export default {
     ],
     experiments: {
       typedRoutes: true
+    },
+    updates: {
+      url: "https://u.expo.dev/f3cad8d2-c8a4-4696-a73f-9f57db6f7f08"
     },
     extra: {
       EXPO_PUBLIC_FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,

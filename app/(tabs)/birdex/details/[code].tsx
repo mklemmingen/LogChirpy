@@ -331,6 +331,7 @@ export default function ModernBirdDexDetail() {
         );
     }
 
+    // Check if rec exists before processing data
     if (!rec) return null;
 
     // Get localized display name
