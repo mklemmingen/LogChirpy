@@ -190,7 +190,7 @@ export default function ObjectIdentCameraWrapper() {
         const timer = setTimeout(() => setIsLoading(false), 1000);
         requestPermission();     // side-effect only here
         return () => clearTimeout(timer);
-    }, []);
+    }, [requestPermission]);
 
     // 2) if we’re still loading resources, show loader
     if (isLoading || !device || !hasPermission) {
@@ -210,22 +210,8 @@ export default function ObjectIdentCameraWrapper() {
 
 
 function ObjectIdentCameraContent() {
-
     const device = useCameraDevice('back');
-
-    // i18n (internationalization)
     const { t } = useTranslation();
-
-    // Add this check
-    if (!device) {
-        return (
-            <View style={styles.centered}>
-                <Text>{t('camera_advanced.no_camera_found')}</Text>
-            </View>
-        );
-    }
-    
-    // Theme setup
     const raw = useColorScheme()
     const colorScheme: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light'
     const currentTheme = theme[colorScheme]
