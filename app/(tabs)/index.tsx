@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dimensions, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ThemedIcon } from '@/components/ThemedIcon';
@@ -19,6 +19,7 @@ import BirdAnimation from '@/components/BirdAnimationJS';
 import { ModernCard } from '@/components/ModernCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 import { useColors, useTypography, useBorderRadius } from '@/hooks/useThemeColor';
 
 const { width, height } = Dimensions.get('window');
@@ -157,7 +158,7 @@ export default function HomeScreen() {
       {/* Background animations */}
       <BirdAnimation numberOfBirds={6} />
 
-      <SafeAreaView style={styles.safeArea}>
+      <ThemedSafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -186,7 +187,7 @@ export default function HomeScreen() {
             {features.map((feature, index) => renderFeatureCard(feature, index))}
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </ThemedSafeAreaView>
     </ThemedView>
   );
 }
@@ -197,6 +198,7 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,

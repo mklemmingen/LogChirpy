@@ -3,7 +3,6 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
-    SafeAreaView,
     StyleSheet,
     TextInput,
     View,
@@ -27,6 +26,7 @@ import * as Haptics from 'expo-haptics';
 import { ThemedView, Card } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 import { Button } from '@/components/Button';
 
 // Theme hooks
@@ -588,23 +588,23 @@ export default function ModernBirdDexIndex() {
     // Error state
     if (hasError) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <ThemedSafeAreaView style={styles.container}>
                 <ErrorState error={error} onRetry={retry} />
-            </SafeAreaView>
+            </ThemedSafeAreaView>
         );
     }
 
     // Loading state
     if (isLoading || !isReady) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <ThemedSafeAreaView style={styles.container}>
                 <LoadingState />
-            </SafeAreaView>
+            </ThemedSafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
             <ThemedView style={styles.header}>
                 <ThemedText variant="h2" style={styles.headerTitle}>
@@ -659,7 +659,7 @@ export default function ModernBirdDexIndex() {
                     </ThemedView>
                 }
             />
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
@@ -667,7 +667,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         overflow: 'hidden',
-        paddingTop: 40,
     },
     // Header
     header: {

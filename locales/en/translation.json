@@ -1,6 +1,6 @@
 {
-  "welcome": "Welcome to LogChirpy",
-  "start_logging": "Discover, log, and explore the world of birds",
+  "welcome": "Welcome",
+  "start_logging": "Discover, log, and explore",
   "tabs": {
     "home": "Home",
     "birdex": "BirdDex",
@@ -10,11 +10,11 @@
     "settings": "Settings"
   },
   "archive": {
-    "title":            "My Bird Sightings",
+    "title":            "Bird Sightings",
     "entry_name":       "Name",
     "entry_date":       "Date",
     "entry_picture":    "Picture",
-    "search_placeholder": "Search by bird or date",
+    "search_placeholder": "Search by bird/date",
     "sort_newest":        "Newest",
     "sort_oldest":        "Oldest",
     "sync_now":           "Sync now",
@@ -189,7 +189,7 @@
     "not_found":   "No spotting found."
   },
   "buttons": {
-    "objectCamera" : "Detection & Classification Camera",
+    "objectCamera" : "Classification Camera",
     "video": "Record Video",
     "photo": "Take Photo",
     "audio": "Record Audio",
@@ -394,10 +394,10 @@
     "settings_description": "App settings"
   },
   "home": {
-    "camera_description": "Real-time AI bird detection and classification",
-    "photo_description": "Capture and identify birds from photos",
-    "audio_description": "Record and analyze bird songs",
-    "manual_description": "Manual entry for field observations"
+    "camera_description": "Real-time classification",
+    "photo_description": "Log and identify from photos",
+    "audio_description": "Record and analyze songs",
+    "manual_description": "Enter field observations here"
   },
   "app_errors": {
     "password_reset_error": "Unable to reset password",

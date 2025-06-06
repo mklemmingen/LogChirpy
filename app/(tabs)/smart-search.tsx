@@ -1,10 +1,9 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, FlatList, Pressable, SafeAreaView, StyleSheet, TextInput, View} from 'react-native';
+import {ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import {BlurView} from 'expo-blur';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {
     FadeInDown,
     FadeOutUp,
@@ -18,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 import {type BirdDexRecord, searchBirdsByName} from '@/services/databaseBirDex';
 
@@ -186,7 +186,6 @@ export default function SmartSearch() {
     const colors = useColors();
     const typography = useTypography();
     const theme = useTheme();
-    const insets = useSafeAreaInsets();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [results, setResults] = useState<SmartSearchResult[]>([]);
@@ -347,11 +346,11 @@ export default function SmartSearch() {
     ), [handleResultPress]);
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
             <Animated.View
                 entering={FadeInDown.springify()}
-                style={[styles.header, { marginTop: insets.top }]}
+                style={styles.header}
             >
                 <ThemedPressable
                     variant="ghost"
@@ -469,7 +468,7 @@ export default function SmartSearch() {
                     }
                 />
             )}
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
