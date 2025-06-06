@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "npx expo start --dev-client",
+    "start": "npx expo start --dev-client --clear",
     "start:go": "npx expo start --go",
     "start:tunnel": "npx expo start --tunnel",
     "prebuild": "npx expo prebuild",

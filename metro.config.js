@@ -1,4 +1,4 @@
-const { getDefaultConfig } = require('@expo/metro-config');
+const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
 // Get the default Expo config (includes React Native defaults)
@@ -12,18 +12,12 @@ module.exports = (() => {
   // Windows-specific path resolution fixes
   config.resolver.platforms = ['ios', 'android', 'native', 'web'];
   
-  // Disable new exports resolution that causes issues with expo-router
+  // Disable package exports to avoid Android build issues with legacy packages
   config.resolver.unstable_enablePackageExports = false;
-  config.resolver.unstable_conditionNames = ['require', 'import'];
 
   // Windows path normalization
   const originalResolveRequest = config.resolver.resolveRequest;
   config.resolver.resolveRequest = (context, moduleName, platform) => {
-    // Fix the expo-router entry module resolution
-    if (moduleName === './node_modules/expo-router/entry') {
-      moduleName = 'expo-router/entry';
-    }
-
     // Normalize Windows paths
     const normalizedModuleName = moduleName.replace(/\\/g, '/');
 
