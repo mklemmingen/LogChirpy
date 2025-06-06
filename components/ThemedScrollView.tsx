@@ -18,7 +18,7 @@ export const ThemedScrollView = React.forwardRef<ScrollView, ThemedScrollViewPro
 
     // If refreshControl is provided and it's a RefreshControl, apply theme colors
     const themedRefreshControl = refreshControl && React.isValidElement(refreshControl) 
-      ? React.cloneElement(refreshControl as React.ReactElement, {
+      ? React.cloneElement(refreshControl, {
           tintColor: theme.colors.text.secondary,
           colors: [theme.colors.text.primary], // Android
         })

@@ -77,7 +77,7 @@ export function ThemedSnackbar({
     const gestureOpacity = useSharedValue(1);
 
     // Timer ref for auto-dismiss
-    const timeoutRef = useRef<NodeJS.Timeout>();
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Get variant-specific styling
     const getVariantStyle = () => {

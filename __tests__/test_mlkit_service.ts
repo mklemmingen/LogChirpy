@@ -92,7 +92,7 @@ async function testBirdNetServiceIntegration() {
         console.log('✅ Audio identification completed!');
         console.log(`   - Success: ${audioResult.success}`);
         console.log(`   - Source: ${audioResult.source}`);
-        console.log(`   - Fallback used: ${audioResult.fallback_used}`);
+        console.log(`   - Cache hit: ${audioResult.cache_hit}`);
         console.log(`   - Audio duration: ${audioResult.audio_duration}s`);
         
         return { imageResult, audioResult };
