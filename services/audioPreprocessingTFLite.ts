@@ -5,7 +5,7 @@
  * This implementation processes audio to match the exact input requirements of the BirdNET model.
  */
 
-import { Audio } from 'expo-av';
+import { AudioDecoder } from './audioDecoder';
 
 export interface AudioPreprocessingConfig {
   sampleRate: number;        // Target sample rate (48kHz for BirdNET)
@@ -89,46 +89,16 @@ export class AudioPreprocessingTFLite {
    */
   private static async loadAudioFile(audioUri: string): Promise<{ data: Float32Array; sampleRate: number }> {
     try {
-      // For now, we'll use a simplified approach with expo-av
-      // In a production app, you might want to use a more sophisticated audio library
+      console.log('Loading audio file with AudioDecoder...');
       
-      console.log('Loading audio file...');
+      // Use the new AudioDecoder for proper audio decoding
+      const audioBuffer = await AudioDecoder.decodeAudioFile(audioUri);
       
-      // Create a sound object to get basic info
-      const { sound } = await Audio.Sound.createAsync({ uri: audioUri });
-      
-      // Get status to determine duration
-      const status = await sound.getStatusAsync();
-      
-      if (!status.isLoaded) {
-        throw new Error('Failed to load audio file');
-      }
-      
-      // For demo purposes, generate mock audio data based on file
-      // In a real implementation, you'd use a native module to decode audio
-      const duration = (status.durationMillis || 3000) / 1000;
-      const sampleCount = Math.floor(duration * this.config.sampleRate);
-      
-      // Generate realistic mock audio data (replace with actual audio decoding)
-      const audioData = new Float32Array(sampleCount);
-      for (let i = 0; i < sampleCount; i++) {
-        // Generate bird-like audio patterns (multiple frequency components)
-        const t = i / this.config.sampleRate;
-        audioData[i] = 
-          0.3 * Math.sin(2 * Math.PI * 2000 * t) +  // 2kHz component
-          0.2 * Math.sin(2 * Math.PI * 4000 * t) +  // 4kHz component
-          0.1 * Math.sin(2 * Math.PI * 6000 * t) +  // 6kHz component
-          0.05 * (Math.random() - 0.5);            // Noise
-      }
-      
-      // Cleanup
-      await sound.unloadAsync();
-      
-      console.log(`Audio loaded: ${sampleCount} samples at ${this.config.sampleRate}Hz`);
+      console.log(`Audio loaded: ${audioBuffer.data.length} samples at ${audioBuffer.sampleRate}Hz`);
       
       return {
-        data: audioData,
-        sampleRate: this.config.sampleRate,
+        data: audioBuffer.data,
+        sampleRate: audioBuffer.sampleRate,
       };
       
     } catch (error) {

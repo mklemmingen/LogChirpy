@@ -146,23 +146,12 @@ if "%SKIP_DEPS%"=="1" (
     )
 )
 
-:: Check and set build commands for dev client
-echo [INFO] Detecting build environment (dev client support)...
-
-:: Check if expo package exists for expo commands
-if exist "node_modules\expo\package.json" (
-    echo [INFO] Expo package found - using Expo CLI for dev client
-    set "EXPO_CMD=npx expo"
-    set "METRO_CMD=npx expo start --dev-client"
-    set "BUILD_CMD=npx expo run:android --no-bundler"
-) else (
-    echo [INFO] No Expo package - using React Native CLI
-    set "EXPO_CMD=npx react-native"
-    set "METRO_CMD=npx react-native start"
-    set "BUILD_CMD=npx react-native run-android"
-)
-echo [INFO] Build command set to: %BUILD_CMD%
-echo [INFO] Metro command set to: %METRO_CMD%
+:: Use working legacy expo commands (like the old script)
+echo [INFO] Using legacy expo commands that actually work...
+echo [INFO] Metro: expo start --dev-client --clear
+echo [INFO] Android build: gradlew.bat assembleDebug + adb install
+echo [INFO] Prebuild: expo prebuild --clean --no-install (with custom plugins)
+echo [INFO] Custom Android plugin: Adds missing Fullscreen style for expo-video
 
 :: === Step 4: Kill existing processes ===
 echo.
@@ -219,20 +208,12 @@ echo.
 echo [STEP 6/12] Running expo prebuild...
 echo --------------------------------------------------------
 
-:: Check if android already exists and is recent
-if exist "android\gradlew.bat" (
-    echo [INFO] Android folder already exists, skipping prebuild
-    echo [SKIPPED] Using existing Android configuration
-    goto :PREBUILD_DONE
-)
+:: Always run prebuild to ensure latest config (including custom plugins)
+echo [INFO] Running prebuild to ensure Android config is up to date...
 
-:: Run prebuild using the configured Expo command (skip if using React Native CLI)
-if "%EXPO_CMD%"=="npx expo" (
-    call %EXPO_CMD% prebuild --clean
-) else (
-    echo [INFO] Skipping prebuild - using React Native CLI workflow
-    set PREBUILD_EXIT=0
-)
+:: Use legacy expo that actually works
+echo [INFO] Running expo prebuild (legacy)...
+call npx expo prebuild --clean --no-install
 set PREBUILD_EXIT=%ERRORLEVEL%
 goto :PREBUILD_DONE
 
@@ -331,14 +312,14 @@ for /f "delims=" %%f in ('dir /b "node_modules\.bin\." 2^>nul') do (
     del /f /q "node_modules\.bin\%%f" 2>nul
 )
 
-:: Start Metro with proper environment
+:: Start Metro with legacy expo command that works
 echo [INFO] Starting Metro bundler...
-start "Metro Bundler" cmd /c "cd /d "%CD%" && call npm run start -- --clear"
+start "Metro Bundler" cmd /c "cd /d "%CD%" && call npx expo start --dev-client --clear"
 
-:: Wait longer for Metro to initialize
+:: Wait for Metro to initialize
 echo.
 echo Waiting for Metro bundler to start...
-timeout /t 12 >nul
+timeout /t 8 >nul
 
 :: Check if Metro is responding
 curl -s http://localhost:8081/status 2>nul | findstr "packager-status:running" >nul
@@ -404,8 +385,17 @@ if defined DEVICE_ID (
     echo [INFO] Targeting device: %DEVICE_ID%
 )
 
-:: Try build command first (either expo or react-native)
-call %BUILD_CMD% %BUILD_VARIANT% %DEVICE_ARGS%
+:: Try different expo commands based on what's available
+echo [INFO] Trying npx expo run:android command...
+call npx --yes expo run:android --no-bundler %BUILD_VARIANT% %DEVICE_ARGS%
+if errorlevel 1 (
+    echo [INFO] expo not available, trying local expo...
+    call npx expo run:android %BUILD_VARIANT% %DEVICE_ARGS%
+    if errorlevel 1 (
+        echo [INFO] Expo run:android failed, using npm script fallback...
+        call npm run android
+    )
+)
 if errorlevel 1 (
     echo.
     echo [WARNING] Expo run failed, trying direct gradle build
