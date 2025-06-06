@@ -27,7 +27,7 @@ export interface ClassificationCache {
 
 export interface MLKitClassificationResult {
   predictions: BirdNetPrediction[];
-  source: 'mlkit' | 'online' | 'cache';
+  source: 'mlkit' | 'cache' | 'offline';
   processingTime: number;
   fallbackUsed: boolean;
   cacheHit: boolean;
@@ -212,10 +212,16 @@ export class MLKitBirdClassifier {
   }
 
   public async classifyBirdAudio(audioUri: string): Promise<BirdNetResponse> {
-
-    // PREDICT WITH LOCAL BIRDNET TENSORFLOW SPEED PACKAGE
-
-    return null;
+    // Audio classification is not supported by MLKit - return appropriate response
+    return {
+      predictions: [],
+      processing_time: 0,
+      audio_duration: 0,
+      success: false,
+      error: 'Audio classification not supported by MLKit',
+      source: 'mlkit',
+      cache_hit: false,
+    };
   }
 
   private processMlkitLabels(labels: any[]): BirdNetPrediction[] {

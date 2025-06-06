@@ -371,7 +371,7 @@ export default function AudioScreen() {
 
     // Refs
     const recordingRef = useRef<Audio.Recording | null>(null);
-    const durationInterval = useRef<NodeJS.Timeout | null>(null);
+    const durationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Initialize permissions
     useEffect(() => {

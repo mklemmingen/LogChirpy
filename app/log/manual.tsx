@@ -356,13 +356,6 @@ export default function EnhancedManual() {
         setIsIdentifyingBird(true);
         
         try {
-            // Check network connectivity first
-            const isConnected = await BirdNetService.checkNetworkConnection();
-            if (!isConnected) {
-                showError(t('birdnet.no_internet_error', 'No internet connection available'));
-                return;
-            }
-
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             
             const response = await BirdNetService.identifyBirdFromAudio(

@@ -95,7 +95,7 @@ describe('User Story Tests', () => {
         (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockOfflineResult);
 
         const photoUri = 'file:///path/to/photo.jpg';
-        const result = await BirdNetService.identifyBirdFromAudio(photoUri, { forceOffline: true });
+        const result = await BirdNetService.identifyBirdFromAudio(photoUri);
 
         expect(result.source).toBe('tflite');
         expect(result.success).toBe(true);
@@ -461,12 +461,10 @@ describe('User Story Tests', () => {
 
         // Execute offline workflow
         const result = await BirdNetService.identifyBirdFromAudio(
-          'file:///photo.jpg', 
-          { forceOffline: true }
+          'file:///photo.jpg'
         );
 
         expect(result.source).toBe('tflite');
-        expect(result.fallback_used).toBe(false);
 
         insertBirdSpotting({
           imageUri: '',

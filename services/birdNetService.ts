@@ -245,7 +245,6 @@ export class BirdNetService {
             audio_duration: 0, // Not applicable for images
             success: mlkitResult.predictions.length > 0,
             source: mlkitResult.source,
-            fallback_used: mlkitResult.fallbackUsed,
             cache_hit: mlkitResult.cacheHit,
           };
         } catch (mlkitError) {
@@ -272,7 +271,6 @@ export class BirdNetService {
       audio_duration: isAudio ? 3.0 : 0, // Default audio duration or 0 for images
       success: true,
       source: mlkitResult.source,
-      fallback_used: mlkitResult.fallbackUsed,
       cache_hit: mlkitResult.cacheHit,
     };
   }

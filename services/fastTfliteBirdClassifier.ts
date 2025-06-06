@@ -5,8 +5,9 @@
  * Provides offline-first bird identification with intelligent fallback strategies.
  */
 
-import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
+import { loadTensorflowModel, TensorflowModel, TensorflowModelDelegate } from 'react-native-fast-tflite';
 import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
 
 export interface BirdClassificationResult {
   species: string;
@@ -46,7 +47,8 @@ interface FastTfliteConfig {
   enableCaching: boolean;
   cacheExpiryMs: number;
   maxCacheSize: number;
-  useGpuDelegate: boolean;
+  preferredDelegate: TensorflowModelDelegate;
+  fallbackDelegate: TensorflowModelDelegate;
 }
 
 class FastTfliteBirdClassifierService {
@@ -72,12 +74,13 @@ class FastTfliteBirdClassifierService {
       enableCaching: true,
       cacheExpiryMs: 24 * 60 * 60 * 1000, // 24 hours
       maxCacheSize: 100,
-      useGpuDelegate: false
+      preferredDelegate: Platform.OS === 'android' ? 'android-gpu' : 'core-ml',
+      fallbackDelegate: 'default'
     };
   }
 
   /**
-   * Initialize the TensorFlow Lite model
+   * Initialize the TensorFlow Lite model with GPU delegate fallback
    */
   async initialize(): Promise<boolean> {
     try {
@@ -86,8 +89,12 @@ class FastTfliteBirdClassifierService {
       // Load labels first
       await this.loadLabels();
       
-      // Load TensorFlow Lite model  
-      this.model = await loadTensorflowModel(this.config.modelPath);
+      // Try loading model with preferred delegate first
+      this.model = await this.loadModelWithFallback();
+      
+      if (!this.model) {
+        throw new Error('Failed to load model with any delegate');
+      }
       
       // Get model size for metrics
       const modelUri = this.config.modelPath;
@@ -106,7 +113,7 @@ class FastTfliteBirdClassifierService {
       console.log('FastTflite model loaded successfully', {
         labelCount: this.labels.length,
         modelSize: this.performanceMetrics.modelSize,
-        gpuDelegate: this.config.useGpuDelegate
+        delegate: this.config.preferredDelegate
       });
 
       return true;
@@ -114,6 +121,32 @@ class FastTfliteBirdClassifierService {
       console.error('Failed to initialize FastTflite model:', error);
       this.modelLoaded = false;
       return false;
+    }
+  }
+
+  /**
+   * Load model with delegate fallback strategy
+   */
+  private async loadModelWithFallback(): Promise<TensorflowModel | null> {
+    try {
+      // Try preferred delegate first (GPU acceleration)
+      console.log(`Attempting to load model with ${this.config.preferredDelegate} delegate...`);
+      const model = await loadTensorflowModel(this.config.modelPath, this.config.preferredDelegate);
+      console.log(`Model loaded successfully with ${this.config.preferredDelegate} delegate`);
+      return model;
+    } catch (preferredError) {
+      console.warn(`Failed to load model with ${this.config.preferredDelegate} delegate:`, preferredError);
+      
+      try {
+        // Fallback to CPU delegate
+        console.log(`Falling back to ${this.config.fallbackDelegate} delegate...`);
+        const model = await loadTensorflowModel(this.config.modelPath, this.config.fallbackDelegate);
+        console.log(`Model loaded successfully with ${this.config.fallbackDelegate} delegate`);
+        return model;
+      } catch (fallbackError) {
+        console.error(`Failed to load model with ${this.config.fallbackDelegate} delegate:`, fallbackError);
+        return null;
+      }
     }
   }
 
@@ -170,8 +203,8 @@ class FastTfliteBirdClassifierService {
         this.updateCacheHitRate(false);
       }
 
-      // Run inference
-      const outputs = await this.model.run([spectrogramData]);
+      // Run inference (use synchronous for better performance)
+      const outputs = this.model.runSync([spectrogramData]);
       const predictions = outputs[0] as Float32Array;
 
       // Process results

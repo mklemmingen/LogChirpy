@@ -216,7 +216,7 @@ export default function VideoScreen() {
 
   // Refs
   const cameraRef = useRef<Camera>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Device
   const device = useCameraDevice(cameraPosition);

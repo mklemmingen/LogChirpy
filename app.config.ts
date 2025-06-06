@@ -105,6 +105,15 @@ export default {
           "savePhotosPermission": "Allow LogChirpy to save bird photos to your gallery",
           "isAccessMediaLocationEnabled": true
         }
+      ],
+      [
+        "react-native-fast-tflite",
+        {
+          "enableAndroidGpuLibraries": [
+            "libOpenCL-pixel.so",
+            "libGLES_mali.so"
+          ]
+        }
       ]
     ],
     experiments: {

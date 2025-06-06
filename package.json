@@ -9,7 +9,6 @@
     "prebuild": "npx expo prebuild",
     "prebuild:clean": "npx expo prebuild --clean",
     "test": "jest --watchAll",
-    "lint": "npx eslint .",
     "typecheck": "npx tsc --noEmit",
     "android": "npx expo run:android",
     "android:device": "npx expo run:android --device",
@@ -136,5 +135,9 @@
       }
     }
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "ajv": "^8.12.0",
+    "ajv-keywords": "^5.1.0"
+  }
 }
