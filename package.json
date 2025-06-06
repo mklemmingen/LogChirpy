@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
-    "dev:android": "cmd /c dev-android.bat"
+    "metro": "expo start --dev-client --clear"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
