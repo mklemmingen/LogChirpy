@@ -48,6 +48,7 @@
     "entry_id": "Entry ID",
     "created": "Created",
     "has_media": "Media Types",
+    "gallery": "Gallery",
     "play_audio": "Play Audio",
     "share_message": "I spotted a {{bird}} on {{date}} at {{location}} using LogChirpy!",
     "share_title": "Bird Spotting",
@@ -59,6 +60,26 @@
     "audio_play_failed": "Failed to play audio",
     "load_detail_failed": "Failed to load spotting details",
     "location_unknown": "Location not recorded"
+  },
+  "gallery": {
+    "title": "Photo Gallery",
+    "subtitle": "{{count}} photos stored locally",
+    "loading": "Loading photos...",
+    "no_photos": "No Photos Found",
+    "no_photos_message": "Take photos with the object detection camera to see them here",
+    "save_to_gallery": "Save to Gallery",
+    "save_success": "Photos Saved",
+    "saved_count": "{{count}} photo(s) saved to your gallery",
+    "save_failed": "Save Failed", 
+    "no_photos_saved": "No photos could be saved",
+    "delete_confirm": "Delete Photos",
+    "delete_message": "Are you sure you want to delete {{count}} photo(s)? This action cannot be undone.",
+    "delete_failed": "Failed to delete photos",
+    "share_title": "LogChirpy Photos",
+    "permission_denied": "Permission Denied",
+    "permission_message": "We need permission to save photos to your gallery",
+    "error": "Error",
+    "load_failed": "Failed to load photos from storage"
   },
   "birdnet": {
     "identify_button": "Identify Bird from Audio",
@@ -200,7 +221,9 @@
     "save": "Save",
     "confirm": "Confirm",
     "grant_permission": "Grant Permission",
-    "close": "Close"
+    "close": "Close",
+    "delete": "Delete",
+    "share": "Share"
   },
   "auth": {
     "login_title": "Welcome Back",

@@ -438,11 +438,11 @@ export default function ModernSignupScreen() {
                                     style={styles.signupButton}
                                 >
                                     {isLoading ? (
-                                        <ThemedIcon name="loader" size={20} color="primary" />
+                                        <ThemedIcon name="loader" size={20} style={{ color: semanticColors.background }} />
                                     ) : (
-                                        <ThemedIcon name="user-plus" size={20} color="primary" />
+                                        <ThemedIcon name="user-plus" size={20} style={{ color: semanticColors.background }} />
                                     )}
-                                    <ThemedText variant="labelLarge" color="primary">
+                                    <ThemedText variant="labelLarge" style={{ color: semanticColors.background }}>
                                         {isLoading ? 'Creating Account...' : t('auth.signup')}
                                     </ThemedText>
                                 </ThemedPressable>

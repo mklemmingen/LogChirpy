@@ -63,31 +63,6 @@ interface ModernTextInputProps {
 }
 
 // Helper Components
-function LoginBirdAnimation() {
-    const semanticColors = useSemanticColors();
-    const floatAnim = useSharedValue(0);
-
-    React.useEffect(() => {
-        floatAnim.value = withSequence(
-            withTiming(1, { duration: 2000 }),
-            withSpring(0, { damping: 15, stiffness: 300 })
-        );
-    }, []);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-        transform: [
-            { translateY: interpolate(floatAnim.value, [0, 1], [0, -12]) },
-            { rotate: `${interpolate(floatAnim.value, [0, 1], [0, 5])}deg` }
-        ],
-        opacity: interpolate(floatAnim.value, [0, 1], [0.6, 1]),
-    }));
-
-    return (
-        <Animated.View style={[styles.floatingBird, animatedStyle]}>
-            <ThemedIcon name="feather" size={24} color="accent" />
-        </Animated.View>
-    );
-}
 
 function ModernTextInput({
                              label,
@@ -359,7 +334,6 @@ export default function ModernLoginScreen() {
                     styles.backgroundCircle,
                     { backgroundColor: variants.primary.light }
                 ]} />
-                <LoginBirdAnimation />
             </View>
 
             <KeyboardAvoidingView
@@ -452,12 +426,12 @@ export default function ModernLoginScreen() {
                                             <ThemedIcon
                                                 name="log-in"
                                                 size={20}
-                                                color="primary"
+                                                style={{ color: semanticColors.background }}
                                             />
                                         )}
                                         <ThemedText
                                             variant="labelLarge"
-                                            color="primary"
+                                            style={{ color: semanticColors.background }}
                                         >
                                             {isLoading ? 'Signing In...' : t('auth.signin')}
                                         </ThemedText>
@@ -520,11 +494,6 @@ const styles = StyleSheet.create({
         borderRadius: width * 0.75,
         opacity: 0.05,
         position: 'absolute',
-    },
-    floatingBird: {
-        position: 'absolute',
-        top: height * 0.15,
-        right: width * 0.1,
     },
 
     // Header

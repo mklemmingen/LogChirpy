@@ -272,26 +272,26 @@ export const animations = {
 export const buttonStyles = {
   primary: (isDark: boolean) => ({
     backgroundColor: isDark ? '#FFFFFF' : '#000000',
-    color: isDark ? '#000000' : '#FFFFFF',
+    textColor: isDark ? '#000000' : '#FFFFFF',
     borderColor: 'transparent',
     borderWidth: 0,
   }),
   secondary: (isDark: boolean) => ({
     backgroundColor: 'transparent',
+    textColor: isDark ? '#FFFFFF' : '#000000',
     borderWidth: 1,
     borderColor: isDark ? '#FFFFFF' : '#000000',
-    color: isDark ? '#FFFFFF' : '#000000',
   }),
   ghost: (isDark: boolean) => ({
     backgroundColor: 'transparent',
-    color: isDark ? '#FFFFFF' : '#000000',
+    textColor: isDark ? '#FFFFFF' : '#000000',
     borderColor: 'transparent',
     borderWidth: 0,
   }),
   // New accent button style for CTAs
   accent: (isDark: boolean) => ({
     backgroundColor: isDark ? '#3B82F6' : '#2563EB',
-    color: '#FFFFFF',
+    textColor: '#FFFFFF',
     borderColor: 'transparent',
     borderWidth: 0,
   }),

@@ -55,6 +55,15 @@ const MODELS_OBJECT: ObjectDetectionConfig = {
             maxPerObjectLabelCount: 1
         }
     },
+    efficientNetlite0int8: {
+        model: require('../assets/models/efficientnet-lite0-int8.tflite'),
+        options: {
+            shouldEnableMultipleObjects: true,
+            shouldEnableClassification: true,
+            classificationConfidenceThreshold: 0.3,
+            maxPerObjectLabelCount: 3
+        }
+    },
 };
 
 const MODELS_CLASS: ImageLabelingConfig = {
@@ -103,7 +112,15 @@ function LoadingAnimation() {
             -1,
             true
         );
-    }, []);
+
+        // Cleanup animations on unmount
+        return () => {
+            'worklet';
+            rotation.value = 0;
+            scale.value = 1;
+            opacity.value = 0.7;
+        };
+    }, [rotation, scale, opacity]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [
@@ -162,7 +179,14 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
             fadeAnim.value = withTiming(1, { duration: theme.motion.duration.normal });
             slideAnim.value = withTiming(0, { duration: theme.motion.duration.normal });
         }
-    }, [isReady]);
+
+        // Cleanup animations on unmount
+        return () => {
+            'worklet';
+            fadeAnim.value = 0;
+            slideAnim.value = 30;
+        };
+    }, [isReady, fadeAnim, slideAnim, theme.motion.duration.normal, onReady]);
 
     const containerStyle = useAnimatedStyle(() => ({
         opacity: fadeAnim.value,
@@ -421,9 +445,12 @@ export default function EnhancedRootLayout() {
     const [retryCount, setRetryCount] = useState(0);
 
     // ML Models setup (same as before)
+    console.log('[ML Models] Initializing image labeling models...');
     const models_class = useImageLabelingModels(MODELS_CLASS);
     const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
+    console.log('[ML Models] Image labeling models initialized:', !!models_class);
 
+    console.log('[ML Models] Initializing object detection models...');
     const models = useObjectDetectionModels<typeof MODELS_OBJECT>(useMemo(() => ({
         assets: MODELS_OBJECT,
         loadDefaultModel: true,
@@ -434,6 +461,7 @@ export default function EnhancedRootLayout() {
         },
     }), []));
     const { ObjectDetectionProvider } = useObjectDetectionProvider(models);
+    console.log('[ML Models] Object detection models initialized:', !!models);
 
     // Initialize local database
     useEffect(() => {
