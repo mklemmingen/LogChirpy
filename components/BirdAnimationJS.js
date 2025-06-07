@@ -66,10 +66,18 @@ const BirdAnimation = ({ numberOfBirds = 5 }) => {
             return () => {
                 console.log("[BirdAnimation] Screen unfocused, stopping animations");
                 isScreenFocused.current = false;
-                // Pause animations when screen is unfocused
+                // Stop all animations when screen is unfocused
                 animationsRef.current.forEach(anim => {
-                    if (anim) anim.stop();
+                    if (anim) {
+                        anim.stop();
+                        anim.reset();
+                    }
                 });
+                // Clear frame intervals
+                frameIntervalsRef.current.forEach(interval => {
+                    if (interval) clearInterval(interval);
+                });
+                frameIntervalsRef.current = [];
             };
         }, [moveBird]) // Include moveBird dependency
     );
@@ -158,10 +166,23 @@ const BirdAnimation = ({ numberOfBirds = 5 }) => {
         return () => {
             console.log("[BirdAnimation] Cleaning up birds effect");
             clearTimeout(animationStartTimer);
-            // Clean up animations
+            isComponentMounted.current = false;
+            isScreenFocused.current = false;
+            
+            // Clean up all animations
             animationsRef.current.forEach(anim => {
-                if (anim) anim.stop();
+                if (anim) {
+                    anim.stop();
+                    anim.reset();
+                }
             });
+            animationsRef.current = [];
+            
+            // Clean up frame intervals
+            frameIntervalsRef.current.forEach(interval => {
+                if (interval) clearInterval(interval);
+            });
+            frameIntervalsRef.current = [];
         };
     }, [numberOfBirds, moveBird]); // Added moveBird as dependency since it's used in the effect
 
@@ -233,8 +254,7 @@ const BirdAnimation = ({ numberOfBirds = 5 }) => {
                         ]}
                     >
                         <View style={styles.frame}>
-                            <Animated.Image
-                                source={bird.sprite}
+                            <View
                                 style={{
                                     width: 64,
                                     height: 64,
@@ -244,8 +264,16 @@ const BirdAnimation = ({ numberOfBirds = 5 }) => {
                                         { scaleX: -1 },
                                     ],
                                 }}
-                                resizeMode="cover"
-                            />
+                            >
+                                <Animated.Image
+                                    source={bird.sprite}
+                                    style={{
+                                        width: 64,
+                                        height: 64,
+                                    }}
+                                    resizeMode="cover"
+                                />
+                            </View>
                         </View>
                     </Animated.View>
                 </TouchableWithoutFeedback>

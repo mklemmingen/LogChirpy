@@ -40,6 +40,8 @@ import {
     useColorVariants,
     useTheme
 } from '@/hooks/useThemeColor';
+import { useUnifiedColors } from '@/hooks/useUnifiedColors';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 
 // Services
 import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
@@ -79,9 +81,11 @@ function BirdCard({
     index: number;
     onPress: () => void;
 }) {
-    const colors = useColors();
+    const colors = useUnifiedColors();
     const typography = useTypography();
-    const borderRadius = useBorderRadius();
+    const dimensions = useResponsiveDimensions();
+    
+    const styles = createBirdCardStyles(dimensions);
 
     return (
         <Animated.View
@@ -93,7 +97,7 @@ function BirdCard({
                 onPress={onPress}
                 style={styles.birdCard}
             >
-                <Card style={[styles.birdCardInner, bird.logged && { borderColor: colors.primary, borderWidth: 2 }]}>
+                <Card style={[styles.birdCardInner, bird.logged && { borderColor: colors.interactive.primary, borderWidth: 2 }]}>
                 <View style={styles.cardContent}>
                     {/* Header Row */}
                     <View style={styles.cardHeader}>
@@ -102,7 +106,7 @@ function BirdCard({
                                 variant="body"
                                 style={[
                                     styles.birdName,
-                                    { color: bird.logged ? colors.primary : colors.text }
+                                    { color: bird.logged ? colors.interactive.primary : colors.text.primary }
                                 ]}
                                 numberOfLines={1}
                             >
@@ -123,28 +127,28 @@ function BirdCard({
                             {bird.logged && (
                                 <View style={[
                                     styles.loggedBadge,
-                                    { backgroundColor: colors.primary }
+                                    { backgroundColor: colors.interactive.primary }
                                 ]}>
-                                    <ThemedIcon name="check" size={12} color="primary" />
+                                    <ThemedIcon name="check" size={dimensions.icon.xs} color="primary" />
                                 </View>
                             )}
-                            <ThemedIcon name="chevron-right" size={16} color="secondary" />
+                            <ThemedIcon name="chevron-right" size={dimensions.icon.sm} color="secondary" />
                         </View>
                     </View>
 
                     {/* Metadata Row */}
                     <View style={styles.cardMetadata}>
                         {bird.family && (
-                            <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
-                                <ThemedIcon name="users" size={10} color="secondary" />
+                            <View style={[styles.metaBadge, { backgroundColor: colors.background.secondary }]}>
+                                <ThemedIcon name="users" size={dimensions.icon.xs} color="secondary" />
                                 <ThemedText variant="caption" color="secondary">
                                     {bird.family}
                                 </ThemedText>
                             </View>
                         )}
 
-                        <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
-                            <ThemedIcon name="tag" size={10} color="primary" />
+                        <View style={[styles.metaBadge, { backgroundColor: colors.background.secondary }]}>
+                            <ThemedIcon name="tag" size={dimensions.icon.xs} color="primary" />
                             <ThemedText variant="caption" color="primary">
                                 {bird.category}
                             </ThemedText>
@@ -182,6 +186,8 @@ function SearchHeader({
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const theme = useTheme();
+    const dimensions = useResponsiveDimensions();
+    const styles = createStyles(dimensions);
 
     const [showSortMenu, setShowSortMenu] = useState(false);
     const [showCategoryMenu, setShowCategoryMenu] = useState(false);
@@ -373,6 +379,8 @@ function ErrorState({
     const colors = useColors();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
+    const dimensions = useResponsiveDimensions();
+    const styles = createStyles(dimensions);
 
     return (
         <ThemedView style={styles.errorContainer}>
@@ -406,6 +414,8 @@ function ErrorState({
 function LoadingState() {
     const { t } = useTranslation();
     const semanticColors = useSemanticColors();
+    const dimensions = useResponsiveDimensions();
+    const styles = createStyles(dimensions);
 
     return (
         <ThemedView style={styles.loadingContainer}>
@@ -425,6 +435,8 @@ export default function ModernBirdDexIndex() {
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const theme = useTheme();
+    const dimensions = useResponsiveDimensions();
+    const styles = createStyles(dimensions);
 
     // Database status
     const { isReady, isLoading, hasError, error, retry } = useBirdDexDatabase();
@@ -556,8 +568,17 @@ export default function ModernBirdDexIndex() {
     useEffect(() => {
         if (isReady) {
             const timeoutId = setTimeout(() => loadData(1, false), 300);
-            return () => clearTimeout(timeoutId);
+            return () => {
+                clearTimeout(timeoutId);
+                // Cleanup to prevent memory leaks
+                setRefreshing(false);
+            };
         }
+        
+        // Additional cleanup for component unmount
+        return () => {
+            setRefreshing(false);
+        };
     }, [loadData]);
 
     // Handlers
@@ -630,8 +651,9 @@ export default function ModernBirdDexIndex() {
             {/* Bird List */}
             <FlatList
                 data={birds}
-                keyExtractor={(item) => item.species_code}
+                keyExtractor={(item, index) => `${item.species_code}-${index}`}
                 renderItem={renderBird}
+                removeClippedSubviews={false}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
                 refreshing={refreshing}
@@ -663,11 +685,71 @@ export default function ModernBirdDexIndex() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        overflow: 'hidden',
-    },
+/**
+ * Creates responsive styles for bird card component
+ */
+function createBirdCardStyles(dimensions: ReturnType<typeof useResponsiveDimensions>) {
+    return StyleSheet.create({
+        birdCard: {
+            marginBottom: dimensions.layout.componentSpacing,
+        },
+        birdCardInner: {
+            overflow: 'hidden',
+        },
+        cardContent: {
+            padding: dimensions.card.padding.md,
+            gap: dimensions.layout.componentSpacing,
+        },
+        cardHeader: {
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+        },
+        birdInfo: {
+            flex: 1,
+            marginRight: dimensions.layout.componentSpacing,
+        },
+        birdName: {
+            fontWeight: '600',
+            marginBottom: dimensions.layout.componentSpacing / 4,
+        },
+        scientificName: {
+            fontStyle: 'italic',
+        },
+        cardIndicators: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: dimensions.layout.componentSpacing / 2,
+        },
+        loggedBadge: {
+            width: dimensions.icon.md,
+            height: dimensions.icon.md,
+            borderRadius: dimensions.icon.md / 2,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        cardMetadata: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: dimensions.layout.componentSpacing / 2,
+        },
+        metaBadge: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: dimensions.layout.componentSpacing / 2,
+            paddingVertical: dimensions.layout.componentSpacing / 4,
+            borderRadius: dimensions.card.borderRadius.md,
+            gap: dimensions.layout.componentSpacing / 4,
+        },
+    });
+}
+
+function createStyles(dimensions: ReturnType<typeof useResponsiveDimensions>) {
+    return StyleSheet.create({
+        container: {
+            flex: 1,
+            overflow: 'hidden',
+        },
     // Header
     header: {
         paddingHorizontal: 24,
@@ -865,3 +947,4 @@ const styles = StyleSheet.create({
         maxWidth: 280,
     },
 });
+}

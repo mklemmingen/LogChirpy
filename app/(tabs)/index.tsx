@@ -21,9 +21,14 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 import { useColors, useTypography, useBorderRadius } from '@/hooks/useThemeColor';
+import { useUnifiedColors } from '@/hooks/useUnifiedColors';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 
 const { width, height } = Dimensions.get('window');
 
+/**
+ * Interface for feature action cards displayed on home screen
+ */
 interface FeatureAction {
   id: string;
   title: string;
@@ -33,11 +38,20 @@ interface FeatureAction {
   primary?: boolean;
 }
 
+/**
+ * Home Screen Component with responsive design and smooth animations
+ * Main landing screen providing quick access to core app features
+ * 
+ * @returns {JSX.Element} Home screen with hero section and feature cards
+ */
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const colors = useColors();
+  const colors = useUnifiedColors();
   const typography = useTypography();
   const borderRadius = useBorderRadius();
+  const dimensions = useResponsiveDimensions();
+  
+  const styles = createStyles(dimensions);
 
   // Subtle floating animation
   const floatAnimation = useSharedValue(0);
@@ -50,6 +64,12 @@ export default function HomeScreen() {
     );
   }, []);
 
+  /**
+   * Creates floating animation style for feature cards
+   * 
+   * @param {number} delay - Animation delay for staggered effect
+   * @returns {Object} Animated style object with transform
+   */
   const getFloatingStyle = (delay: number) => {
     return useAnimatedStyle(() => ({
       transform: [
@@ -57,7 +77,7 @@ export default function HomeScreen() {
           translateY: interpolate(
             floatAnimation.value,
             [0, 1],
-            [0, -4]
+            [0, -dimensions.screen.isSmall ? 2 : 4]
           ) * Math.sin(Date.now() / 1000 + delay),
         },
       ],
@@ -96,11 +116,23 @@ export default function HomeScreen() {
     },
   ];
 
+  /**
+   * Handles feature card press with haptic feedback and navigation
+   * 
+   * @param {string} route - Route to navigate to
+   */
   const handleFeaturePress = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(route as any);
   };
 
+  /**
+   * Renders individual feature card with responsive design and accessibility
+   * 
+   * @param {FeatureAction} feature - Feature data for the card
+   * @param {number} index - Index for staggered animations
+   * @returns {JSX.Element} Animated feature card
+   */
   const renderFeatureCard = (feature: FeatureAction, index: number) => {
     const isPrimary = feature.primary;
 
@@ -116,13 +148,18 @@ export default function HomeScreen() {
             <ThemedView
               style={[
                 styles.iconContainer,
-                { backgroundColor: isPrimary ? colors.backgroundTertiary : colors.backgroundSecondary }
+                { 
+                  backgroundColor: isPrimary ? colors.background.tertiary : colors.background.secondary,
+                  width: dimensions.icon.xxl,
+                  height: dimensions.icon.xxl,
+                  borderRadius: dimensions.card.borderRadius.md,
+                }
               ]}
               rounded="lg"
             >
               <ThemedIcon
                 name={feature.icon}
-                size={24}
+                size={dimensions.icon.lg}
                 color="primary"
               />
             </ThemedView>
@@ -143,8 +180,8 @@ export default function HomeScreen() {
 
             {/* Arrow */}
             <ThemedIcon
-              name="arrow-right"
-              size={16}
+              name="chevron-right"
+              size={dimensions.icon.sm}
               color="tertiary"
             />
           </View>
@@ -156,7 +193,7 @@ export default function HomeScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Background animations */}
-      <BirdAnimation numberOfBirds={6} />
+
 
       <ThemedSafeAreaView style={styles.safeArea}>
         <ScrollView
@@ -192,7 +229,7 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (dimensions: ReturnType<typeof useResponsiveDimensions>) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -204,14 +241,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: dimensions.layout.sectionSpacing,
   },
 
   // Hero Section
   heroSection: {
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: dimensions.layout.screenPadding.horizontal,
+    paddingTop: dimensions.screen.isSmall ? 40 : 60,
+    paddingBottom: dimensions.layout.sectionSpacing,
     alignItems: 'center',
     minHeight: height * 0.3,
     justifyContent: 'center',
@@ -220,35 +257,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroTitle: {
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: dimensions.layout.componentSpacing,
+    marginBottom: dimensions.layout.componentSpacing / 2,
   },
   heroSubtitle: {
-    lineHeight: 24,
-    maxWidth: width * 0.8,
+    lineHeight: dimensions.screen.isSmall ? 20 : 24,
+    maxWidth: width * 0.85,
   },
 
   // Features Section
   featuresSection: {
-    paddingHorizontal: 24,
-    gap: 16,
+    paddingHorizontal: dimensions.layout.screenPadding.horizontal,
+    gap: dimensions.layout.componentSpacing,
   },
 
   // Feature Cards
   featureCard: {
-    minHeight: 80,
+    minHeight: dimensions.listItem.minHeight,
   },
   primaryCard: {
-    minHeight: 90,
+    minHeight: dimensions.listItem.minHeight + 10,
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: dimensions.layout.componentSpacing,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -256,9 +291,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    marginBottom: 4,
+    marginBottom: dimensions.layout.componentSpacing / 4,
   },
   cardDescription: {
-    lineHeight: 18,
+    lineHeight: dimensions.screen.isSmall ? 16 : 18,
   },
 });

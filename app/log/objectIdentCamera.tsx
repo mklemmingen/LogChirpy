@@ -253,6 +253,20 @@ function ObjectIdentCameraContent() {
     const isFocused = useIsFocused();
     const appState = useAppState();
     const isCameraActive = isFocused && appState === 'active';
+    
+    // Component cleanup to prevent view conflicts
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                // Cleanup when losing focus to prevent view conflicts
+                setIsInitialized(false);
+                setIsDetectionPaused(true);
+                setModalVisible(false);
+                setModalPhotoUri(null);
+                setShowOverlays(true);
+            };
+        }, [])
+    );
 
     // Permissions
     const [hasMediaPermission, setHasMediaPermission] = useState(false);
@@ -317,6 +331,14 @@ function ObjectIdentCameraContent() {
             const hasPermission = await ensureMediaPermission();
             setHasMediaPermission(hasPermission);
         })();
+        
+        // Cleanup function to prevent view conflicts on unmount
+        return () => {
+            setIsInitialized(false);
+            setIsDetectionPaused(true);
+            setModalVisible(false);
+            setModalPhotoUri(null);
+        };
     }, []);
 
     const ensureMediaPermission = async (): Promise<boolean> => {
@@ -961,13 +983,16 @@ function ObjectIdentCameraContent() {
                     />
                 </View>
             )}
-            {modalVisible && modalPhotoUri && (
-                <Modal
-                    visible={modalVisible}
-                    transparent={true}
-                    animationType="slide"
-                    onRequestClose={() => setModalVisible(false)}
-                >
+            <Modal
+                visible={modalVisible && modalPhotoUri !== null}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => {
+                    setModalVisible(false);
+                    setTimeout(() => setModalPhotoUri(null), 100);
+                }}
+            >
+                {modalPhotoUri && (
                     <View style={styles.modalContainer}>
                         <Image source={{ uri: modalPhotoUri }} style={styles.modalImage} />
                         <View style={styles.modalOverlay}>
@@ -994,17 +1019,21 @@ function ObjectIdentCameraContent() {
                         </View>
                         <View style={styles.modalButtons}>
                             <Button title={t('buttons.close')} onPress={() => {
+                                // Safe modal close to prevent view conflicts
                                 setModalVisible(false);
-                                setModalPhotoUri(null); // clear frozen image of the modal
                                 setShowOverlays(true);
+                                // Delay clearing the URI to ensure modal is fully unmounted
+                                setTimeout(() => {
+                                    setModalPhotoUri(null);
+                                }, 100);
                             }} />
                             {/* Optional, havent fully fletched out the UX yet */}
                             {/* <Button title="Delete" onPress={...} /> */}
                             {/* <Button title="Save" onPress={...} /> */}
                         </View>
                     </View>
-                </Modal>
-            )}
+                )}
+            </Modal>
         </ThemedSafeAreaView>
     );
 }

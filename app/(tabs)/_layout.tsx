@@ -13,11 +13,22 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import {useTheme} from '@/hooks/useThemeColor';
+import { useUnifiedColors } from '@/hooks/useUnifiedColors';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedIcon} from '@/components/ThemedIcon';
 
-// Enhanced Tab Icon Component
-// Enhanced Tab Icon Component - Cleaner Design
+/**
+ * Enhanced Tab Icon Component with responsive design and smooth animations
+ * Provides visual feedback for tab navigation with accessibility support
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.iconName - Name of the icon to display
+ * @param {string} props.color - Icon color (not used, theme colors applied)
+ * @param {boolean} props.focused - Whether the tab is currently active
+ * @param {number} props.size - Base icon size (enhanced with responsive multipliers)
+ * @returns {JSX.Element} Animated tab icon with indicator
+ */
 function EnhancedTabIcon({
                              iconName,
                              color,
@@ -30,11 +41,16 @@ function EnhancedTabIcon({
     size: number;
 }) {
     const theme = useTheme();
+    const colors = useUnifiedColors();
+    const dimensions = useResponsiveDimensions();
 
-    // Animation values
+    // Animation values with responsive sizing
     const scale = useSharedValue(focused ? 1 : 0.9);
-    const indicatorWidth = useSharedValue(focused ? 20 : 4);
+    const indicatorWidth = useSharedValue(focused ? dimensions.navigation.tabIconSize : 4);
     const opacity = useSharedValue(focused ? 1 : 0.7);
+    
+    // Responsive icon size
+    const responsiveIconSize = Math.max(size * dimensions.multipliers.size, dimensions.icon.md);
 
     React.useEffect(() => {
         // Smooth scale animation for icon
@@ -43,8 +59,8 @@ function EnhancedTabIcon({
             stiffness: 300,
         });
 
-        // Indicator animation
-        indicatorWidth.value = withSpring(focused ? 20 : 4, {
+        // Indicator animation with responsive width
+        indicatorWidth.value = withSpring(focused ? dimensions.navigation.tabIconSize : 4, {
             damping: 15,
             stiffness: 300,
         });
@@ -74,18 +90,18 @@ function EnhancedTabIcon({
         <ThemedView
             background="transparent"
             style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            paddingHorizontal: 4,
-            paddingVertical: 6,
-            minHeight: 40,
-        }}>
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                paddingHorizontal: dimensions.layout.componentSpacing / 4,
+                paddingVertical: dimensions.layout.componentSpacing / 3,
+                minHeight: dimensions.touchTarget.minimum,
+            }}>
             {/* Main icon - no background, just scale and opacity changes */}
             <Animated.View style={iconAnimatedStyle}>
                 <ThemedIcon
                     name={iconName as any}
-                    size={size}
+                    size={responsiveIconSize}
                     color={focused ? 'primary' : 'secondary'}
                 />
             </Animated.View>
@@ -96,9 +112,9 @@ function EnhancedTabIcon({
                     {
                         position: 'absolute',
                         bottom: 0,
-                        height: 2,
-                        borderRadius: 1,
-                        backgroundColor: theme.colors.text.primary,
+                        height: dimensions.screen.isSmall ? 2 : 3,
+                        borderRadius: dimensions.screen.isSmall ? 1 : 1.5,
+                        backgroundColor: colors.interactive.primary,
                     },
                     indicatorAnimatedStyle,
                 ]}
@@ -107,26 +123,31 @@ function EnhancedTabIcon({
     );
 }
 
-// Enhanced Tab Background Component for iOS
+/**
+ * Enhanced Tab Background Component for iOS with themed styling
+ * Provides translucent background effect with proper contrast support
+ * 
+ * @returns {JSX.Element} Tab bar background with border and themed colors
+ */
 function EnhancedTabBackground() {
-    const theme = useTheme();
+    const colors = useUnifiedColors();
 
     return (
         <>
-            {/* Blur effect */}
-            <BlurView
-                intensity={theme.colors.background.primary === '#FFFFFF' ? 100 : 80}
-                tint={theme.colors.background.primary === '#FFFFFF' ? 'light' : 'dark'}
+            {/* Main background with proper theme support */}
+            <ThemedView
                 style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     bottom: 0,
                     right: 0,
+                    backgroundColor: colors.background.elevated,
+                    opacity: 0.95,
                 }}
             />
 
-            {/* Subtle gradient overlay for depth */}
+            {/* Subtle border for definition */}
             <ThemedView
                 style={{
                     position: 'absolute',
@@ -134,17 +155,25 @@ function EnhancedTabBackground() {
                     left: 0,
                     right: 0,
                     height: 1,
-                    backgroundColor: theme.colors.border.primary,
-                    opacity: 0.5,
+                    backgroundColor: colors.border.primary,
+                    opacity: 0.3,
                 }}
             />
         </>
     );
 }
 
+/**
+ * Modern Tab Layout Component with responsive design and accessibility
+ * Main navigation layout providing tab-based navigation with enhanced theming
+ * 
+ * @returns {JSX.Element} Tab navigation layout with responsive styling
+ */
 export default function ModernTabLayout() {
     const { t } = useTranslation();
     const theme = useTheme();
+    const colors = useUnifiedColors();
+    const dimensions = useResponsiveDimensions();
 
     // Tab configuration available for future enhancements
     // const tabsConfig = [
@@ -189,15 +218,15 @@ export default function ModernTabLayout() {
     return (
         <Tabs
             screenOptions={{
-                // Modern tab bar styling with semantic colors
+                // Modern tab bar styling with responsive semantic colors
                 tabBarStyle: {
-                    backgroundColor: theme.colors.background.secondary,
+                    backgroundColor: colors.background.secondary,
                     borderTopWidth: 1,
-                    borderTopColor: theme.colors.border.primary,
-                    height: Platform.OS === 'ios' ? 95 : 80,
-                    paddingBottom: Platform.OS === 'ios' ? 30 : 12,
-                    paddingTop: 8,
-                    paddingHorizontal: theme.spacing.md,
+                    borderTopColor: colors.border.primary,
+                    height: dimensions.navigation.tabBarHeight,
+                    paddingBottom: Platform.OS === 'ios' ? dimensions.layout.screenPadding.vertical : dimensions.layout.componentSpacing / 2,
+                    paddingTop: dimensions.layout.componentSpacing / 2,
+                    paddingHorizontal: dimensions.layout.screenPadding.horizontal,
 
                     // Enhanced shadows for depth
                     ...theme.shadows.lg,
@@ -205,22 +234,16 @@ export default function ModernTabLayout() {
                     // Platform-specific enhancements
                     ...(Platform.OS === 'android' && {
                         elevation: 8,
-                        shadowColor: theme.colors.text.primary,
+                        shadowColor: colors.text.primary,
                     }),
                 },
 
-                // Enhanced color system
-                tabBarActiveTintColor: theme.colors.text.primary,
-                tabBarInactiveTintColor: theme.colors.text.secondary,
+                // Enhanced color system with unified colors
+                tabBarActiveTintColor: colors.text.primary,
+                tabBarInactiveTintColor: colors.text.secondary,
 
-                // Modern typography with proper hierarchy
-                tabBarLabelStyle: {
-                    fontSize: 11,
-                    fontWeight: '500',
-                    marginTop: 4,
-                    marginBottom: 2,
-                    letterSpacing: 0.3,
-                },
+                // Hide tab labels - icons only
+                tabBarShowLabel: false,
 
                 // Enhanced iOS blur effect
                 ...(Platform.OS === 'ios' && {
@@ -230,19 +253,19 @@ export default function ModernTabLayout() {
                 // Improved animations
                 tabBarHideOnKeyboard: true,
 
-                // Enhanced header styling
+                // Enhanced header styling with responsive colors
                 headerStyle: {
-                    backgroundColor: theme.colors.background.secondary,
+                    backgroundColor: colors.background.secondary,
                     ...theme.shadows.sm,
                 },
-                headerTintColor: theme.colors.text.primary,
+                headerTintColor: colors.text.primary,
                 headerTitleStyle: {
                     ...theme.typography.h2,
                     fontWeight: '600',
                 },
             }}
         >
-            {/* Home Tab - Enhanced with priority */}
+            {/* Home Tab - Enhanced with priority and accessibility */}
             <Tabs.Screen
                 name="index"
                 options={{
@@ -256,12 +279,12 @@ export default function ModernTabLayout() {
                             size={size}
                         />
                     ),
-                    tabBarLabel: t('tabs.home'),
+                    tabBarAccessibilityLabel: t('tabs.home'),
                     headerShown: false,
                 }}
             />
 
-            {/* BirDex Tab - Enhanced with specialized icon */}
+            {/* BirDex Tab - Enhanced with specialized icon and accessibility */}
             <Tabs.Screen
                 name="birdex"
                 options={{
@@ -275,12 +298,12 @@ export default function ModernTabLayout() {
                             size={size}
                         />
                     ),
-                    tabBarLabel: t('tabs.birdex'),
+                    tabBarAccessibilityLabel: t('tabs.birdex'),
                     headerShown: false,
                 }}
             />
 
-            {/* Smart Search Tab - Enhanced with search emphasis */}
+            {/* Smart Search Tab - Enhanced with search emphasis and accessibility */}
             <Tabs.Screen
                 name="smart-search"
                 options={{
@@ -294,12 +317,12 @@ export default function ModernTabLayout() {
                             size={size}
                         />
                     ),
-                    tabBarLabel: t('tabs.smartSearch'),
+                    tabBarAccessibilityLabel: t('tabs.smartSearch'),
                     headerShown: false,
                 }}
             />
 
-            {/* Archive Tab - Enhanced with archive visual */}
+            {/* Archive Tab - Enhanced with archive visual and accessibility */}
             <Tabs.Screen
                 name="archive"
                 options={{
@@ -313,12 +336,12 @@ export default function ModernTabLayout() {
                             size={size}
                         />
                     ),
-                    tabBarLabel: t('tabs.archive'),
+                    tabBarAccessibilityLabel: t('tabs.archive'),
                     headerShown: false,
                 }}
             />
 
-            {/* Account Tab - Enhanced with user profile icon */}
+            {/* Account Tab - Enhanced with user profile icon and accessibility */}
             <Tabs.Screen
                 name="account"
                 options={{
@@ -332,12 +355,12 @@ export default function ModernTabLayout() {
                             size={size}
                         />
                     ),
-                    tabBarLabel: t('tabs.account'),
+                    tabBarAccessibilityLabel: t('tabs.account'),
                     headerShown: false,
                 }}
             />
 
-            {/* Settings Tab - Enhanced with gear icon */}
+            {/* Settings Tab - Enhanced with gear icon and accessibility */}
             <Tabs.Screen
                 name="settings"
                 options={{
@@ -351,7 +374,7 @@ export default function ModernTabLayout() {
                             size={size}
                         />
                     ),
-                    tabBarLabel: t('tabs.settings'),
+                    tabBarAccessibilityLabel: t('tabs.settings'),
                     headerShown: false,
                 }}
             />

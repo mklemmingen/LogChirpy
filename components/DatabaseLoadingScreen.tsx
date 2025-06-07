@@ -147,7 +147,9 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
         if (progress < 40) return "Gathering feathers...";
         if (progress < 60) return "Learning bird songs...";
         if (progress < 80) return "Mapping migration routes...";
-        return "Almost ready to fly...";
+        if (progress < 90) return "Organizing field guides...";
+        if (progress < 99) return "Final preparations...";
+        return "Ready to fly!";
     };
 
     // Simplified floating animation
