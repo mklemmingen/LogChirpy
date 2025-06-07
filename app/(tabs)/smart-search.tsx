@@ -1,9 +1,8 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View} from 'react-native';
+import {ActivityIndicator, FlatList, StyleSheet, TextInput} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import {BlurView} from 'expo-blur';
 import Animated, {
     FadeInDown,
     FadeOutUp,
@@ -18,16 +17,31 @@ import {ModernCard} from '@/components/ModernCard';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import {ThemedView} from '@/components/ThemedView';
 import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
+import { useUnifiedColors } from '@/hooks/useUnifiedColors';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import {type BirdDexRecord, searchBirdsByName} from '@/services/databaseBirDex';
 
+/**
+ * Extended bird record type with search match information
+ */
 type SmartSearchResult = BirdDexRecord & {
     matchedField: string;
     matchedValue: string;
     confidence: number;
 };
 
-// Enhanced search result card component
+/**
+ * Enhanced search result card component with animations and confidence indicators
+ * Displays bird information with match confidence and multi-language support
+ * 
+ * @param {Object} props - Component props
+ * @param {SmartSearchResult} props.item - Search result with match information
+ * @param {number} props.index - Index for staggered animations
+ * @param {Function} props.onPress - Callback when card is pressed
+ * @returns {JSX.Element} Animated search result card
+ */
 function SearchResultCard({
                               item,
                               index,
@@ -38,9 +52,12 @@ function SearchResultCard({
     onPress: () => void;
 }) {
     const theme = useTheme();
-    const colors = useColors();
+    const colors = useUnifiedColors();
     const typography = useTypography();
+    const dimensions = useResponsiveDimensions();
     const { t } = useTranslation();
+    
+    const styles = createStyles(theme, dimensions);
 
     const scale = useSharedValue(1);
 
@@ -57,9 +74,9 @@ function SearchResultCard({
     }));
 
     const getConfidenceColor = (confidence: number) => {
-        if (confidence >= 80) return colors.success;
-        if (confidence >= 60) return colors.primary;
-        return colors.textSecondary;
+        if (confidence >= 80) return colors.status.success;
+        if (confidence >= 60) return colors.interactive.primary;
+        return colors.text.secondary;
     };
 
     const getConfidenceText = (confidence: number) => {
@@ -71,128 +88,155 @@ function SearchResultCard({
 
     return (
         <Animated.View
-            entering={FadeInDown.delay(index * 50).springify()}
+            entering={FadeInDown.delay(index * 100).springify()}
             exiting={FadeOutUp.springify()}
             layout={Layout.springify()}
-            style={animatedStyle}
         >
-            <ModernCard
-                elevated={true}
-                bordered={false}
-                onPress={onPress}
-                // Remove these lines:
-                // onPressIn={handlePressIn}
-                // onPressOut={handlePressOut}
-                // animateOnPress={false}
-                style={styles.resultCard}
-            >
+            <Animated.View style={animatedStyle}>
+                <ModernCard
+                    elevated={true}
+                    bordered={false}
+                    onPress={onPress}
+                    // Remove these lines:
+                    // onPressIn={handlePressIn}
+                    // onPressOut={handlePressOut}
+                    // animateOnPress={false}
+                    style={styles.resultCard}
+                >
                 {/* Header with matched name and confidence */}
-                <View style={styles.resultHeader}>
-                    <View style={styles.matchInfo}>
+                <ThemedView style={styles.resultHeader}>
+                    <ThemedView style={styles.matchInfo}>
                         <ThemedText
                             variant="h3"
-                            style={[styles.matchedName, { color: getConfidenceColor(item.confidence) }]}
+                            style={[
+                                styles.matchedName, 
+                                { color: getConfidenceColor(item.confidence) }
+                            ]}
                             numberOfLines={1}
                         >
                             {item.matchedValue}
                         </ThemedText>
-                        <ThemedText variant="labelMedium" color="secondary">
+                        <ThemedText variant="bodySmall" color="secondary">
                             {item.matchedField} • {getConfidenceText(item.confidence)}
                         </ThemedText>
-                    </View>
+                    </ThemedView>
 
-                    <View style={[
+                    <ThemedView style={[
                         styles.confidenceBadge,
-                        { backgroundColor: colors.backgroundSecondary }
+                        { 
+                            backgroundColor: colors.background.secondary,
+                            borderWidth: 1,
+                            borderColor: colors.border.primary
+                        }
                     ]}>
                         <ThemedText
                             variant="labelSmall"
-                            style={[styles.confidenceText, { color: colors.primary }]}
+                            style={[
+                                styles.confidenceText, 
+                                { color: colors.text.primary }
+                            ]}
                         >
                             {Math.round(item.confidence)}%
                         </ThemedText>
-                    </View>
-                </View>
+                    </ThemedView>
+                </ThemedView>
 
                 {/* All available names */}
-                <View style={styles.allNames}>
+                <ThemedView style={styles.allNames}>
                     {item.english_name && (
-                        <View style={styles.nameRow}>
+                        <ThemedView style={styles.nameRow}>
                             <ThemedText variant="labelSmall" style={styles.nameLabel}>🇬🇧</ThemedText>
-                            <ThemedText variant="labelMedium" numberOfLines={1}>
+                            <ThemedText variant="body" numberOfLines={1}>
                                 {item.english_name}
                             </ThemedText>
-                        </View>
+                        </ThemedView>
                     )}
                     {item.scientific_name && (
-                        <View style={styles.nameRow}>
+                        <ThemedView style={styles.nameRow}>
                             <ThemedText variant="labelSmall" style={styles.nameLabel}>🔬</ThemedText>
                             <ThemedText
-                                variant="labelMedium"
+                                variant="body"
                                 color="secondary"
                                 style={styles.scientific}
                                 numberOfLines={1}
                             >
                                 {item.scientific_name}
                             </ThemedText>
-                        </View>
+                        </ThemedView>
                     )}
                     {item.de_name && (
-                        <View style={styles.nameRow}>
+                        <ThemedView style={styles.nameRow}>
                             <ThemedText variant="labelSmall" style={styles.nameLabel}>🇩🇪</ThemedText>
                             <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
                                 {item.de_name}
                             </ThemedText>
-                        </View>
+                        </ThemedView>
                     )}
                     {item.es_name && (
-                        <View style={styles.nameRow}>
+                        <ThemedView style={styles.nameRow}>
                             <ThemedText variant="labelSmall" style={styles.nameLabel}>🇪🇸</ThemedText>
                             <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
                                 {item.es_name}
                             </ThemedText>
-                        </View>
+                        </ThemedView>
                     )}
                     {item.ukrainian_name && (
-                        <View style={styles.nameRow}>
+                        <ThemedView style={styles.nameRow}>
                             <ThemedText variant="labelSmall" style={styles.nameLabel}>🇺🇦</ThemedText>
                             <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
                                 {item.ukrainian_name}
                             </ThemedText>
-                        </View>
+                        </ThemedView>
                     )}
                     {item.ar_name && (
-                        <View style={styles.nameRow}>
+                        <ThemedView style={styles.nameRow}>
                             <ThemedText variant="labelSmall" style={styles.nameLabel}>🇸🇦</ThemedText>
                             <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
                                 {item.ar_name}
                             </ThemedText>
-                        </View>
+                        </ThemedView>
                     )}
-                </View>
+                </ThemedView>
 
                 {/* Chevron indicator */}
-                <View style={styles.chevronContainer}>
+                <ThemedView style={styles.chevronContainer}>
                     <ThemedIcon name="chevron-right" size={20} color="secondary" />
-                </View>
+                </ThemedView>
             </ModernCard>
+            </Animated.View>
         </Animated.View>
     );
 }
 
+/**
+ * Smart Search Component with fuzzy matching and multi-language support
+ * Provides intelligent bird search across all language fields with confidence scoring
+ * 
+ * @returns {JSX.Element} Complete smart search interface with results
+ */
 export default function SmartSearch() {
     const { t } = useTranslation();
     const router = useRouter();
-    const colors = useColors();
+    const colors = useUnifiedColors();
     const typography = useTypography();
     const theme = useTheme();
+    const dimensions = useResponsiveDimensions();
+    
+    const styles = createStyles(theme, dimensions);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [results, setResults] = useState<SmartSearchResult[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
 
-    // Fuzzy matching function
+    /**
+     * Calculates fuzzy matching score between query and target strings
+     * Uses multiple matching strategies for optimal search results
+     * 
+     * @param {string} query - Search query from user
+     * @param {string} target - Target string to match against
+     * @returns {number} Confidence score from 0-100
+     */
     const calculateMatchScore = useCallback((query: string, target: string): number => {
         if (!target) return 0;
 
@@ -236,7 +280,14 @@ export default function SmartSearch() {
         return Math.max(0, similarity * 60);
     }, []);
 
-    // Simple Levenshtein distance implementation
+    /**
+     * Simple Levenshtein distance implementation for typo tolerance
+     * Calculates edit distance between two strings
+     * 
+     * @param {string} str1 - First string
+     * @param {string} str2 - Second string
+     * @returns {number} Edit distance between strings
+     */
     const levenshteinDistance = (str1: string, str2: string): number => {
         const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
 
@@ -257,6 +308,12 @@ export default function SmartSearch() {
         return matrix[str2.length][str1.length];
     };
 
+    /**
+     * Performs intelligent search across all bird name fields
+     * Scores results by confidence and returns best matches
+     * 
+     * @param {string} query - Search query to execute
+     */
     const performSmartSearch = useCallback(async (query: string) => {
         if (!query.trim() || query.length < 2) {
             setResults([]);
@@ -349,7 +406,7 @@ export default function SmartSearch() {
         <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
             <Animated.View
-                entering={FadeInDown.springify()}
+                entering={FadeInDown.delay(50).springify()}
                 style={styles.header}
             >
                 <ThemedPressable
@@ -361,90 +418,100 @@ export default function SmartSearch() {
                     <ThemedIcon name="arrow-left" size={24} color="primary" />
                 </ThemedPressable>
 
-                <View style={styles.headerText}>
-                    <ThemedText variant="displaySmall" style={styles.headerTitle}>
+                <ThemedView style={styles.headerText}>
+                    <ThemedText variant="h2" style={styles.headerTitle}>
                         {t('smartSearch.title')}
                     </ThemedText>
-                    <ThemedText variant="labelMedium" color="secondary">
+                    <ThemedText variant="bodySmall" color="secondary">
                         {t('smartSearch.subtitle')}
                     </ThemedText>
-                </View>
+                </ThemedView>
             </Animated.View>
 
             {/* Search Input */}
             <Animated.View
-                entering={FadeInDown.delay(100).springify()}
+                entering={FadeInDown.delay(150).springify()}
                 style={styles.searchSection}
             >
-                <BlurView
-                    intensity={60}
-                    tint={colors.background === '#FFFFFF' ? 'light' : 'dark'}
-                    style={[styles.searchContainer, { borderColor: colors.border }]}>
-                    <ThemedIcon name="search" size={20} color="secondary" />
-                    <TextInput
-                        style={[styles.searchInput, typography.h2, { color: colors.text }]}
-                        placeholder={t('smartSearch.placeholder')}
-                        placeholderTextColor={colors.textSecondary}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        returnKeyType="search"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                    />
-                    {searchQuery.length > 0 && (
-                        <Pressable onPress={() => setSearchQuery('')}>
-                            <ThemedIcon name="x" size={20} color="secondary" />
-                        </Pressable>
-                    )}
-                </BlurView>
+                <ModernCard elevated={true} bordered={false} style={styles.searchCard}>
+                    <ThemedView style={styles.searchContainer}>
+                        <ThemedIcon name="search" size={20} color="secondary" />
+                        <TextInput
+                            style={[
+                                styles.searchInput, 
+                                typography.body, 
+                                { 
+                                    color: colors.text.primary
+                                }
+                            ]}
+                            placeholder={t('smartSearch.placeholder')}
+                            placeholderTextColor={colors.text.secondary}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            returnKeyType="search"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            selectionColor={colors.interactive.primary}
+                        />
+                        {searchQuery.length > 0 && (
+                            <ThemedPressable variant="ghost" size="sm" onPress={() => setSearchQuery('')}>
+                                <ThemedIcon name="x" size={20} color="secondary" />
+                            </ThemedPressable>
+                        )}
+                    </ThemedView>
+                </ModernCard>
             </Animated.View>
 
             {/* Content */}
             {!hasSearched ? (
                 // Search Tips
                 <Animated.View
-                    entering={FadeInDown.delay(200).springify()}
+                    entering={FadeInDown.delay(250).springify()}
                     style={styles.tipsContainer}
                 >
                     <ModernCard elevated={false} bordered={true} style={styles.tipsCard}>
-                        <View style={[styles.tipsIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                            <ThemedIcon name="help-circle" size={24} color="primary" />
-                        </View>
-
-                        <ThemedText variant="h3" style={styles.tipsTitle}>
-                            {t('smartSearch.tipsTitle')}
-                        </ThemedText>
-
-                        <View style={styles.tipsList}>
-                            <View style={styles.tipItem}>
-                                <ThemedIcon name="check" size={16} color="success" />
-                                <ThemedText variant="bodySmall" color="secondary" style={styles.tipText}>
+                        <ThemedView style={styles.tipsHeader}>
+                            <ThemedView style={[
+                                styles.tipsIconContainer, 
+                                { backgroundColor: colors.background.secondary }
+                            ]}>
+                                <ThemedIcon name="help-circle" size={16} color="primary" />
+                            </ThemedView>
+                            <ThemedText variant="label" style={{ color: colors.text.primary }}>
+                                Search Tips
+                            </ThemedText>
+                        </ThemedView>
+                        
+                        <ThemedView style={styles.tipsGrid}>
+                            <ThemedView style={styles.tipItem}>
+                                <ThemedIcon name="globe" size={16} color="primary" />
+                                <ThemedText variant="bodySmall" style={{ color: colors.text.secondary }}>
                                     {t('smartSearch.tip1')}
                                 </ThemedText>
-                            </View>
-                            <View style={styles.tipItem}>
-                                <ThemedIcon name="check" size={16} color="success" />
-                                <ThemedText variant="bodySmall" color="secondary" style={styles.tipText}>
+                            </ThemedView>
+                            <ThemedView style={styles.tipItem}>
+                                <ThemedIcon name="search" size={16} color="primary" />
+                                <ThemedText variant="bodySmall" style={{ color: colors.text.secondary }}>
                                     {t('smartSearch.tip2')}
                                 </ThemedText>
-                            </View>
-                            <View style={styles.tipItem}>
-                                <ThemedIcon name="check" size={16} color="success" />
-                                <ThemedText variant="bodySmall" color="secondary" style={styles.tipText}>
+                            </ThemedView>
+                            <ThemedView style={styles.tipItem}>
+                                <ThemedIcon name="zap" size={16} color="primary" />
+                                <ThemedText variant="bodySmall" style={{ color: colors.text.secondary }}>
                                     {t('smartSearch.tip3')}
                                 </ThemedText>
-                            </View>
-                        </View>
+                            </ThemedView>
+                        </ThemedView>
                     </ModernCard>
                 </Animated.View>
             ) : loading ? (
                 // Loading state
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
+                <ThemedView style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.interactive.primary} />
                     <ThemedText variant="bodySmall" color="secondary" style={styles.loadingText}>
                         {t('smartSearch.searching')}
                     </ThemedText>
-                </View>
+                </ThemedView>
             ) : (
                 // Results
                 <FlatList
@@ -454,17 +521,20 @@ export default function SmartSearch() {
                     contentContainerStyle={styles.resultsContainer}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                                <ThemedIcon name="search" size={48} color="secondary" />
-                            </View>
+                        <ThemedView style={styles.emptyContainer}>
+                            <ThemedView style={[
+                                styles.emptyIcon, 
+                                { backgroundColor: colors.background.secondary }
+                            ]}>
+                                <ThemedIcon name="search" size={40} color="secondary" />
+                            </ThemedView>
                             <ThemedText variant="h3" color="secondary" style={styles.emptyText}>
                                 {t('smartSearch.noResults')}
                             </ThemedText>
-                            <ThemedText variant="bodySmall" color="tertiary" style={styles.emptySubtext}>
+                            <ThemedText variant="bodySmall" color="secondary" style={styles.emptySubtext}>
                                 {t('smartSearch.tryDifferent')}
                             </ThemedText>
-                        </View>
+                        </ThemedView>
                     }
                 />
             )}
@@ -472,176 +542,177 @@ export default function SmartSearch() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+/**
+ * Creates responsive styles for smart search components
+ * 
+ * @param {Object} theme - Theme object with spacing and typography
+ * @param {Object} dimensions - Responsive dimensions object
+ * @returns {Object} StyleSheet with responsive styles
+ */
+function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDimensions>) {
+    return StyleSheet.create({
+        container: {
+            flex: 1,
+        },
 
-    // Header
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingBottom: 20,
-        gap: 16,
-    },
-    backButton: {
-        alignSelf: 'flex-start',
-    },
-    headerText: {
-        flex: 1,
-        gap: 4,
-    },
-    headerTitle: {
-        fontWeight: 'bold',
-    },
+        // Header
+        header: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: dimensions.layout.screenPadding.horizontal,
+            paddingBottom: dimensions.layout.sectionSpacing,
+            gap: dimensions.layout.componentSpacing,
+        },
+        backButton: {
+            alignSelf: 'flex-start',
+        },
+        headerText: {
+            flex: 1,
+            gap: dimensions.layout.componentSpacing / 4,
+        },
+        headerTitle: {
+            fontWeight: 'bold',
+        },
 
-    // Search
-    searchSection: {
-        paddingHorizontal: 20,
-        marginBottom: 24,
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        height: 56,
-        borderWidth: 1,
-        borderRadius: 28,
-        gap: 12,
-        overflow: 'hidden',
-    },
-    searchInput: {
-        flex: 1,
-    },
+        // Search
+        searchSection: {
+            paddingHorizontal: dimensions.layout.screenPadding.horizontal,
+            marginBottom: dimensions.layout.sectionSpacing,
+        },
+        searchCard: {
+            padding: 0,
+        },
+        searchContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: dimensions.layout.componentSpacing,
+            height: dimensions.input.md.height,
+            gap: dimensions.layout.componentSpacing,
+        },
+        searchInput: {
+            flex: 1,
+        },
 
-    // Tips
-    tipsContainer: {
-        paddingHorizontal: 20,
-        paddingTop: 40,
-        paddingBottom: 20,
-    },
-    tipsCard: {
-        padding: 32,
-        alignItems: 'center',
-        gap: 24,
-        minHeight: "auto"
-    },
-    tipsIcon: {
-        width: 80,
-        height: 80,
-        borderRadius: 40, // Adjusted for new size
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8, // Add some separation
-    },
-    tipsTitle: {
-        textAlign: 'center',
-        fontWeight: '600',
-        marginBottom: 8, // Add separation from subtitle
-    },
-    tipsList: {
-        alignSelf: 'stretch',
-        gap: 24,
-        width: '100%', // Ensure full width
-        marginTop: 8, // Add top margin
-    },
-    tipItem: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 16,
-        paddingVertical: 8, // Add vertical padding for touch targets
-    },
-    tipText: {
-        flex: 1,
-        lineHeight: 24, // Increased from 22
-    },
+        // Tips
+        tipsContainer: {
+            paddingHorizontal: dimensions.layout.screenPadding.horizontal,
+            paddingBottom: dimensions.layout.componentSpacing,
+        },
+        tipsCard: {
+            padding: dimensions.card.padding.md,
+            gap: dimensions.layout.componentSpacing,
+        },
+        tipsHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: dimensions.layout.componentSpacing / 2,
+        },
+        tipsIconContainer: {
+            width: dimensions.icon.lg,
+            height: dimensions.icon.lg,
+            borderRadius: dimensions.card.borderRadius.sm,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        tipsGrid: {
+            gap: dimensions.layout.componentSpacing / 2,
+        },
+        tipItem: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: dimensions.layout.componentSpacing / 2,
+        },
 
-    // Loading
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 16,
-    },
-    loadingText: {
-        textAlign: 'center',
-    },
+        // Loading
+        loadingContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: dimensions.layout.componentSpacing,
+        },
+        loadingText: {
+            textAlign: 'center',
+        },
 
-    // Results
-    resultsContainer: {
-        paddingHorizontal: 20,
-        paddingBottom: 24,
-        gap: 16,
-    },
-    resultCard: {
-        position: 'relative',
-    },
-    resultHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 16,
-    },
-    matchInfo: {
-        flex: 1,
-        marginRight: 12,
-        gap: 4,
-    },
-    matchedName: {
-        fontWeight: '600',
-    },
-    confidenceBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    confidenceText: {
-        fontWeight: '600',
-        textTransform: 'uppercase',
-    },
-    allNames: {
-        gap: 8,
-        marginBottom: 8,
-    },
-    nameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    nameLabel: {
-        minWidth: 20,
-    },
-    scientific: {
-        fontStyle: 'italic',
-        flex: 1,
-    },
-    chevronContainer: {
-        position: 'absolute',
-        right: 20,
-        top: '50%',
-        marginTop: -10,
-    },
+        // Results
+        resultsContainer: {
+            paddingHorizontal: dimensions.layout.screenPadding.horizontal,
+            paddingBottom: dimensions.layout.sectionSpacing,
+            gap: dimensions.layout.componentSpacing,
+        },
+        resultCard: {
+            position: 'relative',
+        },
+        resultHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: dimensions.layout.componentSpacing,
+        },
+        matchInfo: {
+            flex: 1,
+            marginRight: dimensions.layout.componentSpacing,
+            gap: dimensions.layout.componentSpacing / 4,
+        },
+        matchedName: {
+            fontWeight: '700',
+            fontSize: Math.max(18 * dimensions.multipliers.font, 16),
+        },
+        confidenceBadge: {
+            paddingHorizontal: dimensions.layout.componentSpacing,
+            paddingVertical: dimensions.layout.componentSpacing / 4,
+            borderRadius: dimensions.card.borderRadius.lg,
+            minWidth: 50 * dimensions.multipliers.size,
+            alignItems: 'center',
+        },
+        confidenceText: {
+            fontWeight: '700',
+            textTransform: 'uppercase',
+            fontSize: Math.max(11 * dimensions.multipliers.font, 10),
+        },
+        allNames: {
+            gap: dimensions.layout.componentSpacing / 2,
+            marginBottom: dimensions.layout.componentSpacing / 2,
+        },
+        nameRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: dimensions.layout.componentSpacing / 2,
+        },
+        nameLabel: {
+            minWidth: dimensions.icon.md,
+        },
+        scientific: {
+            fontStyle: 'italic',
+            flex: 1,
+        },
+        chevronContainer: {
+            position: 'absolute',
+            right: dimensions.layout.screenPadding.horizontal,
+            top: '50%',
+            marginTop: -10,
+        },
 
-    // Empty state
-    emptyContainer: {
-        alignItems: 'center',
-        paddingVertical: 60,
-        gap: 24,
-    },
-    emptyIcon: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emptyText: {
-        textAlign: 'center',
-        fontWeight: '500',
-    },
-    emptySubtext: {
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-});
+        // Empty state
+        emptyContainer: {
+            alignItems: 'center',
+            paddingVertical: dimensions.layout.sectionSpacing * 2,
+            gap: dimensions.layout.sectionSpacing,
+        },
+        emptyIcon: {
+            width: dimensions.icon.xxl * 1.5,
+            height: dimensions.icon.xxl * 1.5,
+            borderRadius: dimensions.card.borderRadius.xl,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        emptyText: {
+            textAlign: 'center',
+            fontWeight: '500',
+        },
+        emptySubtext: {
+            textAlign: 'center',
+            lineHeight: dimensions.screen.isSmall ? 18 : 20,
+        },
+    });
+}

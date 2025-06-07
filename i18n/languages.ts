@@ -3,7 +3,8 @@ export const languages: Record<string, string> = {
     de: "Deutsch",
     es: "Español",
     uk: "Українська",
-    ar: "العربية"
+    ar: "العربية",
+    fr: "français"
 };
 
 export type LanguageKey = keyof typeof languages;

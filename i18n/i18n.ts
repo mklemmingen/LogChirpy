@@ -8,6 +8,7 @@ import de from "@/locales/de/translation.json";
 import es from "@/locales/es/translation.json";
 import uk from "@/locales/uk/translation.json";
 import ar from "@/locales/ar/translation.json";
+import fr from "@/locales/fr/translation.json";
 
 // Small helper to load saved language
 const languageDetectorPlugin: LanguageDetectorAsyncModule = {
@@ -43,6 +44,7 @@ i18n
             es: { translation: es },
             uk: { translation: uk },
             ar: { translation: ar },
+            fr: { translation: fr }
         },
         interpolation: {
             escapeValue: false,

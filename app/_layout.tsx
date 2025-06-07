@@ -20,6 +20,8 @@ import "@/i18n/i18n";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColors, useTheme, useTypography } from '@/hooks/useThemeColor';
+import { useUnifiedColors } from '@/hooks/useUnifiedColors';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import { AuthProvider } from '@/app/context/AuthContext';
 import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
 
@@ -69,9 +71,15 @@ const FONTS = {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
 };
 
-// Clean loading animation with minimal design
+/**
+ * Clean loading animation with minimal design and responsive sizing
+ * Provides visual feedback during app initialization with smooth animations
+ * 
+ * @returns {JSX.Element} Animated loading spinner with feather icon
+ */
 function LoadingAnimation() {
-    const colors = useColors();
+    const colors = useUnifiedColors();
+    const dimensions = useResponsiveDimensions();
 
     const rotation = useSharedValue(0);
     const scale = useSharedValue(1);
@@ -105,31 +113,42 @@ function LoadingAnimation() {
         opacity: opacity.value,
     }));
 
+    const iconSize = dimensions.icon.xl;
+    const containerSize = iconSize * 2;
+    
     return (
         <Animated.View
             style={[
                 {
-                    width: 64,
-                    height: 64,
-                    borderRadius: 32,
-                    backgroundColor: colors.backgroundSecondary,
+                    width: containerSize,
+                    height: containerSize,
+                    borderRadius: containerSize / 2,
+                    backgroundColor: colors.background.secondary,
                     justifyContent: 'center',
                     alignItems: 'center',
                 },
                 animatedStyle,
             ]}
         >
-            <ThemedIcon name="feather" size={32} color="primary" />
+            <ThemedIcon name="feather" size={iconSize} color="primary" />
         </Animated.View>
     );
 }
 
-// Enhanced Database Loading Screen Component
+/**
+ * Enhanced Database Loading Screen Component
+ * Displays progress for bird database initialization with error handling
+ * 
+ * @param {Object} props - Component props
+ * @param {Function} props.onReady - Callback when database is ready
+ * @returns {JSX.Element|null} Loading screen or null when ready
+ */
 function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
     const { isReady, isLoading, hasError, progress, loadedRecords, error, retry } = useBirdDexDatabase();
-    const colors = useColors();
+    const colors = useUnifiedColors();
     const typography = useTypography();
     const theme = useTheme();
+    const dimensions = useResponsiveDimensions();
 
     const fadeAnim = useSharedValue(0);
     const slideAnim = useSharedValue(30);
@@ -152,34 +171,57 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
 
     if (hasError) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-                <BlurView
-                    intensity={80}
-                    tint={colors.background === '#FFFFFF' ? 'light' : 'dark'}
-                    style={styles.errorCard}
-                >
-                    <View style={[styles.errorIconContainer, { backgroundColor: colors.backgroundSecondary }]}>
-                        <ThemedIcon name="alert-triangle" size={48} color="error" />
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background.primary }]}>
+                <View style={[
+                    styles.errorCard,
+                    {
+                        backgroundColor: colors.background.elevated,
+                        borderColor: colors.border.primary,
+                        padding: dimensions.card.padding.lg,
+                        borderRadius: dimensions.card.borderRadius.lg,
+                        borderWidth: 1,
+                    }
+                ]}>
+                    <View style={[
+                        styles.errorIconContainer, 
+                        { 
+                            backgroundColor: colors.background.secondary,
+                            width: dimensions.icon.xxl * 2,
+                            height: dimensions.icon.xxl * 2,
+                            borderRadius: dimensions.icon.xxl,
+                        }
+                    ]}>
+                        <ThemedIcon name="x" size={dimensions.icon.xxl} color="error" />
                     </View>
 
-                    <Text style={[typography.h2, { color: colors.text }]}>
+                    <Text style={[typography.h2, { color: colors.text.primary }]}>
                         Database Error
                     </Text>
 
-                    <Text style={[typography.body, { color: colors.textSecondary, textAlign: 'center' }]}>
+                    <Text style={[typography.body, { color: colors.text.secondary, textAlign: 'center' }]}>
                         {error || 'Failed to load bird database. Check your storage and connection.'}
                     </Text>
 
                     <Pressable
-                        style={[styles.retryButton, { backgroundColor: colors.primary }]}
+                        style={[
+                            styles.retryButton, 
+                            { 
+                                backgroundColor: colors.interactive.primary,
+                                height: dimensions.button.md.height,
+                                paddingHorizontal: dimensions.button.md.paddingHorizontal,
+                            }
+                        ]}
                         onPress={retry}
+                        accessibilityRole="button"
+                        accessibilityLabel="Retry loading database"
+                        accessibilityHint="Attempts to reload the bird database"
                     >
-                        <ThemedIcon name="refresh-cw" size={20} color="secondary" />
-                        <Text style={[typography.label, { color: colors.textInverse }]}>
+                        <ThemedIcon name="refresh-cw" size={dimensions.icon.sm} color="secondary" />
+                        <Text style={[typography.label, { color: colors.interactive.primaryText }]}>
                             Retry Loading
                         </Text>
                     </Pressable>
-                </BlurView>
+                </View>
             </View>
         );
     }
@@ -189,7 +231,7 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
             <Animated.View
                 style={[
                     styles.loadingContainer,
-                    { backgroundColor: colors.background },
+                    { backgroundColor: colors.background.primary },
                     containerStyle
                 ]}
             >
@@ -197,57 +239,71 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     {/* Brand Header */}
                     <View style={styles.brandContainer}>
                         <LoadingAnimation />
-                        <Text style={[typography.h1, { color: colors.text }]}>
+                        <Text style={[typography.h1, { color: colors.text.primary }]}>
                             LogChirpy
                         </Text>
-                        <Text style={[typography.body, { color: colors.textSecondary }]}>
+                        <Text style={[typography.body, { color: colors.text.secondary }]}>
                             Preparing Your Bird Database
                         </Text>
                     </View>
 
                     {/* Progress Section */}
-                    <BlurView
-                        intensity={60}
-                        tint={colors.background === '#FFFFFF' ? 'light' : 'dark'}
-                        style={[styles.progressCard, { borderColor: colors.border }]}
+                    <View
+                        style={[
+                            styles.progressCard, 
+                            { 
+                                backgroundColor: colors.background.elevated,
+                                borderColor: colors.border.primary,
+                                padding: dimensions.card.padding.lg,
+                                borderRadius: dimensions.card.borderRadius.lg,
+                                borderWidth: 1,
+                            }
+                        ]}
                     >
-                        <Text style={[typography.h3, { color: colors.text }]}>
+                        <Text style={[typography.h3, { color: colors.text.primary }]}>
                             Loading Species Data
                         </Text>
 
                         {/* Progress Bar */}
                         <View style={styles.progressSection}>
-                            <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+                            <View style={[
+                                styles.progressTrack, 
+                                { 
+                                    backgroundColor: colors.background.secondary,
+                                    height: dimensions.screen.isSmall ? 6 : 8,
+                                }
+                            ]}>
                                 <Animated.View
                                     style={[
                                         styles.progressFill,
                                         {
-                                            backgroundColor: colors.primary,
-                                            width: `${Math.max(5, progress)}%`
+                                            backgroundColor: colors.interactive.primary,
+                                            width: `${Math.max(5, progress)}%`,
+                                            height: dimensions.screen.isSmall ? 6 : 8,
                                         }
                                     ]}
                                 />
                             </View>
 
                             <View style={styles.progressStats}>
-                                <Text style={[typography.label, { color: colors.primary }]}>
+                                <Text style={[typography.label, { color: colors.interactive.primary }]}>
                                     {progress}%
                                 </Text>
                                 {loadedRecords > 0 && (
-                                    <Text style={[typography.label, { color: colors.textSecondary }]}>
+                                    <Text style={[typography.label, { color: colors.text.secondary }]}>
                                         {loadedRecords.toLocaleString()} species loaded
                                     </Text>
                                 )}
                             </View>
                         </View>
 
-                        <Text style={[typography.bodySmall, { color: colors.textTertiary, textAlign: 'center' }]}>
+                        <Text style={[typography.bodySmall, { color: colors.text.tertiary, textAlign: 'center' }]}>
                             Building comprehensive bird identification database...
                         </Text>
-                    </BlurView>
+                    </View>
 
                     {/* Loading Hint */}
-                    <Text style={[typography.label, { color: colors.textTertiary, textAlign: 'center' }]}>
+                    <Text style={[typography.label, { color: colors.text.tertiary, textAlign: 'center' }]}>
                         This may take a moment on first launch
                     </Text>
                 </View>
@@ -258,38 +314,66 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
     return null;
 }
 
-// Enhanced App Initialization Loading
+/**
+ * Enhanced App Initialization Loading Screen
+ * Shows loading state during app startup with error handling
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.message - Loading message to display
+ * @param {string} [props.error] - Error message if initialization failed
+ * @param {Function} [props.onRetry] - Retry callback for error state
+ * @returns {JSX.Element} Initialization screen
+ */
 function AppInitializationScreen({ message, error, onRetry }: {
     message: string;
     error?: string;
     onRetry?: () => void;
 }) {
-    const colors = useColors();
+    const colors = useUnifiedColors();
     const typography = useTypography();
+    const dimensions = useResponsiveDimensions();
 
     if (error) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background.primary }]}>
                 <View style={styles.errorContent}>
-                    <View style={[styles.errorIconContainer, { backgroundColor: colors.backgroundSecondary }]}>
-                        <ThemedIcon name="alert-circle" size={48} color="error" />
+                    <View style={[
+                        styles.errorIconContainer, 
+                        { 
+                            backgroundColor: colors.background.secondary,
+                            width: dimensions.icon.xxl * 2,
+                            height: dimensions.icon.xxl * 2,
+                            borderRadius: dimensions.icon.xxl,
+                        }
+                    ]}>
+                        <ThemedIcon name="x" size={dimensions.icon.xxl} color="error" />
                     </View>
 
-                    <Text style={[typography.h2, { color: colors.text }]}>
+                    <Text style={[typography.h2, { color: colors.text.primary }]}>
                         Initialization Failed
                     </Text>
 
-                    <Text style={[typography.body, { color: colors.textSecondary, textAlign: 'center' }]}>
+                    <Text style={[typography.body, { color: colors.text.secondary, textAlign: 'center' }]}>
                         {error}
                     </Text>
 
                     {onRetry && (
                         <Pressable
-                            style={[styles.retryButton, { backgroundColor: colors.primary }]}
+                            style={[
+                                styles.retryButton, 
+                                { 
+                                    backgroundColor: colors.interactive.primary,
+                                    height: dimensions.button.md.height,
+                                    paddingHorizontal: dimensions.button.md.paddingHorizontal,
+                                }
+                            ]}
                             onPress={onRetry}
+                            accessibilityRole="button"
+                            accessibilityLabel="Try initialization again"
+                            accessibilityHint="Attempts to restart the app initialization process"
                         >
-                            <ThemedIcon name="refresh-cw" size={18} color="error" />
-                            <Text style={[typography.label, { color: colors.textInverse }]}>
+                            <ThemedIcon name="refresh-cw" size={dimensions.icon.sm} color="secondary" />
+                            <Text style={[typography.label, { color: colors.interactive.primaryText }]}>
                                 Try Again
                             </Text>
                         </Pressable>
@@ -300,13 +384,13 @@ function AppInitializationScreen({ message, error, onRetry }: {
     }
 
     return (
-        <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <View style={[styles.loadingContainer, { backgroundColor: colors.background.primary }]}>
             <View style={styles.loadingContent}>
                 <LoadingAnimation />
-                <Text style={[typography.h2, { color: colors.text }]}>
+                <Text style={[typography.h2, { color: colors.text.primary }]}>
                     LogChirpy
                 </Text>
-                <Text style={[typography.body, { color: colors.textSecondary }]}>
+                <Text style={[typography.body, { color: colors.text.secondary }]}>
                     {message}
                 </Text>
             </View>
@@ -314,9 +398,16 @@ function AppInitializationScreen({ message, error, onRetry }: {
     );
 }
 
+/**
+ * Enhanced Root Layout Component
+ * Main app layout with theme provider, ML model initialization, and progressive loading
+ * Handles app initialization, database loading, and provides theming context
+ * 
+ * @returns {JSX.Element} Complete app layout with providers and navigation
+ */
 export default function EnhancedRootLayout() {
     const theme = useTheme();
-    const colors = useColors();
+    const colors = useUnifiedColors();
     const typography = useTypography();
     const [loaded] = useFonts(FONTS);
     const segments = useSegments();
@@ -440,12 +531,12 @@ export default function EnhancedRootLayout() {
                     value={{
                         dark: colors.isDark,
                         colors: {
-                            notification: colors.primary,
-                            background: colors.background,
-                            card: colors.surface,
-                            text: colors.text,
-                            border: colors.border,
-                            primary: colors.primary,
+                            notification: colors.interactive.primary,
+                            background: colors.background.primary,
+                            card: colors.background.elevated,
+                            text: colors.text.primary,
+                            border: colors.border.primary,
+                            primary: colors.interactive.primary,
                         },
                         fonts: {
                             regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
@@ -457,18 +548,18 @@ export default function EnhancedRootLayout() {
                 >
                     <ImageLabelingModelProvider>
                         <ObjectDetectionProvider>
-                            <View style={[styles.container, { backgroundColor: colors.background }]}>
+                            <View style={[styles.container, { backgroundColor: colors.background.primary }]}>
                                 <Stack
                                     screenOptions={() => ({
                                         headerStyle: {
                                             backgroundColor:
                                                 current === 'photo' || current === 'video'
                                                     ? 'transparent'
-                                                    : colors.surface,
+                                                    : colors.background.elevated,
                                             ...theme.shadows.sm,
                                         },
                                         headerTransparent: current === 'photo' || current === 'video',
-                                        headerTintColor: colors.text,
+                                        headerTintColor: colors.text.primary,
                                         headerTitleStyle: {
                                             ...typography.h2,
                                             fontWeight: '600',
@@ -480,6 +571,7 @@ export default function EnhancedRootLayout() {
                                     })}
                                 >
                                     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                    <Stack.Screen name="log" options={{ headerShown: false }} />
                                     <Stack.Screen name="+not-found" />
                                 </Stack>
                             </View>

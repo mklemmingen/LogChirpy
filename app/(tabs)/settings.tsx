@@ -23,24 +23,40 @@ import {ThemedPressable} from "@/components/ThemedPressable";
 import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
 import {Button} from "@/components/Button";
 import {useColors, useTheme, useTypography} from "@/hooks/useThemeColor";
+import { useUnifiedColors } from '@/hooks/useUnifiedColors';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 
-// Enhanced Language Selection Card
+/**
+ * Enhanced Language Selection Card with responsive design and animations
+ * Displays language options with flags, names, and active state indicators
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.langKey - Language key (e.g., 'en', 'de')
+ * @param {string} props.langName - Display name of the language
+ * @param {boolean} props.isActive - Whether this language is currently active
+ * @param {Function} props.onPress - Callback when language is selected
+ * @param {number} props.index - Index for staggered animations
+ * @returns {JSX.Element} Animated language selection card
+ */
 function LanguageCard({
                           langKey,
                           langName,
                           isActive,
                           onPress,
-                          index
+                          index,
+                          styles
                       }: {
     langKey: string;
     langName: string;
     isActive: boolean;
     onPress: () => void;
     index: number;
+    styles: any;
 }) {
-    const colors = useColors();
+    const colors = useUnifiedColors();
     const theme = useTheme();
     const typography = useTypography();
+    const dimensions = useResponsiveDimensions();
 
     const scale = useSharedValue(1);
     const glowOpacity = useSharedValue(0);
@@ -74,11 +90,12 @@ function LanguageCard({
     // Language flag emoji mapping
     const getLanguageFlag = (key: string) => {
         const flags: Record<string, string> = {
-            en: '🇺🇸',
-            de: '🇩🇪',
-            es: '🇪🇸',
-            uk: '🇺🇦',
-            ar: '🇸🇦'
+            en: '🇬🇧 english',
+            de: '🇩🇪 deutsch',
+            es: '🇪🇸 español',
+            fr: '🇫🇷 français',
+            uk: '🇺🇦 українська',
+            ar: '🇸🇦 العربية',
         };
         return flags[key] || '🌐';
     };
@@ -87,15 +104,15 @@ function LanguageCard({
         <Animated.View
             entering={FadeInDown.delay(index * 100).springify()}
             layout={Layout.springify()}
-            style={animatedStyle}
         >
+            <Animated.View style={animatedStyle}>
             {/* Glow effect for active state */}
             {isActive && (
                 <Animated.View
                     style={[
                         StyleSheet.absoluteFillObject,
                         {
-                            backgroundColor: colors.backgroundSecondary,
+                            backgroundColor: colors.background.secondary,
                             borderRadius: theme.borderRadius.lg,
                             margin: -2,
                         },
@@ -110,7 +127,7 @@ function LanguageCard({
                 onPress={handlePress}
                 style={styles.languageCard}
             >
-                <Card style={[styles.languageCardInner, isActive && { borderColor: colors.primary, borderWidth: 2 }]}>
+                <Card style={[styles.languageCardInner, isActive && { borderColor: colors.interactive.primary, borderWidth: 2 }]}>
                 <View style={styles.languageContent}>
                     <Text style={styles.languageFlag}>
                         {getLanguageFlag(langKey)}
@@ -123,8 +140,8 @@ function LanguageCard({
                                 styles.languageName,
                                 {
                                     color: isActive
-                                        ? colors.primary
-                                        : colors.text,
+                                        ? colors.interactive.primary
+                                        : colors.text.primary,
                                     fontWeight: isActive ? '600' : '400',
                                 }
                             ]}
@@ -144,7 +161,7 @@ function LanguageCard({
                     {isActive && (
                         <View style={[
                             styles.activeIndicator,
-                            { backgroundColor: colors.primary }
+                            { backgroundColor: colors.interactive.primary }
                         ]}>
                             <ThemedIcon
                                 name="check"
@@ -156,21 +173,33 @@ function LanguageCard({
                 </View>
                 </Card>
             </ThemedPressable>
+            </Animated.View>
         </Animated.View>
     );
 }
 
-// Enhanced GPS Toggle Component
+/**
+ * Enhanced GPS Toggle Component with animations and status indicators
+ * Allows users to enable/disable GPS location logging for bird sightings
+ * 
+ * @param {Object} props - Component props
+ * @param {boolean} props.enabled - Whether GPS logging is currently enabled
+ * @param {Function} props.onToggle - Callback when GPS setting is toggled
+ * @returns {JSX.Element} Animated GPS toggle card
+ */
 function GPSToggleCard({
                            enabled,
-                           onToggle
+                           onToggle,
+                           styles
                        }: {
     enabled: boolean;
     onToggle: () => void;
+    styles: any;
 }) {
-    const colors = useColors();
+    const colors = useUnifiedColors();
     const theme = useTheme();
     const typography = useTypography();
+    const dimensions = useResponsiveDimensions();
 
     const iconScale = useSharedValue(1);
     const switchScale = useSharedValue(1);
@@ -211,8 +240,8 @@ function GPSToggleCard({
                             styles.gpsIcon,
                             {
                                 backgroundColor: enabled
-                                    ? colors.backgroundSecondary
-                                    : colors.backgroundTertiary
+                                    ? colors.background.secondary
+                                    : colors.background.tertiary
                             },
                             iconAnimatedStyle,
                         ]}>
@@ -247,8 +276,8 @@ function GPSToggleCard({
                                     styles.statusDot,
                                     {
                                         backgroundColor: enabled
-                                            ? colors.success
-                                            : colors.textTertiary
+                                            ? colors.status.success
+                                            : colors.text.tertiary
                                     }
                                 ]} />
                                 <ThemedText
@@ -267,15 +296,15 @@ function GPSToggleCard({
                             value={enabled}
                             onValueChange={handleToggle}
                             trackColor={{
-                                false: colors.border,
-                                true: colors.primary
+                                false: colors.border.primary,
+                                true: colors.interactive.primary
                             }}
                             thumbColor={
                                 enabled
-                                    ? colors.textInverse
-                                    : colors.textSecondary
+                                    ? colors.interactive.primaryText
+                                    : colors.text.secondary
                             }
-                            ios_backgroundColor={colors.border}
+                            ios_backgroundColor={colors.border.primary}
                         />
                     </Animated.View>
                 </View>
@@ -284,6 +313,12 @@ function GPSToggleCard({
     );
 }
 
+/**
+ * Modern Settings Screen with responsive design and smooth animations
+ * Provides language selection, location settings, and app information
+ * 
+ * @returns {JSX.Element} Complete settings screen with sections
+ */
 export default function ModernSettingsScreen() {
     const { i18n, t } = useTranslation();
     const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
@@ -291,9 +326,12 @@ export default function ModernSettingsScreen() {
     const [isLoading, setIsLoading] = useState(false);
 
     const colorScheme = useColorScheme() ?? 'light';
-    const colors = useColors();
+    const colors = useUnifiedColors();
     const theme = useTheme();
     const typography = useTypography();
+    const dimensions = useResponsiveDimensions();
+    
+    const styles = createStyles(dimensions);
 
     // Load settings on mount
     useEffect(() => {
@@ -406,6 +444,7 @@ export default function ModernSettingsScreen() {
                                     isActive={isActive}
                                     onPress={() => changeLanguage(langKey)}
                                     index={index}
+                                    styles={styles}
                                 />
                             );
                         })}
@@ -431,6 +470,7 @@ export default function ModernSettingsScreen() {
                     <GPSToggleCard
                         enabled={gpsEnabled}
                         onToggle={toggleGpsLogging}
+                        styles={styles}
                     />
                 </ThemedView>
 
@@ -443,7 +483,7 @@ export default function ModernSettingsScreen() {
                         <View style={styles.infoContent}>
                             <View style={[
                                 styles.infoIcon,
-                                { backgroundColor: colors.backgroundSecondary }
+                                { backgroundColor: colors.background.secondary }
                             ]}>
                                 <ThemedIcon
                                     name="feather"
@@ -468,131 +508,131 @@ export default function ModernSettingsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (dimensions: ReturnType<typeof useResponsiveDimensions>) => StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 40,
+        paddingTop: dimensions.layout.screenPadding.vertical * 2,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 40,
+        paddingHorizontal: dimensions.layout.screenPadding.horizontal,
+        paddingBottom: dimensions.layout.sectionSpacing,
     },
 
     // Header
     header: {
-        paddingVertical: 24,
+        paddingVertical: dimensions.layout.componentSpacing * 1.5,
         alignItems: 'center',
     },
     headerTitle: {
         fontWeight: 'bold',
-        marginBottom: 8,
+        marginBottom: dimensions.layout.componentSpacing / 2,
     },
     headerSubtitle: {
         textAlign: 'center',
-        maxWidth: 280,
+        maxWidth: dimensions.screen.width * 0.8,
     },
 
     // Sections
     section: {
-        marginBottom: 32,
+        marginBottom: dimensions.layout.sectionSpacing,
     },
     sectionTitle: {
-        marginBottom: 8,
+        marginBottom: dimensions.layout.componentSpacing / 2,
         fontWeight: '600',
     },
     sectionSubtitle: {
-        marginBottom: 16,
-        lineHeight: 20,
+        marginBottom: dimensions.layout.componentSpacing,
+        lineHeight: dimensions.screen.isSmall ? 18 : 20,
     },
     
     // Language Section
     languageGrid: {
-        gap: 8,  // Reduced from 12
+        gap: dimensions.layout.componentSpacing / 2,
     },
     languageCard: {
-        borderRadius: 12,
+        borderRadius: dimensions.card.borderRadius.md,
     },
     languageCardInner: {
-        minHeight: 52,  // Reduced from 72
+        minHeight: dimensions.listItem.minHeight * 0.8,
         padding: 0,
     },
     languageContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 12,  // Reduced from 16
-        gap: 12,  // Reduced from 16
+        padding: dimensions.card.padding.sm,
+        gap: dimensions.layout.componentSpacing * 0.75,
     },
     languageFlag: {
-        fontSize: 20,  // Reduced from 24
-        lineHeight: 24,  // Reduced from 28
+        fontSize: dimensions.icon.md,
+        lineHeight: dimensions.icon.md + 4,
     },
     languageText: {
         flex: 1,
-        gap: 0,  // Reduced from 2
+        gap: 0,
     },
     languageName: {
-        fontSize: 15,  // Add explicit size
-        lineHeight: 20,  // Tighter line height
+        fontSize: Math.max(15 * dimensions.multipliers.font, 14),
+        lineHeight: Math.max(20 * dimensions.multipliers.font, 18),
     },
     languageCode: {
-        opacity: 0.7,  // Slightly less opacity
-        fontSize: 11,  // Smaller code text
-        lineHeight: 14,
+        opacity: 0.7,
+        fontSize: Math.max(11 * dimensions.multipliers.font, 10),
+        lineHeight: Math.max(14 * dimensions.multipliers.font, 12),
     },
     activeIndicator: {
-        width: 28,  // Reduced from 32
-        height: 28,  // Reduced from 32
-        borderRadius: 14,  // Reduced from 16
+        width: dimensions.icon.lg + 4,
+        height: dimensions.icon.lg + 4,
+        borderRadius: (dimensions.icon.lg + 4) / 2,
         justifyContent: 'center',
         alignItems: 'center',
     },
     loadingContainer: {
         alignItems: 'center',
-        paddingTop: 16,
+        paddingTop: dimensions.layout.componentSpacing,
     },
 
     // GPS Section
     gpsCard: {
-        minHeight: 120,
+        minHeight: dimensions.listItem.minHeight * 1.5,
         padding: 0,
     },
     gpsContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 20,
-        gap: 16,
+        padding: dimensions.card.padding.md,
+        gap: dimensions.layout.componentSpacing,
     },
     gpsInfo: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: 16,
+        gap: dimensions.layout.componentSpacing,
     },
     gpsIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: dimensions.icon.xxl,
+        height: dimensions.icon.xxl,
+        borderRadius: dimensions.icon.xxl / 2,
         justifyContent: 'center',
         alignItems: 'center',
     },
     gpsTextContent: {
         flex: 1,
-        gap: 6,
+        gap: dimensions.layout.componentSpacing / 3,
     },
     gpsTitle: {
         fontWeight: '600',
     },
     gpsDescription: {
-        lineHeight: 18,
+        lineHeight: dimensions.screen.isSmall ? 16 : 18,
     },
     gpsStatus: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        marginTop: 4,
+        gap: dimensions.layout.componentSpacing / 3,
+        marginTop: dimensions.layout.componentSpacing / 4,
     },
     statusDot: {
         width: 6,
@@ -606,18 +646,18 @@ const styles = StyleSheet.create({
 
     // Info Card
     infoCard: {
-        marginTop: 8,
+        marginTop: dimensions.layout.componentSpacing / 2,
     },
     infoContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 20,
-        gap: 16,
+        padding: dimensions.card.padding.md,
+        gap: dimensions.layout.componentSpacing,
     },
     infoIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: dimensions.icon.xl + 4,
+        height: dimensions.icon.xl + 4,
+        borderRadius: (dimensions.icon.xl + 4) / 2,
         justifyContent: 'center',
         alignItems: 'center',
     },

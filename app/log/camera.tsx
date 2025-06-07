@@ -1,6 +1,6 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Alert, StyleSheet, useColorScheme, View,} from 'react-native';
-import {router, Stack} from 'expo-router';
+import {router, Stack, useFocusEffect} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {Camera, useCameraDevice, useCameraFormat, useCameraPermission,} from 'react-native-vision-camera';
 import {ThemedIcon} from '@/components/ThemedIcon';
@@ -25,7 +25,7 @@ export default function ModernCamera() {
     const { hasPermission, requestPermission } = useCameraPermission();
 
     const [cameraPosition, setCameraPosition] = useState<'back' | 'front'>('back');
-    const [isActive] = useState(true);
+    const [isActive, setIsActive] = useState(true);
     const [flash, setFlash] = useState<'off' | 'on' | 'auto'>('auto');
     const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
     const [isCapturing, setIsCapturing] = useState(false);
@@ -41,6 +41,27 @@ export default function ModernCamera() {
             requestPermission();
         }
     }, [hasPermission, requestPermission]);
+
+    // Proper camera lifecycle management
+    useEffect(() => {
+        return () => {
+            // Cleanup camera when component unmounts
+            setIsActive(false);
+        };
+    }, []);
+
+    // Focus-based camera management to prevent view conflicts
+    useFocusEffect(
+        useCallback(() => {
+            // Component is focused - activate camera
+            setIsActive(true);
+            
+            return () => {
+                // Component losing focus - deactivate camera to prevent conflicts
+                setIsActive(false);
+            };
+        }, [])
+    );
 
     const takePhoto = async () => {
         if (!camera.current || isCapturing) return;
@@ -197,16 +218,21 @@ export default function ModernCamera() {
             </View>
 
             {/* Continue Button */}
-            {capturedPhotos.length > 0 && (
-                <ThemedPressable
-                    style={[styles.continueButton, { backgroundColor: colors.primary }]}
-                    onPress={proceedToSelection}
-                >
-                    <ThemedText style={[styles.continueText, { color: colors.textInverse }]}>
-                        {t('photo.continue_with_photos', { count: capturedPhotos.length })}
-                    </ThemedText>
-                </ThemedPressable>
-            )}
+            <ThemedPressable
+                style={[
+                    styles.continueButton, 
+                    { 
+                        backgroundColor: colors.primary,
+                        opacity: capturedPhotos.length > 0 ? 1 : 0,
+                        pointerEvents: capturedPhotos.length > 0 ? 'auto' : 'none'
+                    }
+                ]}
+                onPress={proceedToSelection}
+            >
+                <ThemedText style={[styles.continueText, { color: colors.textInverse }]}>
+                    {t('photo.continue_with_photos', { count: capturedPhotos.length })}
+                </ThemedText>
+            </ThemedPressable>
         </ThemedSafeAreaView>
     );
 }

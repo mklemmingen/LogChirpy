@@ -270,14 +270,44 @@ export default function EnhancedManual() {
         }, [draft, clear, t])
     );
 
-    // Cleanup audio on unmount
+    // Cleanup audio and video resources on unmount and navigation
     useEffect(() => {
         return () => {
+            // Cleanup audio
             if (sound) {
                 sound.unloadAsync();
             }
         };
     }, [sound]);
+    
+    // Cleanup video players on unmount
+    useEffect(() => {
+        return () => {
+            // Cleanup video players to prevent memory leaks
+            if (previewPlayer) {
+                previewPlayer.release();
+            }
+            if (fullscreenPlayer) {
+                fullscreenPlayer.release();
+            }
+        };
+    }, [previewPlayer, fullscreenPlayer]);
+    
+    // Focus effect cleanup for navigation
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                // Cleanup resources when navigating away
+                if (sound) {
+                    sound.unloadAsync();
+                }
+                // Close any open modals
+                setIsVideoModalVisible(false);
+                setIsDatePickerVisible(false);
+                setShowPredictions(false);
+            };
+        }, [sound])
+    );
 
     // Validation logic
     const validateEntry = useCallback((): ValidationError[] => {

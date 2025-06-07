@@ -270,14 +270,16 @@ export function Collapsible({
                 entering={FadeInDown.duration(200).springify()}
                 exiting={FadeOutUp.duration(150).springify()}
                 layout={Layout.springify()}
-                style={[
-                  styles.content,
-                  {
-                    padding: sizeConfig.contentPadding,
-                    paddingTop: variant === 'default' ? sizeConfig.gap : 0,
-                  }
-                ]}
             >
+                <ThemedView
+                    style={[
+                      styles.content,
+                      {
+                        padding: sizeConfig.contentPadding,
+                        paddingTop: variant === 'default' ? sizeConfig.gap : 0,
+                      }
+                    ]}
+                >
               {/* Subtle separator for default variant */}
               {variant === 'default' && (
                   <ThemedView
@@ -289,6 +291,7 @@ export function Collapsible({
               )}
 
               {children}
+                </ThemedView>
             </Animated.View>
         )}
       </ThemedView>

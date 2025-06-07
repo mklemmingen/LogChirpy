@@ -379,7 +379,7 @@ class BirdDexDatabase {
             await this.processChunk(chunk, database);
 
             const loadedRecords = Math.min((batchCount + 1) * config.batchSize, validRows.length);
-            const progress = 20 + Math.round((loadedRecords / validRows.length) * 60); // 20-80% range
+            const progress = 20 + Math.round((loadedRecords / validRows.length) * 65); // 20-85% range
 
             this.updateState({
                 progress,
@@ -452,13 +452,21 @@ class BirdDexDatabase {
 
         try {
             database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_english ON birddex(english_name COLLATE NOCASE);');
+            this.updateState({ progress: 88 });
+            
             database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_scientific ON birddex(scientific_name COLLATE NOCASE);');
+            this.updateState({ progress: 91 });
+            
             database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_category ON birddex(category);');
+            this.updateState({ progress: 94 });
+            
             database.execSync('CREATE INDEX IF NOT EXISTS idx_birddex_family ON birddex(family);');
+            this.updateState({ progress: 97 });
 
             // Optimize database
             database.execSync('PRAGMA optimize;');
             database.execSync('ANALYZE birddex;');
+            this.updateState({ progress: 99 });
         } catch (err) {
             console.warn('Index creation failed:', err);
         }
