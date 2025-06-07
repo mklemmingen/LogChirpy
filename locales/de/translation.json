@@ -138,7 +138,33 @@
   "settings": {
     "language": "Sprache ändern",
     "enable_gps_logging": "GPS-Ortungsprotokoll aktivieren",
-    "logging": "Protokoll-Einstellungen"
+    "logging": "Protokoll-Einstellungen",
+    "tutorial": {
+      "title": "App-Tutorial",
+      "subtitle": "Lernen Sie, wie Sie LogChirpy effektiv nutzen",
+      "how_to_use": {
+        "title": "Wie man LogChirpy verwendet",
+        "description": "LogChirpy ist Ihr digitaler Vogelbeobachtungsbegleiter, der Ihnen hilft, Vögel zu identifizieren, zu protokollieren und zu verfolgen. Verwenden Sie die Hauptkamera für die Echtzeit-Vogelerkennung, machen Sie Fotos und Videos, nehmen Sie Audio auf oder protokollieren Sie Sichtungen manuell. Die App funktioniert sowohl online als auch offline für den Feldeinsatz."
+      },
+      "image_processing": {
+        "title": "Was passiert mit Ihren Bildern",
+        "description": "Fotos werden lokal auf Ihrem Gerät mit KI-Modellen für die Vogelidentifikation verarbeitet. Bilder werden temporär im Dokumentenordner Ihres Geräts gespeichert und können über die Galerie-Seite manuell in Ihre Fotogalerie gespeichert werden. Keine Bilder werden automatisch auf externe Server hochgeladen."
+      },
+      "ai_models": {
+        "title": "Wie KI-Modelle funktionieren",
+        "description": "LogChirpy verwendet maschinelle Lernmodelle auf dem Gerät (TensorFlow Lite) für die Echtzeit-Vogelerkennung und -klassifikation. Modelle laufen vollständig auf Ihrem Gerät und gewährleisten Privatsphäre und Offline-Funktionalität. Die App enthält sowohl Objekterkennungs- als auch Bildklassifikationsmodelle, die für mobile Leistung optimiert sind."
+      },
+      "data_privacy": {
+        "title": "Firebase & Datenschutz",
+        "description": "Ihre Vogelbeobachtungsprotokolle werden sicher in Firebase Firestore mit Ende-zu-Ende-Verschlüsselung gespeichert. Nur wesentliche Daten wie Vogelart, Standort (falls aktiviert), Datum und Notizen werden synchronisiert. Die Authentifizierung wird sicher über Firebase Auth abgewickelt. Keine persönlichen Bilder oder Audioaufnahmen werden zu Firebase hochgeladen - sie bleiben auf Ihrem Gerät."
+      }
+    },
+    "about": {
+      "title": "Über LogChirpy",
+      "subtitle": "Lernen Sie das Team hinter Ihrem Vogelbeobachtungsbegleiter kennen",
+      "app_description": "Eine moderne, KI-gestützte Vogelbeobachtungs- und Protokollierungsanwendung für Naturliebhaber und Vogelbeobachter aller Erfahrungsstufen.",
+      "created_by": "Erstellt von"
+    }
   },
   "audio": {
     "start": "Aufnahme starten",
