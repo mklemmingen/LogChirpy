@@ -289,7 +289,33 @@
   "settings": {
     "language": "Change Language",
     "enable_gps_logging": "Enable GPS Location Logging",
-    "logging": "Logging Settings"
+    "logging": "Logging Settings",
+    "tutorial": {
+      "title": "App Tutorial",
+      "subtitle": "Learn how to use LogChirpy effectively",
+      "how_to_use": {
+        "title": "How to Use LogChirpy",
+        "description": "LogChirpy is your digital birding companion that helps you identify, log, and track bird sightings. Use the main camera for real-time bird detection, capture photos and videos, record audio, or manually log sightings. The app works both online and offline for field use."
+      },
+      "image_processing": {
+        "title": "What Happens to Your Images",
+        "description": "Photos are processed locally on your device using AI models for bird identification. Images are temporarily stored in your device's document folder and can be saved to your photo gallery manually through the Gallery page. No images are automatically uploaded to external servers."
+      },
+      "ai_models": {
+        "title": "How AI Models Work",
+        "description": "LogChirpy uses on-device machine learning models (TensorFlow Lite) for real-time bird detection and classification. Models run entirely on your device, ensuring privacy and enabling offline functionality. The app includes both object detection and image classification models optimized for mobile performance."
+      },
+      "data_privacy": {
+        "title": "Firebase & Data Privacy",
+        "description": "Your bird spotting logs are securely stored in Firebase Firestore with end-to-end encryption. Only essential data like bird type, location (if enabled), date, and notes are synchronized. Authentication is handled securely through Firebase Auth. No personal images or audio recordings are uploaded to Firebase - they remain on your device."
+      }
+    },
+    "about": {
+      "title": "About LogChirpy",
+      "subtitle": "Meet the team behind your birding companion",
+      "app_description": "A modern, AI-powered bird watching and logging application designed for nature enthusiasts and bird watchers of all levels.",
+      "created_by": "Created by"
+    }
   },
   "audio": {
     "start": "Start recording",

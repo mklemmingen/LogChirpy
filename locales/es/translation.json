@@ -138,7 +138,33 @@
   "settings": {
     "language": "Cambiar idioma",
     "enable_gps_logging": "Activar registro de GPS",
-    "logging": "Ajustes de registro"
+    "logging": "Ajustes de registro",
+    "tutorial": {
+      "title": "Tutorial de la App",
+      "subtitle": "Aprende a usar LogChirpy de manera efectiva",
+      "how_to_use": {
+        "title": "Cómo usar LogChirpy",
+        "description": "LogChirpy es tu compañero digital de observación de aves que te ayuda a identificar, registrar y rastrear avistamientos de aves. Usa la cámara principal para detección de aves en tiempo real, captura fotos y videos, graba audio o registra avistamientos manualmente. La app funciona tanto en línea como sin conexión para uso en el campo."
+      },
+      "image_processing": {
+        "title": "Qué sucede con tus imágenes",
+        "description": "Las fotos se procesan localmente en tu dispositivo usando modelos de IA para identificación de aves. Las imágenes se almacenan temporalmente en la carpeta de documentos de tu dispositivo y pueden guardarse en tu galería de fotos manualmente a través de la página de Galería. Ninguna imagen se sube automáticamente a servidores externos."
+      },
+      "ai_models": {
+        "title": "Cómo funcionan los modelos de IA",
+        "description": "LogChirpy utiliza modelos de aprendizaje automático en el dispositivo (TensorFlow Lite) para detección y clasificación de aves en tiempo real. Los modelos se ejecutan completamente en tu dispositivo, garantizando privacidad y funcionalidad sin conexión. La app incluye modelos de detección de objetos y clasificación de imágenes optimizados para rendimiento móvil."
+      },
+      "data_privacy": {
+        "title": "Firebase y Privacidad de Datos",
+        "description": "Tus registros de avistamientos de aves se almacenan de forma segura en Firebase Firestore con cifrado de extremo a extremo. Solo se sincronizan datos esenciales como tipo de ave, ubicación (si está habilitada), fecha y notas. La autenticación se maneja de forma segura a través de Firebase Auth. Ninguna imagen personal o grabación de audio se sube a Firebase - permanecen en tu dispositivo."
+      }
+    },
+    "about": {
+      "title": "Acerca de LogChirpy",
+      "subtitle": "Conoce al equipo detrás de tu compañero de observación de aves",
+      "app_description": "Una aplicación moderna de observación y registro de aves impulsada por IA, diseñada para entusiastas de la naturaleza y observadores de aves de todos los niveles.",
+      "created_by": "Creado por"
+    }
   },
   "audio": {
     "start": "Iniciar grabación",

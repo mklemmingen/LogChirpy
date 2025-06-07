@@ -762,4 +762,69 @@ const createStyles = (dimensions: ReturnType<typeof useResponsiveDimensions>) =>
     appName: {
         fontWeight: '600',
     },
+
+    // Tutorial Section
+    tutorialCard: {
+        padding: 0,
+    },
+    tutorialContent: {
+        padding: dimensions.card.padding.lg,
+        gap: dimensions.layout.componentSpacing,
+    },
+    tutorialSectionTitle: {
+        fontWeight: '600',
+        marginTop: dimensions.layout.componentSpacing / 2,
+    },
+    tutorialText: {
+        lineHeight: dimensions.screen.isSmall ? 18 : 20,
+    },
+
+    // About Section
+    aboutCard: {
+        padding: 0,
+    },
+    aboutContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: dimensions.card.padding.lg,
+        gap: dimensions.layout.componentSpacing,
+    },
+    aboutIcon: {
+        width: dimensions.icon.xxl * 1.5,
+        height: dimensions.icon.xxl * 1.5,
+        borderRadius: (dimensions.icon.xxl * 1.5) / 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    aboutText: {
+        flex: 1,
+        gap: dimensions.layout.componentSpacing / 3,
+    },
+    appTitle: {
+        fontWeight: 'bold',
+    },
+    appDescription: {
+        lineHeight: dimensions.screen.isSmall ? 18 : 20,
+    },
+    creatorsSection: {
+        padding: dimensions.card.padding.lg,
+        paddingTop: 0,
+        gap: dimensions.layout.componentSpacing / 2,
+    },
+    creatorsTitle: {
+        fontWeight: '600',
+        marginBottom: dimensions.layout.componentSpacing / 2,
+    },
+    creatorCard: {
+        borderRadius: dimensions.card.borderRadius.sm,
+        padding: dimensions.card.padding.sm,
+    },
+    creatorContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: dimensions.layout.componentSpacing / 2,
+    },
+    creatorName: {
+        fontWeight: '500',
+    },
 });
