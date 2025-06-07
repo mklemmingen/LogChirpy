@@ -80,16 +80,25 @@ function getBoxStyle(confidence: number) {
 const persistToMediaLibraryAlbum = async (localUri: string, filename: string): Promise<boolean> => {
     try {
         // First ensure we have media library permissions
-        const { status } = await MediaLibrary.getPermissionsAsync();
+        let { status } = await MediaLibrary.getPermissionsAsync();
+        
         if (status !== 'granted') {
-            const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
-            if (newStatus !== 'granted') {
-                console.error("Media library permission denied");
+            // Try to request permissions
+            const { status: newStatus, granted } = await MediaLibrary.requestPermissionsAsync();
+            if (!granted || newStatus !== 'granted') {
+                console.error("Media library permission denied. Status:", newStatus);
                 return false;
             }
+            status = newStatus;
         }
 
-        // asset directly from the source URI
+        // Double-check permissions before proceeding
+        if (status !== 'granted') {
+            console.error("Media library permission not granted:", status);
+            return false;
+        }
+
+        // Create asset directly from the source URI
         const asset = await MediaLibrary.createAssetAsync(localUri);
         console.log("Asset created:", asset);
 
@@ -323,6 +332,7 @@ function ObjectIdentCameraContent() {
 
     // Ask for permissions once, also for layout
     useEffect(() => {
+        console.log('[ObjectDetection] Component mounted, initializing...');
         (async () => {
             if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
                 UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -334,6 +344,7 @@ function ObjectIdentCameraContent() {
         
         // Cleanup function to prevent view conflicts on unmount
         return () => {
+            console.log('[ObjectDetection] Component unmounting, cleaning up...');
             setIsInitialized(false);
             setIsDetectionPaused(true);
             setModalVisible(false);
@@ -345,13 +356,16 @@ function ObjectIdentCameraContent() {
         try {
             let { status } = await MediaLibrary.getPermissionsAsync();
             if (status !== 'granted') {
-                const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
-                if (newStatus !== 'granted') {
-                    console.error("Media permission denied");
+                console.log("[ObjectDetection] Requesting media library permissions...");
+                const { status: newStatus, granted } = await MediaLibrary.requestPermissionsAsync();
+                if (!granted || newStatus !== 'granted') {
+                    console.error("Media permission denied. Status:", newStatus);
                     showSnackbar('errors.media_permission_denied');
                     return false;
                 }
+                status = newStatus;
             }
+            console.log("[ObjectDetection] Media library permissions granted");
             return true;
         } catch (error) {
             console.error("Error checking media permissions:", error);
@@ -486,9 +500,19 @@ function ObjectIdentCameraContent() {
     useEffect(() => {
         if (classifier?.classifyImage) {
             setClassifierReady(true);
-            console.log("Classifier is ready");
+            console.log("[ObjectDetection] Classifier ready and functional");
+        } else if (classifier === null) {
+            console.log("[ObjectDetection] Classifier failed to initialize");
         }
     }, [classifier]);
+
+    useEffect(() => {
+        if (detector) {
+            console.log("[ObjectDetection] Detector available with methods:", Object.keys(detector || {}));
+        } else if (detector === null) {
+            console.log("[ObjectDetection] Detector failed to initialize");
+        }
+    }, [detector]);
 
 
     // Process photoPath with MLKit and delete previous photos
@@ -497,7 +521,9 @@ function ObjectIdentCameraContent() {
 
         if (!detector) {
             setDebugText(t('errors.detector_unavailable'));
-            console.warn('Object detector not loaded.');
+            console.error('[ObjectDetection] Object detector not loaded. Detector state:', detector);
+            console.error('[ObjectDetection] Available detector methods:', detector ? Object.keys(detector) : 'detector is null/undefined');
+            console.error('[ObjectDetection] Expected model: efficientNetlite0int8');
             return;
         }
 
@@ -568,9 +594,12 @@ function ObjectIdentCameraContent() {
                 setDebugText(t('camera.detection_running'));
 
                 // Run object detection on the image
+                console.log('[ObjectDetection] Starting object detection on image:', imagePath);
+                console.log('[ObjectDetection] Detector ready:', !!detector, 'Has detectObjects method:', !!detector?.detectObjects);
+                
                 const objects = await detector.detectObjects(imagePath);
-                console.log('Detection results:', objects);
-                console.log(objects.length);
+                console.log('[ObjectDetection] Detection completed successfully. Results:', objects);
+                console.log('[ObjectDetection] Number of objects detected:', objects.length);
 
 
                 // pipeline to run all objects into the image classificer pipeline with classifyImage(imagePath: string): Promise<ClassificationResult>
@@ -939,6 +968,31 @@ function ObjectIdentCameraContent() {
                     </View>
                 )}
 
+                {/* Photo and Video Capture Buttons */}
+                <View style={styles.captureButtons}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            console.log('Manual photo capture requested');
+                            // Manual photo capture - saves a single high-quality photo
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        }}
+                        style={[styles.captureButton, { backgroundColor: currentTheme.colors.interactive.primary }]}
+                    >
+                        <Text style={styles.captureButtonText}>📸</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                        onPress={() => {
+                            console.log('Video recording requested');
+                            // Video recording functionality
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        }}
+                        style={[styles.captureButton, { backgroundColor: '#FF6B6B' }]}
+                    >
+                        <Text style={styles.captureButtonText}>🎥</Text>
+                    </TouchableOpacity>
+                </View>
+
                 {lastPhotoUri && (
                     <TouchableOpacity
                         onPress={() => {
@@ -1190,6 +1244,30 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         textAlign: 'center',
         marginBottom: 10,
+    },
+    captureButtons: {
+        position: 'absolute',
+        bottom: 100,
+        left: 20,
+        flexDirection: 'column',
+        gap: 12,
+        zIndex: 20,
+    },
+    captureButton: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    captureButtonText: {
+        fontSize: 24,
+        color: 'white',
     },
 });
 

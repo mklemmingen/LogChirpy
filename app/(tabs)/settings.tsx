@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {I18nManager, ScrollView, StyleSheet, Switch, Text, useColorScheme, View,} from "react-native";
+import {I18nManager, Linking, ScrollView, StyleSheet, Switch, Text, useColorScheme, View,} from "react-native";
 import {useTranslation} from "react-i18next";
 import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
@@ -474,35 +474,129 @@ export default function ModernSettingsScreen() {
                     />
                 </ThemedView>
 
-                {/* App Info Section */}
-                <Animated.View
-                    entering={FadeInDown.delay(300).springify()}
-                    layout={Layout.springify()}
-                >
-                    <Card style={styles.infoCard}>
-                        <View style={styles.infoContent}>
-                            <View style={[
-                                styles.infoIcon,
-                                { backgroundColor: colors.background.secondary }
-                            ]}>
-                                <ThemedIcon
-                                    name="feather"
-                                    size={20}
-                                    color="primary"
-                                />
+                {/* Tutorial Section */}
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        {t("settings.tutorial.title")}
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        {t("settings.tutorial.subtitle")}
+                    </ThemedText>
+                    
+                    <Animated.View
+                        entering={FadeInDown.delay(250).springify()}
+                        layout={Layout.springify()}
+                    >
+                        <Card style={styles.tutorialCard}>
+                            <View style={styles.tutorialContent}>
+                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                    {t("settings.tutorial.how_to_use.title")}
+                                </ThemedText>
+                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                    {t("settings.tutorial.how_to_use.description")}
+                                </ThemedText>
+                                
+                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                    {t("settings.tutorial.image_processing.title")}
+                                </ThemedText>
+                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                    {t("settings.tutorial.image_processing.description")}
+                                </ThemedText>
+                                
+                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                    {t("settings.tutorial.ai_models.title")}
+                                </ThemedText>
+                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                    {t("settings.tutorial.ai_models.description")}
+                                </ThemedText>
+                                
+                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                    {t("settings.tutorial.data_privacy.title")}
+                                </ThemedText>
+                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                    {t("settings.tutorial.data_privacy.description")}
+                                </ThemedText>
                             </View>
+                        </Card>
+                    </Animated.View>
+                </ThemedView>
 
-                            <View style={styles.infoText}>
-                                <ThemedText variant="body" style={styles.appName}>
-                                    LogChirpy
-                                </ThemedText>
-                                <ThemedText variant="label" color="secondary">
-                                    Your Digital Birding Companion
-                                </ThemedText>
+                {/* About Section */}
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        {t("settings.about.title")}
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        {t("settings.about.subtitle")}
+                    </ThemedText>
+                    
+                    <Animated.View
+                        entering={FadeInDown.delay(300).springify()}
+                        layout={Layout.springify()}
+                    >
+                        <Card style={styles.aboutCard}>
+                            <View style={styles.aboutContent}>
+                                <View style={[
+                                    styles.aboutIcon,
+                                    { backgroundColor: colors.background.secondary }
+                                ]}>
+                                    <ThemedIcon
+                                        name="feather"
+                                        size={32}
+                                        color="primary"
+                                    />
+                                </View>
+                                
+                                <View style={styles.aboutText}>
+                                    <ThemedText variant="h3" style={styles.appTitle}>
+                                        LogChirpy
+                                    </ThemedText>
+                                    <ThemedText variant="body" color="secondary" style={styles.appDescription}>
+                                        {t("settings.about.app_description")}
+                                    </ThemedText>
+                                </View>
                             </View>
-                        </View>
-                    </Card>
-                </Animated.View>
+                            
+                            <View style={styles.creatorsSection}>
+                                <ThemedText variant="bodyLarge" style={styles.creatorsTitle}>
+                                    {t("settings.about.created_by")}
+                                </ThemedText>
+                                
+                                <ThemedPressable
+                                    variant="ghost"
+                                    onPress={() => {
+                                        Haptics.selectionAsync();
+                                        Linking.openURL('https://github.com/mklemmingen');
+                                    }}
+                                    style={styles.creatorCard}
+                                >
+                                    <View style={styles.creatorContent}>
+                                        <ThemedIcon name="github" size={20} color="primary" />
+                                        <ThemedText variant="body" style={styles.creatorName}>
+                                            Marty "mklemmingen" Lauterbach
+                                        </ThemedText>
+                                    </View>
+                                </ThemedPressable>
+                                
+                                <ThemedPressable
+                                    variant="ghost"
+                                    onPress={() => {
+                                        Haptics.selectionAsync();
+                                        Linking.openURL('https://github.com/luisluis8414');
+                                    }}
+                                    style={styles.creatorCard}
+                                >
+                                    <View style={styles.creatorContent}>
+                                        <ThemedIcon name="github" size={20} color="primary" />
+                                        <ThemedText variant="body" style={styles.creatorName}>
+                                            Luis Wehrberger
+                                        </ThemedText>
+                                    </View>
+                                </ThemedPressable>
+                            </View>
+                        </Card>
+                    </Animated.View>
+                </ThemedView>
             </ScrollView>
         </ThemedSafeAreaView>
     );

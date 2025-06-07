@@ -425,12 +425,30 @@ export default function ArchiveScreen() {
       <ThemedSafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText variant="h2" style={styles.title}>
-            {t('archive.title')}
-          </ThemedText>
-          <ThemedText variant="body" color="secondary" style={styles.subtitle}>
-            {t('archive.subtitle', {count: filteredSpottings.length})}
-          </ThemedText>
+          <View style={styles.headerContent}>
+            <View style={styles.headerText}>
+              <ThemedText variant="h2" style={styles.title}>
+                {t('archive.title')}
+              </ThemedText>
+              <ThemedText variant="body" color="secondary" style={styles.subtitle}>
+                {t('archive.subtitle', {count: filteredSpottings.length})}
+              </ThemedText>
+            </View>
+            <ThemedPressable
+              variant="secondary"
+              size="sm"
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push('/archive/gallery');
+              }}
+              style={styles.galleryButton}
+            >
+              <ThemedIcon name="image" size={16} color="secondary" />
+              <ThemedText variant="labelMedium" color="secondary">
+                {t('archive.gallery')}
+              </ThemedText>
+            </ThemedPressable>
+          </View>
         </View>
 
         {/* Search and Actions */}
@@ -600,12 +618,25 @@ function createStyles(dimensions: ReturnType<typeof useResponsiveDimensions>) {
       paddingTop: dimensions.layout.componentSpacing,
       paddingBottom: dimensions.layout.sectionSpacing,
     },
+    headerContent: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+    },
+    headerText: {
+      flex: 1,
+      marginRight: dimensions.layout.componentSpacing,
+    },
     title: {
       fontWeight: 'bold',
       marginBottom: dimensions.layout.componentSpacing / 4,
     },
     subtitle: {
       opacity: 0.8,
+    },
+    galleryButton: {
+      flexDirection: 'row',
+      gap: dimensions.layout.componentSpacing / 4,
     },
 
     // Search styles moved to createSearchStyles function above

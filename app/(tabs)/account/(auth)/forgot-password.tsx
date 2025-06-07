@@ -169,7 +169,7 @@ export default function ForgotPasswordScreen() {
                 onPress={handleBack}
                 style={styles.backButton}
             >
-                <ThemedText variant="labelLarge" color="primary">
+                <ThemedText variant="labelLarge" style={{ color: semanticColors.background }}>
                     {t('auth.back_to_login')}
                 </ThemedText>
             </ThemedPressable>
@@ -261,7 +261,7 @@ export default function ForgotPasswordScreen() {
                     disabled={isLoading || !email.trim()}
                     style={styles.submitButton}
                 >
-                    <ThemedText variant="labelLarge" color="primary">
+                    <ThemedText variant="labelLarge" style={{ color: semanticColors.background }}>
                         {t('auth.send_reset')}
                     </ThemedText>
                 </ThemedPressable>

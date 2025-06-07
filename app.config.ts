@@ -43,8 +43,7 @@ export default {
         "ACCESS_MEDIA_LOCATION"
       ],
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#FAFAFA"
+        foregroundImage: "./assets/images/adaptive-icon.png"
       },
       gradleProperties: {
         "android.useAndroidX": "true",

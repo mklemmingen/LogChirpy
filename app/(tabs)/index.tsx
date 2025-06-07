@@ -70,19 +70,22 @@ export default function HomeScreen() {
    * @param {number} delay - Animation delay for staggered effect
    * @returns {Object} Animated style object with transform
    */
-  const getFloatingStyle = (delay: number) => {
-    return useAnimatedStyle(() => ({
-      transform: [
-        {
-          translateY: interpolate(
-            floatAnimation.value,
-            [0, 1],
-            [0, -dimensions.screen.isSmall ? 2 : 4]
-          ) * Math.sin(Date.now() / 1000 + delay),
-        },
-      ],
-    }));
-  };
+  const getFloatingStyle = React.useCallback((delay: number) => {
+    return useAnimatedStyle(() => {
+      'worklet';
+      return {
+        transform: [
+          {
+            translateY: interpolate(
+              floatAnimation.value,
+              [0, 1],
+              [0, -dimensions.screen.isSmall ? 2 : 4]
+            ) * Math.sin(floatAnimation.value * 2 + delay),
+          },
+        ],
+      };
+    });
+  }, [floatAnimation, dimensions.screen.isSmall]);
 
   const features: FeatureAction[] = [
     {
@@ -192,10 +195,11 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {/* Background animations */}
-
-
       <ThemedSafeAreaView style={styles.safeArea}>
+
+        {/* Bird Animation */}
+        <BirdAnimation numberOfBirds={3} />
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
