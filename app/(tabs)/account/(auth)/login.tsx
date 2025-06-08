@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     Dimensions,
     KeyboardAvoidingView,
@@ -14,6 +14,8 @@ import {useTranslation} from 'react-i18next';
 import {BlurView} from 'expo-blur';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
+import {useIsFocused} from '@react-navigation/native';
+import {SafeViewManager} from '@/components/SafeViewManager';
 
 // Firebase imports
 import {signInWithEmailAndPassword} from 'firebase/auth';
@@ -173,12 +175,27 @@ export default function ModernLoginScreen() {
     const typography = useTypography();
     const { showError, showSuccess, SnackbarComponent } = useSnackbar();
     const dimensions = useResponsiveDimensions();
+    const isFocused = useIsFocused();
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
+    
+    if (!isFocused) {
+        return null;
+    }
 
     // Form state
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
+    
+    // Memory leak prevention
+    const mountedRef = useRef(true);
 
 
     // Form validation
@@ -199,30 +216,38 @@ export default function ModernLoginScreen() {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Login handler
+    // Enhanced login handler with memory leak prevention
     const handleLogin = async () => {
         if (!validateForm()) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             return;
         }
 
-        setIsLoading(true);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        if (mountedRef.current) {
+            setIsLoading(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
 
         try {
             // Firebase authentication
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             console.log('Login successful:', userCredential.user);
 
-            showSuccess('Welcome back!');
+            if (mountedRef.current) {
+                showSuccess('Welcome back!');
 
-            // Navigate to account tab instead of tabs root to avoid navigation conflicts
-            setTimeout(() => {
-                router.replace('/(tabs)/account');
-            }, 1000);
+                // Navigate to account tab instead of tabs root to avoid navigation conflicts
+                setTimeout(() => {
+                    if (mountedRef.current) {
+                        router.replace('/(tabs)/account');
+                    }
+                }, 1000);
+            }
 
         } catch (error: unknown) {
             console.error('Login error:', error);
+
+            if (!mountedRef.current) return;
 
             // Map Firebase errors to user-friendly messages
             let errorMessage = t('errors.sign_in_error');
@@ -253,7 +278,9 @@ export default function ModernLoginScreen() {
             showError(errorMessage);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         } finally {
-            setIsLoading(false);
+            if (mountedRef.current) {
+                setIsLoading(false);
+            }
         }
     };
 
@@ -271,7 +298,8 @@ export default function ModernLoginScreen() {
 
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
+        <SafeViewManager enabled={isFocused}>
+            <ThemedSafeAreaView style={styles.container}>
             {/* Background Elements */}
             <View style={styles.backgroundElements}>
                 <View style={[
@@ -404,7 +432,8 @@ export default function ModernLoginScreen() {
 
             {/* Snackbar */}
             <SnackbarComponent />
-        </ThemedSafeAreaView>
+            </ThemedSafeAreaView>
+        </SafeViewManager>
     );
 }
 

@@ -38,6 +38,19 @@ function SimpleObjectDetectCamera() {
     const colorScheme = useColorScheme() ?? 'light';
     const currentTheme = theme[colorScheme];
     const isFocused = useIsFocused();
+    
+    // Early return if not focused to prevent view hierarchy conflicts
+    if (!isFocused) {
+        return (
+            <ThemedSafeAreaView style={styles.container}>
+                <View style={styles.centered}>
+                    <Text style={{ color: currentTheme.colors.text.primary }}>
+                        {t('camera.tab_not_focused')}
+                    </Text>
+                </View>
+            </ThemedSafeAreaView>
+        );
+    }
 
     // Camera setup
     const device = useCameraDevice('back');
@@ -70,14 +83,20 @@ function SimpleObjectDetectCamera() {
     const detector = useObjectDetection<MyModelsConfig>('efficientNetlite0int8');
     const classifier = useImageLabeling('birdClassifier');
 
-    // Initialization state tracking
+    // Initialization state tracking with focus coordination
     const [initState, setInitState] = useState({
         camera: false,
         audio: false,
         detector: false,
         classifier: false,
         birdnet: false,
+        fullyInitialized: false,
     });
+    
+    // Refs for cleanup coordination
+    const audioIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const cleanupInProgressRef = useRef(false);
 
     // Initialize permissions and services
     useEffect(() => {
@@ -125,35 +144,70 @@ function SimpleObjectDetectCamera() {
         initializeServices();
     }, [hasPermission, requestPermission]);
 
-    // Track ML Kit initialization
+    // Coordinated ML Kit initialization tracking
     useEffect(() => {
-        if (detector) {
-            console.log('[ObjectDetection] Detector available:', !!detector.detectObjects);
-            setInitState(prev => ({ ...prev, detector: !!detector.detectObjects }));
+        // Only track ML Kit if tab is focused to prevent race conditions
+        if (!isFocused) return;
+        
+        const detectorReady = detector && !!detector.detectObjects;
+        const classifierReady = classifier && !!classifier.classifyImage;
+        
+        if (detectorReady && !initState.detector) {
+            console.log('[ObjectDetection] Detector available:', detectorReady);
+            setInitState(prev => ({ ...prev, detector: true }));
         }
-    }, [detector]);
-
-    useEffect(() => {
-        if (classifier) {
-            console.log('[ObjectDetection] Classifier available:', !!classifier.classifyImage);
-            setInitState(prev => ({ ...prev, classifier: !!classifier.classifyImage }));
+        
+        if (classifierReady && !initState.classifier) {
+            console.log('[ObjectDetection] Classifier available:', classifierReady);
+            setInitState(prev => ({ ...prev, classifier: true }));
         }
-    }, [classifier]);
+        
+        // Update full initialization status
+        const fullyInitialized = initState.camera && initState.audio && detectorReady && classifierReady;
+        if (fullyInitialized && !initState.fullyInitialized) {
+            console.log('[ObjectDetection] All systems fully initialized');
+            setInitState(prev => ({ ...prev, fullyInitialized: true }));
+        }
+    }, [isFocused, detector, classifier, initState]);
 
-    // Camera lifecycle management
+    // Enhanced camera lifecycle management with focus coordination
     const handleCameraReady = useCallback(() => {
+        // Only activate camera if tab is focused
+        if (!isFocused || cleanupInProgressRef.current) {
+            console.log('[ObjectDetection] Camera ready but tab not focused, deferring activation');
+            return;
+        }
+        
         console.log('[ObjectDetection] Camera ready callback triggered');
         setCameraReady(true);
         setIsActive(true);
         setDebugText('Camera ready - Starting detection...');
-    }, []);
+    }, [isFocused]);
 
     const handleCameraUnmount = useCallback(() => {
         console.log('[ObjectDetection] Camera unmount callback triggered');
+        cleanupInProgressRef.current = true;
+        
+        // Clear all intervals immediately
+        if (audioIntervalRef.current) {
+            clearInterval(audioIntervalRef.current);
+            audioIntervalRef.current = null;
+        }
+        
+        if (detectionIntervalRef.current) {
+            clearInterval(detectionIntervalRef.current);
+            detectionIntervalRef.current = null;
+        }
+        
         setCameraReady(false);
         setIsActive(false);
         setDetections([]);
         setDebugText('Camera stopped');
+        
+        // Reset cleanup flag
+        setTimeout(() => {
+            cleanupInProgressRef.current = false;
+        }, 100);
     }, []);
 
     // Update debug text based on initialization state
@@ -248,16 +302,30 @@ function SimpleObjectDetectCamera() {
         }
     }, [t]);
 
-    // 5-second audio recording cycle
+    // Enhanced audio recording cycle with focus coordination
     useEffect(() => {
-        if (!isActive || !cameraReady || !audioPermission) return;
+        // Only start audio if tab is focused and all prerequisites are met
+        if (!isFocused || !isActive || !cameraReady || !audioPermission || cleanupInProgressRef.current) {
+            return;
+        }
 
+        console.log('[ObjectDetection] Starting audio recording cycle');
+        
         const audioInterval = setInterval(async () => {
+            // Check if still focused before processing
+            if (!isFocused || cleanupInProgressRef.current) {
+                return;
+            }
+            
             // Start recording
             await startAudioRecording();
             
             // Stop after 5 seconds and classify
-            setTimeout(async () => {
+            const audioTimeout = setTimeout(async () => {
+                if (!isFocused || cleanupInProgressRef.current) {
+                    return;
+                }
+                
                 const audioUri = await stopAudioRecording();
                 if (audioUri) {
                     await classifyAudio(audioUri);
@@ -270,12 +338,21 @@ function SimpleObjectDetectCamera() {
                     }
                 }
             }, 5000);
+            
+            // Store timeout for cleanup
+            return () => clearTimeout(audioTimeout);
         }, 5000);
+        
+        audioIntervalRef.current = audioInterval;
 
         return () => {
-            clearInterval(audioInterval);
+            console.log('[ObjectDetection] Cleaning up audio recording cycle');
+            if (audioIntervalRef.current) {
+                clearInterval(audioIntervalRef.current);
+                audioIntervalRef.current = null;
+            }
         };
-    }, [isActive, cameraReady, audioPermission, startAudioRecording, stopAudioRecording, classifyAudio]);
+    }, [isFocused, isActive, cameraReady, audioPermission, startAudioRecording, stopAudioRecording, classifyAudio]);
 
     // Object detection pipeline
     const detectObjects = useCallback(async () => {
@@ -343,13 +420,71 @@ function SimpleObjectDetectCamera() {
         }
     }, [detector, classifier, isProcessing, t]);
 
-    // Auto-detect every 2 seconds
+    // Enhanced auto-detect with focus coordination
     useEffect(() => {
-        if (!isActive || !cameraReady) return;
+        // Only start detection if tab is focused and all prerequisites are met
+        if (!isFocused || !isActive || !cameraReady || cleanupInProgressRef.current) {
+            return;
+        }
 
-        const detectionInterval = setInterval(detectObjects, 2000);
-        return () => clearInterval(detectionInterval);
-    }, [isActive, cameraReady, detectObjects]);
+        console.log('[ObjectDetection] Starting detection cycle');
+        
+        const detectionInterval = setInterval(() => {
+            // Check if still focused before processing
+            if (!isFocused || cleanupInProgressRef.current) {
+                return;
+            }
+            detectObjects();
+        }, 2000);
+        
+        detectionIntervalRef.current = detectionInterval;
+
+        return () => {
+            console.log('[ObjectDetection] Cleaning up detection cycle');
+            if (detectionIntervalRef.current) {
+                clearInterval(detectionIntervalRef.current);
+                detectionIntervalRef.current = null;
+            }
+        };
+    }, [isFocused, isActive, cameraReady, detectObjects]);
+    
+    // Comprehensive cleanup when focus is lost
+    useEffect(() => {
+        if (!isFocused) {
+            console.log('[ObjectDetection] Tab unfocused, starting cleanup');
+            cleanupInProgressRef.current = true;
+            
+            // Clear all intervals
+            if (audioIntervalRef.current) {
+                clearInterval(audioIntervalRef.current);
+                audioIntervalRef.current = null;
+            }
+            
+            if (detectionIntervalRef.current) {
+                clearInterval(detectionIntervalRef.current);
+                detectionIntervalRef.current = null;
+            }
+            
+            // Stop any ongoing audio recording
+            if (recording) {
+                recording.stopAndUnloadAsync().catch(error => {
+                    console.warn('Failed to stop audio recording during cleanup:', error);
+                });
+                setRecording(null);
+            }
+            
+            // Reset states
+            setIsActive(false);
+            setCameraReady(false);
+            setDetections([]);
+            setIsProcessing(false);
+            
+            // Reset cleanup flag after a delay
+            setTimeout(() => {
+                cleanupInProgressRef.current = false;
+            }, 200);
+        }
+    }, [isFocused, recording]);
 
     // Show snackbar helper
     const showSnackbar = useCallback((message: string) => {

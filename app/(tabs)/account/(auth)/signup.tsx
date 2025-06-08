@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 import {useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
+import {useIsFocused} from '@react-navigation/native';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
+import {SafeViewManager} from '@/components/SafeViewManager';
 
 // Firebase imports
 import {createUserWithEmailAndPassword} from 'firebase/auth';
@@ -48,6 +50,11 @@ export default function ModernSignupScreen() {
     const typography = useTypography();
     const motion = useMotionValues();
     const { showError, showSuccess, SnackbarComponent } = useSnackbar();
+    const isFocused = useIsFocused();
+
+    if (!isFocused) {
+        return null;
+    }
 
     // Form state
     const [formState, setFormState] = useState<FormState>({
@@ -243,7 +250,8 @@ export default function ModernSignupScreen() {
     const isFormValid = formState.email.valid && formState.password.valid && formState.confirmPassword.valid;
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
+        <SafeViewManager enabled={isFocused}>
+            <ThemedSafeAreaView style={styles.container}>
             <KeyboardAvoidingView
                 style={styles.keyboardView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -447,7 +455,8 @@ export default function ModernSignupScreen() {
             </KeyboardAvoidingView>
 
             <SnackbarComponent />
-        </ThemedSafeAreaView>
+            </ThemedSafeAreaView>
+        </SafeViewManager>
     );
 }
 

@@ -2,7 +2,9 @@ import React, {useRef, useState} from 'react';
 import {KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View,} from 'react-native';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
+import {useIsFocused} from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import {SafeViewManager} from '@/components/SafeViewManager';
 
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
@@ -26,6 +28,11 @@ export default function ForgotPasswordScreen() {
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const snackbar = useSnackbar();
+    const isFocused = useIsFocused();
+
+    if (!isFocused) {
+        return null;
+    }
 
     // Form state
     const [email, setEmail] = useState('');
@@ -245,7 +252,8 @@ export default function ForgotPasswordScreen() {
     );
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
+        <SafeViewManager enabled={isFocused}>
+            <ThemedSafeAreaView style={styles.container}>
             <KeyboardAvoidingView
                 style={styles.keyboardView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -289,7 +297,8 @@ export default function ForgotPasswordScreen() {
 
             {/* Snackbar */}
             <snackbar.SnackbarComponent />
-        </ThemedSafeAreaView>
+            </ThemedSafeAreaView>
+        </SafeViewManager>
     );
 }
 

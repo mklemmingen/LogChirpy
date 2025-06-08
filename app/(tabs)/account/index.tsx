@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useRef} from 'react';
 import {Alert, Pressable, ScrollView, StyleSheet, Text, View,} from 'react-native';
 import {router, useFocusEffect} from 'expo-router';
 import {useIsFocused} from '@react-navigation/native';
@@ -27,13 +27,25 @@ export default function ModernAccountScreen() {
     const variants = useColorVariants();
     const { user, isAuthenticated, signOut: authSignOut, isLoading } = useAuth();
     const isFocused = useIsFocused();
+    
+    // Memory leak prevention
+    const mountedRef = useRef(true);
 
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
+    
     if (!isFocused) {
         return null;
     }
 
 
     const handleSignOut = async () => {
+        if (!mountedRef.current) return;
+        
         Alert.alert(
             t('account.signOutTitle', 'Sign Out'),
             t('account.signOutMessage', 'Are you sure you want to sign out?'),
@@ -46,14 +58,18 @@ export default function ModernAccountScreen() {
                     text: t('buttons.signout'),
                     style: 'destructive',
                     onPress: async () => {
+                        if (!mountedRef.current) return;
+                        
                         try {
                             await authSignOut();
                         } catch (error) {
                             console.error('Error signing out:', error);
-                            Alert.alert(
-                                t('common.error'),
-                                t('account.signOutError', 'Failed to sign out. Please try again.')
-                            );
+                            if (mountedRef.current) {
+                                Alert.alert(
+                                    t('common.error'),
+                                    t('account.signOutError', 'Failed to sign out. Please try again.')
+                                );
+                            }
                         }
                     },
                 },
@@ -64,7 +80,7 @@ export default function ModernAccountScreen() {
 
     useFocusEffect(
         React.useCallback(() => {
-            if (!isLoading && !isAuthenticated) {
+            if (!isLoading && !isAuthenticated && mountedRef.current) {
                 router.replace('/(tabs)/account/(auth)/login');
             }
         }, [isLoading, isAuthenticated])

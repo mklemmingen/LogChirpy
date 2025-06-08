@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, FlatList, StyleSheet, TextInput, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
@@ -194,6 +194,18 @@ export default function SmartSearch() {
     
     const styles = createStyles(theme, dimensions);
 
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            mountedRef.current = false;
+            
+            // Clear search timeout
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
+    }, []);
+    
     if (!isFocused) {
         return null;
     }
@@ -202,6 +214,10 @@ export default function SmartSearch() {
     const [results, setResults] = useState<SmartSearchResult[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
+    
+    // Memory leak prevention refs
+    const mountedRef = useRef(true);
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     /**
      * Calculates fuzzy matching score between query and target strings
@@ -290,17 +306,24 @@ export default function SmartSearch() {
      */
     const performSmartSearch = useCallback(async (query: string) => {
         if (!query.trim() || query.length < 2) {
-            setResults([]);
-            setHasSearched(false);
+            if (mountedRef.current) {
+                setResults([]);
+                setHasSearched(false);
+            }
             return;
         }
 
-        setLoading(true);
-        setHasSearched(true);
+        if (mountedRef.current) {
+            setLoading(true);
+            setHasSearched(true);
+        }
 
         try {
             // Get broader results from database
             const dbResults = searchBirdsByName(query, 50);
+
+            // Check if still mounted before processing
+            if (!mountedRef.current) return;
 
             // Score each result across all name fields
             const scoredResults: SmartSearchResult[] = [];
@@ -336,6 +359,9 @@ export default function SmartSearch() {
                 }
             });
 
+            // Check if still mounted before sorting and setting results
+            if (!mountedRef.current) return;
+
             // Sort by confidence score
             scoredResults.sort((a, b) => b.confidence - a.confidence);
 
@@ -344,19 +370,37 @@ export default function SmartSearch() {
 
         } catch (error) {
             console.error('Smart search error:', error);
-            setResults([]);
+            if (mountedRef.current) {
+                setResults([]);
+            }
         } finally {
-            setLoading(false);
+            if (mountedRef.current) {
+                setLoading(false);
+            }
         }
     }, [calculateMatchScore, t]);
 
-    // Debounced search
+    // Enhanced search with memory leak prevention
     useEffect(() => {
+        // Clear previous timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+        
         const timeoutId = setTimeout(() => {
-            performSmartSearch(searchQuery);
+            // Only perform search if component is still mounted
+            if (mountedRef.current) {
+                performSmartSearch(searchQuery);
+            }
         }, 300);
+        
+        searchTimeoutRef.current = timeoutId;
 
-        return () => clearTimeout(timeoutId);
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
     }, [searchQuery, performSmartSearch]);
 
     const handleResultPress = useCallback((item: SmartSearchResult) => {

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -11,9 +11,11 @@ import {
 import {Audio} from 'expo-av';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
+import {useIsFocused} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
+import {SafeViewManager} from '@/components/SafeViewManager';
 
 import {type BirdSpotting, getSpottingById} from '@/services/database';
 import {ModernCard} from '@/components/ModernCard';
@@ -260,25 +262,44 @@ export default function ModernArchiveDetailScreen() {
     const { t } = useTranslation();
     const router = useRouter();
     const theme = useTheme();
+    const isFocused = useIsFocused();
+
+    if (!isFocused) {
+        return null;
+    }
 
     const [entry, setEntry] = useState<SpottingDetail>(null);
     const [loading, setLoading] = useState(true);
     const [audioLoading, setAudioLoading] = useState(false);
     const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
+    
+    // Memory leak prevention
+    const mountedRef = useRef(true);
 
-    // Load spotting data
+    // Enhanced data loading with memory leak prevention
     useEffect(() => {
         const loadSpotting = async () => {
             try {
-                setLoading(true);
+                if (mountedRef.current) {
+                    setLoading(true);
+                }
+                
                 const data = getSpottingById(Number(id));
-                setEntry(data);
+                
+                // Check if component is still mounted before state update
+                if (mountedRef.current) {
+                    setEntry(data);
+                }
             } catch (e) {
                 console.error(e);
-                Alert.alert(t('archive.error'), t('archive.load_detail_failed'));
-                router.back();
+                if (mountedRef.current) {
+                    Alert.alert(t('archive.error'), t('archive.load_detail_failed'));
+                    router.back();
+                }
             } finally {
-                setLoading(false);
+                if (mountedRef.current) {
+                    setLoading(false);
+                }
             }
         };
 
@@ -287,20 +308,26 @@ export default function ModernArchiveDetailScreen() {
         }
     }, [id, t, router]);
 
-    // Cleanup audio on unmount
+    // Enhanced cleanup on unmount
     useEffect(() => {
         return () => {
+            mountedRef.current = false;
+            
             if (currentSound) {
-                currentSound.unloadAsync();
+                currentSound.unloadAsync().catch(error => {
+                    console.warn('Failed to unload audio during cleanup:', error);
+                });
             }
         };
     }, [currentSound]);
 
-    // Audio playback
+    // Enhanced audio playback with memory leak prevention
     const playAudio = useCallback(async (uri: string) => {
         try {
-            setAudioLoading(true);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (mountedRef.current) {
+                setAudioLoading(true);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
 
             if (currentSound) {
                 await currentSound.unloadAsync();
@@ -311,19 +338,27 @@ export default function ModernArchiveDetailScreen() {
                 { shouldPlay: true }
             );
 
-            setCurrentSound(sound);
+            if (mountedRef.current) {
+                setCurrentSound(sound);
+            }
 
             sound.setOnPlaybackStatusUpdate((status) => {
                 if (status.isLoaded && status.didJustFinish) {
                     sound.unloadAsync();
-                    setCurrentSound(null);
+                    if (mountedRef.current) {
+                        setCurrentSound(null);
+                    }
                 }
             });
         } catch (error) {
             console.error('Audio playback error:', error);
-            Alert.alert(t('archive.error'), t('archive.audio_play_failed'));
+            if (mountedRef.current) {
+                Alert.alert(t('archive.error'), t('archive.audio_play_failed'));
+            }
         } finally {
-            setAudioLoading(false);
+            if (mountedRef.current) {
+                setAudioLoading(false);
+            }
         }
     }, [currentSound, t]);
 
@@ -399,7 +434,8 @@ export default function ModernArchiveDetailScreen() {
     }
 
     return (
-        <ThemedView style={styles.container}>
+        <SafeViewManager enabled={isFocused}>
+            <ThemedView style={styles.container}>
             {/* Header */}
             <DetailHeader
                 entry={entry}
@@ -500,7 +536,8 @@ export default function ModernArchiveDetailScreen() {
                     />
                 </InfoSection>
             </ThemedScrollView>
-        </ThemedView>
+            </ThemedView>
+        </SafeViewManager>
     );
 }
 

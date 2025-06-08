@@ -1,11 +1,13 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
+import {useIsFocused} from '@react-navigation/native';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import {SafeViewManager} from '@/components/SafeViewManager';
 
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
@@ -205,6 +207,7 @@ export default function ModernBirdDexDetail() {
     const { code } = useLocalSearchParams<{ code: string }>();
     const { t, i18n } = useTranslation();
     const router = useRouter();
+    const isFocused = useIsFocused();
 
     // Modern theme hooks
     const semanticColors = useSemanticColors();
@@ -212,20 +215,42 @@ export default function ModernBirdDexDetail() {
     const typography = useTypography();
     const theme = useTheme();
 
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
+    
+    if (!isFocused) {
+        return null;
+    }
+
     const [rec, setRec] = useState<DetailRecord | null>(null);
     const [loading, setLoading] = useState(true);
+    
+    // Memory leak prevention
+    const mountedRef = useRef(true);
 
     useEffect(() => {
         const loadBirdDetail = async () => {
             if (!code) {
-                Alert.alert(t('birddex.error'), 'No species code provided');
-                router.back();
+                if (mountedRef.current) {
+                    Alert.alert(t('birddex.error'), 'No species code provided');
+                    router.back();
+                }
                 return;
             }
 
             try {
-                setLoading(true);
+                if (mountedRef.current) {
+                    setLoading(true);
+                }
+                
                 const bird = getBirdBySpeciesCode(code);
+
+                // Check if component is still mounted before state updates
+                if (!mountedRef.current) return;
 
                 if (bird) {
                     const detailRecord: DetailRecord = {
@@ -239,10 +264,14 @@ export default function ModernBirdDexDetail() {
                 }
             } catch (e) {
                 console.error('Load bird detail error:', e);
-                Alert.alert(t('birddex.error'), 'Failed to load bird details');
-                router.back();
+                if (mountedRef.current) {
+                    Alert.alert(t('birddex.error'), 'Failed to load bird details');
+                    router.back();
+                }
             } finally {
-                setLoading(false);
+                if (mountedRef.current) {
+                    setLoading(false);
+                }
             }
         };
 
@@ -321,7 +350,8 @@ export default function ModernBirdDexDetail() {
     ].filter(field => field.value && field.value.trim() !== '');
 
     return (
-        <ThemedView background="primary" style={styles.container}>
+        <SafeViewManager enabled={isFocused}>
+            <ThemedView background="primary" style={styles.container}>
             {/* Header */}
             <DetailHeader
                 bird={rec}
@@ -489,7 +519,8 @@ export default function ModernBirdDexDetail() {
                     </ModernCard>
                 </View>
             </ScrollView>
-        </ThemedView>
+            </ThemedView>
+        </SafeViewManager>
     );
 }
 

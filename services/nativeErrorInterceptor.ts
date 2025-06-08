@@ -5,7 +5,7 @@
  * and provides graceful recovery mechanisms.
  */
 
-import { Platform, NativeModules } from 'react-native';
+import { Platform, NativeModules, InteractionManager } from 'react-native';
 import { errorReporting } from './errorReporting';
 
 interface NativeError {
@@ -19,17 +19,34 @@ class NativeErrorInterceptor {
   private isInitialized = false;
   private errorCount = 0;
   private lastErrorTime = 0;
-  private readonly maxErrorsPerMinute = 10;
+  private readonly maxErrorsPerMinute = 5; // Reduced from 10 to 5 for better performance
+  private readonly errorWindowMs = 60000; // 1 minute window
+  private readonly navigationDebounceMs = 500; // Debounce navigation-related errors
+  private lastNavigationTime = 0;
+  private initializationPromise: Promise<void> | null = null;
 
   /**
-   * Initialize native error interception
+   * Initialize native error interception with improved timing
    */
-  initialize() {
+  async initialize() {
     if (this.isInitialized || Platform.OS !== 'android') {
       return;
     }
 
+    // Return existing promise if already initializing
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    this.initializationPromise = this.performInitialization();
+    return this.initializationPromise;
+  }
+
+  private async performInitialization() {
     try {
+      // Wait for React Native bridge to be fully ready
+      await this.waitForBridgeReady();
+      
       // Intercept React Native bridge errors
       this.setupReactNativeErrorHandler();
       
@@ -40,16 +57,41 @@ class NativeErrorInterceptor {
       this.setupUIFrameGuardedHandler();
 
       this.isInitialized = true;
-      console.log('Native error interceptor initialized');
+      console.log('Native error interceptor initialized with enhanced navigation lifecycle support');
       
       errorReporting.addBreadcrumb({
         category: 'log',
-        message: 'Native error interceptor initialized',
+        message: 'Native error interceptor initialized with navigation lifecycle integration',
         level: 'info',
       });
     } catch (error) {
       console.error('Failed to initialize native error interceptor:', error);
+      this.initializationPromise = null; // Reset to allow retry
     }
+  }
+
+  /**
+   * Wait for React Native bridge to be ready
+   */
+  private waitForBridgeReady(): Promise<void> {
+    return new Promise((resolve) => {
+      // Check if global bridge is available
+      if ((global as any).__fbBatchedBridge) {
+        resolve();
+        return;
+      }
+
+      // Wait for bridge to be available
+      const checkBridge = () => {
+        if ((global as any).__fbBatchedBridge) {
+          resolve();
+        } else {
+          setTimeout(checkBridge, 100);
+        }
+      };
+      
+      setTimeout(checkBridge, 100);
+    });
   }
 
   /**
@@ -116,7 +158,7 @@ class NativeErrorInterceptor {
   }
 
   /**
-   * Check if error is related to UIFrameGuarded.AddViewAt
+   * Check if error is related to UIFrameGuarded.AddViewAt with enhanced navigation context
    */
   private isUIFrameGuardedError(error: { message: string }): boolean {
     const message = error.message?.toLowerCase() || '';
@@ -131,6 +173,11 @@ class NativeErrorInterceptor {
       'invalid view',
       'view already has parent',
       'trying to add view that is already attached',
+      'child already has a parent', // Common navigation error
+      'view already has a parent',
+      'view not attached to window manager',
+      'view root impl',
+      'failed to insert view into parent',
     ];
 
     return uiFrameGuardedKeywords.some(keyword => 
@@ -139,16 +186,45 @@ class NativeErrorInterceptor {
   }
 
   /**
-   * Handle UIFrameGuarded errors gracefully
+   * Check if error is navigation-related and should be debounced
+   */
+  private isNavigationRelatedError(error: { message: string }): boolean {
+    const message = error.message?.toLowerCase() || '';
+    
+    const navigationKeywords = [
+      'navigation',
+      'screen',
+      'tab',
+      'focus',
+      'blur',
+      'mount',
+      'unmount',
+    ];
+
+    return navigationKeywords.some(keyword => 
+      message.includes(keyword)
+    );
+  }
+
+  /**
+   * Handle UIFrameGuarded errors gracefully with navigation context
    */
   private handleUIFrameGuardedError(error: NativeError) {
     const now = Date.now();
     
-    // Rate limiting
-    if (now - this.lastErrorTime < 60000) {
+    // Enhanced rate limiting with navigation debouncing
+    const isNavigationError = this.isNavigationRelatedError(error);
+    
+    if (isNavigationError && now - this.lastNavigationTime < this.navigationDebounceMs) {
+      // Debounce navigation-related errors
+      return;
+    }
+    
+    // Standard rate limiting
+    if (now - this.lastErrorTime < this.errorWindowMs) {
       this.errorCount++;
       if (this.errorCount > this.maxErrorsPerMinute) {
-        console.warn('UIFrameGuarded error rate limit exceeded');
+        console.warn(`UIFrameGuarded error rate limit exceeded (${this.errorCount}/${this.maxErrorsPerMinute})`);
         return;
       }
     } else {
@@ -156,6 +232,9 @@ class NativeErrorInterceptor {
     }
     
     this.lastErrorTime = now;
+    if (isNavigationError) {
+      this.lastNavigationTime = now;
+    }
 
     // Log for debugging
     if (__DEV__) {
@@ -196,7 +275,7 @@ class NativeErrorInterceptor {
   }
 
   /**
-   * Attempt to recover from view hierarchy issues
+   * Attempt to recover from view hierarchy issues with enhanced timing
    */
   private attemptViewHierarchyRecovery() {
     try {
@@ -205,22 +284,51 @@ class NativeErrorInterceptor {
         global.gc();
       }
 
-      // Request next frame to allow view hierarchy to stabilize
+      // Multiple frame delay for better stability with React Navigation
       requestAnimationFrame(() => {
-        console.log('View hierarchy recovery attempted');
+        requestAnimationFrame(() => {
+          console.log('View hierarchy recovery attempted with navigation lifecycle support');
+        });
       });
 
-      // Add delay before next view operations
+      // Longer delay for navigation-heavy operations
       setTimeout(() => {
         errorReporting.addBreadcrumb({
           category: 'log',
-          message: 'View hierarchy recovery completed',
+          message: 'Enhanced view hierarchy recovery completed',
           level: 'info',
         });
-      }, 100);
+      }, 150); // Increased from 100ms to 150ms
 
     } catch (recoveryError) {
       console.warn('View hierarchy recovery failed:', recoveryError);
+    }
+  }
+
+  /**
+   * Force cleanup for navigation transitions
+   */
+  forceNavigationCleanup() {
+    try {
+      // Reset navigation timing
+      this.lastNavigationTime = 0;
+      
+      // Force multiple frames for view cleanup
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            console.log('Navigation cleanup completed');
+          });
+        });
+      });
+      
+      errorReporting.addBreadcrumb({
+        category: 'log',
+        message: 'Navigation cleanup forced',
+        level: 'info',
+      });
+    } catch (error) {
+      console.warn('Navigation cleanup failed:', error);
     }
   }
 
@@ -247,12 +355,25 @@ class NativeErrorInterceptor {
 // Singleton instance
 export const nativeErrorInterceptor = new NativeErrorInterceptor();
 
-// Auto-initialize on Android
+// Auto-initialize on Android with improved timing
 if (Platform.OS === 'android') {
-  // Initialize after a small delay to ensure React Native is ready
-  setTimeout(() => {
-    nativeErrorInterceptor.initialize();
-  }, 1000);
+  // Initialize after React Native is fully ready, considering navigation setup
+  const initializeWhenReady = () => {
+    // Check if InteractionManager is available (indicates RN is ready)
+    if (typeof InteractionManager !== 'undefined') {
+      InteractionManager.runAfterInteractions(() => {
+        nativeErrorInterceptor.initialize();
+      });
+    } else {
+      // Fallback with longer delay for complex navigation setups
+      setTimeout(() => {
+        nativeErrorInterceptor.initialize();
+      }, 1500);
+    }
+  };
+  
+  // Small initial delay then check for readiness
+  setTimeout(initializeWhenReady, 500);
 }
 
 export default nativeErrorInterceptor;
