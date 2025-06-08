@@ -1,4 +1,4 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+ Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
 node_modules/
@@ -122,3 +122,11 @@ yarn-error.*
 /_documentationAndConversionScripts/_model_conversion_scripts/saved_model/variables/variables.data-00000-of-00001
 /_documentationAndConversionScripts/_model_conversion_scripts/ssd_mobilenet_v2_320x320_coco17_tpu-8/checkpoint/
 /_documentationAndConversionScripts/_model_conversion_scripts/ssd_mobilenet_v2_320x320_coco17_tpu-8/pipeline.config
+/_documentationAndConversionScripts/_model_conversion_scripts/dep/
+/_documentationAndConversionScripts/_model_conversion_scripts/.venv/
+/_documentationAndConversionScripts/_model_conversion_scripts/bird_classifier.tflite
+/_documentationAndConversionScripts/_model_conversion_scripts/labels.txt
+/_documentationAndConversionScripts/_model_conversion_scripts/mobilenet_float_v1_224.tflite
+/_documentationAndConversionScripts/_model_conversion_scripts/mobilenet_quant_v1_224.tflite
+/_documentationAndConversionScripts/_model_conversion_scripts/mobilenet_v2_1.0_224_quant.tflite
+/_documentationAndConversionScripts/_model_conversion_scripts/mobilenet_v2_1.0_224_quant_info.txt
