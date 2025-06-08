@@ -10,9 +10,13 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/ThemedText';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
+import { useTheme } from '@/hooks/useThemeColor';
 
 export function HelloWave() {
   const rotationAnimation = useSharedValue(0);
+  const dimensions = useResponsiveDimensions();
+  const theme = useTheme();
 
   useEffect(() => {
     rotationAnimation.value = withRepeat(
@@ -25,17 +29,16 @@ export function HelloWave() {
     transform: [{ rotate: `${rotationAnimation.value}deg` }],
   }));
 
+  const dynamicFontSize = Math.max(28 * dimensions.multipliers.font, 24);
+  const dynamicLineHeight = dynamicFontSize * 1.14;
+
   return (
     <Animated.View style={animatedStyle}>
-      <ThemedText style={styles.text}>👋</ThemedText>
+      <ThemedText style={{
+        fontSize: dynamicFontSize,
+        lineHeight: dynamicLineHeight,
+        marginTop: -theme.spacing.xs,
+      }}>👋</ThemedText>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  text: {
-    fontSize: 28,
-    lineHeight: 32,
-    marginTop: -6,
-  },
-});

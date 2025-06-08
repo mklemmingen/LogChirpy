@@ -662,7 +662,7 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
             paddingHorizontal: dimensions.layout.componentSpacing,
             paddingVertical: dimensions.layout.componentSpacing / 4,
             borderRadius: dimensions.card.borderRadius.lg,
-            minWidth: 50 * dimensions.multipliers.size,
+            minWidth: dimensions.screen.isTablet ? 80 : dimensions.screen.isSmall ? 40 : 60,
             alignItems: 'center',
         },
         confidenceText: {

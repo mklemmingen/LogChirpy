@@ -34,14 +34,16 @@ import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {useSnackbar} from '@/components/ThemedSnackbar';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import { useUnifiedColors } from '@/hooks/useUnifiedColors';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import {useTheme, useSemanticColors, useTypography, useColorVariants} from '@/hooks/useThemeColor';
 // import { useAuth } from '@/app/context/AuthContext';
 
-// Constants
-const { width, height } = Dimensions.get('window');
-
 // Animated components
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+
+// Get screen width for styles
+const { width } = Dimensions.get('window');
 
 // Types
 interface FormErrors {
@@ -202,6 +204,7 @@ export default function ModernLoginScreen() {
     const variants = useColorVariants();
     const typography = useTypography();
     const { showError, showSuccess, SnackbarComponent } = useSnackbar();
+    const dimensions = useResponsiveDimensions();
 
     // Form state
     const [email, setEmail] = useState('');

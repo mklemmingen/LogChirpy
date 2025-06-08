@@ -10,9 +10,8 @@ import Animated, {
 
 import { ThemedView } from '@/components/ThemedView';
 import { useBottomTabOverflow } from '@/components/ui/TabBarBackground';
-// import { useThemeColor } from '@/hooks/useThemeColor';
-
-const HEADER_HEIGHT = 250;
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
+import { useTheme } from '@/hooks/useThemeColor';
 
 type Props = PropsWithChildren<{
   headerImage: ReactElement;
@@ -28,6 +27,12 @@ export default function ParallaxScrollView({
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useScrollViewOffset(scrollRef);
   const bottom = useBottomTabOverflow();
+  const dimensions = useResponsiveDimensions();
+  const theme = useTheme();
+  
+  const HEADER_HEIGHT = dimensions.screen.isTablet ? 350 : dimensions.screen.isSmall ? 200 : 250;
+  const styles = createStyles(dimensions, HEADER_HEIGHT);
+  
   const headerAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -66,18 +71,18 @@ export default function ParallaxScrollView({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (dimensions: ReturnType<typeof useResponsiveDimensions>, headerHeight: number) => StyleSheet.create({
   container: {
     flex: 1,
   },
   header: {
-    height: HEADER_HEIGHT,
+    height: headerHeight,
     overflow: 'hidden',
   },
   content: {
     flex: 1,
-    padding: 32,
-    gap: 16,
+    padding: dimensions.layout.screenPadding.horizontal,
+    gap: dimensions.layout.componentSpacing,
     overflow: 'hidden',
   },
 });

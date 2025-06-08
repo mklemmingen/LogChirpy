@@ -377,6 +377,11 @@ Each Feature Folder contains:
 - ✅ Full localization of the BirdyDex database with 15,000+ species names in 5 languages
 - ✅ Full test coverage and pipeline tests with mocks
 - ✅ .h5 birdnet model to tflite conversion and integration
+- ✅ full frontend implementation with custom components and theming
+- ✅ Full documentation of the project with README, code comments, and architecture diagrams
+- ✅ Full CI/CD pipeline with GitHub mirroring and privacy protection
+- ✅ Accesibility features implemented (e.g., haptic feedback, audio cues)
+- ✅ Full Style Guide adherence with custom components and theming
 
 **Luis Wehrberger:**
 - ✅ Firebase and Firestore setup

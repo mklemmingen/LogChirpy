@@ -603,8 +603,10 @@ function createSearchStyles(dimensions: ReturnType<typeof useResponsiveDimension
  */
 function createStyles(dimensions: ReturnType<typeof useResponsiveDimensions>) {
   const cardMargin = dimensions.layout.componentSpacing;
-  const cardsPerRow = 2;
-  const cardWidth = (dimensions.screen.width - (cardMargin * 3)) / cardsPerRow;
+  // Responsive cards per row based on screen size
+  const cardsPerRow = dimensions.screen.isTablet ? 3 : dimensions.screen.isLarge ? 2 : dimensions.screen.isSmall ? 1 : 2;
+  const totalMargins = cardMargin * (cardsPerRow + 1);
+  const cardWidth = (dimensions.screen.width - totalMargins) / cardsPerRow;
   
   return StyleSheet.create({
     container: {

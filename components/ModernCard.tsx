@@ -5,7 +5,9 @@ import React from 'react';
 import { View, Pressable, StyleSheet, ViewStyle, Image } from 'react-native';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
-import { useColors, useBorderRadius, useShadows } from '@/hooks/useThemeColor';
+import { useUnifiedColors } from '@/hooks/useUnifiedColors';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
+import { useBorderRadius, useShadows, useTheme } from '@/hooks/useThemeColor';
 import { ImageSourcePropType } from "react-native";
 
 interface ModernCardProps {
@@ -35,9 +37,13 @@ export function ModernCard({
   elevated = false,
   bordered = true,
 }: ModernCardProps) {
-  const colors = useColors();
+  const colors = useUnifiedColors();
+  const dimensions = useResponsiveDimensions();
   const borderRadius = useBorderRadius();
   const shadows = useShadows();
+  const theme = useTheme();
+  
+  const styles = createStyles(dimensions);
 
   const cardContent = (
     <ThemedView
@@ -47,7 +53,7 @@ export function ModernCard({
           borderRadius: borderRadius.lg,
           ...(bordered && {
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: colors.border.primary,
           }),
           ...(elevated && shadows.md),
         },
@@ -102,21 +108,21 @@ export function ModernCard({
   return cardContent;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (dimensions: ReturnType<typeof useResponsiveDimensions>) => StyleSheet.create({
   card: {
     overflow: 'hidden',
   },
   image: {
     width: '100%',
-    height: 160,
+    height: dimensions.screen.isSmall ? 120 * dimensions.multipliers.size : dimensions.screen.isLarge ? 200 * dimensions.multipliers.size : 160 * dimensions.multipliers.size,
   },
   content: {
-    padding: 16,
+    padding: dimensions.layout.componentSpacing,
   },
   title: {
-    marginBottom: 4,
+    marginBottom: dimensions.layout.componentSpacing / 4,
   },
   subtitle: {
-    marginBottom: 12,
+    marginBottom: dimensions.layout.componentSpacing / 2,
   },
 });

@@ -11,6 +11,8 @@ import Animated, {
     interpolate,
 } from 'react-native-reanimated';
 
+import { useUnifiedColors } from '@/hooks/useUnifiedColors';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import {
     useTheme,
     useSemanticColors,
@@ -41,6 +43,8 @@ export function EnhancedCameraControls({
                                            variant = 'glass',
                                        }: EnhancedCameraControlsProps) {
     const theme = useTheme();
+    const colors = useUnifiedColors();
+    const dimensions = useResponsiveDimensions();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const motion = useMotionValues();
@@ -51,33 +55,36 @@ export function EnhancedCameraControls({
     const flipScale = useSharedValue(1);
     const flipRotation = useSharedValue(0);
 
-    // Size configurations following design system
+    // Size configurations following responsive design system
     const getSizeConfig = () => {
+        const baseSize = dimensions.touchTarget.large;
+        const multiplier = dimensions.multipliers.size;
+        
         switch (size) {
             case 'small':
                 return {
-                    captureSize: 60,
-                    captureInner: 48,
-                    flipSize: 40,
-                    flipIcon: 16,
-                    containerPadding: 16
+                    captureSize: Math.max(baseSize * 0.75 * multiplier, 48),
+                    captureInner: Math.max(baseSize * 0.6 * multiplier, 40),
+                    flipSize: Math.max(baseSize * 0.5 * multiplier, 32),
+                    flipIcon: dimensions.icon.sm,
+                    containerPadding: dimensions.layout.componentSpacing
                 };
             case 'medium':
                 return {
-                    captureSize: 70,
-                    captureInner: 56,
-                    flipSize: 48,
-                    flipIcon: 20,
-                    containerPadding: 20
+                    captureSize: Math.max(baseSize * 0.875 * multiplier, 56),
+                    captureInner: Math.max(baseSize * 0.7 * multiplier, 48),
+                    flipSize: Math.max(baseSize * 0.6 * multiplier, 40),
+                    flipIcon: dimensions.icon.md,
+                    containerPadding: dimensions.layout.componentSpacing * 1.25
                 };
             case 'large':
             default:
                 return {
-                    captureSize: 80,
-                    captureInner: 64,
-                    flipSize: 56,
-                    flipIcon: 24,
-                    containerPadding: 24
+                    captureSize: Math.max(baseSize * multiplier, 64),
+                    captureInner: Math.max(baseSize * 0.8 * multiplier, 56),
+                    flipSize: Math.max(baseSize * 0.7 * multiplier, 48),
+                    flipIcon: dimensions.icon.lg,
+                    containerPadding: dimensions.layout.componentSpacing * 1.5
                 };
         }
     };
@@ -193,6 +200,9 @@ export function EnhancedCameraControls({
 
                     <AnimatedPressable
                         onPress={handleCapturePress}
+                        accessibilityRole="button"
+                        accessibilityLabel={isRecording ? "Stop recording" : "Take photo"}
+                        accessibilityHint={isRecording ? "Stop video recording" : "Capture a photo"}
                         style={[
                             styles.captureButton,
                             {
@@ -215,7 +225,7 @@ export function EnhancedCameraControls({
                         {variant === 'glass' && (
                             <BlurView
                                 intensity={60}
-                                tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+                                tint={colors.isDark ? 'dark' : 'light'}
                                 style={StyleSheet.absoluteFillObject}
                             />
                         )}
@@ -245,6 +255,10 @@ export function EnhancedCameraControls({
                     <AnimatedPressable
                         onPress={handleFlipPress}
                         disabled={isFlipDisabled}
+                        accessibilityRole="button"
+                        accessibilityLabel="Flip camera"
+                        accessibilityHint="Switch between front and back camera"
+                        accessibilityState={{ disabled: isFlipDisabled }}
                         style={[
                             styles.flipButton,
                             {
@@ -252,8 +266,9 @@ export function EnhancedCameraControls({
                                 height: sizeConfig.flipSize,
                                 borderRadius: sizeConfig.flipSize / 2,
                                 backgroundColor: variant === 'glass'
-                                    ? 'transparent'
+                                    ? colors.interactive.ghost
                                     : theme.colors.overlay.light,
+                                borderColor: `${colors.border.secondary}33`, // 20% opacity
                             }
                         ]}
                         android_ripple={{
@@ -265,7 +280,7 @@ export function EnhancedCameraControls({
                         {variant === 'glass' && (
                             <BlurView
                                 intensity={40}
-                                tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+                                tint={colors.isDark ? 'dark' : 'light'}
                                 style={StyleSheet.absoluteFillObject}
                             />
                         )}
@@ -312,6 +327,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        // borderColor will be set dynamically using unified colors
     },
 });
