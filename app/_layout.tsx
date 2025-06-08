@@ -7,6 +7,7 @@ import {StatusBar} from 'expo-status-bar';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {BlurView} from 'expo-blur';
 import {ThemedIcon} from '@/components/ThemedIcon';
+import ErrorBoundary from '@/components/ErrorBoundary';
 // COMMENTED OUT FOR DEBUGGING: Animation imports
 // import Animated, {
 //     Easing,
@@ -571,67 +572,79 @@ export default function EnhancedRootLayout() {
 
     // Main app with enhanced theming and layer system
     return (
-        <SafeAreaProvider>
-            <AuthProvider>
-                <ModalProvider>
-                    <ThemeProvider
-                    value={{
-                        dark: colors.isDark,
-                        colors: {
-                            notification: colors.interactive.primary,
-                            background: colors.background.primary,
-                            card: colors.background.elevated,
-                            text: colors.text.primary,
-                            border: colors.border.primary,
-                            primary: colors.interactive.primary,
-                        },
-                        fonts: {
-                            regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
-                            medium: { fontFamily: 'SpaceMono', fontWeight: '500' },
-                            bold: { fontFamily: 'SpaceMono', fontWeight: 'bold' },
-                            heavy: { fontFamily: 'SpaceMono', fontWeight: '800' },
-                        },
-                    }}
-                >
-                    <ImageLabelingModelProvider>
-                        <ObjectDetectionProvider>
-                            <View style={[styles.container, { backgroundColor: colors.background.primary }]}>
-                                <Stack
-                                    screenOptions={() => ({
-                                        headerStyle: {
-                                            backgroundColor:
-                                                current === 'photo' || current === 'video'
-                                                    ? 'transparent'
-                                                    : colors.background.elevated,
-                                            ...theme.shadows.sm,
-                                        },
-                                        headerTransparent: current === 'photo' || current === 'video',
-                                        headerTintColor: colors.text.primary,
-                                        headerTitleStyle: {
-                                            ...typography.h2,
-                                            fontWeight: '600',
-                                        },
-                                        headerBackTitleVisible: false,
-                                        headerBackImage: () => (
-                                            <ThemedIcon name="arrow-left" size={24} color="primary" />
-                                        ),
-                                    })}
-                                >
-                                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                                    <Stack.Screen name="log" options={{ headerShown: false }} />
-                                    <Stack.Screen name="+not-found" />
-                                </Stack>
-                            </View>
-                            <StatusBar style="auto" />
-                        </ObjectDetectionProvider>
-                    </ImageLabelingModelProvider>
-                    
-                    {/* Centralized Modal Layer */}
-                    <ModalRenderer />
-                    </ThemeProvider>
-                </ModalProvider>
-            </AuthProvider>
-        </SafeAreaProvider>
+        <ErrorBoundary 
+            level="app" 
+            name="RootLayout"
+            onError={(error, errorInfo, errorId) => {
+                // Report to crash analytics in production
+                if (!__DEV__) {
+                    console.error('App-level error:', { error, errorInfo, errorId });
+                    // Add crash reporting service here (e.g., Bugsnag, Sentry)
+                }
+            }}
+        >
+            <SafeAreaProvider>
+                <AuthProvider>
+                    <ModalProvider>
+                        <ThemeProvider
+                        value={{
+                            dark: colors.isDark,
+                            colors: {
+                                notification: colors.interactive.primary,
+                                background: colors.background.primary,
+                                card: colors.background.elevated,
+                                text: colors.text.primary,
+                                border: colors.border.primary,
+                                primary: colors.interactive.primary,
+                            },
+                            fonts: {
+                                regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
+                                medium: { fontFamily: 'SpaceMono', fontWeight: '500' },
+                                bold: { fontFamily: 'SpaceMono', fontWeight: 'bold' },
+                                heavy: { fontFamily: 'SpaceMono', fontWeight: '800' },
+                            },
+                        }}
+                    >
+                        <ImageLabelingModelProvider>
+                            <ObjectDetectionProvider>
+                                <View style={[styles.container, { backgroundColor: colors.background.primary }]}>
+                                    <Stack
+                                        screenOptions={() => ({
+                                            headerStyle: {
+                                                backgroundColor:
+                                                    current === 'photo' || current === 'video'
+                                                        ? 'transparent'
+                                                        : colors.background.elevated,
+                                                ...theme.shadows.sm,
+                                            },
+                                            headerTransparent: current === 'photo' || current === 'video',
+                                            headerTintColor: colors.text.primary,
+                                            headerTitleStyle: {
+                                                ...typography.h2,
+                                                fontWeight: '600',
+                                            },
+                                            headerBackTitleVisible: false,
+                                            headerBackImage: () => (
+                                                <ThemedIcon name="arrow-left" size={24} color="primary" />
+                                            ),
+                                        })}
+                                    >
+                                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                        <Stack.Screen name="log" options={{ headerShown: false }} />
+                                        <Stack.Screen name="+not-found" />
+                                    </Stack>
+                                </View>
+                                <StatusBar style="auto" />
+                            </ObjectDetectionProvider>
+                        </ImageLabelingModelProvider>
+                        
+                        {/* Centralized Modal Layer */}
+                        <ModalRenderer />
+                        </ThemeProvider>
+                    </ModalProvider>
+                </AuthProvider>
+            </SafeAreaProvider>
+        </ErrorBoundary>
     );
 }
 

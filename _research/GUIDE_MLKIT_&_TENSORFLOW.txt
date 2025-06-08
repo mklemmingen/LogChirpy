@@ -817,5 +817,3 @@ eas build --platform android --profile preview
 # Production always through cloud
 eas build --platform android --profile production
 ```
-
-This comprehensive guide provides a production-ready foundation for building React Native applications with machine learning capabilities. The configurations and commands have been tested with the latest versions of Expo SDK 52+, ensuring compatibility with both MLKit and TensorFlow Lite for Android development.

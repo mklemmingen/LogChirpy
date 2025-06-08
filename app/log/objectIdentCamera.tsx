@@ -20,6 +20,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import {useObjectDetection} from '@infinitered/react-native-mlkit-object-detection';
 import type {MyModelsConfig} from './../_layout';
 import {Directory, File, Paths} from 'expo-file-system/next';
+import { CriticalErrorBoundary } from '@/components/ComponentErrorBoundary';
 
 import {useFocusEffect, useIsFocused} from '@react-navigation/native';
 import {useAppState} from '@react-native-community/hooks';
@@ -186,7 +187,7 @@ async function deleteOldFiles(dirUri: string, maxAgeMinutes: number): Promise<vo
     }
 }
 
-export default function ObjectIdentCameraWrapper() {
+function ObjectIdentCameraWrapper() {
     const [isLoading, setIsLoading] = useState(true);
     const device = useCameraDevice('back');
     const { hasPermission, requestPermission } = useCameraPermission();
@@ -1221,4 +1222,18 @@ const styles = StyleSheet.create({
         color: 'white',
     },
 });
+
+export default function ObjectIdentCamera() {
+    return (
+        <CriticalErrorBoundary 
+            componentName="Object Detection Camera"
+            onError={(error, errorId) => {
+                console.error('Object detection camera error:', error, errorId);
+                // Report ML camera errors for investigation
+            }}
+        >
+            <ObjectIdentCameraWrapper />
+        </CriticalErrorBoundary>
+    );
+}
 

@@ -44,6 +44,7 @@ import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import {BlurView} from 'expo-blur';
+import { FeatureErrorBoundary } from '@/components/ComponentErrorBoundary';
 
 import { 
     useDatePickerModal, 
@@ -79,7 +80,7 @@ interface ValidationError {
  * Integrates with the draft context system for auto-save functionality.
  * Supports multiple media types and AI-powered identification.
  */
-export default function EnhancedManual() {
+function EnhancedManualComponent() {
     const params = useLocalSearchParams();
     const { t } = useTranslation();
     const { draft, update, clear } = useLogDraft();
@@ -1315,3 +1316,17 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
 });
+
+export default function EnhancedManual() {
+    return (
+        <FeatureErrorBoundary 
+            featureName="Manual Entry"
+            onError={(error, errorId) => {
+                console.error('Manual entry feature error:', error, errorId);
+                // Report manual entry errors for investigation
+            }}
+        >
+            <EnhancedManualComponent />
+        </FeatureErrorBoundary>
+    );
+}

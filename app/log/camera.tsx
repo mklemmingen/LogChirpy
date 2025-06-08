@@ -5,6 +5,7 @@ import {useTranslation} from 'react-i18next';
 import {Camera, useCameraDevice, useCameraFormat, useCameraPermission,} from 'react-native-vision-camera';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
+import { CriticalErrorBoundary } from '@/components/ComponentErrorBoundary';
 
 import {theme} from '@/constants/theme';
 import {ThemedPressable} from '@/components/ThemedPressable';
@@ -15,7 +16,7 @@ import {useColors} from '@/hooks/useThemeColor';
 // Screen dimensions available if needed
 // const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export default function ModernCamera() {
+function ModernCameraComponent() {
     const { t } = useTranslation();
     const colorScheme = useColorScheme() ?? 'light';
     const pal = theme[colorScheme];
@@ -234,6 +235,20 @@ export default function ModernCamera() {
                 </ThemedText>
             </ThemedPressable>
         </ThemedSafeAreaView>
+    );
+}
+
+export default function ModernCamera() {
+    return (
+        <CriticalErrorBoundary 
+            componentName="Camera"
+            onError={(error, errorId) => {
+                console.error('Camera component error:', error, errorId);
+                // Report camera errors for investigation
+            }}
+        >
+            <ModernCameraComponent />
+        </CriticalErrorBoundary>
     );
 }
 
