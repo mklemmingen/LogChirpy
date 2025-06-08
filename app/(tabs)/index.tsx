@@ -198,7 +198,7 @@ export default function HomeScreen() {
       <ThemedSafeAreaView style={styles.safeArea}>
 
         {/* Bird Animation */}
-        <BirdAnimation numberOfBirds={3} />
+        {/* commented out Bird Animation <BirdAnimation numberOfBirds={3} /> */}
 
         <ScrollView
           style={styles.scrollView}

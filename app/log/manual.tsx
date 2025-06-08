@@ -1023,13 +1023,12 @@ export default function EnhancedManual() {
             </ThemedView>
 
             {/* Date Picker Modal */}
-            {isDatePickerVisible && (
-                <Modal
-                    transparent
-                    animationType="slide"
-                    visible={isDatePickerVisible}
-                    onRequestClose={() => setIsDatePickerVisible(false)}
-                >
+            <Modal
+                transparent
+                visible={isDatePickerVisible}
+                onRequestClose={() => setIsDatePickerVisible(false)}
+            >
+                {isDatePickerVisible && (
                     <BlurView intensity={80} style={styles.modalContainer}>
                         <Card style={styles.datePickerCard}>
                             <ThemedText variant="h3" style={styles.modalTitle}>
@@ -1069,17 +1068,17 @@ export default function EnhancedManual() {
                             )}
                         </Card>
                     </BlurView>
-                </Modal>
-            )}
+                )}
+            </Modal>
 
             {/* Video Modal */}
             <Modal
                 visible={isVideoModalVisible}
                 transparent
-                animationType="fade"
                 onRequestClose={() => setIsVideoModalVisible(false)}
             >
-                <View style={styles.videoModalContainer}>
+                {isVideoModalVisible && (
+                    <View style={styles.videoModalContainer}>
                     {fullscreenPlayer && (
                         <VideoView
                             player={fullscreenPlayer}
@@ -1113,17 +1112,18 @@ export default function EnhancedManual() {
                             </ThemedText>
                         </ThemedPressable>
                     </View>
-                </View>
+                    </View>
+                )}
             </Modal>
 
             {/* Bird Predictions Modal */}
             <Modal
                 visible={showPredictions}
                 transparent={true}
-                animationType="slide"
                 onRequestClose={() => setShowPredictions(false)}
             >
-                <View style={dynamicStyles.modalOverlay}>
+                {showPredictions && (
+                    <View style={dynamicStyles.modalOverlay}>
                     <BlurView intensity={80} style={styles.modalBlur}>
                         <View style={dynamicStyles.predictionsModalContainer}>
                             <View style={dynamicStyles.predictionsHeader}>
@@ -1172,7 +1172,8 @@ export default function EnhancedManual() {
                             </View>
                         </View>
                     </BlurView>
-                </View>
+                    </View>
+                )}
             </Modal>
 
             <SnackbarComponent />

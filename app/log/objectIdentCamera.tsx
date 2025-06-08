@@ -1040,10 +1040,10 @@ function ObjectIdentCameraContent() {
             <Modal
                 visible={modalVisible && modalPhotoUri !== null}
                 transparent={true}
-                animationType="slide"
                 onRequestClose={() => {
                     setModalVisible(false);
-                    setTimeout(() => setModalPhotoUri(null), 100);
+                    setModalPhotoUri(null);
+                    setShowOverlays(true);
                 }}
             >
                 {modalPhotoUri && (
@@ -1073,13 +1073,9 @@ function ObjectIdentCameraContent() {
                         </View>
                         <View style={styles.modalButtons}>
                             <Button title={t('buttons.close')} onPress={() => {
-                                // Safe modal close to prevent view conflicts
                                 setModalVisible(false);
+                                setModalPhotoUri(null);
                                 setShowOverlays(true);
-                                // Delay clearing the URI to ensure modal is fully unmounted
-                                setTimeout(() => {
-                                    setModalPhotoUri(null);
-                                }, 100);
                             }} />
                             {/* Optional, havent fully fletched out the UX yet */}
                             {/* <Button title="Delete" onPress={...} /> */}
