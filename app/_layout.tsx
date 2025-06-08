@@ -7,14 +7,15 @@ import {StatusBar} from 'expo-status-bar';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {BlurView} from 'expo-blur';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import Animated, {
-    Easing,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
+// COMMENTED OUT FOR DEBUGGING: Animation imports
+// import Animated, {
+//     Easing,
+//     useAnimatedStyle,
+//     useSharedValue,
+//     withRepeat,
+//     withSpring,
+//     withTiming,
+// } from 'react-native-reanimated';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -90,51 +91,54 @@ function LoadingAnimation() {
     const colors = useUnifiedColors();
     const dimensions = useResponsiveDimensions();
 
-    const rotation = useSharedValue(0);
-    const scale = useSharedValue(1);
-    const opacity = useSharedValue(0.7);
+    // COMMENTED OUT FOR DEBUGGING: Animation values
+    // const rotation = useSharedValue(0);
+    // const scale = useSharedValue(1);
+    // const opacity = useSharedValue(0.7);
 
-    React.useEffect(() => {
-        rotation.value = withRepeat(
-            withTiming(360, { duration: 2000, easing: Easing.linear }),
-            -1,
-            false
-        );
+    // COMMENTED OUT FOR DEBUGGING: Animation effects
+    // React.useEffect(() => {
+    //     rotation.value = withRepeat(
+    //         withTiming(360, { duration: 2000, easing: Easing.linear }),
+    //         -1,
+    //         false
+    //     );
 
-        scale.value = withRepeat(
-            withSpring(1.1, { damping: 15, stiffness: 300 }),
-            -1,
-            true
-        );
+    //     scale.value = withRepeat(
+    //         withSpring(1.1, { damping: 15, stiffness: 300 }),
+    //         -1,
+    //         true
+    //     );
 
-        opacity.value = withRepeat(
-            withTiming(1, { duration: 1500 }),
-            -1,
-            true
-        );
+    //     opacity.value = withRepeat(
+    //         withTiming(1, { duration: 1500 }),
+    //         -1,
+    //         true
+    //     );
 
-        // Cleanup animations on unmount
-        return () => {
-            'worklet';
-            rotation.value = 0;
-            scale.value = 1;
-            opacity.value = 0.7;
-        };
-    }, [rotation, scale, opacity]);
+    //     // Cleanup animations on unmount
+    //     return () => {
+    //         'worklet';
+    //         rotation.value = 0;
+    //         scale.value = 1;
+    //         opacity.value = 0.7;
+    //     };
+    // }, [rotation, scale, opacity]);
 
-    const animatedStyle = useAnimatedStyle(() => ({
-        transform: [
-            { rotate: `${rotation.value}deg` },
-            { scale: scale.value }
-        ],
-        opacity: opacity.value,
-    }));
+    // COMMENTED OUT FOR DEBUGGING: Animation style
+    // const animatedStyle = useAnimatedStyle(() => ({
+    //     transform: [
+    //         { rotate: `${rotation.value}deg` },
+    //         { scale: scale.value }
+    //     ],
+    //     opacity: opacity.value,
+    // }));
 
     const iconSize = dimensions.icon.xl;
     const containerSize = iconSize * 2;
     
     return (
-        <Animated.View
+        <View
             style={[
                 {
                     width: containerSize,
@@ -143,12 +147,15 @@ function LoadingAnimation() {
                     backgroundColor: colors.background.secondary,
                     justifyContent: 'center',
                     alignItems: 'center',
+                    // COMMENTED OUT FOR DEBUGGING: Static values instead of animated
+                    opacity: 0.8,
+                    transform: [{ scale: 1 }],
                 },
-                animatedStyle,
+                // COMMENTED OUT FOR DEBUGGING: animatedStyle,
             ]}
         >
             <ThemedIcon name="feather" size={iconSize} color="primary" />
-        </Animated.View>
+        </View>
     );
 }
 
@@ -167,31 +174,35 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
     const theme = useTheme();
     const dimensions = useResponsiveDimensions();
 
-    const fadeAnim = useSharedValue(0);
-    const slideAnim = useSharedValue(30);
+    // COMMENTED OUT FOR DEBUGGING: Animation values
+    // const fadeAnim = useSharedValue(0);
+    // const slideAnim = useSharedValue(30);
 
     React.useEffect(() => {
         if (isReady) {
-            fadeAnim.value = withTiming(0, { duration: theme.motion.duration.normal });
-            slideAnim.value = withTiming(30, { duration: theme.motion.duration.normal });
+            // COMMENTED OUT FOR DEBUGGING: Animation
+            // fadeAnim.value = withTiming(0, { duration: theme.motion.duration.normal });
+            // slideAnim.value = withTiming(30, { duration: theme.motion.duration.normal });
             setTimeout(onReady, theme.motion.duration.normal);
         } else {
-            fadeAnim.value = withTiming(1, { duration: theme.motion.duration.normal });
-            slideAnim.value = withTiming(0, { duration: theme.motion.duration.normal });
+            // COMMENTED OUT FOR DEBUGGING: Animation
+            // fadeAnim.value = withTiming(1, { duration: theme.motion.duration.normal });
+            // slideAnim.value = withTiming(0, { duration: theme.motion.duration.normal });
         }
 
-        // Cleanup animations on unmount
-        return () => {
-            'worklet';
-            fadeAnim.value = 0;
-            slideAnim.value = 30;
-        };
-    }, [isReady, fadeAnim, slideAnim, theme.motion.duration.normal, onReady]);
+        // COMMENTED OUT FOR DEBUGGING: Animation cleanup
+        // return () => {
+        //     'worklet';
+        //     fadeAnim.value = 0;
+        //     slideAnim.value = 30;
+        // };
+    }, [isReady, /* fadeAnim, slideAnim, */ theme.motion.duration.normal, onReady]);
 
-    const containerStyle = useAnimatedStyle(() => ({
-        opacity: fadeAnim.value,
-        transform: [{ translateY: slideAnim.value }],
-    }));
+    // COMMENTED OUT FOR DEBUGGING: Animation style
+    // const containerStyle = useAnimatedStyle(() => ({
+    //     opacity: fadeAnim.value,
+    //     transform: [{ translateY: slideAnim.value }],
+    // }));
 
     if (hasError) {
         return (
@@ -252,11 +263,16 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
 
     if (isLoading) {
         return (
-            <Animated.View
+            <View
                 style={[
                     styles.loadingContainer,
-                    { backgroundColor: colors.background.primary },
-                    containerStyle
+                    { 
+                        backgroundColor: colors.background.primary,
+                        // COMMENTED OUT FOR DEBUGGING: Static values instead of animated
+                        opacity: isReady ? 0 : 1,
+                        transform: [{ translateY: isReady ? 30 : 0 }],
+                    },
+                    // COMMENTED OUT FOR DEBUGGING: containerStyle
                 ]}
             >
                 <View style={styles.loadingContent}>
@@ -297,7 +313,7 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                                     height: dimensions.screen.isSmall ? 6 : 8,
                                 }
                             ]}>
-                                <Animated.View
+                                <View
                                     style={[
                                         styles.progressFill,
                                         {
@@ -331,7 +347,7 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                         This may take a moment on first launch
                     </Text>
                 </View>
-            </Animated.View>
+            </View>
         );
     }
 

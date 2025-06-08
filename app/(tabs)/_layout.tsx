@@ -1,16 +1,17 @@
 import React from 'react';
 import {Tabs} from 'expo-router';
-import {Platform} from 'react-native';
+import {Platform, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {BlurView} from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
+// COMMENTED OUT FOR DEBUGGING: Animation imports
+// import Animated, {
+//     interpolate,
+//     useAnimatedStyle,
+//     useSharedValue,
+//     withSpring,
+//     withTiming,
+// } from 'react-native-reanimated';
 
 import {useTheme} from '@/hooks/useThemeColor';
 import { useUnifiedColors } from '@/hooks/useUnifiedColors';
@@ -44,47 +45,56 @@ function EnhancedTabIcon({
     const colors = useUnifiedColors();
     const dimensions = useResponsiveDimensions();
 
-    // Animation values with responsive sizing
-    const scale = useSharedValue(focused ? 1 : 0.9);
-    const indicatorWidth = useSharedValue(focused ? dimensions.navigation.tabIconSize : 4);
-    const opacity = useSharedValue(focused ? 1 : 0.7);
+    // COMMENTED OUT FOR DEBUGGING: Animation values
+    // const scale = useSharedValue(focused ? 1 : 0.9);
+    // const indicatorWidth = useSharedValue(focused ? dimensions.navigation.tabIconSize : 4);
+    // const opacity = useSharedValue(focused ? 1 : 0.7);
     
     // Responsive icon size
     const responsiveIconSize = Math.max(size * dimensions.multipliers.size, dimensions.icon.md);
 
+    // COMMENTED OUT FOR DEBUGGING: Animation effects
+    // React.useEffect(() => {
+    //     // Smooth scale animation for icon
+    //     scale.value = withSpring(focused ? 1 : 0.9, {
+    //         damping: 15,
+    //         stiffness: 300,
+    //     });
+
+    //     // Indicator animation with responsive width
+    //     indicatorWidth.value = withSpring(focused ? dimensions.navigation.tabIconSize : 4, {
+    //         damping: 15,
+    //         stiffness: 300,
+    //     });
+
+    //     // Opacity animation
+    //     opacity.value = withTiming(focused ? 1 : 0.7, {
+    //         duration: theme.motion.duration.fast,
+    //     });
+
+    //     // Haptic feedback on focus change
+    //     if (focused) {
+    //         Haptics.selectionAsync();
+    //     }
+    // }, [focused, indicatorWidth, opacity, scale, theme.motion.duration.fast]);
+
+    // COMMENTED OUT FOR DEBUGGING: Animation styles
+    // const iconAnimatedStyle = useAnimatedStyle(() => ({
+    //     transform: [{ scale: scale.value }],
+    //     opacity: opacity.value,
+    // }));
+
+    // const indicatorAnimatedStyle = useAnimatedStyle(() => ({
+    //     width: indicatorWidth.value,
+    //     opacity: focused ? 1 : 0,
+    // }));
+
+    // Simple haptic feedback
     React.useEffect(() => {
-        // Smooth scale animation for icon
-        scale.value = withSpring(focused ? 1 : 0.9, {
-            damping: 15,
-            stiffness: 300,
-        });
-
-        // Indicator animation with responsive width
-        indicatorWidth.value = withSpring(focused ? dimensions.navigation.tabIconSize : 4, {
-            damping: 15,
-            stiffness: 300,
-        });
-
-        // Opacity animation
-        opacity.value = withTiming(focused ? 1 : 0.7, {
-            duration: theme.motion.duration.fast,
-        });
-
-        // Haptic feedback on focus change
         if (focused) {
             Haptics.selectionAsync();
         }
-    }, [focused, indicatorWidth, opacity, scale, theme.motion.duration.fast]);
-
-    const iconAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
-        opacity: opacity.value,
-    }));
-
-    const indicatorAnimatedStyle = useAnimatedStyle(() => ({
-        width: indicatorWidth.value,
-        opacity: focused ? 1 : 0,
-    }));
+    }, [focused]);
 
     return (
         <ThemedView
@@ -98,16 +108,22 @@ function EnhancedTabIcon({
                 minHeight: dimensions.touchTarget.minimum,
             }}>
             {/* Main icon - no background, just scale and opacity changes */}
-            <Animated.View style={iconAnimatedStyle}>
+            <View 
+                style={{
+                    /* COMMENTED OUT FOR DEBUGGING: animatedStyle */ 
+                    opacity: focused ? 1 : 0.7,
+                    transform: [{ scale: focused ? 1 : 0.9 }]
+                }}
+            >
                 <ThemedIcon
                     name={iconName as any}
                     size={responsiveIconSize}
                     color={focused ? 'primary' : 'secondary'}
                 />
-            </Animated.View>
+            </View>
 
             {/* Active indicator bar - more prominent than dot */}
-            <Animated.View
+            <View
                 style={[
                     {
                         position: 'absolute',
@@ -115,8 +131,11 @@ function EnhancedTabIcon({
                         height: dimensions.screen.isSmall ? 2 : 3,
                         borderRadius: dimensions.screen.isSmall ? 1 : 1.5,
                         backgroundColor: colors.interactive.primary,
+                        /* COMMENTED OUT FOR DEBUGGING: animatedStyle */
+                        width: focused ? dimensions.navigation.tabIconSize : 4,
+                        opacity: focused ? 1 : 0,
                     },
-                    indicatorAnimatedStyle,
+                    // indicatorAnimatedStyle,
                 ]}
             />
         </ThemedView>

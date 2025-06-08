@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/app/context/AuthContext';
-import { useSemanticColors } from '../hooks/useThemeColor';
+import { useSemanticColors } from '@/hooks/useThemeColor';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

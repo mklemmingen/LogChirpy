@@ -1,11 +1,12 @@
 import React, { forwardRef } from 'react';
 import { Pressable, ViewStyle, PressableProps } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  // withTiming,
-} from 'react-native-reanimated';
+// COMMENTED OUT FOR DEBUGGING: Animation imports
+// import Animated, {
+//   useAnimatedStyle,
+//   useSharedValue,
+//   withSpring,
+//   // withTiming,
+// } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { useButtonStyles, useBorderRadius, useShadows } from '@/hooks/useThemeColor';
@@ -23,7 +24,8 @@ interface ThemedPressableProps extends Omit<PressableProps, 'style'> {
   haptic?: boolean;
 }
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+// COMMENTED OUT FOR DEBUGGING: Animated component
+// const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const ThemedPressable = forwardRef<
   React.ElementRef<typeof Pressable>,
@@ -45,8 +47,9 @@ export const ThemedPressable = forwardRef<
   const borderRadius = useBorderRadius();
   const shadows = useShadows();
 
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
+  // COMMENTED OUT FOR DEBUGGING: Animation values
+  // const scale = useSharedValue(1);
+  // const opacity = useSharedValue(1);
 
   const getSizeStyles = () => {
     switch (size) {
@@ -81,26 +84,29 @@ export const ThemedPressable = forwardRef<
     };
   };
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+  // COMMENTED OUT FOR DEBUGGING: Animation style
+  // const animatedStyle = useAnimatedStyle(() => ({
+  //   transform: [{ scale: scale.value }],
+  //   opacity: opacity.value,
+  // }));
 
   const handlePressIn = (event: Parameters<NonNullable<PressableProps['onPressIn']>>[0]) => {
     if (haptic) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    scale.value = withSpring(0.98, { damping: 15 });
+    // COMMENTED OUT FOR DEBUGGING: Animation
+    // scale.value = withSpring(0.98, { damping: 15 });
     onPressIn?.(event);
   };
 
   const handlePressOut = (event: Parameters<NonNullable<PressableProps['onPressOut']>>[0]) => {
-    scale.value = withSpring(1, { damping: 15 });
+    // COMMENTED OUT FOR DEBUGGING: Animation
+    // scale.value = withSpring(1, { damping: 15 });
     onPressOut?.(event);
   };
 
   return (
-    <AnimatedPressable
+    <Pressable
       ref={ref}
       style={[
         {
@@ -112,7 +118,8 @@ export const ThemedPressable = forwardRef<
         },
         getSizeStyles(),
         getVariantStyles(),
-        animatedStyle,
+        // COMMENTED OUT FOR DEBUGGING: Animation style
+        // animatedStyle,
         style,
       ]}
       disabled={disabled}
@@ -121,7 +128,7 @@ export const ThemedPressable = forwardRef<
       {...rest}
     >
       {children}
-    </AnimatedPressable>
+    </Pressable>
   );
 });
 
