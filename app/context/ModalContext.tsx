@@ -47,21 +47,24 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(modalReducer, initialState);
 
   const showModal = useCallback((modalProps: ModalProps) => {
-    // Close any existing modal first
+    // Close any existing modal first with proper cleanup delay
     if (state.isVisible) {
       dispatch({ type: 'HIDE_MODAL' });
-      // Small delay to ensure clean transition
+      // Longer delay for Android to prevent view conflicts
+      setTimeout(() => {
+        dispatch({ 
+          type: 'SHOW_MODAL', 
+          payload: modalProps 
+        });
+      }, 150);
+    } else {
+      // Still add small delay for view hierarchy stability
       setTimeout(() => {
         dispatch({ 
           type: 'SHOW_MODAL', 
           payload: modalProps 
         });
       }, 50);
-    } else {
-      dispatch({ 
-        type: 'SHOW_MODAL', 
-        payload: modalProps 
-      });
     }
   }, [state.isVisible]);
 
@@ -163,3 +166,6 @@ export const useLoadingModal = () => {
     isLoadingVisible: () => isModalVisible('loading'),
   };
 };
+
+// Default export for router compatibility
+export default ModalProvider;

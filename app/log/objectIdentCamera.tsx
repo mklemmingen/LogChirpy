@@ -1,1125 +1,573 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Button,
-    Dimensions,
-    Image,
-    LayoutAnimation,
-    Modal,
     Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
-    UIManager,
     useColorScheme,
     View,
 } from 'react-native';
-import {Camera, useCameraDevice, useCameraPermission,} from 'react-native-vision-camera';
-import Svg, {Rect, Text as SvgText} from 'react-native-svg';
-import * as ImageManipulator from 'expo-image-manipulator';
-import {useObjectDetection} from '@infinitered/react-native-mlkit-object-detection';
-import type {MyModelsConfig} from './../_layout';
-import {Directory, File, Paths} from 'expo-file-system/next';
+import { Camera, useCameraDevice, useCameraFormat, useCameraPermission } from 'react-native-vision-camera';
+import { useObjectDetection } from '@infinitered/react-native-mlkit-object-detection';
+import { useImageLabeling } from '@infinitered/react-native-mlkit-image-labeling';
+import { Audio } from 'expo-av';
+import { useIsFocused } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import Svg, { Rect, Text as SvgText } from 'react-native-svg';
+
 import { CriticalErrorBoundary } from '@/components/ComponentErrorBoundary';
-
-import {useFocusEffect, useIsFocused} from '@react-navigation/native';
-import {useAppState} from '@react-native-community/hooks';
-import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
-
-import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
-
-import {useTranslation} from 'react-i18next';
-
-import Slider from '@react-native-community/slider';
-
-import {ThemedSnackbar} from "@/components/ThemedSnackbar";
-import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
-import { usePhotoPreviewModal } from '@/app/context/ModalContext';
-import { Z_LAYERS, COMPONENT_Z_INDEX } from '@/constants/layers';
+import { SafeCameraViewManager } from '@/components/SafeViewManager';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import { ThemedSnackbar } from '@/components/ThemedSnackbar';
+import { theme } from '@/constants/theme';
+import { COMPONENT_Z_INDEX } from '@/constants/layers';
+import { BirdNetService } from '@/services/birdNetService';
+import type { MyModelsConfig } from './../_layout';
 
 import * as Haptics from 'expo-haptics';
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {theme} from "@/constants/theme";
-
-
-const STORAGE_KEYS = {
-    pipelineDelay: 'pipelineDelay',
-    confidenceThreshold: 'confidenceThreshold',
-    showSettings: 'showSettings',
-};
-const { width: W, height: H } = Dimensions.get('window');
+import * as FileSystem from 'expo-file-system';
 
 interface Detection {
     frame: { origin: { x: number; y: number }; size: { x: number; y: number } };
     labels: Array<{ text: string; confidence: number; index: number }>;
 }
 
-interface CropBox {
-    origin: { x: number; y: number };
-    size: { x: number; y: number };
-}
-
-interface SnackbarOptions {
-    bird?: string;
-    confidence?: number;
-    message?: string;
-    [key: string]: any;
-}
-
-function getBoxStyle(confidence: number) {
-    // Clamp conf to [0,1]
-    const c = Math.min(Math.max(confidence, 0), 1);
-    // Map confidence → hue (0 = red, 120 = green)
-    const hue = Math.round(c * 120);
-    // Use full saturation + mid lightness
-    const color = `hsl(${hue}, 100%, 50%)`;
-    // Make sure we never go fully transparent
-    const opacity = 0.2 + 0.8 * c;
-    return { color, opacity };
-}
-
-const persistToMediaLibraryAlbum = async (localUri: string, filename: string): Promise<boolean> => {
-    try {
-        // First ensure we have media library permissions
-        let { status } = await MediaLibrary.getPermissionsAsync();
-        
-        if (status !== 'granted') {
-            // Try to request permissions
-            const { status: newStatus, granted } = await MediaLibrary.requestPermissionsAsync();
-            if (!granted || newStatus !== 'granted') {
-                console.error("Media library permission denied. Status:", newStatus);
-                return false;
-            }
-            status = newStatus;
-        }
-
-        // Double-check permissions before proceeding
-        if (status !== 'granted') {
-            console.error("Media library permission not granted:", status);
-            return false;
-        }
-
-        // Create asset directly from the source URI
-        const asset = await MediaLibrary.createAssetAsync(localUri);
-        console.log("Asset created:", asset);
-
-        // Create or get the album
-        let album = await MediaLibrary.getAlbumAsync("LogChirpy");
-
-        if (album) {
-            // Add to existing album
-            await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-        } else {
-            // Create new album with the asset
-            album = await MediaLibrary.createAlbumAsync("LogChirpy", asset, false);
-        }
-
-        console.log("Saved image to LogChirpy album:", asset.uri);
-        return true;
-    } catch (e) {
-        console.error("Failed to save to media library:", e);
-        return false;
-    }
-};
-
-const getDelayPresetLabel = (value: number): string => {
-    if (value <= 0.25) return '⚡ Fast (0.2s)';
-    if (value <= 0.6) return '⚖️ Balanced (0.5s)';
-    return '🔍 Thorough (1s)';
-};
-
-const getConfidencePresetLabel = (value: number): string => {
-    if (value < 0.4) return '🟢 Lenient (< 40%)';
-    if (value < 0.75) return '🟡 Normal (40–75%)';
-    return '🔴 Strict (≥ 75%)';
-};
-
-function generateFilename(prefix: string, label: string) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const safeLabel = label.replace(/\s+/g, '_');
-    return `${prefix}_${safeLabel}_${timestamp}.jpg`;
-}
-
-async function handleClassifiedSave(
-    fileUri: string,
-    label: { text: string; confidence: number },
-    threshold: number,
-    prefix: 'bird' | 'full',
-    showSnackbar: (key: string, options?: SnackbarOptions) => void,
-    setDebugText: (txt: string) => void
-): Promise<void> {
-    if (label.confidence < threshold) return;
-
-    const filename = generateFilename(prefix, label.text);
-    try {
-        // Save directly without intermediate steps
-        const saved = await persistToMediaLibraryAlbum(fileUri, filename);
-
-        if (saved) {
-            console.log(`${prefix} classified image saved successfully`);
-            showSnackbar('camera.bird_detected', {
-                bird: label.text,
-                confidence: Math.round(label.confidence * 100),
-            });
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-    } catch (error) {
-        console.error('Failed to save image to media library:', error);
-        const message = error instanceof Error ? error.message : String(error);
-        setDebugText(`Save failed: ${message}`);
-    }
-}
-
-async function deleteOldFiles(dirUri: string, maxAgeMinutes: number): Promise<void> {
-    const fileNames = await FileSystem.readDirectoryAsync(dirUri);
-    const now = Date.now();
-
-    for (const name of fileNames) {
-        const fileUri = `${dirUri}${name}`;
-        const info = await FileSystem.getInfoAsync(fileUri) as FileSystem.FileInfo & { modificationTime?: number };
-        const mod = info.modificationTime;
-        if (mod && now - mod * 1000 > maxAgeMinutes * 60 * 1000) {
-            await FileSystem.deleteAsync(fileUri);
-            console.log("Deleted old file:", fileUri);
-        }
-    }
-}
-
-function ObjectIdentCameraWrapper() {
-    const [isLoading, setIsLoading] = useState(true);
-    const device = useCameraDevice('back');
-    const { hasPermission, requestPermission } = useCameraPermission();
+function SimpleObjectDetectCamera() {
     const { t } = useTranslation();
-    const raw = useColorScheme()
-    const colorScheme: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light'
-    const currentTheme = theme[colorScheme]
+    const colorScheme = useColorScheme() ?? 'light';
+    const currentTheme = theme[colorScheme];
+    const isFocused = useIsFocused();
 
-    // 1) run loading timer and kick off permission request exactly once
+    // Camera setup
+    const device = useCameraDevice('back');
+    const format = useCameraFormat(device, [
+        { photoResolution: { width: 1920, height: 1080 } },
+        { fps: 30 }
+    ]);
+    const { hasPermission, requestPermission } = useCameraPermission();
+    const cameraRef = useRef<Camera>(null);
+    
+    // Camera state
+    const [isActive, setIsActive] = useState(false);
+    const [cameraReady, setCameraReady] = useState(false);
+    
+    // Detection state
+    const [detections, setDetections] = useState<Detection[]>([]);
+    const [isProcessing, setIsProcessing] = useState(false);
+    
+    // Audio recording state
+    const [recording, setRecording] = useState<Audio.Recording | null>(null);
+    const [audioPermission, setAudioPermission] = useState(false);
+    const [lastAudioClassification, setLastAudioClassification] = useState<string>('');
+    
+    // UI state
+    const [snackbarVisible, setSnackbarVisible] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [debugText, setDebugText] = useState(t('camera.initializing'));
+
+    // ML Kit hooks
+    const detector = useObjectDetection<MyModelsConfig>('efficientNetlite0int8');
+    const classifier = useImageLabeling('birdClassifier');
+
+    // Initialization state tracking
+    const [initState, setInitState] = useState({
+        camera: false,
+        audio: false,
+        detector: false,
+        classifier: false,
+        birdnet: false,
+    });
+
+    // Initialize permissions and services
     useEffect(() => {
-        // 3s splash
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        requestPermission();     // side-effect only here
-        return () => clearTimeout(timer);
-    }, [requestPermission]);
+        console.log('[ObjectDetection] Starting initialization...');
+        setDebugText('Requesting permissions...');
+        
+        const initializeServices = async () => {
+            try {
+                // Camera permission
+                if (!hasPermission) {
+                    console.log('[ObjectDetection] Requesting camera permission...');
+                    const granted = await requestPermission();
+                    console.log('[ObjectDetection] Camera permission:', granted);
+                    setInitState(prev => ({ ...prev, camera: granted }));
+                } else {
+                    setInitState(prev => ({ ...prev, camera: true }));
+                }
+                
+                // Audio permission
+                console.log('[ObjectDetection] Requesting audio permission...');
+                setDebugText('Requesting audio permission...');
+                const audioStatus = await Audio.requestPermissionsAsync();
+                console.log('[ObjectDetection] Audio permission:', audioStatus.granted);
+                setAudioPermission(audioStatus.granted);
+                setInitState(prev => ({ ...prev, audio: audioStatus.granted }));
+                
+                // Initialize BirdNet service (non-blocking)
+                setDebugText('Loading BirdNet models...');
+                try {
+                    await BirdNetService.initializeOfflineMode();
+                    console.log('[ObjectDetection] BirdNet service initialized');
+                    setInitState(prev => ({ ...prev, birdnet: true }));
+                } catch (error) {
+                    console.warn('[ObjectDetection] Failed to initialize BirdNet:', error);
+                    setInitState(prev => ({ ...prev, birdnet: false }));
+                }
+                
+                console.log('[ObjectDetection] Initialization complete');
+            } catch (error) {
+                console.error('[ObjectDetection] Initialization failed:', error);
+                setDebugText(`Init failed: ${error}`);
+            }
+        };
+        
+        initializeServices();
+    }, [hasPermission, requestPermission]);
 
-    // 2) if we’re still loading resources, show loader
-    if (isLoading || !device || !hasPermission) {
+    // Track ML Kit initialization
+    useEffect(() => {
+        if (detector) {
+            console.log('[ObjectDetection] Detector available:', !!detector.detectObjects);
+            setInitState(prev => ({ ...prev, detector: !!detector.detectObjects }));
+        }
+    }, [detector]);
+
+    useEffect(() => {
+        if (classifier) {
+            console.log('[ObjectDetection] Classifier available:', !!classifier.classifyImage);
+            setInitState(prev => ({ ...prev, classifier: !!classifier.classifyImage }));
+        }
+    }, [classifier]);
+
+    // Camera lifecycle management
+    const handleCameraReady = useCallback(() => {
+        console.log('[ObjectDetection] Camera ready callback triggered');
+        setCameraReady(true);
+        setIsActive(true);
+        setDebugText('Camera ready - Starting detection...');
+    }, []);
+
+    const handleCameraUnmount = useCallback(() => {
+        console.log('[ObjectDetection] Camera unmount callback triggered');
+        setCameraReady(false);
+        setIsActive(false);
+        setDetections([]);
+        setDebugText('Camera stopped');
+    }, []);
+
+    // Update debug text based on initialization state
+    useEffect(() => {
+        const { camera, detector, classifier } = initState;
+        
+        if (!camera) {
+            setDebugText('Waiting for camera permission...');
+        } else if (!detector) {
+            setDebugText('Loading object detector...');
+        } else if (!classifier) {
+            setDebugText('Loading image classifier...');
+        } else if (!cameraReady) {
+            setDebugText('Camera initializing...');
+        } else {
+            setDebugText('Ready for detection');
+        }
+        
+        console.log('[ObjectDetection] Init state:', initState, 'Camera ready:', cameraReady);
+    }, [initState, cameraReady]);
+
+    // Fallback: Force camera ready after timeout if stuck
+    useEffect(() => {
+        if (hasPermission && device && initState.camera && !cameraReady) {
+            const timeout = setTimeout(() => {
+                console.log('[ObjectDetection] Forcing camera ready after timeout');
+                setDebugText('Camera forced ready');
+                handleCameraReady();
+            }, 5000); // 5 second timeout
+            
+            return () => clearTimeout(timeout);
+        }
+    }, [hasPermission, device, initState.camera, cameraReady, handleCameraReady]);
+
+    // Audio recording management
+    const startAudioRecording = useCallback(async () => {
+        if (!audioPermission) return;
+        
+        try {
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                playsInSilentModeIOS: true,
+            });
+
+            const { recording: newRecording } = await Audio.Recording.createAsync(
+                Audio.RecordingOptionsPresets.HIGH_QUALITY
+            );
+            setRecording(newRecording);
+        } catch (error) {
+            console.error('Failed to start audio recording:', error);
+        }
+    }, [audioPermission]);
+
+    const stopAudioRecording = useCallback(async () => {
+        if (!recording) return null;
+        
+        try {
+            await recording.stopAndUnloadAsync();
+            const uri = recording.getURI();
+            setRecording(null);
+            return uri;
+        } catch (error) {
+            console.error('Failed to stop audio recording:', error);
+            return null;
+        }
+    }, [recording]);
+
+    // Audio classification
+    const classifyAudio = useCallback(async (audioUri: string) => {
+        try {
+            setDebugText(t('camera.analyzing_audio'));
+            const result = await BirdNetService.identifyBirdFromAudio(audioUri);
+            
+            if (result.success && result.predictions.length > 0) {
+                const bestPrediction = BirdNetService.getBestPrediction(result.predictions);
+                if (bestPrediction) {
+                    const confidence = BirdNetService.formatConfidenceScore(bestPrediction.confidence);
+                    const message = `🎵 ${bestPrediction.common_name} (${confidence})`;
+                    setLastAudioClassification(message);
+                    setSnackbarMessage(message);
+                    setSnackbarVisible(true);
+                    
+                    setTimeout(() => setSnackbarVisible(false), 3000);
+                    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                }
+            }
+        } catch (error) {
+            console.error('Audio classification failed:', error);
+            setSnackbarMessage(t('errors.audio_classification_failed'));
+            setSnackbarVisible(true);
+            setTimeout(() => setSnackbarVisible(false), 2000);
+        }
+    }, [t]);
+
+    // 5-second audio recording cycle
+    useEffect(() => {
+        if (!isActive || !cameraReady || !audioPermission) return;
+
+        const audioInterval = setInterval(async () => {
+            // Start recording
+            await startAudioRecording();
+            
+            // Stop after 5 seconds and classify
+            setTimeout(async () => {
+                const audioUri = await stopAudioRecording();
+                if (audioUri) {
+                    await classifyAudio(audioUri);
+                    
+                    // Clean up audio file
+                    try {
+                        await FileSystem.deleteAsync(audioUri);
+                    } catch (error) {
+                        console.warn('Failed to delete audio file:', error);
+                    }
+                }
+            }, 5000);
+        }, 5000);
+
+        return () => {
+            clearInterval(audioInterval);
+        };
+    }, [isActive, cameraReady, audioPermission, startAudioRecording, stopAudioRecording, classifyAudio]);
+
+    // Object detection pipeline
+    const detectObjects = useCallback(async () => {
+        if (!cameraRef.current || !detector || isProcessing) return;
+
+        try {
+            setIsProcessing(true);
+            setDebugText(t('camera.capturing'));
+
+            const photo = await cameraRef.current.takePhoto({
+                flash: 'off',
+                enableShutterSound: false,
+            });
+
+            if (!photo?.path) return;
+
+            setDebugText(t('camera.detection_running'));
+            
+            // Object detection
+            const objects = await detector.detectObjects(photo.path);
+            
+            // Process each detected object
+            const enrichedDetections: Detection[] = [];
+            
+            for (const obj of objects) {
+                const labels = [];
+                
+                // Classify the detected object region
+                if (classifier?.classifyImage) {
+                    try {
+                        const result = await classifier.classifyImage(photo.path);
+                        const classificationResults = Array.isArray(result) ? result : 
+                                                    typeof result === 'string' ? JSON.parse(result) : [];
+                        
+                        if (classificationResults.length > 0) {
+                            labels.push({
+                                text: classificationResults[0].text || 'Unknown',
+                                confidence: classificationResults[0].confidence || 0,
+                                index: classificationResults[0].index || 0,
+                            });
+                        }
+                    } catch (error) {
+                        console.warn('Classification failed for object:', error);
+                    }
+                }
+                
+                enrichedDetections.push({
+                    frame: obj.frame,
+                    labels,
+                });
+            }
+
+            setDetections(enrichedDetections);
+            setDebugText(
+                enrichedDetections.length > 0
+                    ? t('camera.detection_successful', { count: enrichedDetections.length })
+                    : t('camera.detection_none')
+            );
+
+        } catch (error) {
+            console.error('Object detection failed:', error);
+            setDebugText(t('errors.detection_failed', { message: String(error) }));
+        } finally {
+            setIsProcessing(false);
+        }
+    }, [detector, classifier, isProcessing, t]);
+
+    // Auto-detect every 2 seconds
+    useEffect(() => {
+        if (!isActive || !cameraReady) return;
+
+        const detectionInterval = setInterval(detectObjects, 2000);
+        return () => clearInterval(detectionInterval);
+    }, [isActive, cameraReady, detectObjects]);
+
+    // Show snackbar helper
+    const showSnackbar = useCallback((message: string) => {
+        setSnackbarMessage(message);
+        setSnackbarVisible(true);
+        setTimeout(() => setSnackbarVisible(false), 2500);
+    }, []);
+
+    // Render fallbacks
+    if (Platform.OS === 'web') {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#0000ff" />
-                <Text style={{color: currentTheme.colors.text.primary, fontSize: 16, marginTop: 10}}>
-                    {t('camera.loading_screen')}
+                <Text style={{ color: currentTheme.colors.text.primary }}>
+                    {t('camera.unsupported_platform')}
                 </Text>
             </View>
         );
     }
 
-    // 3) when everything’s ready, mount the real camera content
-    return <ObjectIdentCameraContent />;
-}
-
-
-function ObjectIdentCameraContent() {
-    const device = useCameraDevice('back');
-    const { t } = useTranslation();
-    const raw = useColorScheme()
-    const colorScheme: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light'
-    const currentTheme = theme[colorScheme]
-
-    // Camera setup and permissions
-    const cameraRef = useRef<Camera>(null);
-    const [isInitialized, setIsInitialized] = useState(false);
-
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [zoom, setZoom] = useState(1);
-
-    // MLKit: detection, classification, and UI overlays
-    const [detections, setDetections] = useState<Detection[]>([]);
-    const [classifierReady, setClassifierReady] = useState(false);
-    const [imageDims, setImageDims] = useState({ width: 0, height: 0 });
-    const [showOverlays, setShowOverlays] = useState(true);
-
-    // Photo paths and image state
-    const [photoPath, setPhotoPath] = useState<string | null>(null);
-    const [lastPhotoUri, setLastPhotoUri] = useState<string | null>(null);
-    
-    // Modal hook
-    const { showPhotoPreview } = usePhotoPreviewModal();
-
-    // Detection pipeline controls
-    const [isDetectionPaused, setIsDetectionPaused] = useState(false);
-    const [pipelineDelay, setPipelineDelay] = useState(1); // seconds between captures
-    const [confidenceThreshold, setConfidenceThreshold] = useState(0.8);
-
-    // UI Settings and visibility toggles
-    const [showSettings, setShowSettings] = useState(false);
-
-    // Tooltip and label display info
-    const [showDelayTooltip, setShowDelayTooltip] = useState(false);
-    const [delayPresetLabel, setDelayPresetLabel] = useState('');
-    const [showConfidenceTooltip, setShowConfidenceTooltip] = useState(false);
-    const [confidencePresetLabel, setConfidencePresetLabel] = useState('');
-
-    // Focus/app state control
-    const isFocused = useIsFocused();
-    const appState = useAppState();
-    const isCameraActive = isFocused && appState === 'active';
-    
-    // Component cleanup to prevent view conflicts
-    useFocusEffect(
-        useCallback(() => {
-            return () => {
-                // Cleanup when losing focus to prevent view conflicts
-                setIsInitialized(false);
-                setIsDetectionPaused(true);
-                setShowOverlays(true);
-            };
-        }, [])
-    );
-
-    // Permissions
-    const [hasMediaPermission, setHasMediaPermission] = useState(false);
-
-    // Snackbar notification logic
-    const [snackbarVisible, setSnackbarVisible] = useState(false);
-    const [snackbarMessage, setSnackbarMessage] = useState('');
-    const showSnackbar = useCallback((key: string, options?: SnackbarOptions) => {
-        setSnackbarMessage(t(key, options));
-        setSnackbarVisible(true);
-        setTimeout(() => setSnackbarVisible(false), 2500);
-    }, [t]);
-
-
-    // Debug message shown to user
-    const [debugText, setDebugText] = useState(t('camera.initializing'));
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const savedDelay = await AsyncStorage.getItem(STORAGE_KEYS.pipelineDelay);
-                const savedThreshold = await AsyncStorage.getItem(STORAGE_KEYS.confidenceThreshold);
-                const savedShowSettings = await AsyncStorage.getItem(STORAGE_KEYS.showSettings);
-
-                if (savedDelay !== null) setPipelineDelay(parseFloat(savedDelay));
-                if (savedThreshold !== null) setConfidenceThreshold(parseFloat(savedThreshold));
-                if (savedShowSettings !== null) setShowSettings(savedShowSettings === 'true');
-            } catch (e) {
-                console.warn("Failed to load saved settings:", e);
-            }
-        })();
-    }, []);
-
-    const handleSetPipelineDelay = (value: number) => {
-        setPipelineDelay(value);
-        setDelayPresetLabel(getDelayPresetLabel(value));
-        AsyncStorage.setItem(STORAGE_KEYS.pipelineDelay, value.toString());
-    };
-
-    const handleSetConfidenceThreshold = (value: number) => {
-        setConfidenceThreshold(value);
-        setConfidencePresetLabel(getConfidencePresetLabel(value));
-        AsyncStorage.setItem(STORAGE_KEYS.confidenceThreshold, value.toString());
-    };
-
-    const toggleShowSettings = () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setShowSettings(prev => {
-            const newVal = !prev;
-            AsyncStorage.setItem(STORAGE_KEYS.showSettings, newVal.toString());
-            return newVal;
-        });
-    };
-
-    // Ask for permissions once, also for layout
-    useEffect(() => {
-        console.log('[ObjectDetection] Component mounted, initializing...');
-        (async () => {
-            if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-                UIManager.setLayoutAnimationEnabledExperimental(true);
-            }
-
-            const hasPermission = await ensureMediaPermission();
-            setHasMediaPermission(hasPermission);
-        })();
-        
-        // Cleanup function to prevent view conflicts on unmount
-        return () => {
-            console.log('[ObjectDetection] Component unmounting, cleaning up...');
-            setIsInitialized(false);
-            setIsDetectionPaused(true);
-        };
-    }, []);
-
-    const ensureMediaPermission = async (): Promise<boolean> => {
-        try {
-            let { status } = await MediaLibrary.getPermissionsAsync();
-            if (status !== 'granted') {
-                console.log("[ObjectDetection] Requesting media library permissions...");
-                const { status: newStatus, granted } = await MediaLibrary.requestPermissionsAsync();
-                if (!granted || newStatus !== 'granted') {
-                    console.error("Media permission denied. Status:", newStatus);
-                    showSnackbar('errors.media_permission_denied');
-                    return false;
-                }
-                status = newStatus;
-            }
-            console.log("[ObjectDetection] Media library permissions granted");
-            return true;
-        } catch (error) {
-            console.error("Error checking media permissions:", error);
-            return false;
-        }
-    };
-
-    const detector = useObjectDetection<MyModelsConfig>('efficientNetlite0int8');
-    const classifier = useImageLabeling("birdClassifier");
-
-    type ClassificationResult = Array<{ text: string; confidence: number; index: number }>;
-
-    const classifyImage = async (imageUri: string): Promise<ClassificationResult> => {
-        try {
-            const result = await classifier?.classifyImage(imageUri);
-            console.log('Classifier result:', result);
-
-            // If result is string, try JSON.parse
-            if (typeof result === 'string') {
-                const parsed = JSON.parse(result);
-                return Array.isArray(parsed) ? parsed : [];
-            }
-
-            return result ?? [];
-        } catch (error) {
-            console.error("Classification failed:", error);
-            return [];
-        }
-    };
-
-    const imageContext = ImageManipulator.useImageManipulator(photoPath || '');
-    const isActive = useRef(true);
-
-    // Capture loop: take photo, manipulate, and save to document directory
-    useEffect(() => {
-
-        const captureLoop = async () => {
-            if (!cameraRef.current || !isInitialized || isDetectionPaused) return;
-
-            try {
-                setIsProcessing(true);
-                setDebugText(t('camera.capturing'));
-
-                if (!cameraRef.current) return
-                const photo = await cameraRef.current.takePhoto({
-                    flash: 'off',
-                    enableShutterSound: false,
-                });
-
-                console.log('Photo taken:', photo);
-
-                if (!photo?.path) {
-                    setDebugText(t('errors.no_photo_path'));
-                    return;
-                }
-
-                // Apply any desired image manipulations (compression, format, etc.)
-                const manipResult = await ImageManipulator.manipulateAsync(
-                    photo.path,
-                    [],
-                    { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG }
-                );
-
-                setImageDims({ width: manipResult.width, height: manipResult.height });
-
-                // Save manipulated image to the document directory using expo-file-system/next
-                try {
-                    const destDir = new Directory(Paths.document);
-                    try {
-                        destDir.create(); // ensure the document directory exists
-                    } catch {
-                        // Directory likely exists; ignore error
-                    }
-                    const fileName = `photo_${Date.now()}.jpg`;
-                    const destFile = new File(destDir, fileName);
-
-                    // Prepare source file instance from the manipulate result URI
-                    const manipUri = manipResult.uri;
-                    const srcName = Paths.basename(manipUri);
-                    const srcDirPath = Paths.dirname(manipUri);
-                    const srcDir = new Directory(srcDirPath);
-                    const srcFile = new File(srcDir, srcName);
-
-                    await srcFile.copy(destFile);
-                    console.log('Photo saved to document directory:', destFile.uri);
-                    // Set photoPath to the URI for MLKit
-                    const savedPath = destFile.uri;
-
-                    setPhotoPath(savedPath);
-
-                } catch (copyError: unknown) {
-                    console.error('Error copying photo to document directory:', copyError);
-                    const message = copyError instanceof Error ? copyError.message : String(copyError);
-                    setDebugText(t('errors.save_photo_failed', { message }));
-                    return;
-                }
-            } catch (err: unknown) {
-                const message = err instanceof Error ? err.message : String(err);
-                console.error(t('errors.capture_failed', { message }));
-                setDebugText(t('errors.capture_failed', { message }));
-            } finally {
-                setIsProcessing(false);
-            }
-
-            // Continue capture loop if still active
-            if (isActive.current) {
-                setTimeout(captureLoop, pipelineDelay*1000);
-            }
-        };
-
-        captureLoop();
-    }, [detector, device, isInitialized, isDetectionPaused]);
-
-    async function cropImage(imageUri: string, box: CropBox) : Promise<string> {
-        const cropAction = {
-            crop: {
-                originX: box.origin.x,
-                originY: box.origin.y,
-                width: box.size.x,
-                height: box.size.y
-            }
-        };
-        const cropResult = await ImageManipulator.manipulateAsync(
-            imageUri,
-            [cropAction],
-            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+    if (!hasPermission) {
+        return (
+            <View style={styles.centered}>
+                <Text style={{ color: currentTheme.colors.text.primary }}>
+                    {t('camera.permission_required')}
+                </Text>
+                <TouchableOpacity
+                    style={styles.permissionButton}
+                    onPress={requestPermission}
+                >
+                    <Text style={styles.permissionButtonText}>
+                        {t('buttons.grant_permission')}
+                    </Text>
+                </TouchableOpacity>
+            </View>
         );
-        // cropResult.uri is the URI of the cropped image
-        return cropResult.uri;
     }
 
-    useEffect(() => {
-        if (classifier?.classifyImage) {
-            setClassifierReady(true);
-            console.log("[ObjectDetection] Classifier ready and functional");
-        } else if (classifier === null) {
-            console.log("[ObjectDetection] Classifier failed to initialize");
-        }
-    }, [classifier]);
-
-    useEffect(() => {
-        if (detector) {
-            console.log("[ObjectDetection] Detector available with methods:", Object.keys(detector || {}));
-        } else if (detector === null) {
-            console.log("[ObjectDetection] Detector failed to initialize");
-        }
-    }, [detector]);
-
-
-    // Process photoPath with MLKit and delete previous photos
-    useEffect(() => {
-        if (!photoPath) return;
-
-        if (!detector) {
-            setDebugText(t('errors.detector_unavailable'));
-            console.error('[ObjectDetection] Object detector not loaded. Detector state:', detector);
-            console.error('[ObjectDetection] Available detector methods:', detector ? Object.keys(detector) : 'detector is null/undefined');
-            console.error('[ObjectDetection] Expected model: efficientNetlite0int8');
-            return;
-        }
-
-        if (!classifierReady) {
-            setDebugText(t('errors.classifier_unavailable'));
-            console.warn('Image classifier not ready yet.');
-            return;
-        }
-
-        (async () => {
-            // Delete the last photo file (cleanup) if it exists
-            if (lastPhotoUri) {
-                try {
-                    const lastFileName = Paths.basename(lastPhotoUri);
-                    const lastFile = new File(Paths.document, lastFileName);
-                    if (lastFile.exists) {
-                        await lastFile.delete();
-                        console.log('Deleted previous photo:', lastFile.uri);
-                    }
-                } catch (deleteError) {
-                    console.warn('Error deleting previous photo:', deleteError);
-                }
-            }
-
-            try {
-                console.log('Rendering and saving new image...');
-                const imageRef = await imageContext.renderAsync();
-                const result = await imageRef.saveAsync({
-                    format: ImageManipulator.SaveFormat.JPEG,
-                    compress: 0.3,
-                });
-
-                // Save the rendered image to document directory
-                const resultPath = result.uri;
-                const resultName = Paths.basename(resultPath);
-                const resultDirPath = Paths.dirname(resultPath);
-                const resultDir = new Directory(resultDirPath);
-                const srcResultFile = new File(resultDir, resultName);
-
-                const destDir2 = new Directory(Paths.document);
-                try {
-                    destDir2.create();
-                } catch {
-                    // Directory likely exists; ignore error
-                }
-
-                const destFile2 = new File(destDir2, `photo_${Date.now()}.jpg`);
-                await srcResultFile.copy(destFile2);
-
-                const { exists } = await FileSystem.getInfoAsync(destFile2.uri);
-                if (!exists) {
-                    throw new Error(`File not ready at ${destFile2.uri}`);
-                }
-
-                // Ensure file exists (this should be immediate after copy)
-                if (!destFile2.exists) {
-                    throw new Error(`File still doesn't exist at ${destFile2.uri}`);
-                }
-
-                // Prepare the path for MLKit
-                const imagePath = destFile2.uri;
-
-                console.log('Original result URI:', result.uri);
-                console.log('MLKit Path:', imagePath);
-
-                setLastPhotoUri(imagePath);
-                setImageDims({ width: result.width, height: result.height });
-                setDebugText(t('camera.detection_running'));
-
-                // Run object detection on the image
-                console.log('[ObjectDetection] Starting object detection on image:', imagePath);
-                console.log('[ObjectDetection] Detector ready:', !!detector, 'Has detectObjects method:', !!detector?.detectObjects);
-                
-                const objects = await detector.detectObjects(imagePath);
-                console.log('[ObjectDetection] Detection completed successfully. Results:', objects);
-                console.log('[ObjectDetection] Number of objects detected:', objects.length);
-
-
-                // pipeline to run all objects into the image classificer pipeline with classifyImage(imagePath: string): Promise<ClassificationResult>
-                // for this, we need to cut the image from path into each objects piece, run it through classifiy, and then map the right label onto the object for display
-
-                // type ClassificationResult = Array<{
-                //   text: string;
-                //   index: number;
-                //   confidence: number;
-                // }>;
-
-                // interface ObjectDetectionObject {
-                //   frame: {
-                //     origin: { x: number; y: number };
-                //     size: { x: number; y: number };
-                //   };
-                //   labels: Array<{
-                //     text: string;
-                //     confidence: number;
-                //     index: number;
-                //   }>;
-                //   trackingID?: number;
-                // }
-
-                // 1) Enrich each detection by cropping + classifying:
-                const enriched: Detection[] = [];
-                for (const obj of objects) {
-                    // crop the box out of the image
-                    const cropUri = await cropImage(imagePath, obj.frame);
-
-                    try {
-                        // classify the cropped image
-                        if (typeof classifier?.classifyImage !== 'function') {
-                            console.warn("Classifier method not available");
-                            return;
-                        }
-                        const labelResult = await classifyImage(cropUri);
-
-                        console.log(labelResult);
-
-                        // pick the top label
-                        const labels = labelResult.length
-                            ? [{
-                                text:    labelResult[0].text,
-                                confidence: labelResult[0].confidence,
-                                index:   labelResult[0].index
-                            }]
-                            : [];
-
-                        // check if the label confidence is above the threshold, and save the image if it is
-                        if (labels[0]) {
-                            await handleClassifiedSave(
-                                cropUri,
-                                labels[0],
-                                confidenceThreshold,
-                                'bird',
-                                showSnackbar,
-                                setDebugText
-                            );
-                        }
-
-                        // attach those labels to a fresh object
-                        enriched.push({
-                            frame: obj.frame,
-                            labels,
-                        });
-                    } catch (e) {
-                        console.warn('Failed to classify crop:', e);
-                    }
-
-                    // get the directory and filename straight from the URI:
-                    const dirPath  = Paths.dirname(cropUri);
-                    const fileName = Paths.basename(cropUri);
-
-                    // construct a Directory/File pair for that path + name
-                    const cropDir  = new Directory(dirPath);
-                    const cropFile = new File(cropDir, fileName);
-
-                    try {
-                        await cropFile.delete();
-                        console.log('Deleted crop:', cropUri);
-                    } catch (err) {
-                        console.warn('Could not delete crop file:', err);
-                    }
-                }
-
-                // 2) Update state with your new list:
-                setDetections(enriched);
-                setDebugText(
-                    enriched.length > 0
-                        ? t('camera.detection_successful', { count: enriched.length })
-                        : t('camera.detection_none')
-                );
-
-                // Run classification on the full image
-                try {
-                    const fullImageLabels = await classifyImage(imagePath);
-                    console.log('Full image classification:', fullImageLabels);
-
-                    const top = fullImageLabels[0];
-                    if (top) {
-                        await handleClassifiedSave(
-                            imagePath,
-                            top,
-                            confidenceThreshold,
-                            'full',
-                            showSnackbar,
-                            setDebugText
-                        );
-                    }
-
-                } catch (e) {
-                    console.warn('Failed to classify full image:', e);
-                }
-
-            } catch (err: unknown) {
-                const message = err instanceof Error ? err.message : String(err);
-                console.error(t('errors.detection_failed', { message }));
-                setDebugText(t('errors.detection_failed', { message }));
-            }
-        })();
-    }, [photoPath, classifier]);
-
-    useEffect(() => {
-        return () => {
-            isActive.current = false;
-
-            (async () => {
-                try {
-                    console.log("Cleaning up old files in document and cache directories...");
-                    await deleteOldFiles(FileSystem.documentDirectory!, 5); // Files older than 5 minutes
-                    await deleteOldFiles(FileSystem.cacheDirectory!, 5);
-                } catch (e) {
-                    console.warn("Cleanup failed:", e);
-                }
-            })();
-        };
-    }, []);
-
-    useFocusEffect(
-        React.useCallback(() => {
-            // Component is focused
-            isActive.current = true;
-
-            return () => {
-                // Component lost focus
-                isActive.current = false;
-            };
-        }, [])
-    );
-
-    // Calculate scale for rendering detection bounding boxes
-    const scaleX = imageDims.width ? W / imageDims.width : 1;
-    const scaleY = imageDims.height ? H / imageDims.height : 1;
-
-    // ——— FALLBACKS & CONTENT ———
     if (!device) {
         return (
             <View style={styles.centered}>
-                <Text>{t('camera_advanced.no_camera_found')}</Text>
+                <Text style={{ color: currentTheme.colors.text.primary }}>
+                    {t('camera.error.camera_not_available')}
+                </Text>
             </View>
         );
     }
 
-    if (Platform.OS === 'web') {
-        return (
-            <View style={styles.centered}>
-                <Text>{ t('camera.unsupported_platform') }</Text>
-            </View>
-        );
-    }
-
-    // @ts-ignore
-    // @ts-ignore
     return (
-        <ThemedSafeAreaView style={{ flex: 1 }}>
-            <View style={styles.container}>
-                {showOverlays && (
-                    <View pointerEvents="none" style={styles.overlay}>
-                        <Svg style={{ width: '100%', height: '100%' }}>
-                            {detections.map((item, index) => {
-                                const { origin, size } = item.frame;
-                                const labels = item.labels;
-                                const conf = labels[0]?.confidence ?? 0;
-                                const { color, opacity } = getBoxStyle(conf);
-
-                                return (
-                                    <React.Fragment key={`det-${index}`}>
-                                        {/* Bounding box */}
-                                        <Rect
-                                            x={origin.x * scaleX}
-                                            y={origin.y * scaleY}
-                                            width={size.x * scaleX}
-                                            height={size.y * scaleY}
-                                            stroke={color}
-                                            strokeWidth={2}
-                                            fill="none"
-                                            fillOpacity={opacity * 0.3}
-                                        />
-                                        {labels.slice(0, 3).map((label, idx) => {
-                                            const conf = label.confidence;
-                                            const labelText = `${label.text} ${(conf * 100).toFixed(0)}%`;
-                                            const labelX = origin.x * scaleX;
-                                            const labelY = Math.max(origin.y * scaleY - 22 * (labels.length - idx), 0);
-                                            const labelWidth = labelText.length * 6.8 + 12;
-                                            const backgroundPadding = 4;
-
-                                            return (
-                                                <React.Fragment key={`label-${index}-${idx}`}>
-                                                    <Rect
-                                                        x={labelX - backgroundPadding}
-                                                        y={labelY - 12}
-                                                        width={labelWidth}
-                                                        height={18}
-                                                        rx={4}
-                                                        ry={4}
-                                                        fill="black"
-                                                        fillOpacity={0.5}
-                                                    />
-                                                    <SvgText
-                                                        x={labelX}
-                                                        y={labelY}
-                                                        fill="white"
-                                                        fontSize="12"
-                                                        fontWeight="bold"
-                                                    >
-                                                        {labelText}
-                                                    </SvgText>
-                                                    <Rect
-                                                        x={labelX - backgroundPadding}
-                                                        y={labelY + 6}
-                                                        width={labelWidth * Math.min(conf, 1)}
-                                                        height={4}
-                                                        rx={2}
-                                                        fill={conf >= confidenceThreshold ? 'limegreen' : 'crimson'}
-                                                    />
-                                                </React.Fragment>
-                                            );
-                                        })}
-                                    </React.Fragment>
-                                );
-                            })}
-                        </Svg>
-                    </View>
-                )}
-
-                <TouchableOpacity
-                    onPress={() => {
-                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                        setShowSettings(prev => !prev);
-                        AsyncStorage.setItem('showSettings', (!showSettings).toString());
-                    }}
-                    style={{
-                        position: 'absolute',
-                        top: 10,
-                        right: 10,
-                        backgroundColor: currentTheme.colors.overlay.dark,
-                        padding: 6,
-                        borderRadius: 20,
-                        zIndex: 15,
-                    }}
-                >
-                    <Text style={{ color: 'white', fontSize: 18 }}>⚙️</Text>
-                </TouchableOpacity>
-
+        <ThemedSafeAreaView style={styles.container}>
+            <SafeCameraViewManager
+                style={StyleSheet.absoluteFillObject}
+                isActive={hasPermission && !!device && isFocused}
+                onCameraReady={handleCameraReady}
+                onCameraUnmount={handleCameraUnmount}
+            >
                 <Camera
-                    style={styles.camera}
                     ref={cameraRef}
-                    device={device!}
-                    isActive={isCameraActive}
+                    style={styles.camera}
+                    device={device}
+                    format={format}
+                    isActive={hasPermission && !!device && isFocused}
                     photo={true}
-                    zoom={zoom}
                     enableZoomGesture={true}
                     onInitialized={() => {
-                        console.log("Camera initialized!");
-                        setIsInitialized(true);
+                        console.log('[ObjectDetection] Camera onInitialized called');
+                        handleCameraReady();
+                    }}
+                    onError={(error) => {
+                        console.error('[ObjectDetection] Camera error:', error);
+                        setDebugText(`Camera error: ${error.message}`);
                     }}
                 />
-                {isCameraActive && (
-                    <View style={[styles.statusBadge, { backgroundColor: currentTheme.colors.overlay.dark }]}>
-                        <View style={[
-                            styles.statusDot,
-                            { backgroundColor: isProcessing ? 'limegreen' : 'red' }
-                        ]} />
+            </SafeCameraViewManager>
+
+            {/* Detection overlays */}
+            <View style={styles.overlay} pointerEvents="none">
+                <Svg style={{ width: '100%', height: '100%' }}>
+                    {detections.map((detection, index) => {
+                        const { origin, size } = detection.frame;
+                        const label = detection.labels[0];
+                        const confidence = label?.confidence || 0;
+                        const color = confidence > 0.7 ? '#10B981' : confidence > 0.4 ? '#F59E0B' : '#EF4444';
+
+                        return (
+                            <React.Fragment key={`detection-${index}`}>
+                                <Rect
+                                    x={origin.x}
+                                    y={origin.y}
+                                    width={size.x}
+                                    height={size.y}
+                                    stroke={color}
+                                    strokeWidth={2}
+                                    fill="none"
+                                />
+                                {label && (
+                                    <>
+                                        <Rect
+                                            x={origin.x}
+                                            y={Math.max(origin.y - 20, 0)}
+                                            width={label.text.length * 8 + 16}
+                                            height={20}
+                                            fill="rgba(0, 0, 0, 0.8)"
+                                            rx={4}
+                                        />
+                                        <SvgText
+                                            x={origin.x + 8}
+                                            y={Math.max(origin.y - 6, 14)}
+                                            fill="white"
+                                            fontSize="12"
+                                            fontWeight="bold"
+                                        >
+                                            {`${label.text} ${Math.round(confidence * 100)}%`}
+                                        </SvgText>
+                                    </>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
+                </Svg>
+            </View>
+
+            {/* Status displays */}
+            <View style={styles.statusContainer}>
+                <View style={[styles.statusBadge, { backgroundColor: 'rgba(0, 0, 0, 0.8)' }]}>
+                    <View style={[
+                        styles.statusDot,
+                        { backgroundColor: isActive ? '#10B981' : '#EF4444' }
+                    ]} />
+                    <Text style={styles.statusText}>
+                        {isActive ? 'Active' : 'Inactive'}
+                    </Text>
+                </View>
+
+                {/* Initialization status */}
+                <View style={[styles.initStatus, { backgroundColor: 'rgba(0, 0, 0, 0.8)' }]}>
+                    <Text style={styles.statusText}>
+                        📷 {initState.camera ? '✅' : '⏳'} 
+                        🔍 {initState.detector ? '✅' : '⏳'} 
+                        🏷️ {initState.classifier ? '✅' : '⏳'}
+                    </Text>
+                </View>
+
+                {audioPermission && (
+                    <View style={[styles.audioStatus, { backgroundColor: 'rgba(0, 0, 0, 0.8)' }]}>
+                        <ThemedIcon 
+                            name={recording ? "mic" : "mic-off"} 
+                            size={16} 
+                            color="secondary" 
+                        />
                         <Text style={styles.statusText}>
-                            {isProcessing ? t('camera.status_detecting') : t('camera.status_idle')}
+                            Audio: {recording ? 'Recording' : 'Ready'}
                         </Text>
                     </View>
                 )}
-                {showSettings && (
-                    <View style={[styles.sliderBlock, { backgroundColor: currentTheme.colors.overlay.medium }]}>
-                        <View style={styles.sliderRow}>
-                            <Text style={styles.sliderLabel}>{t('camera.zoom')}</Text>
-                            <Slider
-                                value={zoom}
-                                onValueChange={setZoom}
-                                minimumValue={1}
-                                maximumValue={device?.maxZoom ?? 5}
-                                step={0.01}
-                                minimumTrackTintColor="#1EB1FC"
-                                maximumTrackTintColor="#d3d3d3"
-                                thumbTintColor="#1EB1FC"
-                                style={{ width: '100%', height: 40 }}
-                            />
-                            <Text style={styles.sliderValue}>{zoom.toFixed(2)}x</Text>
-                        </View>
-                        <View style={styles.sliderRow}>
-                            <Text style={styles.sliderLabel}>{t('camera.pipeline_delay_label')}</Text>
-                            <Slider
-                                value={pipelineDelay}
-                                onValueChange={handleSetPipelineDelay}
-                                onSlidingStart={() => setShowDelayTooltip(true)}
-                                onSlidingComplete={() => setShowDelayTooltip(false)}
-                                minimumValue={0.01}
-                                maximumValue={1}
-                                step={0.01}
-                                minimumTrackTintColor="#1EB1FC"
-                                maximumTrackTintColor="#d3d3d3"
-                                thumbTintColor="#1EB1FC"
-                                style={{ width: '100%', height: 40 }}
-                            />
-                            <Text style={styles.sliderValue}>{pipelineDelay.toFixed(2)}s</Text>
-                            {showDelayTooltip && (
-                                <View style={[styles.tooltipBox, { backgroundColor: currentTheme.colors.overlay.dark }]}>
-                                    <Text style={styles.tooltipText}>{delayPresetLabel}</Text>
-                                </View>
-                            )}
-                        </View>
-
-                        <View style={styles.sliderRow}>
-                            <Text style={styles.sliderLabel}>{t('camera.confidence_threshold_label')}</Text>
-                            <Slider
-                                value={confidenceThreshold}
-                                onValueChange={handleSetConfidenceThreshold}
-                                onSlidingStart={() => setShowConfidenceTooltip(true)}
-                                onSlidingComplete={() => setShowConfidenceTooltip(false)}
-                                minimumValue={0}
-                                maximumValue={1}
-                                step={0.01}
-                                minimumTrackTintColor="#1EB1FC"
-                                maximumTrackTintColor="#d3d3d3"
-                                thumbTintColor="#1EB1FC"
-                                style={{ width: '100%', height: 40 }}
-                            />
-                            <Text style={styles.sliderValue}>{Math.round(confidenceThreshold * 100)}%</Text>
-                            {showConfidenceTooltip && (
-                                <View style={[styles.tooltipBox, { backgroundColor: currentTheme.colors.overlay.dark }]}>
-                                    <Text style={styles.tooltipText}>{confidencePresetLabel}</Text>
-                                </View>
-                            )}
-                        </View>
-
-                        <TouchableOpacity
-                            onPress={() => setIsDetectionPaused(prev => !prev)}
-                            style={{
-                                marginTop: 10,
-                                backgroundColor: isDetectionPaused ? 'tomato' : '#1EB1FC',
-                                padding: 10,
-                                borderRadius: 6,
-                            }}
-                        >
-                            <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                                {isDetectionPaused ? t('camera.resume') : t('camera.pause')}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-                {/* Photo and Video Capture Buttons */}
-                <View style={styles.captureButtons}>
-                    <TouchableOpacity
-                        onPress={() => {
-                            console.log('Manual photo capture requested');
-                            // Manual photo capture - saves a single high-quality photo
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        }}
-                        style={[styles.captureButton, { backgroundColor: currentTheme.colors.interactive.primary }]}
-                    >
-                        <Text style={styles.captureButtonText}>📸</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                        onPress={() => {
-                            console.log('Video recording requested');
-                            // Video recording functionality
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        }}
-                        style={[styles.captureButton, { backgroundColor: '#FF6B6B' }]}
-                    >
-                        <Text style={styles.captureButtonText}>🎥</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {lastPhotoUri && (
-                    <TouchableOpacity
-                        onPress={() => {
-                            showPhotoPreview({
-                                imageUri: lastPhotoUri,
-                                detections: detections,
-                                onClose: () => {},
-                            });
-                            setShowOverlays(false);
-                        }}
-                        style={styles.thumbnail}
-                    >
-                        <Image
-                            source={{ uri: lastPhotoUri }}
-                            style={{ width: '100%', height: '100%', borderRadius: 4 }}
-                        />
-                    </TouchableOpacity>
-                )}
-                <View style={[styles.debugTextContainer, { backgroundColor: currentTheme.colors.overlay.heavy }]}>
-                    <Text
-                        style={styles.debugText}
-                        accessibilityRole="alert"
-                        accessibilityLiveRegion="polite"
-                    >
-                        {debugText}
-                    </Text>
-                </View>
-                <ThemedSnackbar
-                    visible={snackbarVisible}
-                    message={snackbarMessage}
-                    onHide={() => setSnackbarVisible(false)}
-                />
             </View>
-            {!hasMediaPermission && (
-                <View style={[styles.permissionWarning, { backgroundColor: currentTheme.colors.status.error }]}>
-                    <Text style={styles.permissionWarningText}>
-                        {t('warnings.media_permission_required')}
-                    </Text>
-                    <Button
-                        title={t('buttons.grant_permission')}
-                        onPress={async () => {
-                            const granted = await ensureMediaPermission();
-                            setHasMediaPermission(granted);
-                        }}
-                    />
+
+            {/* Debug text */}
+            <View style={styles.debugContainer}>
+                <Text style={styles.debugText}>{debugText}</Text>
+            </View>
+
+            {/* Audio classification result */}
+            {lastAudioClassification && (
+                <View style={styles.audioResultContainer}>
+                    <Text style={styles.audioResultText}>{lastAudioClassification}</Text>
                 </View>
             )}
+
+            {/* Simple controls */}
+            <View style={styles.controls}>
+                <TouchableOpacity
+                    style={styles.controlButton}
+                    onPress={detectObjects}
+                    disabled={isProcessing}
+                >
+                    <ThemedIcon 
+                        name="camera" 
+                        size={24} 
+                        color="secondary" 
+                    />
+                </TouchableOpacity>
+            </View>
+
+            <ThemedSnackbar
+                visible={snackbarVisible}
+                message={snackbarMessage}
+                onHide={() => setSnackbarVisible(false)}
+            />
         </ThemedSafeAreaView>
     );
 }
 
+export default function ObjectIdentCamera() {
+    return (
+        <CriticalErrorBoundary
+            componentName="Simple Object Detection Camera"
+            onError={(error, errorId) => {
+                console.error('Object detection camera error:', error, errorId);
+            }}
+        >
+            <SimpleObjectDetectCamera />
+        </CriticalErrorBoundary>
+    );
+}
+
 const styles = StyleSheet.create({
-    tooltipBox: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        marginTop: 4,
-        alignSelf: 'flex-start',
-        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
-    },
-    tooltipText: {
-        color: 'white',
-        fontSize: 12,
-        fontStyle: 'italic',
-        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
-    },
-    modalContainer: {
+    container: {
         flex: 1,
         backgroundColor: 'black',
+    },
+    centered: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: COMPONENT_Z_INDEX.CAMERA_UI, // Ensure modal is above the SVG overlay
+        padding: 20,
     },
-    modalImage: {
-        width: W,
-        height: H,
-        resizeMode: 'contain',
-        zIndex: COMPONENT_Z_INDEX.CAMERA_UI, // Ensure modal image is above the SVG overlay
-    },
-    modalOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: W,
-        height: H,
-        zIndex: COMPONENT_Z_INDEX.CAMERA_UI, // Ensure modal overlay is above the SVG overlay
-    },
-    modalButtons: {
-        position: 'absolute',
-        bottom: 40,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        width: '100%',
-        paddingHorizontal: 20,
-        zIndex: COMPONENT_Z_INDEX.CAMERA_UI, // Ensure modal buttons are above the SVG overlay
-    },
-    statusBadge: {
-        position: 'absolute',
-        top: 10,
-        left: 10,
-        borderRadius: 16,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        flexDirection: 'row',
-        alignItems: 'center',
-        zIndex: COMPONENT_Z_INDEX.STATUS_BADGE,
-    },
-    statusDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        marginRight: 6,
-        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
-    },
-    statusText: {
-        color: 'white',
-        fontSize: 12,
-        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
-    },
-    container: { flex: 1 },
     camera: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: COMPONENT_Z_INDEX.MAIN_CONTENT,
+        ...StyleSheet.absoluteFillObject,
     },
     overlay: {
         position: 'absolute',
@@ -1129,86 +577,86 @@ const styles = StyleSheet.create({
         bottom: 0,
         zIndex: COMPONENT_Z_INDEX.DETECTION_OVERLAY,
     },
-    thumbnail: {
+    statusContainer: {
         position: 'absolute',
-        width: 80,
-        height: 80,
-        bottom: 10,
-        right: 10,
-        borderColor: '#fff',
-        borderWidth: 1,
-        zIndex: COMPONENT_Z_INDEX.CAMERA_CONTROLS
+        top: 10,
+        left: 10,
+        gap: 8,
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
     },
-    sliderValue: {
-        color: 'white',
-        fontSize: 10,
-        textAlign: 'right',
-        marginTop: -6,
-        marginBottom: 8,
-    },
-    centered: {
-        flex: 1,
-        justifyContent: 'center',
+    statusBadge: {
+        borderRadius: 16,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        flexDirection: 'row',
         alignItems: 'center',
     },
-    debugTextContainer: {
-        position: 'absolute',
-        top: 40,
-        alignSelf: 'center',
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 6,
+    },
+    statusText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    initStatus: {
+        borderRadius: 16,
         paddingHorizontal: 10,
-        paddingVertical: 4,
+        paddingVertical: 6,
+    },
+    audioStatus: {
+        borderRadius: 16,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    debugContainer: {
+        position: 'absolute',
+        top: 60,
+        alignSelf: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 8,
         zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
     },
-    debugText: { color: 'white', fontSize: 16 },
-    sliderBlock: {
-        position: 'absolute',
-        bottom: 20,
-        left: 20,
-        right: 20,
-        padding: 10,
-        borderRadius: 10,
-        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
-    },
-    sliderRow: {
-        marginBottom: 10,
-        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
-    },
-    sliderLabel: {
+    debugText: {
         color: 'white',
-        fontSize: 10,
-        fontWeight: '400',
-        marginBottom: 4,
+        fontSize: 14,
+        textAlign: 'center',
     },
-    permissionWarning: {
+    audioResultContainer: {
         position: 'absolute',
-        bottom: 100,
-        left: 20,
-        right: 20,
-        padding: 15,
-        borderRadius: 10,
-        zIndex: COMPONENT_Z_INDEX.CAMERA_CONTROLS + 1, // Higher than other UI elements
-        alignItems: 'center',
+        bottom: 80,
+        alignSelf: 'center',
+        backgroundColor: 'rgba(16, 185, 129, 0.9)',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
     },
-    permissionWarningText: {
+    audioResultText: {
         color: 'white',
         fontSize: 14,
         fontWeight: '600',
         textAlign: 'center',
-        marginBottom: 10,
     },
-    captureButtons: {
+    controls: {
         position: 'absolute',
-        bottom: 100,
-        left: 20,
-        flexDirection: 'column',
-        gap: 12,
+        bottom: 20,
+        alignSelf: 'center',
         zIndex: COMPONENT_Z_INDEX.CAMERA_CONTROLS,
     },
-    captureButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+    controlButton: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
@@ -1217,23 +665,16 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5,
     },
-    captureButtonText: {
-        fontSize: 24,
-        color: 'white',
+    permissionButton: {
+        backgroundColor: 'white',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        marginTop: 20,
+    },
+    permissionButtonText: {
+        color: '#DC2626',
+        fontWeight: '600',
+        fontSize: 14,
     },
 });
-
-export default function ObjectIdentCamera() {
-    return (
-        <CriticalErrorBoundary 
-            componentName="Object Detection Camera"
-            onError={(error, errorId) => {
-                console.error('Object detection camera error:', error, errorId);
-                // Report ML camera errors for investigation
-            }}
-        >
-            <ObjectIdentCameraWrapper />
-        </CriticalErrorBoundary>
-    );
-}
-

@@ -301,14 +301,14 @@ function setEnglishName(row, englishName) {
         }
 
         logger.info(`✅ Final CSV written: ${outFinal}`);
-        logger.info(`📊 Summary: ${rows.length} total rows, ${translated} English names translated`);
+        logger.info(`Summary: ${rows.length} total rows, ${translated} English names translated`);
 
         // Count remaining untranslated rows
         const stillMissing = checkRows.filter(row => needsEnglishTranslation(row)).length;
         if (stillMissing > 0) {
-            logger.warn(`⚠️  ${stillMissing} rows still missing English names`);
+            logger.warn(`${stillMissing} rows still missing English names`);
         } else {
-            logger.info(`🎉 All rows now have English names!`);
+            logger.info(`All rows now have English names!`);
         }
 
     } catch (e) {
@@ -316,5 +316,5 @@ function setEnglishName(row, englishName) {
         process.exit(1);
     }
 
-    logger.info('🔄 English translation processing complete');
+    logger.info('English translation processing complete');
 })();

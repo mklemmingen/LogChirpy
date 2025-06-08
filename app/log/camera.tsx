@@ -6,6 +6,7 @@ import {Camera, useCameraDevice, useCameraFormat, useCameraPermission,} from 're
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import { CriticalErrorBoundary } from '@/components/ComponentErrorBoundary';
+import { SafeCameraViewManager } from '@/components/SafeViewManager';
 
 import {theme} from '@/constants/theme';
 import {ThemedPressable} from '@/components/ThemedPressable';
@@ -43,23 +44,27 @@ function ModernCameraComponent() {
         }
     }, [hasPermission, requestPermission]);
 
-    // Proper camera lifecycle management
-    useEffect(() => {
-        return () => {
-            // Cleanup camera when component unmounts
-            setIsActive(false);
-        };
+    // Camera lifecycle management with proper cleanup
+    const [cameraReady, setCameraReady] = useState(false);
+
+    const handleCameraReady = useCallback(() => {
+        setCameraReady(true);
+        setIsActive(true);
+    }, []);
+
+    const handleCameraUnmount = useCallback(() => {
+        setCameraReady(false);
+        setIsActive(false);
+        setCapturedPhotos([]); // Clear photos on unmount
     }, []);
 
     // Focus-based camera management to prevent view conflicts
     useFocusEffect(
         useCallback(() => {
-            // Component is focused - activate camera
-            setIsActive(true);
-            
             return () => {
-                // Component losing focus - deactivate camera to prevent conflicts
+                // Ensure cleanup when losing focus
                 setIsActive(false);
+                setCameraReady(false);
             };
         }, [])
     );
@@ -145,16 +150,23 @@ function ModernCameraComponent() {
         <ThemedSafeAreaView style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
 
-            <Camera
-                ref={camera}
+            <SafeCameraViewManager
                 style={StyleSheet.absoluteFillObject}
-                device={device}
-                format={format}
-                isActive={isActive}
-                photo={true}
-                enableZoomGesture={true}
-                enableLocation={true}
-            />
+                isActive={isActive && cameraReady}
+                onCameraReady={handleCameraReady}
+                onCameraUnmount={handleCameraUnmount}
+            >
+                <Camera
+                    ref={camera}
+                    style={StyleSheet.absoluteFillObject}
+                    device={device}
+                    format={format}
+                    isActive={isActive && cameraReady}
+                    photo={true}
+                    enableZoomGesture={true}
+                    enableLocation={true}
+                />
+            </SafeCameraViewManager>
 
             {/* Top Controls */}
             <View style={styles.topControls}>

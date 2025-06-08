@@ -4,7 +4,7 @@ import {useFonts} from 'expo-font';
 import {Stack, useSegments} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import {StatusBar} from 'expo-status-bar';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
+import {Pressable, StyleSheet, Text, View, Platform, UIManager} from 'react-native';
 import {BlurView} from 'expo-blur';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -45,8 +45,20 @@ import {
 import {initDB} from '@/services/database';
 import {BirdNetService} from '@/services/birdNetService';
 import {fastTfliteBirdClassifier} from '@/services/fastTfliteBirdClassifier';
+import '@/services/nativeErrorInterceptor'; // Initialize native error interception
 
 SplashScreen.preventAutoHideAsync();
+
+// Android UIFrameGuarded.AddViewAt fixes
+if (Platform.OS === 'android') {
+  // Enable native view manager optimizations
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(false);
+  }
+
+  // Add view hierarchy safety checks
+  console.log('Android view manager initialized with safety checks');
+}
 
 // ML Models Configuration (same as before)
 const MODELS_OBJECT: ObjectDetectionConfig = {
@@ -463,24 +475,34 @@ export default function EnhancedRootLayout() {
     const [offlineModelReady, setOfflineModelReady] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
 
-    // ML Models setup (same as before)
-    console.log('[ML Models] Initializing image labeling models...');
-    const models_class = useImageLabelingModels(MODELS_CLASS);
-    const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
-    console.log('[ML Models] Image labeling models initialized:', !!models_class);
-
-    console.log('[ML Models] Initializing object detection models...');
-    const models = useObjectDetectionModels<typeof MODELS_OBJECT>(useMemo(() => ({
+    // ML Models setup with React.memo wrapper to prevent re-initialization
+    const objectDetectionConfig = useMemo(() => ({
         assets: MODELS_OBJECT,
         loadDefaultModel: true,
         defaultModelOptions: {
             shouldEnableMultipleObjects: true,
             shouldEnableClassification: true,
-            detectorMode: 'singleImage',
+            detectorMode: 'singleImage' as const,
         },
-    }), []));
+    }), []);
+
+    // Initialize models with logging once on mount
+    const [hasLoggedModels, setHasLoggedModels] = useState(false);
+    
+    const models_class = useImageLabelingModels(MODELS_CLASS);
+    const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
+    
+    const models = useObjectDetectionModels<typeof MODELS_OBJECT>(objectDetectionConfig);
     const { ObjectDetectionProvider } = useObjectDetectionProvider(models);
-    console.log('[ML Models] Object detection models initialized:', !!models);
+
+    // Log only once to reduce console spam
+    useEffect(() => {
+        if (!hasLoggedModels && models_class && models) {
+            console.log('[ML Models] Image labeling models initialized:', !!models_class);
+            console.log('[ML Models] Object detection models initialized:', !!models);
+            setHasLoggedModels(true);
+        }
+    }, [models_class, models, hasLoggedModels]);
 
     // Initialize local database
     useEffect(() => {

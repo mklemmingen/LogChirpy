@@ -37,7 +37,7 @@ async function testImageClassification(classifier: MLKitBirdClassifier) {
     console.log('=' + '='.repeat(50));
     
     try {
-        console.log(`🔄 Classifying image: ${MOCK_IMAGE_URI}`);
+        console.log(`Classifying image: ${MOCK_IMAGE_URI}`);
         
         const startTime = Date.now();
         const result = await classifier.classifyBirdImage(MOCK_IMAGE_URI);

@@ -268,7 +268,7 @@ function ErrorFallback({ error, errorId, errorInfo, level, name, onRetry }: Erro
           <Button
             title={t('errors.details', 'Details')}
             onPress={() => {
-              console.group('🔍 Error Details');
+              console.group('Error Details');
               console.error('Error:', error.message);
               console.error('Stack:', error.stack);
               if (errorInfo) console.error('Info:', errorInfo);

@@ -27,11 +27,11 @@ export default {
       "**/*.csv" // include all CSVs anywhere
     ],
     android: {
-      edgeToEdgeEnabled: true, // Prepare for Android 16+
+      edgeToEdgeEnabled: false, // Disable edge-to-edge for view hierarchy stability
       package: "com.logchirpy.app",
       versionCode: 1,
-      compileSdkVersion: 35,
-      targetSdkVersion: 35,
+      compileSdkVersion: 34,
+      targetSdkVersion: 34,
       minSdkVersion: 23,
       permissions: [
         "CAMERA",
@@ -49,7 +49,9 @@ export default {
         "android.useAndroidX": "true",
         "android.enableJetifier": "true",
         "expo.useLegacyPackaging": "false",
-        "newArchEnabled": "false"
+        "newArchEnabled": "false",
+        "android.suppressUnsupportedCompileSdk": "true",
+        "android.disableAutomaticComponentCreation": "true"
       }
     },
     ios: {

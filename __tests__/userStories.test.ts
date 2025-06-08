@@ -366,7 +366,7 @@ describe('User Story Tests', () => {
     });
   });
 
-  describe('🔄 Integration Stories', () => {
+  describe('Integration Stories', () => {
     describe('As a birdwatcher, I want a complete photo-to-archive workflow', () => {
       it('should complete full workflow: photo → identification → save → archive', async () => {
         // Step 1: Photo identification

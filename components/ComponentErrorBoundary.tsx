@@ -35,7 +35,7 @@ export function ComponentErrorBoundary({
   const handleError = (error: Error, errorInfo: string, errorId: string) => {
     // Log component-level errors with context
     if (__DEV__) {
-      console.warn(`🔶 Component Error [${componentName || 'Unknown'}]:`, error.message);
+      console.warn(`Component Error [${componentName || 'Unknown'}]:`, error.message);
     }
 
     // Call custom error handler
@@ -126,7 +126,7 @@ export function FeatureErrorBoundary({
 
   const handleError = (error: Error, errorInfo: string, errorId: string) => {
     if (__DEV__) {
-      console.warn(`🔶 Feature Error [${featureName}]:`, error.message);
+      console.warn(`Feature Error [${featureName}]:`, error.message);
     }
 
     if (onError) {

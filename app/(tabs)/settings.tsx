@@ -14,6 +14,7 @@ import Animated, {
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import Slider from '@react-native-community/slider';
 
 import {languages} from "@/i18n/languages";
 import {Config} from "@/constants/config";
@@ -319,11 +320,29 @@ function GPSToggleCard({
  * 
  * @returns {JSX.Element} Complete settings screen with sections
  */
+// Helper functions for object detection presets
+const getDelayPresetLabel = (value: number): string => {
+    if (value <= 0.25) return 'Fast (0.2s)';
+    if (value <= 0.6) return 'Balanced (0.5s)';
+    return 'Thorough (1s)';
+};
+
+const getConfidencePresetLabel = (value: number): string => {
+    if (value < 0.4) return 'Lenient (< 40%)';
+    if (value < 0.75) return 'Normal (40-75%)';
+    return 'Strict (>= 75%)';
+};
+
 export default function ModernSettingsScreen() {
     const { i18n, t } = useTranslation();
     const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
     const [gpsEnabled, setGpsEnabled] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    const [objectDetectionSettings, setObjectDetectionSettings] = useState({
+        pipelineDelay: 1,
+        confidenceThreshold: 0.8,
+        showSettings: false,
+    });
 
     const colorScheme = useColorScheme() ?? 'light';
     const colors = useUnifiedColors();
@@ -337,12 +356,26 @@ export default function ModernSettingsScreen() {
     useEffect(() => {
         const loadSettings = async () => {
             try {
+                // Load GPS settings
                 const storedGps = await AsyncStorage.getItem('gps-logging');
                 if (storedGps !== null) {
                     const enabled = storedGps === 'true';
                     setGpsEnabled(enabled);
                     Config.gpsLoggingEnabled = enabled;
                 }
+
+                // Load object detection settings
+                const [pipelineDelay, confidenceThreshold, showSettings] = await Promise.all([
+                    AsyncStorage.getItem('pipelineDelay'),
+                    AsyncStorage.getItem('confidenceThreshold'),
+                    AsyncStorage.getItem('showSettings'),
+                ]);
+
+                setObjectDetectionSettings({
+                    pipelineDelay: pipelineDelay ? parseFloat(pipelineDelay) : 1,
+                    confidenceThreshold: confidenceThreshold ? parseFloat(confidenceThreshold) : 0.8,
+                    showSettings: showSettings === 'true',
+                });
             } catch (error) {
                 console.error('Failed to load settings:', error);
             }
@@ -398,6 +431,26 @@ export default function ModernSettingsScreen() {
             await AsyncStorage.setItem('gps-logging', newValue.toString());
         } catch (error) {
             console.error('Failed to save GPS setting:', error);
+        }
+    };
+
+    const updateObjectDetectionSetting = async (key: keyof typeof objectDetectionSettings, value: number | boolean) => {
+        const newSettings = {
+            ...objectDetectionSettings,
+            [key]: value,
+        };
+        setObjectDetectionSettings(newSettings);
+
+        try {
+            await AsyncStorage.setItem(key, value.toString());
+            // Haptic feedback for changes
+            if (key === 'showSettings') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            } else {
+                Haptics.selectionAsync();
+            }
+        } catch (error) {
+            console.error(`Failed to save ${key} setting:`, error);
         }
     };
 
@@ -472,6 +525,117 @@ export default function ModernSettingsScreen() {
                         onToggle={toggleGpsLogging}
                         styles={styles}
                     />
+                </ThemedView>
+
+                {/* Object Detection Camera Section */}
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        {t("settings.object_detection") || "Object Detection Camera"}
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        Configure automatic bird detection and classification settings
+                    </ThemedText>
+                    
+                    <Animated.View
+                        entering={FadeInDown.delay(250).springify()}
+                        layout={Layout.springify()}
+                    >
+                        <Card elevated style={styles.detectionCard}>
+                            <View style={styles.detectionContent}>
+                                {/* Pipeline Delay Setting */}
+                                <View style={styles.detectionSetting}>
+                                    <View style={styles.detectionInfo}>
+                                        <ThemedText variant="bodyLarge" style={styles.detectionTitle}>
+                                            {t("camera.pipeline_delay_label")}
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary">
+                                            {t("camera.pipeline_delay_description")}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={styles.sliderContainer}>
+                                        <Slider
+                                            value={objectDetectionSettings.pipelineDelay}
+                                            onValueChange={(value) => updateObjectDetectionSetting('pipelineDelay', value)}
+                                            minimumValue={0.01}
+                                            maximumValue={1}
+                                            step={0.01}
+                                            minimumTrackTintColor={colors.interactive.primary}
+                                            maximumTrackTintColor={colors.border.primary}
+                                            thumbTintColor={colors.interactive.primary}
+                                            style={styles.slider}
+                                        />
+                                        <ThemedText variant="label" style={styles.sliderValue}>
+                                            {objectDetectionSettings.pipelineDelay.toFixed(2)}s
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedText variant="labelSmall" color="tertiary" style={styles.presetLabel}>
+                                        {getDelayPresetLabel(objectDetectionSettings.pipelineDelay)}
+                                    </ThemedText>
+                                </View>
+
+                                <View style={styles.divider} />
+
+                                {/* Confidence Threshold Setting */}
+                                <View style={styles.detectionSetting}>
+                                    <View style={styles.detectionInfo}>
+                                        <ThemedText variant="bodyLarge" style={styles.detectionTitle}>
+                                            {t("camera.confidence_threshold_label")}
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary">
+                                            {t("camera.confidence_threshold_description")}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={styles.sliderContainer}>
+                                        <Slider
+                                            value={objectDetectionSettings.confidenceThreshold}
+                                            onValueChange={(value) => updateObjectDetectionSetting('confidenceThreshold', value)}
+                                            minimumValue={0}
+                                            maximumValue={1}
+                                            step={0.01}
+                                            minimumTrackTintColor={colors.interactive.primary}
+                                            maximumTrackTintColor={colors.border.primary}
+                                            thumbTintColor={colors.interactive.primary}
+                                            style={styles.slider}
+                                        />
+                                        <ThemedText variant="label" style={styles.sliderValue}>
+                                            {Math.round(objectDetectionSettings.confidenceThreshold * 100)}%
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedText variant="labelSmall" color="tertiary" style={styles.presetLabel}>
+                                        {getConfidencePresetLabel(objectDetectionSettings.confidenceThreshold)}
+                                    </ThemedText>
+                                </View>
+
+                                <View style={styles.divider} />
+
+                                {/* Show Settings Toggle */}
+                                <View style={styles.detectionToggle}>
+                                    <View style={styles.detectionInfo}>
+                                        <ThemedText variant="bodyLarge" style={styles.detectionTitle}>
+                                            Show Settings in Camera
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary">
+                                            Display settings overlay in object detection camera view
+                                        </ThemedText>
+                                    </View>
+                                    <Switch
+                                        value={objectDetectionSettings.showSettings}
+                                        onValueChange={(value) => updateObjectDetectionSetting('showSettings', value)}
+                                        trackColor={{
+                                            false: colors.border.primary,
+                                            true: colors.interactive.primary
+                                        }}
+                                        thumbColor={
+                                            objectDetectionSettings.showSettings
+                                                ? colors.interactive.primaryText
+                                                : colors.text.secondary
+                                        }
+                                        ios_backgroundColor={colors.border.primary}
+                                    />
+                                </View>
+                            </View>
+                        </Card>
+                    </Animated.View>
                 </ThemedView>
 
                 {/* Tutorial Section */}
@@ -826,5 +990,48 @@ const createStyles = (dimensions: ReturnType<typeof useResponsiveDimensions>) =>
     },
     creatorName: {
         fontWeight: '500',
+    },
+
+    // Object Detection Section
+    detectionCard: {
+        padding: 0,
+    },
+    detectionContent: {
+        padding: dimensions.card.padding.lg,
+        gap: dimensions.layout.componentSpacing,
+    },
+    detectionSetting: {
+        gap: dimensions.layout.componentSpacing / 2,
+    },
+    detectionInfo: {
+        gap: dimensions.layout.componentSpacing / 4,
+    },
+    detectionTitle: {
+        fontWeight: '600',
+    },
+    detectionToggle: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: dimensions.layout.componentSpacing,
+    },
+    sliderContainer: {
+        gap: dimensions.layout.componentSpacing / 4,
+    },
+    slider: {
+        width: '100%',
+        height: 40,
+    },
+    sliderValue: {
+        textAlign: 'right',
+        fontWeight: '600',
+    },
+    presetLabel: {
+        fontStyle: 'italic',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: dimensions.screen.isSmall ? '#E0E0E0' : '#D0D0D0',
+        marginVertical: dimensions.layout.componentSpacing / 2,
     },
 });

@@ -476,7 +476,7 @@ describe('Component Tests', () => {
     });
   });
 
-  describe('🔧 Integration Tests', () => {
+  describe('Integration Tests', () => {
     it('should render complex component hierarchy', () => {
       const { getByText } = render(
         <ThemedView>
@@ -600,7 +600,7 @@ describe('Component Tests', () => {
     });
   });
 
-  describe('📱 Responsive Design', () => {
+  describe('Responsive Design', () => {
     it('should handle different screen sizes', () => {
       const { getByText } = render(
         <ModernCard>

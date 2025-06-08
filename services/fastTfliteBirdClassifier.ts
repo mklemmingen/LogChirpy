@@ -97,8 +97,10 @@ class FastTfliteBirdClassifierService {
       }
       
       // Get model size for metrics
+      // Note: When using require() for bundled assets, we can't get the actual file size
+      // The model is loaded correctly, but size will be reported as 0 for bundled assets
       const modelUri = this.config.modelPath;
-      if (typeof modelUri === 'string') {
+      if (typeof modelUri === 'string' && modelUri.startsWith('file://')) {
         try {
           const fileInfo = await FileSystem.getInfoAsync(modelUri);
           if (fileInfo.exists && 'size' in fileInfo) {
@@ -107,6 +109,11 @@ class FastTfliteBirdClassifierService {
         } catch (error) {
           console.warn('Could not get model file size:', error);
         }
+      } else {
+        // For bundled assets (require()), estimate size based on known model
+        // BirdNet v2.4 model is approximately 26MB
+        this.performanceMetrics.modelSize = 26 * 1024 * 1024; // 26MB in bytes
+        console.log('Using estimated model size for bundled asset');
       }
 
       this.modelLoaded = true;

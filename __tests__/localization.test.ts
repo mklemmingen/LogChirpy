@@ -303,7 +303,7 @@ class LocalizationScanner {
     let report = `\n📝 LOCALIZATION SCAN REPORT\n`;
     report += `═══════════════════════════════════════\n\n`;
     
-    report += `📊 Summary:\n`;
+    report += `Summary:\n`;
     report += `  Files scanned: ${result.totalFiles}\n`;
     report += `  Issues found: ${result.issues.length}\n`;
     report += `  Translation keys loaded: ${this.translationKeys.size}\n\n`;
@@ -321,14 +321,14 @@ class LocalizationScanner {
         return acc;
       }, {} as { [file: string]: LocalizationIssue[] });
 
-      report += `❌ Issues found:\n\n`;
+      report += `Issues found:\n\n`;
 
       Object.entries(issuesByFile).forEach(([file, issues]) => {
         report += `📄 ${file} (${issues.length} issue${issues.length > 1 ? 's' : ''})\n`;
         report += `${'─'.repeat(50)}\n`;
 
         issues.forEach(issue => {
-          const typeIcon = issue.type === 'hardcoded_string' ? '🔤' : '⚠️';
+          const typeIcon = issue.type === 'hardcoded_string' ? '[TEXT]' : '[WARN]';
           report += `  ${typeIcon} Line ${issue.line}:${issue.column}\n`;
           report += `     Text: "${issue.text}"\n`;
           report += `     Context: ${issue.context}\n`;
@@ -346,7 +346,7 @@ class LocalizationScanner {
       // Sample fix
       if (result.issues.length > 0) {
         const firstIssue = result.issues[0];
-        report += `🔧 Example fix for "${firstIssue.text}":\n`;
+        report += `Example fix for "${firstIssue.text}":\n`;
         report += `  Before: <Text>${firstIssue.text}</Text>\n`;
         report += `  After:  <Text>{t('your.translation.key')}</Text>\n\n`;
         report += `  Add to translation.json:\n`;
@@ -390,7 +390,7 @@ describe('🌍 Localization Tests', () => {
     });
   });
 
-  describe('🔍 Translation Key Loading', () => {
+  describe('Translation Key Loading', () => {
     it('should load translation keys from locales', () => {
       // Scanner should have loaded some translation keys
       expect(scanner['translationKeys'].size).toBeGreaterThan(0);
@@ -449,7 +449,7 @@ describe('🌍 Localization Tests', () => {
     });
   });
 
-  describe('📊 Quality Metrics', () => {
+  describe('Quality Metrics', () => {
     it('should have reasonable localization coverage', () => {
       const totalPotentialStrings = scanResult.issues.length + 100; // Assume 100 properly localized
       const localizationCoverage = (100 / totalPotentialStrings) * 100;
@@ -472,7 +472,7 @@ describe('🌍 Localization Tests', () => {
     });
   });
 
-  describe('🎯 Critical User-Facing Areas', () => {
+  describe('Critical User-Facing Areas', () => {
     it('should check authentication flows for localization', () => {
       const authFiles = scanResult.scannedFiles.filter(file => 
         file.includes('auth') || file.includes('login') || file.includes('signup')
@@ -508,7 +508,7 @@ describe('🌍 Localization Tests', () => {
         issue.type === 'suspicious_text'
       );
       
-      console.log(`⚠️ Alert/Error message issues: ${alertIssues.length}`);
+      console.log(`Alert/Error message issues: ${alertIssues.length}`);
       
       // Error messages should definitely be localized
       if (alertIssues.length > 0) {
