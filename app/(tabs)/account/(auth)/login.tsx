@@ -23,7 +23,7 @@ import {auth} from '@/firebase/config';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
-import {ThemedSnackbar} from '@/components/ThemedSnackbar';
+import {ThemedSnackbar, useSnackbar} from '@/components/ThemedSnackbar';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import { useUnifiedColors } from '@/hooks/useUnifiedColors';
 import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';

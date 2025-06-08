@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import {
     View,
     Text,
@@ -8,17 +8,9 @@ import {
     PanResponder,
     Dimensions,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { ThemedIcon } from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-} from '../hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,10 +36,39 @@ interface ModernSnackbarProps {
 // Icon mapping for variants
 const VARIANT_ICONS: Record<SnackbarVariant, string> = {
     default: 'info',
-    success: 'check-circle',
-    error: 'x-circle',
+    success: 'check',
+    error: 'x',
     warning: 'alert-triangle',
     info: 'info',
+};
+
+// Simple variant colors
+const VARIANT_COLORS = {
+    default: {
+        backgroundColor: '#333',
+        borderColor: '#555',
+        iconColor: '#007AFF',
+    },
+    success: {
+        backgroundColor: '#10B981',
+        borderColor: '#059669',
+        iconColor: '#ffffff',
+    },
+    error: {
+        backgroundColor: '#EF4444',
+        borderColor: '#DC2626',
+        iconColor: '#ffffff',
+    },
+    warning: {
+        backgroundColor: '#F59E0B',
+        borderColor: '#D97706',
+        iconColor: '#ffffff',
+    },
+    info: {
+        backgroundColor: '#3B82F6',
+        borderColor: '#2563EB',
+        iconColor: '#ffffff',
+    },
 };
 
 export function ThemedSnackbar({
@@ -61,10 +82,6 @@ export function ThemedSnackbar({
     position = 'bottom',
     swipeToDismiss = true,
 }: ModernSnackbarProps) {
-    const theme = useTheme();
-    const semanticColors = useSemanticColors();
-    const colorVariants = useColorVariants();
-    const typography = useTypography();
     const insets = useSafeAreaInsets();
 
     // Animation values using React Native's Animated API
@@ -74,40 +91,7 @@ export function ThemedSnackbar({
     const scale = useRef(new Animated.Value(0.9)).current;
 
     // Auto-hide timer
-    const hideTimerRef = useRef<NodeJS.Timeout>();
-
-    // Get variant styles
-    const getVariantStyles = useCallback(() => {
-        const variantConfig = {
-            default: {
-                backgroundColor: semanticColors.surfaceSecondary,
-                borderColor: semanticColors.border,
-                iconColor: semanticColors.primary,
-            },
-            success: {
-                backgroundColor: colorVariants.success.background,
-                borderColor: colorVariants.success.border,
-                iconColor: colorVariants.success.text,
-            },
-            error: {
-                backgroundColor: colorVariants.error.background,
-                borderColor: colorVariants.error.border,
-                iconColor: colorVariants.error.text,
-            },
-            warning: {
-                backgroundColor: colorVariants.warning.background,
-                borderColor: colorVariants.warning.border,
-                iconColor: colorVariants.warning.text,
-            },
-            info: {
-                backgroundColor: colorVariants.info.background,
-                borderColor: colorVariants.info.border,
-                iconColor: colorVariants.info.text,
-            },
-        };
-
-        return variantConfig[variant];
-    }, [variant, semanticColors, colorVariants]);
+    const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Show animation
     const showSnackbar = useCallback(() => {
@@ -211,7 +195,7 @@ export function ThemedSnackbar({
             if (duration > 0) {
                 hideTimerRef.current = setTimeout(() => {
                     hideSnackbar();
-                }, duration);
+                }, duration) as any;
             }
         } else {
             hideSnackbar();
@@ -226,7 +210,7 @@ export function ThemedSnackbar({
 
     if (!visible) return null;
 
-    const variantStyles = getVariantStyles();
+    const variantStyles = VARIANT_COLORS[variant];
     const displayIcon = icon || VARIANT_ICONS[variant];
 
     return (
@@ -245,9 +229,7 @@ export function ThemedSnackbar({
             ]}
             {...(swipeToDismiss ? panResponder.panHandlers : {})}
         >
-            <BlurView
-                intensity={80}
-                tint={theme.colorScheme}
+            <View
                 style={[
                     styles.content,
                     {
@@ -259,7 +241,7 @@ export function ThemedSnackbar({
                 {/* Icon */}
                 {displayIcon && (
                     <ThemedIcon
-                        name={displayIcon}
+                        name={displayIcon as any}
                         size={20}
                         color="primary"
                         style={[styles.icon, { tintColor: variantStyles.iconColor }]}
@@ -268,11 +250,7 @@ export function ThemedSnackbar({
 
                 {/* Message */}
                 <Text
-                    style={[
-                        styles.message,
-                        typography.body,
-                        { color: semanticColors.text },
-                    ]}
+                    style={[styles.message, { color: 'white' }]}
                     numberOfLines={2}
                 >
                     {message}
@@ -305,15 +283,57 @@ export function ThemedSnackbar({
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                     <ThemedIcon
-                        name="x"
+                        name="x" 
                         size={16}
                         color="primary"
-                        style={{ tintColor: semanticColors.textSecondary }}
+                        style={{ tintColor: 'rgba(255, 255, 255, 0.7)' }}
                     />
                 </Pressable>
-            </BlurView>
+            </View>
         </Animated.View>
     );
+}
+
+// Hook for using snackbar in components
+export function useSnackbar() {
+    const [snackbarState, setSnackbarState] = useState({
+        visible: false,
+        message: '',
+        variant: 'default' as SnackbarVariant,
+    });
+
+    const showSnackbar = useCallback((message: string, variant: SnackbarVariant = 'default') => {
+        setSnackbarState({ visible: true, message, variant });
+    }, []);
+
+    const showSuccess = useCallback((message: string) => {
+        showSnackbar(message, 'success');
+    }, [showSnackbar]);
+
+    const showError = useCallback((message: string) => {
+        showSnackbar(message, 'error');
+    }, [showSnackbar]);
+
+    const hideSnackbar = useCallback(() => {
+        setSnackbarState(prev => ({ ...prev, visible: false }));
+    }, []);
+
+    const SnackbarComponent = useCallback(() => (
+        <ThemedSnackbar
+            visible={snackbarState.visible}
+            message={snackbarState.message}
+            variant={snackbarState.variant}
+            onHide={hideSnackbar}
+        />
+    ), [snackbarState, hideSnackbar]);
+
+    return {
+        showSnackbar,
+        showSuccess,
+        showError,
+        hideSnackbar,
+        SnackbarComponent,
+    };
 }
 
 const styles = StyleSheet.create({

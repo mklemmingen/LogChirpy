@@ -22,7 +22,7 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {ThemedSnackbar} from '@/components/ThemedSnackbar';
+import {ThemedSnackbar, useSnackbar} from '@/components/ThemedSnackbar';
 import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
 
 

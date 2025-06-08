@@ -101,7 +101,7 @@ const BirdElement: React.FC<BirdElementProps> = ({
 
       // Vertical wave motion
       const waveMotion = () => {
-        const currentY = translateY._value;
+        const currentY = (translateY as any)._value;
         Animated.sequence([
           Animated.timing(translateY, {
             toValue: currentY + config.amplitude,

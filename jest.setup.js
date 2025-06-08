@@ -15,8 +15,7 @@ jest.mock('@infinitered/react-native-mlkit-image-labeling', () => ({
   },
 }));
 
-// Mock other React Native modules that might cause issues in tests
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+// Removed react-native-reanimated mock since we no longer use reanimated
 
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
