@@ -2,16 +2,17 @@ import 'dotenv/config';
 
 export default {
   expo: {
+    owner: "dhfgkjhksdfgsd",
     name: "LogChirpy",
-    slug: "log-chirpy-android",
-    scheme: "birddetection",
+    slug: "logchirpy",
     version: "1.0.0",
-    platforms: ["android"],
-    newArchEnabled: true,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
+    scheme: "logchirpy",
     userInterfaceStyle: "automatic",
-    description: "Android-optimized bird detection app with real-time AI identification",
+    description: "Your personal bird watching companion. Log, identify, and track your bird sightings with ease.",
+    keywords: ["birds", "birdwatching", "nature", "wildlife", "identification", "logging"],
+    privacy: "public",
     splash: {
       image: "./assets/images/logo_no_bg.png",
       resizeMode: "contain",
@@ -25,25 +26,49 @@ export default {
       "**/*.csv" // include all CSVs anywhere
     ],
     android: {
-      compileSdkVersion: 35,
-      targetSdkVersion: 35,
-      minSdkVersion: 26,
-      package: "com.birddetection.android",
+      package: "com.logchirpy.app", // Cleaner package name
       versionCode: 1,
+      compileSdkVersion: 34,
+      targetSdkVersion: 34,
+      permissions: [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_MEDIA_LOCATION"
+      ],
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#FFFFFF"
-      },
-      permissions: [
-        "android.permission.CAMERA",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.POST_NOTIFICATIONS"
-      ],
-      enableProguardInReleaseBuilds: true,
-      enableSeparateBuildPerCPUArchitecture: true
+        backgroundColor: "#FAFAFA" // Light neutral
+      }
     },
+    newArchEnabled: false,
+    ios: {
+      bundleIdentifier: "com.logchirpy.app", // Consistent with Android
+      buildNumber: "1",
+      supportsTablet: true,
+      infoPlist: {
+        NSPhotoLibraryUsageDescription: "LogChirpy needs access to your photo library to let you select and save bird photos for your sightings.",
+        NSPhotoLibraryAddUsageDescription: "LogChirpy needs permission to save captured bird photos to your photo library.",
+        NSCameraUsageDescription: "LogChirpy needs camera access to take photos of birds for identification and logging.",
+        NSLocationWhenInUseUsageDescription: "LogChirpy uses your location to record where you spotted birds and suggest nearby birding locations.",
+        NSLocationAlwaysAndWhenInUseUsageDescription: "LogChirpy uses your location to record where you spotted birds and suggest nearby birding locations."
+      }
+    },
+    platforms: ["android", "ios"],
     plugins: [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/images/splash-icon.png",
+          imageWidth: 200,
+          resizeMode: "contain",
+          backgroundColor: "#ffffff"
+        }
+      ],
       [
         "react-native-vision-camera",
         {
@@ -68,22 +93,10 @@ export default {
           "savePhotosPermission": "Allow LogChirpy to save bird photos to your gallery",
           "isAccessMediaLocationEnabled": true
         }
-      ],
-      [
-        "react-native-fast-tflite",
-        {
-          "enableAndroidGpuLibraries": [
-            "libOpenCL-pixel.so",
-            "libGLES_mali.so"
-          ]
-        }
       ]
     ],
     experiments: {
       typedRoutes: true
-    },
-    updates: {
-      url: "https://u.expo.dev/f3cad8d2-c8a4-4696-a73f-9f57db6f7f08"
     },
     extra: {
       EXPO_PUBLIC_FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
