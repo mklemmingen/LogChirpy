@@ -18,27 +18,49 @@ deploy-logchirpy:
     - git config --global user.name "mklemmingen"
     - git checkout -B main
 
-    - echo "Removing commit 6dc08e15 from history..."
+    - echo "Identifying large files in history..."
+    - git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 50*1024*1024) print $4}' > large_files.txt
+    - echo "Large files found:"
+    - cat large_files.txt
+
+    - echo "Removing all large files (>50MB) from history..."
+    - |
+      if [ -s large_files.txt ]; then
+        while IFS= read -r file; do
+          echo "Removing large file: $file"
+          git-filter-repo --force --path "$file" --invert-paths
+        done < large_files.txt
+      else
+        echo "No large files found"
+      fi
+
+    - echo "Removing specific problematic commit..."
     - >
       git-filter-repo --force --commit-callback '
         if commit.original_id == b"6dc08e153ae7aa2670a085104a1dbb95dd64254c":
             commit.skip()
       '
 
-    - echo "Removing commit and large file from history..."
-    - >
-      git-filter-repo --force
-      --commit-callback '
-        if commit.original_id == b"6dc08e153ae7aa2670a085104a1dbb95dd64254c":
-            commit.skip()
-      '
-      --path _model_conversion_scripts/faster-rcnn-inception-resnet-v2-tensorflow2-640x640-v1/variables/variables.data-00000-of-00001
-      --invert-paths
-
     - echo "Removing all .env files from history..."
     - >
       git-filter-repo --force
       --path-glob '**/.env'
+      --invert-paths
+
+    - echo "Removing common large file types from history..."
+    - >
+      git-filter-repo --force
+      --path-glob '*.data-*-of-*'
+      --path-glob '*.bin'
+      --path-glob '*.weights'
+      --path-glob '*.h5'
+      --path-glob '*.pb'
+      --path-glob '*.onnx'
+      --path-glob '*.pth'
+      --path-glob '*.tar.gz'
+      --path-glob '*.zip'
+      --path-glob '*.7z'
+      --path-glob '*.rar'
       --invert-paths
 
     - echo "Rewriting student email to GitHub address..."
@@ -48,6 +70,17 @@ deploy-logchirpy:
             return b"mklemmingen@users.noreply.github.com"
         return email
       '
+
+    - echo "Final cleanup - removing any remaining files >10MB..."
+    - git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 10*1024*1024) print $4}' > remaining_large_files.txt
+    - |
+      if [ -s remaining_large_files.txt ]; then
+        echo "Removing remaining large files:"
+        cat remaining_large_files.txt
+        while IFS= read -r file; do
+          git-filter-repo --force --path "$file" --invert-paths
+        done < remaining_large_files.txt
+      fi
 
     - echo "Pushing cleaned history to GitHub..."
     - git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
