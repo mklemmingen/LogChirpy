@@ -1,11 +1,13 @@
 import React, {useEffect, useState} from "react";
 import {I18nManager, Linking, ScrollView, StyleSheet, Switch, Text, useColorScheme, View,} from "react-native";
 import {useTranslation} from "react-i18next";
+import {useIsFocused} from '@react-navigation/native';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
+import {SafeViewManager} from '@/components/SafeViewManager';
 
 import {languages} from "@/i18n/languages";
 import {Config} from "@/constants/config";
@@ -285,8 +287,13 @@ export default function ModernSettingsScreen() {
     const theme = useTheme();
     const typography = useTypography();
     const dimensions = useResponsiveDimensions();
+    const isFocused = useIsFocused();
     
     const styles = createStyles(dimensions);
+
+    if (!isFocused) {
+        return null;
+    }
 
     // Load settings on mount
     useEffect(() => {
@@ -391,7 +398,8 @@ export default function ModernSettingsScreen() {
     };
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
+        <SafeViewManager enabled={isFocused}>
+            <ThemedSafeAreaView style={styles.container}>
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
@@ -686,7 +694,8 @@ export default function ModernSettingsScreen() {
                     </View>
                 </ThemedView>
             </ScrollView>
-        </ThemedSafeAreaView>
+            </ThemedSafeAreaView>
+        </SafeViewManager>
     );
 }
 

@@ -2,9 +2,11 @@ import React from 'react';
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useIsFocused } from '@react-navigation/native';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { SafeViewManager } from '@/components/SafeViewManager';
 
 import { HelloWave } from '@/components/HelloWave';
 import { SimpleBirdAnimation } from '@/components/animations/SimpleBirdAnimation';
@@ -42,8 +44,13 @@ export default function HomeScreen() {
   const typography = useTypography();
   const borderRadius = useBorderRadius();
   const dimensions = useResponsiveDimensions();
+  const isFocused = useIsFocused();
   
   const styles = createStyles(dimensions);
+
+  if (!isFocused) {
+    return null;
+  }
 
 
 
@@ -154,42 +161,44 @@ export default function HomeScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedSafeAreaView style={styles.safeArea}>
+    <SafeViewManager enabled={isFocused}>
+      <ThemedView style={styles.container}>
+        <ThemedSafeAreaView style={styles.safeArea}>
 
-        {/* Simplified Bird Animation */}
-        <SimpleBirdAnimation numberOfBirds={3} enabled={true} />
+          {/* Simplified Bird Animation */}
+          <SimpleBirdAnimation numberOfBirds={3} enabled={true} />
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Hero Section */}
-          <View style={styles.heroSection}>
-            <View style={styles.heroContent}>
-              <HelloWave />
-              <ThemedText variant="h1" center style={styles.heroTitle}>
-                {t('welcome')}
-              </ThemedText>
-              <ThemedText 
-                variant="body" 
-                color="secondary" 
-                center 
-                style={styles.heroSubtitle}
-              >
-                {t('start_logging')}
-              </ThemedText>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Hero Section */}
+            <View style={styles.heroSection}>
+              <View style={styles.heroContent}>
+                <HelloWave />
+                <ThemedText variant="h1" center style={styles.heroTitle}>
+                  {t('welcome')}
+                </ThemedText>
+                <ThemedText 
+                  variant="body" 
+                  color="secondary" 
+                  center 
+                  style={styles.heroSubtitle}
+                >
+                  {t('start_logging')}
+                </ThemedText>
+              </View>
             </View>
-          </View>
 
-          {/* Features Section */}
-          <View style={styles.featuresSection}>
-            {features.map((feature, index) => renderFeatureCard(feature, index))}
-          </View>
-        </ScrollView>
-      </ThemedSafeAreaView>
-    </ThemedView>
+            {/* Features Section */}
+            <View style={styles.featuresSection}>
+              {features.map((feature, index) => renderFeatureCard(feature, index))}
+            </View>
+          </ScrollView>
+        </ThemedSafeAreaView>
+      </ThemedView>
+    </SafeViewManager>
   );
 }
 

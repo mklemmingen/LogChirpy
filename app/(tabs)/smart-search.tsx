@@ -2,8 +2,10 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {ActivityIndicator, FlatList, StyleSheet, TextInput, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
+import {useIsFocused} from '@react-navigation/native';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
+import {SafeViewManager} from '@/components/SafeViewManager';
 
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedText} from '@/components/ThemedText';
@@ -188,8 +190,13 @@ export default function SmartSearch() {
     const typography = useTypography();
     const theme = useTheme();
     const dimensions = useResponsiveDimensions();
+    const isFocused = useIsFocused();
     
     const styles = createStyles(theme, dimensions);
+
+    if (!isFocused) {
+        return null;
+    }
 
     const [searchQuery, setSearchQuery] = useState('');
     const [results, setResults] = useState<SmartSearchResult[]>([]);
@@ -370,7 +377,8 @@ export default function SmartSearch() {
     ), [handleResultPress]);
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
+        <SafeViewManager enabled={isFocused}>
+            <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <ThemedPressable
@@ -496,7 +504,8 @@ export default function SmartSearch() {
                     }
                 />
             )}
-        </ThemedSafeAreaView>
+            </ThemedSafeAreaView>
+        </SafeViewManager>
     );
 }
 

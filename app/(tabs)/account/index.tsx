@@ -1,9 +1,11 @@
 import React, {useEffect} from 'react';
 import {Alert, Pressable, ScrollView, StyleSheet, Text, View,} from 'react-native';
 import {router, useFocusEffect} from 'expo-router';
+import {useIsFocused} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { SafeViewManager } from '@/components/SafeViewManager';
 
 import {ModernCard} from '@/components/ModernCard';
 import {useTheme, useTypography, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
@@ -24,6 +26,11 @@ export default function ModernAccountScreen() {
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const { user, isAuthenticated, signOut: authSignOut, isLoading } = useAuth();
+    const isFocused = useIsFocused();
+
+    if (!isFocused) {
+        return null;
+    }
 
 
     const handleSignOut = async () => {
@@ -72,7 +79,8 @@ export default function ModernAccountScreen() {
     }
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
+        <SafeViewManager enabled={isFocused}>
+            <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <Text style={[styles.headerTitle]}>
@@ -220,7 +228,8 @@ export default function ModernAccountScreen() {
                     </View>
                 </View>
             </ScrollView>
-        </ThemedSafeAreaView>
+            </ThemedSafeAreaView>
+        </SafeViewManager>
     );
 }
 

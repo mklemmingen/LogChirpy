@@ -36,33 +36,7 @@ jest.mock('expo-blur', () => ({
   BlurView: 'BlurView',
 }));
 
-jest.mock('react-native-reanimated', () => {
-  const View = require('react-native').View;
-  const Text = require('react-native').Text;
-  
-  const mockAnimatedComponent = (component: any) => component;
-  
-  return {
-    default: {
-      View,
-      Text,
-      createAnimatedComponent: mockAnimatedComponent,
-    },
-    createAnimatedComponent: mockAnimatedComponent,
-    useSharedValue: (value: any) => ({ value }),
-    useAnimatedStyle: (callback: any) => ({}),
-    withSpring: (value: any) => value,
-    withTiming: (value: any) => value,
-    runOnJS: (callback: any) => callback,
-    interpolate: (value: any, input: any, output: any) => output[0],
-    Easing: {
-      bezier: () => (t: number) => t,
-      ease: (t: number) => t,
-      elastic: () => (t: number) => t,
-    },
-    useAnimatedGestureHandler: () => ({}),
-  };
-});
+// Removed react-native-reanimated mock since we no longer use reanimated
 
 jest.mock('react-native-gesture-handler', () => ({
   PanGestureHandler: 'PanGestureHandler',

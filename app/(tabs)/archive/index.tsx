@@ -11,11 +11,13 @@ import {
   View,
 } from 'react-native';
 import {useTranslation} from 'react-i18next';
+import {useIsFocused} from '@react-navigation/native';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
 import {BlurView} from 'expo-blur';
 import {router} from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import {SafeViewManager} from '@/components/SafeViewManager';
 
 import {ThemedView, Card} from '@/components/ThemedView';
 import {ThemedPressable} from '@/components/ThemedPressable';
@@ -228,8 +230,13 @@ export default function ArchiveScreen() {
   const colors = useUnifiedColors();
   const typography = useTypography();
   const dimensions = useResponsiveDimensions();
+  const isFocused = useIsFocused();
   
   const styles = createStyles(dimensions);
+
+  if (!isFocused) {
+    return null;
+  }
 
   // State management
   const [spottings, setSpottings] = useState<BirdSpotting[]>([]);
@@ -398,7 +405,8 @@ export default function ArchiveScreen() {
   }
 
   return (
-      <ThemedSafeAreaView style={styles.container}>
+      <SafeViewManager enabled={isFocused}>
+        <ThemedSafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -473,7 +481,8 @@ export default function ArchiveScreen() {
                 ItemSeparatorComponent={() => <View style={styles.separator}/>}
             />
         )}
-      </ThemedSafeAreaView>
+        </ThemedSafeAreaView>
+      </SafeViewManager>
   );
 }
 

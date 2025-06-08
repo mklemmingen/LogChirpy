@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import { SafeViewManager } from '@/components/SafeViewManager';
 
 // Components
 import { ThemedView, Card } from '@/components/ThemedView';
@@ -420,7 +422,12 @@ export default function ModernBirdDexIndex() {
     const variants = useColorVariants();
     const theme = useTheme();
     const dimensions = useResponsiveDimensions();
+    const isFocused = useIsFocused();
     const styles = createStyles(dimensions);
+
+    if (!isFocused) {
+        return null;
+    }
 
     // Database status
     const { isReady, isLoading, hasError, error, retry } = useBirdDexDatabase();
@@ -609,7 +616,8 @@ export default function ModernBirdDexIndex() {
     }
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
+        <SafeViewManager enabled={isFocused}>
+            <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
             <ThemedView style={styles.header}>
                 <ThemedText variant="h2" style={styles.headerTitle}>
@@ -665,7 +673,8 @@ export default function ModernBirdDexIndex() {
                     </ThemedView>
                 }
             />
-        </ThemedSafeAreaView>
+            </ThemedSafeAreaView>
+        </SafeViewManager>
     );
 }
 
