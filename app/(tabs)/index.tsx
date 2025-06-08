@@ -4,14 +4,6 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { HelloWave } from '@/components/HelloWave';
@@ -53,39 +45,7 @@ export default function HomeScreen() {
   
   const styles = createStyles(dimensions);
 
-  // Subtle floating animation
-  const floatAnimation = useSharedValue(0);
 
-  React.useEffect(() => {
-    floatAnimation.value = withRepeat(
-      withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
-  }, []);
-
-  /**
-   * Creates floating animation style for feature cards
-   * 
-   * @param {number} delay - Animation delay for staggered effect
-   * @returns {Object} Animated style object with transform
-   */
-  const getFloatingStyle = React.useCallback((delay: number) => {
-    return useAnimatedStyle(() => {
-      'worklet';
-      return {
-        transform: [
-          {
-            translateY: interpolate(
-              floatAnimation.value,
-              [0, 1],
-              [0, -dimensions.screen.isSmall ? 2 : 4]
-            ) * Math.sin(floatAnimation.value * 2 + delay),
-          },
-        ],
-      };
-    });
-  }, [floatAnimation, dimensions.screen.isSmall]);
 
   const features: FeatureAction[] = [
     {
@@ -140,7 +100,7 @@ export default function HomeScreen() {
     const isPrimary = feature.primary;
 
     return (
-      <Animated.View key={feature.id} style={getFloatingStyle(index * 0.5)}>
+      <View key={feature.id}>
         <ModernCard
           onPress={() => handleFeaturePress(feature.route)}
           elevated={isPrimary}
@@ -189,7 +149,7 @@ export default function HomeScreen() {
             />
           </View>
         </ModernCard>
-      </Animated.View>
+      </View>
     );
   };
 

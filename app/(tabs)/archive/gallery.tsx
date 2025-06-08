@@ -13,7 +13,6 @@ import { useTranslation } from 'react-i18next';
 import { Directory, File, Paths } from 'expo-file-system/next';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 
 // Components
 import { ThemedView } from '@/components/ThemedView';
@@ -215,11 +214,7 @@ export default function GalleryManagementScreen() {
         const isSelected = selectedPhotos.has(item.uri);
         
         return (
-            <Animated.View
-                entering={FadeInDown.delay(index * 50).springify()}
-                layout={Layout.springify()}
-                style={styles.photoContainer}
-            >
+            <View style={styles.photoContainer}>
                 <Pressable
                     onPress={() => {
                         if (selectionMode) {
@@ -271,7 +266,7 @@ export default function GalleryManagementScreen() {
                         {new Date(item.modificationTime * 1000).toLocaleDateString()}
                     </ThemedText>
                 </View>
-            </Animated.View>
+            </View>
         );
     };
 
@@ -302,7 +297,7 @@ export default function GalleryManagementScreen() {
 
             {/* Selection Mode Actions */}
             {selectionMode && selectedPhotos.size > 0 && (
-                <Animated.View entering={FadeInDown.springify()} style={styles.actionBar}>
+                <View style={styles.actionBar}>
                     <ModernCard style={styles.actionCard}>
                         <View style={styles.actionButtons}>
                             <ThemedPressable
@@ -355,7 +350,7 @@ export default function GalleryManagementScreen() {
                             </ThemedPressable>
                         </View>
                     </ModernCard>
-                </Animated.View>
+                </View>
             )}
 
             {/* Photo Grid */}

@@ -5,14 +5,6 @@ import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import Animated, {
-    FadeInDown,
-    FadeInUp,
-    Layout,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import {ThemedView} from '@/components/ThemedView';
@@ -50,19 +42,12 @@ function DetailHeader({
     const { t, i18n } = useTranslation();
     const insets = useSafeAreaInsets();
 
-    const scale = useSharedValue(1);
 
     const handleBackPress = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        scale.value = withSpring(0.95, { damping: 15, stiffness: 300 }, () => {
-            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-        });
         onBack();
     };
 
-    const backButtonStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
-    }));
 
     // Get localized display name
     const lang = i18n.language.split('-')[0];
@@ -75,11 +60,8 @@ function DetailHeader({
     const displayName = localizedName || bird.english_name;
 
     return (
-        <Animated.View
-            entering={FadeInUp.springify()}
-            style={[styles.header, { marginTop: insets.top }]}
-        >
-            <Animated.View style={backButtonStyle}>
+        <View style={[styles.header, { marginTop: insets.top }]}>
+            <View>
                 <ThemedPressable
                     variant="secondary"
                     size="md"
@@ -88,7 +70,7 @@ function DetailHeader({
                 >
                     <ThemedIcon name="arrow-left" size={20} color="primary" />
                 </ThemedPressable>
-            </Animated.View>
+            </View>
 
             <ThemedView background="transparent" style={styles.headerInfo}>
                 <ThemedText
@@ -108,10 +90,7 @@ function DetailHeader({
                 </ThemedText>
 
                 {bird.hasBeenLogged === 1 && (
-                    <Animated.View
-                        entering={FadeInDown.delay(200).springify()}
-                        style={[styles.loggedBadge, { backgroundColor: variants.primary.light }]}
-                    >
+                    <View style={[styles.loggedBadge, { backgroundColor: variants.primary.light }]}>
                         <ThemedIcon name="check" size={14} color="primary" />
                         <ThemedText
                             variant="label"
@@ -120,7 +99,7 @@ function DetailHeader({
                         >
                             {t('birddex.spotted')}
                         </ThemedText>
-                    </Animated.View>
+                    </View>
                 )}
             </ThemedView>
 
@@ -134,7 +113,7 @@ function DetailHeader({
                     <ThemedIcon name="plus" size={18} color="primary" />
                 </ThemedPressable>
             )}
-        </Animated.View>
+        </View>
     );
 }
 
@@ -153,11 +132,7 @@ function QuickActionButton({
     const semanticColors = useSemanticColors();
 
     return (
-        <Animated.View
-            entering={FadeInDown.delay(delay).springify()}
-            layout={Layout.springify()}
-            style={styles.actionButtonContainer}
-        >
+        <View style={styles.actionButtonContainer}>
             <ThemedPressable
                 variant="secondary"
                 onPress={onPress}
@@ -167,7 +142,7 @@ function QuickActionButton({
                 <ThemedText variant="label">{title}</ThemedText>
                 <ThemedIcon name="external-link" size={14} color="secondary" />
             </ThemedPressable>
-        </Animated.View>
+        </View>
     );
 }
 
@@ -177,11 +152,7 @@ function NameRow({ field, index }: { field: NameField; index: number }) {
     const typography = useTypography();
 
     return (
-        <Animated.View
-            entering={FadeInDown.delay(index * 50).springify()}
-            layout={Layout.springify()}
-            style={styles.nameRow}
-        >
+        <View style={styles.nameRow}>
             <ThemedText style={styles.nameFlag}>{field.flag}</ThemedText>
             <ThemedView background="transparent" style={styles.nameInfo}>
                 <ThemedText
@@ -204,7 +175,7 @@ function NameRow({ field, index }: { field: NameField; index: number }) {
                     {field.value}
                 </ThemedText>
             </ThemedView>
-        </Animated.View>
+        </View>
     );
 }
 
@@ -219,18 +190,14 @@ function ClassificationItem({
     index: number;
 }) {
     return (
-        <Animated.View
-            entering={FadeInDown.delay(index * 100).springify()}
-            layout={Layout.springify()}
-            style={styles.classificationItem}
-        >
+        <View style={styles.classificationItem}>
             <ThemedText variant="label" color="secondary" style={styles.classificationLabel}>
                 {label}
             </ThemedText>
             <ThemedText variant="body" style={styles.classificationValue}>
                 {value}
             </ThemedText>
-        </Animated.View>
+        </View>
     );
 }
 
@@ -369,9 +336,8 @@ export default function ModernBirdDexDetail() {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Quick Actions */}
-                <Animated.View
-                    entering={FadeInDown.delay(100).springify()}
-                    style={styles.quickActions}
+                <View
+                                        style={styles.quickActions}
                 >
                     <QuickActionButton
                         title={t('birddex.wikipedia')}
@@ -391,10 +357,10 @@ export default function ModernBirdDexDetail() {
                         onPress={openAllAboutBirds}
                         delay={100}
                     />
-                </Animated.View>
+                </View>
 
                 {/* Names Section */}
-                <Animated.View entering={FadeInDown.delay(200).springify()}>
+                <View>
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <ThemedIcon name="globe" size={20} color="primary" />
@@ -408,10 +374,10 @@ export default function ModernBirdDexDetail() {
                             ))}
                         </ThemedView>
                     </ModernCard>
-                </Animated.View>
+                </View>
 
                 {/* Classification Section */}
-                <Animated.View entering={FadeInDown.delay(300).springify()}>
+                <View >
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <ThemedIcon name="layers" size={20} color="primary" />
@@ -443,10 +409,10 @@ export default function ModernBirdDexDetail() {
                             )}
                         </ThemedView>
                     </ModernCard>
-                </Animated.View>
+                </View>
 
                 {/* Distribution Section */}
-                <Animated.View entering={FadeInDown.delay(400).springify()}>
+                <View >
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <ThemedIcon name="map-pin" size={20} color="primary" />
@@ -456,23 +422,17 @@ export default function ModernBirdDexDetail() {
                         </ThemedView>
                         <ThemedView background="transparent" style={styles.distributionContent}>
                             {rec.range && (
-                                <Animated.View
-                                    entering={FadeInDown.delay(450).springify()}
-                                    style={styles.infoItem}
-                                >
+                                <View style={styles.infoItem}>
                                     <ThemedText variant="label" color="secondary" style={styles.infoLabel}>
                                         {t('birddex.range')}
                                     </ThemedText>
                                     <ThemedText variant="body" style={styles.infoValue}>
                                         {rec.range}
                                     </ThemedText>
-                                </Animated.View>
+                                </View>
                             )}
 
-                            <Animated.View
-                                entering={FadeInDown.delay(500).springify()}
-                                style={styles.infoItem}
-                            >
+                            <View style={styles.infoItem}>
                                 <ThemedText variant="label" color="secondary" style={styles.infoLabel}>
                                     {t('birddex.conservationStatus')}
                                 </ThemedText>
@@ -493,13 +453,13 @@ export default function ModernBirdDexDetail() {
                                         </>
                                     )}
                                 </ThemedView>
-                            </Animated.View>
+                            </View>
                         </ThemedView>
                     </ModernCard>
-                </Animated.View>
+                </View>
 
                 {/* Metadata Section */}
-                <Animated.View entering={FadeInDown.delay(500).springify()}>
+                <View >
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <ThemedIcon name="database" size={20} color="primary" />
@@ -508,32 +468,26 @@ export default function ModernBirdDexDetail() {
                             </ThemedText>
                         </ThemedView>
                         <ThemedView background="transparent" style={styles.metadataGrid}>
-                            <Animated.View
-                                entering={FadeInDown.delay(550).springify()}
-                                style={styles.metadataItem}
-                            >
+                            <View style={styles.metadataItem}>
                                 <ThemedText variant="label" color="secondary" style={styles.metadataLabel}>
                                     {t('birddex.speciesCode')}
                                 </ThemedText>
                                 <ThemedText variant="body" style={styles.metadataValue}>
                                     {rec.species_code}
                                 </ThemedText>
-                            </Animated.View>
+                            </View>
 
-                            <Animated.View
-                                entering={FadeInDown.delay(600).springify()}
-                                style={styles.metadataItem}
-                            >
+                            <View style={styles.metadataItem}>
                                 <ThemedText variant="label" color="secondary" style={styles.metadataLabel}>
                                     {t('birddex.clements2024')}
                                 </ThemedText>
                                 <ThemedText variant="body" style={styles.metadataValue}>
                                     {rec.clements_v2024b_change || t('birddex.noChanges')}
                                 </ThemedText>
-                            </Animated.View>
+                            </View>
                         </ThemedView>
                     </ModernCard>
-                </Animated.View>
+                </View>
             </ScrollView>
         </ThemedView>
     );

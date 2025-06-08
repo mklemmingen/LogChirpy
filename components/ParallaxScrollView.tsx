@@ -1,13 +1,6 @@
 import React from 'react';
 import type { PropsWithChildren, ReactElement } from 'react';
 import {StyleSheet, useColorScheme, ScrollView, View} from 'react-native';
-// COMMENTED OUT FOR DEBUGGING: Animation imports
-// import Animated, {
-//   interpolate,
-//   useAnimatedRef,
-//   useAnimatedStyle,
-//   useScrollViewOffset,
-// } from 'react-native-reanimated';
 
 import { ThemedView } from '@/components/ThemedView';
 import { useBottomTabOverflow } from '@/components/ui/TabBarBackground';
@@ -25,39 +18,16 @@ export default function ParallaxScrollView({
   headerBackgroundColor,
 }: Props) {
   const colorScheme = useColorScheme() ?? 'light';
-  // COMMENTED OUT FOR DEBUGGING: Animation hooks
-  // const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  // const scrollOffset = useScrollViewOffset(scrollRef);
   const bottom = useBottomTabOverflow();
   const dimensions = useResponsiveDimensions();
   const theme = useTheme();
   
   const HEADER_HEIGHT = dimensions.screen.isTablet ? 350 : dimensions.screen.isSmall ? 200 : 250;
   const styles = createStyles(dimensions, HEADER_HEIGHT);
-  
-  // COMMENTED OUT FOR DEBUGGING: Animation styles
-  // const headerAnimatedStyle = useAnimatedStyle(() => {
-  //   return {
-  //     transform: [
-  //       {
-  //         translateY: interpolate(
-  //           scrollOffset.value,
-  //           [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
-  //           [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75]
-  //         ),
-  //       },
-  //       {
-  //         scale: interpolate(scrollOffset.value, [-HEADER_HEIGHT, 0, HEADER_HEIGHT], [2, 1, 1]),
-  //       },
-  //     ],
-  //   };
-  // });
 
   return (
     <ThemedView style={styles.container}>
       <ScrollView
-        // COMMENTED OUT FOR DEBUGGING: Animation ref
-        // ref={scrollRef}
         scrollEventThrottle={16}
         scrollIndicatorInsets={{ bottom }}
         contentContainerStyle={{ paddingBottom: bottom }}>
@@ -65,8 +35,6 @@ export default function ParallaxScrollView({
           style={[
             styles.header,
             { backgroundColor: headerBackgroundColor[colorScheme] },
-            // COMMENTED OUT FOR DEBUGGING: Animation style
-            // headerAnimatedStyle,
           ]}>
           {headerImage}
         </View>

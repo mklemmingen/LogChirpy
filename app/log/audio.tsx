@@ -6,16 +6,6 @@ import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import {BlurView} from 'expo-blur';
-// COMMENTED OUT FOR DEBUGGING: Animation imports
-// import Animated, {
-//     Easing,
-//     interpolate,
-//     useAnimatedStyle,
-//     useSharedValue,
-//     withRepeat,
-//     withSpring,
-//     withTiming,
-// } from 'react-native-reanimated';
 
 import {useLogDraft} from '../context/LogDraftContext';
 import {ModernCard} from '@/components/ModernCard';
@@ -28,8 +18,6 @@ import {useTheme} from '@/hooks/useThemeColor';
 type RecordingStatus = 'idle' | 'recording' | 'stopping' | 'playback';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// COMMENTED OUT FOR DEBUGGING: Animated component
-// const AnimatedPressable = Animated.createAnimatedComponent(ThemedPressable);
 
 // Enhanced Audio Quality Configuration
 const AUDIO_QUALITY = {
@@ -59,24 +47,8 @@ const AUDIO_QUALITY = {
     },
 };
 
-// COMMENTED OUT FOR DEBUGGING: Animated Wave Visualization Component
 function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
-    // COMMENTED OUT FOR DEBUGGING: Animation
-    // const waveAnim = useSharedValue(0);
     const theme = useTheme();
-
-    // COMMENTED OUT FOR DEBUGGING: Animation effects
-    // useEffect(() => {
-    //     if (isRecording) {
-    //         waveAnim.value = withRepeat(
-    //             withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-    //             -1,
-    //             true
-    //         );
-    //     } else {
-    //         waveAnim.value = withTiming(0, { duration: 300 });
-    //     }
-    // }, [isRecording]);
 
     return (
         <ThemedView style={{ 
@@ -88,19 +60,6 @@ function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
             paddingVertical: 16 
         }}>
             {[...Array(7)].map((_, index) => {
-                // COMMENTED OUT FOR DEBUGGING: Animation style
-                // const animatedStyle = useAnimatedStyle(() => {
-                //     const delay = index * 0.1;
-                //     const height = interpolate(
-                //         waveAnim.value,
-                //         [0, 1],
-                //         [4, 30 + Math.sin(delay * 4) * 15]
-                //     );
-                //     return {
-                //         height: Math.max(4, height),
-                //         opacity: interpolate(waveAnim.value, [0, 1], [0.3, 1]),
-                //     };
-                // });
 
                 return (
                     <View
@@ -111,11 +70,9 @@ function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
                                 backgroundColor: theme.colors.text.primary,
                                 borderRadius: 2,
                                 minHeight: 4,
-                                // COMMENTED OUT FOR DEBUGGING: Static height instead of animated
                                 height: isRecording ? 20 + Math.sin(index * 0.4) * 10 : 4,
                                 opacity: isRecording ? 1 : 0.3,
                             },
-                            // COMMENTED OUT FOR DEBUGGING: animatedStyle,
                         ]}
                     />
                 );
@@ -137,46 +94,13 @@ function RecordingButton({
     const theme = useTheme();
     const { t } = useTranslation();
 
-    // COMMENTED OUT FOR DEBUGGING: Animation values
-    // const scale = useSharedValue(1);
-    // const glowOpacity = useSharedValue(0);
-
-    // COMMENTED OUT FOR DEBUGGING: Animation effects
-    // useEffect(() => {
-    //     if (status === 'recording') {
-    //         scale.value = withRepeat(
-    //             withTiming(1.05, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-    //             -1,
-    //             true
-    //         );
-    //         glowOpacity.value = withRepeat(
-    //             withTiming(0.6, { duration: 1500 }),
-    //             -1,
-    //             true
-    //         );
-    //     } else {
-    //         scale.value = withSpring(1);
-    //         glowOpacity.value = withTiming(0);
-    //     }
-    // }, [status]);
-
-    // COMMENTED OUT FOR DEBUGGING: Animation styles
-    // const buttonStyle = useAnimatedStyle(() => ({
-    //     transform: [{ scale: scale.value }],
-    // }));
-
-    // const glowStyle = useAnimatedStyle(() => ({
-    //     opacity: glowOpacity.value,
-    //     transform: [{ scale: scale.value * 1.2 }],
-    // }));
-
     const isRecording = status === 'recording';
     const buttonColor = isRecording ? theme.colors.status.error : theme.colors.background.secondary;
 
     return (
         <ThemedView style={{ alignItems: 'center', gap: 20 }}>
             <ThemedView style={{ position: 'relative', alignItems: 'center' }}>
-                {/* COMMENTED OUT FOR DEBUGGING: Glow Effect */}
+                {/* Glow Effect */}
                 {isRecording && (
                     <View
                         style={[
@@ -186,10 +110,8 @@ function RecordingButton({
                                 height: 160,
                                 borderRadius: 80,
                                 backgroundColor: theme.colors.status.error,
-                                // COMMENTED OUT FOR DEBUGGING: Static opacity instead of animated
                                 opacity: 0.3,
                             },
-                            // COMMENTED OUT FOR DEBUGGING: glowStyle,
                         ]}
                     />
                 )}
@@ -208,10 +130,8 @@ function RecordingButton({
                             justifyContent: 'center',
                             alignItems: 'center',
                             ...theme.shadows.lg,
-                            // COMMENTED OUT FOR DEBUGGING: Static scale instead of animated
                             transform: [{ scale: isRecording ? 1.02 : 1 }],
                         },
-                        // COMMENTED OUT FOR DEBUGGING: buttonStyle,
                     ]}
                     onPress={onPress}
                     disabled={status === 'stopping'}

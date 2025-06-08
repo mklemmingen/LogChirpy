@@ -2,15 +2,6 @@ import React, {useEffect, useState} from "react";
 import {I18nManager, Linking, ScrollView, StyleSheet, Switch, Text, useColorScheme, View,} from "react-native";
 import {useTranslation} from "react-i18next";
 import {ThemedIcon} from '@/components/ThemedIcon';
-import Animated, {
-    FadeInDown,
-    interpolate,
-    Layout,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -59,34 +50,10 @@ function LanguageCard({
     const typography = useTypography();
     const dimensions = useResponsiveDimensions();
 
-    const scale = useSharedValue(1);
-    const glowOpacity = useSharedValue(0);
-
     const handlePress = () => {
         Haptics.selectionAsync();
-
-        // Micro-animation
-        scale.value = withSpring(0.98, { damping: 15, stiffness: 300 }, () => {
-            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-        });
-
-        if (isActive) {
-            glowOpacity.value = withTiming(1, { duration: 200 }, () => {
-                glowOpacity.value = withTiming(0, { duration: 300 });
-            });
-        }
-
         onPress();
     };
-
-    const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
-    }));
-
-    const glowStyle = useAnimatedStyle(() => ({
-        opacity: glowOpacity.value * 0.3,
-        transform: [{ scale: interpolate(glowOpacity.value, [0, 1], [0.95, 1.05]) }],
-    }));
 
     // Language flag emoji mapping
     const getLanguageFlag = (key: string) => {
@@ -102,22 +69,18 @@ function LanguageCard({
     };
 
     return (
-        <Animated.View
-            entering={FadeInDown.delay(index * 100).springify()}
-            layout={Layout.springify()}
-        >
-            <Animated.View style={animatedStyle}>
+        <View>
             {/* Glow effect for active state */}
             {isActive && (
-                <Animated.View
+                <View
                     style={[
                         StyleSheet.absoluteFillObject,
                         {
                             backgroundColor: colors.background.secondary,
                             borderRadius: theme.borderRadius.lg,
                             margin: -2,
+                            opacity: 0.3,
                         },
-                        glowStyle,
                     ]}
                     pointerEvents="none"
                 />
@@ -174,8 +137,7 @@ function LanguageCard({
                 </View>
                 </Card>
             </ThemedPressable>
-            </Animated.View>
-        </Animated.View>
+        </View>
     );
 }
 
@@ -202,49 +164,23 @@ function GPSToggleCard({
     const typography = useTypography();
     const dimensions = useResponsiveDimensions();
 
-    const iconScale = useSharedValue(1);
-    const switchScale = useSharedValue(1);
-
     const handleToggle = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-        // Icon animation
-        iconScale.value = withSpring(1.2, { damping: 15, stiffness: 300 }, () => {
-            iconScale.value = withSpring(1, { damping: 15, stiffness: 300 });
-        });
-
-        // Switch animation
-        switchScale.value = withSpring(0.95, { damping: 15, stiffness: 300 }, () => {
-            switchScale.value = withSpring(1, { damping: 15, stiffness: 300 });
-        });
-
         onToggle();
     };
 
-    const iconAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: iconScale.value }],
-    }));
-
-    const switchAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: switchScale.value }],
-    }));
-
     return (
-        <Animated.View
-            entering={FadeInDown.delay(200).springify()}
-            layout={Layout.springify()}
-        >
+        <View>
             <Card elevated style={styles.gpsCard}>
                 <View style={styles.gpsContent}>
                     <View style={styles.gpsInfo}>
-                        <Animated.View style={[
+                        <View style={[
                             styles.gpsIcon,
                             {
                                 backgroundColor: enabled
                                     ? colors.background.secondary
                                     : colors.background.tertiary
                             },
-                            iconAnimatedStyle,
                         ]}>
                             <ThemedIcon
                                 name="map-pin"
@@ -254,7 +190,7 @@ function GPSToggleCard({
                                     : 'secondary'
                                 }
                             />
-                        </Animated.View>
+                        </View>
 
                         <View style={styles.gpsTextContent}>
                             <ThemedText
@@ -292,7 +228,7 @@ function GPSToggleCard({
                         </View>
                     </View>
 
-                    <Animated.View style={switchAnimatedStyle}>
+                    <View>
                         <Switch
                             value={enabled}
                             onValueChange={handleToggle}
@@ -307,10 +243,10 @@ function GPSToggleCard({
                             }
                             ios_backgroundColor={colors.border.primary}
                         />
-                    </Animated.View>
+                    </View>
                 </View>
             </Card>
-        </Animated.View>
+        </View>
     );
 }
 
@@ -462,10 +398,7 @@ export default function ModernSettingsScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Header */}
-                <Animated.View
-                    entering={FadeInDown.springify()}
-                    style={styles.header}
-                >
+                <View style={styles.header}>
                     <ThemedText variant="h2" style={styles.headerTitle}>
                         Settings
                     </ThemedText>
@@ -476,7 +409,7 @@ export default function ModernSettingsScreen() {
                     >
                         Customize your LogChirpy experience
                     </ThemedText>
-                </Animated.View>
+                </View>
 
                 {/* Language Section */}
                 <ThemedView style={styles.section}>
@@ -536,10 +469,7 @@ export default function ModernSettingsScreen() {
                         Configure automatic bird detection and classification settings
                     </ThemedText>
                     
-                    <Animated.View
-                        entering={FadeInDown.delay(250).springify()}
-                        layout={Layout.springify()}
-                    >
+                    <View>
                         <Card elevated style={styles.detectionCard}>
                             <View style={styles.detectionContent}>
                                 {/* Pipeline Delay Setting */}
@@ -635,7 +565,7 @@ export default function ModernSettingsScreen() {
                                 </View>
                             </View>
                         </Card>
-                    </Animated.View>
+                    </View>
                 </ThemedView>
 
                 {/* Tutorial Section */}
@@ -647,10 +577,7 @@ export default function ModernSettingsScreen() {
                         {t("settings.tutorial.subtitle")}
                     </ThemedText>
                     
-                    <Animated.View
-                        entering={FadeInDown.delay(250).springify()}
-                        layout={Layout.springify()}
-                    >
+                    <View>
                         <Card style={styles.tutorialCard}>
                             <View style={styles.tutorialContent}>
                                 <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
@@ -682,7 +609,7 @@ export default function ModernSettingsScreen() {
                                 </ThemedText>
                             </View>
                         </Card>
-                    </Animated.View>
+                    </View>
                 </ThemedView>
 
                 {/* About Section */}
@@ -694,10 +621,7 @@ export default function ModernSettingsScreen() {
                         {t("settings.about.subtitle")}
                     </ThemedText>
                     
-                    <Animated.View
-                        entering={FadeInDown.delay(300).springify()}
-                        layout={Layout.springify()}
-                    >
+                    <View>
                         <Card style={styles.aboutCard}>
                             <View style={styles.aboutContent}>
                                 <View style={[
@@ -759,7 +683,7 @@ export default function ModernSettingsScreen() {
                                 </ThemedPressable>
                             </View>
                         </Card>
-                    </Animated.View>
+                    </View>
                 </ThemedView>
             </ScrollView>
         </ThemedSafeAreaView>

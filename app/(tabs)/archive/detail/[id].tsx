@@ -6,20 +6,13 @@ import {
     Linking,
     Share,
     StyleSheet,
+    View,
 } from 'react-native';
 import {Audio} from 'expo-av';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as MediaLibrary from 'expo-media-library';
-import Animated, {
-    FadeInDown,
-    FadeInUp,
-    Layout,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import {type BirdSpotting, getSpottingById} from '@/services/database';
@@ -47,26 +40,16 @@ function DetailHeader({
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
 
-    const scale = useSharedValue(1);
 
     const handleBackPress = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        scale.value = withSpring(0.95, { damping: 15, stiffness: 300 }, () => {
-            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-        });
         onBack();
     };
 
-    const backButtonStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
-    }));
 
     return (
-        <Animated.View
-            entering={FadeInUp.springify()}
-            style={[styles.header, { marginTop: insets.top }]}
-        >
-            <Animated.View style={backButtonStyle}>
+        <View style={[styles.header, { marginTop: insets.top }]}>
+            <View>
                 <ThemedPressable
                     variant="secondary"
                     size="md"
@@ -75,7 +58,7 @@ function DetailHeader({
                 >
                     <ThemedIcon name="arrow-left" size={20} color="primary" />
                 </ThemedPressable>
-            </Animated.View>
+            </View>
 
             <ThemedView style={styles.headerInfo}>
                 <ThemedText
@@ -101,7 +84,7 @@ function DetailHeader({
             >
                 <ThemedIcon name="share" size={18} color="primary" />
             </ThemedPressable>
-        </Animated.View>
+        </View>
     );
 }
 
@@ -125,7 +108,7 @@ function MediaSection({
     if (!entry.imageUri && !entry.videoUri && !entry.audioUri) return null;
 
     return (
-        <Animated.View entering={FadeInDown.delay(100).springify()} layout={Layout.springify()}>
+        <View>
             <ModernCard elevated={true} bordered={false} style={styles.section}>
                 <ThemedView style={styles.sectionHeader}>
                     <ThemedIcon name="camera" size={20} color="primary" />
@@ -183,7 +166,7 @@ function MediaSection({
                     )}
                 </ThemedView>
             </ModernCard>
-        </Animated.View>
+        </View>
     );
 }
 
@@ -200,10 +183,7 @@ function InfoSection({
     delay?: number;
 }) {
     return (
-        <Animated.View
-            entering={FadeInDown.delay(delay).springify()}
-            layout={Layout.springify()}
-        >
+        <View>
             <ModernCard elevated={true} bordered={false} style={styles.section}>
                 <ThemedView style={styles.sectionHeader}>
                     <ThemedIcon name={icon as any} size={20} color="primary" />
@@ -215,7 +195,7 @@ function InfoSection({
                     {children}
                 </ThemedView>
             </ModernCard>
-        </Animated.View>
+        </View>
     );
 }
 

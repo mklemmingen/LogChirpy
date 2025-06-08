@@ -15,14 +15,6 @@ import {ThemedIcon} from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
 import {BlurView} from 'expo-blur';
 import {router} from 'expo-router';
-import Animated, {
-  FadeInDown,
-  FadeOutUp,
-  Layout,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import {ThemedView, Card} from '@/components/ThemedView';
@@ -54,19 +46,11 @@ function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) 
 
   const styles = createEmptyStateStyles(dimensions);
 
-  const floatAnimation = useSharedValue(0);
 
-  React.useEffect(() => {
-    floatAnimation.value = withSpring(1, { damping: 15, stiffness: 300 });
-  }, []);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: (floatAnimation.value - 0.5) * 10 }],
-    opacity: floatAnimation.value,
-  }));
 
   return (
-      <Animated.View style={[styles.emptyState, animatedStyle]}>
+      <View style={styles.emptyState}>
         <View style={[styles.emptyIcon, { backgroundColor: colors.background.secondary }]}>
           <ThemedIcon name="archive" size={dimensions.icon.xxl} color="primary" />
         </View>
@@ -94,7 +78,7 @@ function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) 
             {t('archive.start_logging')}
           </ThemedText>
         </ThemedPressable>
-      </Animated.View>
+      </View>
   );
 }
 
@@ -194,11 +178,7 @@ function SearchHeader({
 
         {/* Sort Menu */}
         {showSortMenu && (
-            <Animated.View
-                entering={FadeInDown.duration(200)}
-                exiting={FadeOutUp.duration(150)}
-                style={styles.sortMenu}
-            >
+            <View style={styles.sortMenu}>
               <Card style={styles.sortMenuContent}>
                 {[
                   { key: 'newest', label: t('archive.sort_newest'), icon: 'arrow-down' as keyof typeof Feather.glyphMap },
@@ -231,7 +211,7 @@ function SearchHeader({
                     </Pressable>
                 ))}
               </Card>
-            </Animated.View>
+            </View>
         )}
       </View>
   );
@@ -366,11 +346,7 @@ export default function ArchiveScreen() {
 
   // Render spotting card
   const renderSpotting = useCallback(({item, index}: { item: BirdSpotting; index: number }) => (
-      <Animated.View
-          entering={FadeInDown.delay(index * 50).springify()}
-          layout={Layout.springify()}
-          style={styles.cardContainer}
-      >
+      <View style={styles.cardContainer}>
         <ThemedPressable
             variant="ghost"
             onPress={() => handleSpottingPress(item)}
@@ -404,7 +380,7 @@ export default function ArchiveScreen() {
             </View>
           </Card>
         </ThemedPressable>
-      </Animated.View>
+      </View>
   ), [handleSpottingPress, t, colors]);
 
   // Loading state

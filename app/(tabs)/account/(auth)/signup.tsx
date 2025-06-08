@@ -11,7 +11,6 @@ import {
 import {useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import { ThemedIcon } from '@/components/ThemedIcon';
-import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 // Firebase imports
@@ -23,10 +22,9 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {useSnackbar} from '@/components/ThemedSnackbar';
+import {ThemedSnackbar} from '@/components/ThemedSnackbar';
 import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
 
-const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 interface FormField {
     value: string;
@@ -67,17 +65,6 @@ export default function ModernSignupScreen() {
     const passwordRef = useRef<TextInput>(null);
     const confirmPasswordRef = useRef<TextInput>(null);
 
-    // Animation values
-    const containerOpacity = useSharedValue(0);
-    const contentTranslateY = useSharedValue(30);
-    const headerScale = useSharedValue(0.9);
-
-    React.useEffect(() => {
-        // Entrance animation
-        containerOpacity.value = withTiming(1, { duration: 300 });
-        contentTranslateY.value = withSpring(0, { damping: 20, stiffness: 300 });
-        headerScale.value = withSpring(1, { damping: 15, stiffness: 300 });
-    }, []);
 
     // Validation functions
     const validateEmail = (email: string): { valid: boolean; error: string } => {
@@ -252,15 +239,6 @@ export default function ModernSignupScreen() {
         };
     };
 
-    // Animated styles
-    const containerStyle = useAnimatedStyle(() => ({
-        opacity: containerOpacity.value,
-        transform: [{ translateY: contentTranslateY.value }],
-    }));
-
-    const headerStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: headerScale.value }],
-    }));
 
     const isFormValid = formState.email.valid && formState.password.valid && formState.confirmPassword.valid;
 
@@ -276,9 +254,9 @@ export default function ModernSignupScreen() {
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <Animated.View style={[styles.content, containerStyle]}>
+                    <View style={styles.content}>
                         {/* Header Section */}
-                        <Animated.View style={[styles.header, headerStyle]}>
+                        <View style={styles.header}>
                             <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
                                 <ThemedIcon name="feather" size={32} color="accent" />
                             </View>
@@ -294,7 +272,7 @@ export default function ModernSignupScreen() {
                             >
                                 {t('auth.signup_subtitle')}
                             </ThemedText>
-                        </Animated.View>
+                        </View>
 
                         {/* Form Card */}
                         <ModernCard elevated={false} bordered={true} style={styles.formCard}>
@@ -310,7 +288,7 @@ export default function ModernSignupScreen() {
                                             size={20}
                                             color={formState.email.focused ? "accent" : "secondary"}
                                         />
-                                        <AnimatedTextInput
+                                        <TextInput
                                             ref={emailRef}
                                             style={[styles.textInput, { color: semanticColors.primary }]}
                                             placeholder={t('auth.email_placeholder')}
@@ -347,7 +325,7 @@ export default function ModernSignupScreen() {
                                             size={20}
                                             color={formState.password.focused ? "accent" : "secondary"}
                                         />
-                                        <AnimatedTextInput
+                                        <TextInput
                                             ref={passwordRef}
                                             style={[styles.textInput, { color: semanticColors.primary }]}
                                             placeholder={t('auth.password_placeholder')}
@@ -393,7 +371,7 @@ export default function ModernSignupScreen() {
                                             size={20}
                                             color={formState.confirmPassword.focused ? "accent" : "secondary"}
                                         />
-                                        <AnimatedTextInput
+                                        <TextInput
                                             ref={confirmPasswordRef}
                                             style={[styles.textInput, { color: semanticColors.primary }]}
                                             placeholder={t('app_errors.confirm_password_placeholder')}
@@ -464,7 +442,7 @@ export default function ModernSignupScreen() {
                                 </ThemedText>
                             </ThemedPressable>
                         </View>
-                    </Animated.View>
+                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
 

@@ -3,21 +3,13 @@ import {KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View,
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-    FadeInDown,
-    FadeOutUp,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
 
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {useSnackbar} from '@/components/ThemedSnackbar';
+import {ThemedSnackbar} from '@/components/ThemedSnackbar';
 import {useTheme, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
 import {sendPasswordResetEmail} from 'firebase/auth';
 import {auth} from '@/firebase/config';
@@ -44,16 +36,8 @@ export default function ForgotPasswordScreen() {
     // Refs
     const emailInputRef = useRef<TextInput>(null);
 
-    // Animation values
-    const cardScale = useSharedValue(0.95);
-    const cardOpacity = useSharedValue(0);
-    const formOpacity = useSharedValue(1);
+    // No animations - using static components
 
-    React.useEffect(() => {
-        // Entrance animation
-        cardScale.value = withSpring(1, { damping: 20, stiffness: 300 });
-        cardOpacity.value = withTiming(1, { duration: theme.motion.duration.normal });
-    }, [cardOpacity, cardScale, theme.motion.duration.normal]);
 
     // Form validation
     const validateForm = (): boolean => {
@@ -83,14 +67,8 @@ export default function ForgotPasswordScreen() {
             // Send password reset email via Firebase
             await sendPasswordResetEmail(auth, email.trim());
 
-            // Success animation
-            formOpacity.value = withTiming(0, { duration: theme.motion.duration.fast });
-
-            setTimeout(() => {
-                setEmailSent(true);
-                formOpacity.value = withTiming(1, { duration: theme.motion.duration.normal });
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            }, theme.motion.duration.fast);
+            setEmailSent(true);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
         } catch (error: unknown) {
             console.error('Password reset error:', error);
@@ -131,22 +109,10 @@ export default function ForgotPasswordScreen() {
         router.back();
     };
 
-    // Animated styles
-    const cardAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: cardScale.value }],
-        opacity: cardOpacity.value,
-    }));
-
-    const formAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: formOpacity.value,
-    }));
 
     // Success screen content
     const renderSuccessScreen = () => (
-        <Animated.View
-            entering={FadeInDown.duration(theme.motion.duration.normal)}
-            style={styles.successContainer}
-        >
+        <View style={styles.successContainer}>
             <View style={[styles.successIcon, { backgroundColor: theme.colors.text.primary, opacity: 0.1 }]}>
                 <ThemedIcon name="mail" size={48} color="primary" />
             </View>
@@ -173,12 +139,12 @@ export default function ForgotPasswordScreen() {
                     {t('auth.back_to_login')}
                 </ThemedText>
             </ThemedPressable>
-        </Animated.View>
+        </View>
     );
 
     // Form screen content
     const renderFormScreen = () => (
-        <Animated.View style={formAnimatedStyle}>
+        <View>
             {/* Header */}
             <View style={styles.header}>
                 <ThemedText variant="displaySmall" style={styles.title}>
@@ -240,16 +206,12 @@ export default function ForgotPasswordScreen() {
                     </View>
 
                     {errors.email && (
-                        <Animated.View
-                            entering={FadeInDown.duration(200)}
-                            exiting={FadeOutUp.duration(200)}
-                            style={styles.errorContainer}
-                        >
+                        <View style={styles.errorContainer}>
                             <ThemedIcon name="alert-circle" size={14} color="error" />
                             <ThemedText variant="labelSmall" color="error" style={styles.errorText}>
                                 {errors.email}
                             </ThemedText>
-                        </Animated.View>
+                        </View>
                     )}
                 </View>
 
@@ -279,7 +241,7 @@ export default function ForgotPasswordScreen() {
                     </ThemedText>
                 </ThemedPressable>
             </View>
-        </Animated.View>
+        </View>
     );
 
     return (
@@ -308,7 +270,7 @@ export default function ForgotPasswordScreen() {
                     </View>
 
                     {/* Main Card */}
-                    <Animated.View style={[styles.cardContainer, cardAnimatedStyle]}>
+                    <View style={styles.cardContainer}>
                         <ModernCard
                             elevated={false}
                             bordered={true}
@@ -321,7 +283,7 @@ export default function ForgotPasswordScreen() {
                                 {emailSent ? renderSuccessScreen() : renderFormScreen()}
                             </View>
                         </ModernCard>
-                    </Animated.View>
+                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
 

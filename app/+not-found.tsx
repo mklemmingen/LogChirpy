@@ -4,15 +4,6 @@ import {Link, Stack} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import { Feather } from '@expo/vector-icons';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
 
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
@@ -22,65 +13,28 @@ import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Animated Bird Icon Component
+// Static Bird Icon Component
 function LostBirdIcon() {
   const colors = useColors();
 
-  const rotation = useSharedValue(0);
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(0.7);
-
-  useEffect(() => {
-    // Gentle swaying motion
-    rotation.value = withRepeat(
-        withSequence(
-            withTiming(-10, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-            withTiming(10, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-        false
-    );
-
-    // Breathing scale animation
-    scale.value = withRepeat(
-        withTiming(1.1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true
-    );
-
-    // Fade in
-    opacity.value = withTiming(1, { duration: 1000 });
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { rotate: `${rotation.value}deg` },
-      { scale: scale.value },
-    ],
-    opacity: opacity.value,
-  }));
-
   return (
-      <Animated.View
-          style={[
-            {
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: colors.backgroundSecondary,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 32,
-            },
-            animatedStyle,
-          ]}
+      <View
+          style={{
+            width: 120,
+            height: 120,
+            borderRadius: 60,
+            backgroundColor: colors.backgroundSecondary,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 32,
+          }}
       >
         <ThemedIcon name="help-circle" size={48} color="primary" />
-      </Animated.View>
+      </View>
   );
 }
 
-// Floating Elements Background
+// Static Floating Elements Background
 function FloatingElements() {
   const colors = useColors();
 
@@ -93,69 +47,34 @@ function FloatingElements() {
 
   return (
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        {elements.map((element, index) => {
-          const FloatingElement = () => {
-            const translateY = useSharedValue(50);
-            const opacity = useSharedValue(0);
-            const scale = useSharedValue(0.8);
-
-            useEffect(() => {
-              setTimeout(() => {
-                translateY.value = withRepeat(
-                    withSequence(
-                        withTiming(-20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
-                        withTiming(20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
-                    ),
-                    -1,
-                    false
-                );
-
-                opacity.value = withTiming(0.15, { duration: 1000 });
-                scale.value = withTiming(1, { duration: 1000 });
-              }, element.delay);
-            }, []);
-
-            const animatedStyle = useAnimatedStyle(() => ({
-              transform: [
-                { translateY: translateY.value },
-                { scale: scale.value },
-              ],
-              opacity: opacity.value,
-            }));
-
-            return (
-                <Animated.View
-                    style={[
-                      {
-                        position: 'absolute',
-                        left: (index % 2 === 0 ? 30 : SCREEN_WIDTH - 80) + (index * 20),
-                        top: 100 + (index * 80),
-                      },
-                      animatedStyle,
-                    ]}
-                >
-                  <View
-                      style={{
-                        width: 50,
-                        height: 50,
-                        borderRadius: 25,
-                        backgroundColor: colors.backgroundSecondary,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                  >
-                    <ThemedIcon
-                        name={element.icon}
-                        size={20}
-                        color="tertiary"
-                    />
-                  </View>
-                </Animated.View>
-            );
-          };
-
-          return <FloatingElement key={index} />;
-        })}
+        {elements.map((element, index) => (
+          <View
+              key={index}
+              style={{
+                position: 'absolute',
+                left: (index % 2 === 0 ? 30 : SCREEN_WIDTH - 80) + (index * 20),
+                top: 100 + (index * 80),
+              }}
+          >
+            <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: colors.backgroundSecondary,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  opacity: 0.15,
+                }}
+            >
+              <ThemedIcon
+                  name={element.icon}
+                  size={20}
+                  color="tertiary"
+              />
+            </View>
+          </View>
+        ))}
       </View>
   );
 }
@@ -165,28 +84,6 @@ export default function NotFoundScreen() {
   const colors = useColors();
   const typography = useTypography();
   const { t } = useTranslation();
-
-  // Animation values for the main content
-  const contentOpacity = useSharedValue(0);
-  const contentTranslateY = useSharedValue(30);
-
-  useEffect(() => {
-    // Staggered entrance animation
-    setTimeout(() => {
-      contentOpacity.value = withTiming(1, {
-        duration: theme.motion.duration.normal
-      });
-      contentTranslateY.value = withSpring(0, {
-        damping: 20,
-        stiffness: 300,
-      });
-    }, 200);
-  }, []);
-
-  const contentAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: contentOpacity.value,
-    transform: [{ translateY: contentTranslateY.value }],
-  }));
 
   return (
       <ThemedView background="primary" style={styles.container}>
@@ -199,7 +96,7 @@ export default function NotFoundScreen() {
         <FloatingElements />
 
         {/* Main content */}
-        <Animated.View style={[styles.content, contentAnimatedStyle]}>
+        <View style={styles.content}>
           <ModernCard
               elevated={false}
               bordered={true}
@@ -272,7 +169,7 @@ export default function NotFoundScreen() {
               </ThemedText>
             </View>
           </ModernCard>
-        </Animated.View>
+        </View>
       </ThemedView>
   );
 }

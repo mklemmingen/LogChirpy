@@ -3,7 +3,6 @@ import {ActivityIndicator, Alert, FlatList, TextInput, View,} from 'react-native
 import {useTranslation} from 'react-i18next';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import Animated, {Layout, useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
@@ -25,23 +24,6 @@ function SpottingCard({ spotting, onSelect, delay }: SpottingCardProps) {
     const variants = useColorVariants();
     const motion = useMotionValues();
 
-    const opacity = useSharedValue(0);
-    const translateY = useSharedValue(20);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            opacity.value = withTiming(1, { duration: motion.timing.duration });
-            translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
-        }, delay * 50);
-
-        return () => clearTimeout(timer);
-    }, [delay]);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-        opacity: opacity.value,
-        transform: [{ translateY: translateY.value }],
-    }));
-
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -53,7 +35,7 @@ function SpottingCard({ spotting, onSelect, delay }: SpottingCardProps) {
     const hasMedia = spotting.imageUri || spotting.videoUri || spotting.audioUri;
 
     return (
-        <Animated.View style={animatedStyle} layout={Layout.springify()}>
+        <View>
             <ThemedPressable
                 variant="ghost"
                 onPress={() => onSelect(spotting.id)}
@@ -158,7 +140,7 @@ function SpottingCard({ spotting, onSelect, delay }: SpottingCardProps) {
                     </View>
                 </ModernCard>
             </ThemedPressable>
-        </Animated.View>
+        </View>
     );
 }
 
@@ -179,17 +161,6 @@ export default function SelectSpottingScreen() {
     const [sortDir, setSortDir] = useState<'DESC' | 'ASC'>('DESC');
     const [loading, setLoading] = useState(true);
 
-    // Animation values
-    const headerOpacity = useSharedValue(0);
-    const searchOpacity = useSharedValue(0);
-
-    useEffect(() => {
-        // Entrance animations
-        headerOpacity.value = withTiming(1, { duration: motion.timing.duration });
-        setTimeout(() => {
-            searchOpacity.value = withTiming(1, { duration: motion.timing.duration });
-        }, 150);
-    }, []);
 
     // Load and filter data
     const loadData = useCallback(() => {
@@ -253,16 +224,6 @@ export default function SelectSpottingScreen() {
         setSortDir((prev) => (prev === 'DESC' ? 'ASC' : 'DESC'));
     };
 
-    const headerAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: headerOpacity.value,
-        transform: [{ translateY: (1 - headerOpacity.value) * -20 }],
-    }));
-
-    const searchAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: searchOpacity.value,
-        transform: [{ translateY: (1 - searchOpacity.value) * 20 }],
-    }));
-
     if (loading) {
         return (
             <ThemedView style={{ flex: 1, paddingTop: insets.top }}>
@@ -284,15 +245,12 @@ export default function SelectSpottingScreen() {
     return (
         <ThemedView style={{ flex: 1, paddingTop: insets.top }}>
             {/* Header */}
-            <Animated.View style={[
-                {
-                    paddingHorizontal: theme.spacing.lg,
-                    paddingVertical: theme.spacing.md,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.border
-                },
-                headerAnimatedStyle
-            ]}>
+            <View style={{
+                paddingHorizontal: theme.spacing.lg,
+                paddingVertical: theme.spacing.md,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border
+            }}>
                 <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -321,16 +279,13 @@ export default function SelectSpottingScreen() {
                 <ThemedText variant="body" color="secondary">
                     Select a spotting to assign "{latin}" to
                 </ThemedText>
-            </Animated.View>
+            </View>
 
             {/* Search & Sort */}
-            <Animated.View style={[
-                {
-                    paddingHorizontal: theme.spacing.lg,
-                    paddingVertical: theme.spacing.md
-                },
-                searchAnimatedStyle
-            ]}>
+            <View style={{
+                paddingHorizontal: theme.spacing.lg,
+                paddingVertical: theme.spacing.md
+            }}>
                 <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -379,7 +334,7 @@ export default function SelectSpottingScreen() {
                         </ThemedText>
                     </ThemedPressable>
                 </View>
-            </Animated.View>
+            </View>
 
             {/* List */}
             <FlatList

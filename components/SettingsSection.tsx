@@ -2,13 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { ReactNode } from 'react';
 import { BlurView } from 'expo-blur';
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-    // interpolate,
-} from 'react-native-reanimated';
 
 import {
     useSemanticColors,
@@ -29,7 +22,6 @@ interface SettingsSectionProps {
     delay?: number;
 }
 
-const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 export default function SettingsSection({
                                             title,
@@ -47,30 +39,6 @@ export default function SettingsSection({
     const motion = useMotionValues();
     const colors = useColors();
 
-    // Animation values
-    const opacity = useSharedValue(animated ? 0 : 1);
-    const translateY = useSharedValue(animated ? 20 : 0);
-    const scale = useSharedValue(animated ? 0.95 : 1);
-
-    React.useEffect(() => {
-        if (animated) {
-            const delayMs = delay * 100;
-
-            setTimeout(() => {
-                opacity.value = withTiming(1, { duration: 200 });
-                translateY.value = withSpring(0, { damping: 15, stiffness: 300 });
-                scale.value = withSpring(1, { damping: 20, stiffness: 400 });
-            }, delayMs);
-        }
-    }, [animated, delay, opacity, scale, translateY]);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-        opacity: opacity.value,
-        transform: [
-            { translateY: translateY.value },
-            { scale: scale.value },
-        ],
-    }));
 
     // Get variant-specific styling
     const getVariantStyle = () => {
@@ -133,8 +101,8 @@ export default function SettingsSection({
 
     if (isGlass) {
         return (
-            <Animated.View style={[styles.container, variantStyle, style, animatedStyle]}>
-                <AnimatedBlurView
+            <View style={[styles.container, variantStyle, style]}>
+                <BlurView
                     intensity={60}
                     tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
                     style={StyleSheet.absoluteFillObject}
@@ -151,14 +119,14 @@ export default function SettingsSection({
                     ]}
                 />
                 {containerContent}
-            </Animated.View>
+            </View>
         );
     }
 
     return (
-        <Animated.View style={[styles.container, variantStyle, style, animatedStyle]}>
+        <View style={[styles.container, variantStyle, style]}>
             {containerContent}
-        </Animated.View>
+        </View>
     );
 }
 

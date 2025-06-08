@@ -1,16 +1,8 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, FlatList, StyleSheet, TextInput} from 'react-native';
+import {ActivityIndicator, FlatList, StyleSheet, TextInput, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import Animated, {
-    FadeInDown,
-    FadeOutUp,
-    Layout,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import {ModernCard} from '@/components/ModernCard';
@@ -59,19 +51,6 @@ function SearchResultCard({
     
     const styles = createStyles(theme, dimensions);
 
-    const scale = useSharedValue(1);
-
-    const handlePressIn = () => {
-        scale.value = withSpring(0.98, { damping: 15, stiffness: 300 });
-    };
-
-    const handlePressOut = () => {
-        scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-    };
-
-    const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
-    }));
 
     const getConfidenceColor = (confidence: number) => {
         if (confidence >= 80) return colors.status.success;
@@ -87,22 +66,12 @@ function SearchResultCard({
     };
 
     return (
-        <Animated.View
-            entering={FadeInDown.delay(index * 100).springify()}
-            exiting={FadeOutUp.springify()}
-            layout={Layout.springify()}
+        <ModernCard
+            elevated={true}
+            bordered={false}
+            onPress={onPress}
+            style={styles.resultCard}
         >
-            <Animated.View style={animatedStyle}>
-                <ModernCard
-                    elevated={true}
-                    bordered={false}
-                    onPress={onPress}
-                    // Remove these lines:
-                    // onPressIn={handlePressIn}
-                    // onPressOut={handlePressOut}
-                    // animateOnPress={false}
-                    style={styles.resultCard}
-                >
                 {/* Header with matched name and confidence */}
                 <ThemedView style={styles.resultHeader}>
                     <ThemedView style={styles.matchInfo}>
@@ -202,9 +171,7 @@ function SearchResultCard({
                 <ThemedView style={styles.chevronContainer}>
                     <ThemedIcon name="chevron-right" size={20} color="secondary" />
                 </ThemedView>
-            </ModernCard>
-            </Animated.View>
-        </Animated.View>
+        </ModernCard>
     );
 }
 
@@ -405,10 +372,7 @@ export default function SmartSearch() {
     return (
         <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
-            <Animated.View
-                entering={FadeInDown.delay(50).springify()}
-                style={styles.header}
-            >
+            <View style={styles.header}>
                 <ThemedPressable
                     variant="ghost"
                     size="sm"
@@ -426,13 +390,10 @@ export default function SmartSearch() {
                         {t('smartSearch.subtitle')}
                     </ThemedText>
                 </ThemedView>
-            </Animated.View>
+            </View>
 
             {/* Search Input */}
-            <Animated.View
-                entering={FadeInDown.delay(150).springify()}
-                style={styles.searchSection}
-            >
+            <View style={styles.searchSection}>
                 <ModernCard elevated={true} bordered={false} style={styles.searchCard}>
                     <ThemedView style={styles.searchContainer}>
                         <ThemedIcon name="search" size={20} color="secondary" />
@@ -460,15 +421,12 @@ export default function SmartSearch() {
                         )}
                     </ThemedView>
                 </ModernCard>
-            </Animated.View>
+            </View>
 
             {/* Content */}
             {!hasSearched ? (
                 // Search Tips
-                <Animated.View
-                    entering={FadeInDown.delay(250).springify()}
-                    style={styles.tipsContainer}
-                >
+                <View style={styles.tipsContainer}>
                     <ModernCard elevated={false} bordered={true} style={styles.tipsCard}>
                         <ThemedView style={styles.tipsHeader}>
                             <ThemedView style={[
@@ -503,7 +461,7 @@ export default function SmartSearch() {
                             </ThemedView>
                         </ThemedView>
                     </ModernCard>
-                </Animated.View>
+                </View>
             ) : loading ? (
                 // Loading state
                 <ThemedView style={styles.loadingContainer}>

@@ -1,20 +1,12 @@
 /**
  * Simplified Bird Animation Component
  * 
- * Lightweight alternative to the complex BirdAnimation component.
- * Uses optimized patterns to prevent view hierarchy conflicts.
+ * Lightweight alternative using React Native's built-in Animated API.
+ * No reanimated dependency - prevents view hierarchy conflicts.
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withDelay,
-  Easing,
-} from 'react-native-reanimated';
+import { View, StyleSheet, Animated } from 'react-native';
 
 import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import { Z_LAYERS } from '@/constants/layers';
@@ -77,56 +69,72 @@ const BirdElement: React.FC<BirdElementProps> = ({
   screenWidth,
   screenHeight,
 }) => {
-  const translateX = useSharedValue(-50);
-  const translateY = useSharedValue(screenHeight * 0.3 + Math.random() * screenHeight * 0.4);
-  const opacity = useSharedValue(0);
+  const translateX = useRef(new Animated.Value(-50)).current;
+  const translateY = useRef(new Animated.Value(screenHeight * 0.3 + Math.random() * screenHeight * 0.4)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Start animation with delay
     const startAnimation = () => {
-      opacity.value = withTiming(1, { duration: 1000 });
+      // Fade in
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }).start();
       
-      translateX.value = withRepeat(
-        withDelay(
-          config.startDelay,
-          withTiming(screenWidth + 50, {
-            duration: config.duration,
-            easing: Easing.linear,
-          })
-        ),
-        -1, // infinite repeat
-        false
-      );
+      // Horizontal movement (infinite loop)
+      const moveHorizontal = () => {
+        translateX.setValue(-50);
+        Animated.timing(translateX, {
+          toValue: screenWidth + 50,
+          duration: config.duration,
+          useNativeDriver: true,
+        }).start(() => {
+          // Restart animation
+          setTimeout(moveHorizontal, config.startDelay);
+        });
+      };
 
-      // Add subtle wave motion
-      translateY.value = withRepeat(
-        withTiming(
-          translateY.value + config.amplitude,
-          {
+      // Start horizontal movement after initial delay
+      setTimeout(moveHorizontal, config.startDelay);
+
+      // Vertical wave motion
+      const waveMotion = () => {
+        const currentY = translateY._value;
+        Animated.sequence([
+          Animated.timing(translateY, {
+            toValue: currentY + config.amplitude,
             duration: config.duration / 4,
-            easing: Easing.inOut(Easing.sin),
-          }
-        ),
-        -1,
-        true // reverse
-      );
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateY, {
+            toValue: currentY - config.amplitude,
+            duration: config.duration / 4,
+            useNativeDriver: true,
+          }),
+        ]).start(() => waveMotion()); // Loop wave motion
+      };
+
+      waveMotion();
     };
 
     startAnimation();
-  }, [config, screenWidth, screenHeight]);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-      ],
-      opacity: opacity.value,
-    };
-  });
+  }, [config, screenWidth, screenHeight, translateX, translateY, opacity]);
 
   return (
-    <Animated.View style={[styles.bird, animatedStyle]}>
+    <Animated.View 
+      style={[
+        styles.bird, 
+        {
+          transform: [
+            { translateX },
+            { translateY },
+          ],
+          opacity,
+        }
+      ]}
+    >
       <View style={styles.birdShape} />
     </Animated.View>
   );

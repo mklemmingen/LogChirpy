@@ -7,14 +7,6 @@ import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import {BlurView} from 'expo-blur';
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
 
 // Modern components
 import {ThemedView} from '@/components/ThemedView';
@@ -31,30 +23,10 @@ import {useLogDraft} from '../context/LogDraftContext';
 
 type RecordingState = 'idle' | 'recording' | 'stopping' | 'preview';
 
-const AnimatedPressable = Animated.createAnimatedComponent(ThemedPressable);
-
 // Recording Status Indicator Component
 function RecordingStatusIndicator({ isRecording, duration }: { isRecording: boolean; duration: number }) {
   const typography = useTypography();
   const theme = useTheme();
-  const pulse = useSharedValue(0);
-
-  useEffect(() => {
-    if (isRecording) {
-      pulse.value = withRepeat(
-          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-          -1,
-          true
-      );
-    } else {
-      pulse.value = withTiming(0);
-    }
-  }, [isRecording]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pulse.value, [0, 1], [0.7, 1]),
-    transform: [{ scale: interpolate(pulse.value, [0, 1], [0.95, 1.05]) }],
-  }));
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -65,7 +37,7 @@ function RecordingStatusIndicator({ isRecording, duration }: { isRecording: bool
   if (!isRecording && duration === 0) return null;
 
   return (
-      <Animated.View style={[styles.statusIndicator, animatedStyle]}>
+      <View style={[styles.statusIndicator, { opacity: isRecording ? 1 : 0.7 }]}>
         <BlurView
             intensity={80}
             tint="dark"
@@ -79,7 +51,7 @@ function RecordingStatusIndicator({ isRecording, duration }: { isRecording: bool
             {isRecording ? 'REC' : 'STOPPED'} {formatTime(duration)}
           </Text>
         </View>
-      </Animated.View>
+      </View>
   );
 }
 
@@ -171,7 +143,7 @@ function VideoPreview({
           <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
 
           <View style={styles.previewActions}>
-            <AnimatedPressable
+            <ThemedPressable
                 variant="secondary"
                 style={[styles.previewButton, { backgroundColor: colors.surface + '33' }]}
                 onPress={onRetake}
@@ -180,9 +152,9 @@ function VideoPreview({
               <Text style={[styles.buttonText, { color: 'white' }]}>
                 {t('camera.retake')}
               </Text>
-            </AnimatedPressable>
+            </ThemedPressable>
 
-            <AnimatedPressable
+            <ThemedPressable
                 variant="primary"
                 style={[styles.previewButton]}
                 onPress={onConfirm}
@@ -191,7 +163,7 @@ function VideoPreview({
               <Text style={[styles.buttonText]}>
                 {t('common.confirm')}
               </Text>
-            </AnimatedPressable>
+            </ThemedPressable>
           </View>
         </View>
       </ThemedView>

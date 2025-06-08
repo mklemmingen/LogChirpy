@@ -3,7 +3,6 @@ import {Alert, Pressable, ScrollView, StyleSheet, Text, View,} from 'react-nativ
 import {router, useFocusEffect} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import { ThemedIcon } from '@/components/ThemedIcon';
-import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 
 import {ModernCard} from '@/components/ModernCard';
@@ -11,7 +10,6 @@ import {useTheme, useTypography, useSemanticColors, useColorVariants} from '@/ho
 import { useAuth } from '@/app/context/AuthContext';
 import { Feather } from '@expo/vector-icons';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
  * Enhanced Account Screen Component with responsive design and smooth animations
@@ -27,28 +25,6 @@ export default function ModernAccountScreen() {
     const variants = useColorVariants();
     const { user, isAuthenticated, signOut: authSignOut, isLoading } = useAuth();
 
-    // Animation values
-    const signOutScale = useSharedValue(1);
-    const fadeInOpacity = useSharedValue(0);
-
-    useEffect(() => {
-        if (isAuthenticated) {
-            // Fade in animation when user loads
-            fadeInOpacity.value = withTiming(1, { duration: 300 });
-        }
-    }, [isAuthenticated]);
-
-    const fadeInStyle = useAnimatedStyle(() => ({
-        opacity: fadeInOpacity.value,
-    }));
-
-    const slideInStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: withTiming(fadeInOpacity.value === 1 ? 0 : 20) }],
-    }));
-
-    const signOutAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: signOutScale.value }],
-    }));
 
     const handleSignOut = async () => {
         Alert.alert(
@@ -78,13 +54,6 @@ export default function ModernAccountScreen() {
         );
     };
 
-    const handleSignOutPressIn = () => {
-        signOutScale.value = withSpring(0.95);
-    };
-
-    const handleSignOutPressOut = () => {
-        signOutScale.value = withSpring(1);
-    };
 
     useFocusEffect(
         React.useCallback(() => {
@@ -119,8 +88,8 @@ export default function ModernAccountScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <Animated.View style={fadeInStyle}>
-                    <Animated.View style={slideInStyle}>
+                <View>
+                    <View>
                         {/* Profile Section */}
                         <ModernCard
                         elevated={true}
@@ -228,30 +197,28 @@ export default function ModernAccountScreen() {
 
                         {/* Sign Out Section */}
                         <View style={styles.signOutSection}>
-                            <Animated.View style={signOutAnimatedStyle}>
-                                <AnimatedPressable
+                            <View>
+                                <Pressable
                                     style={[
                                         styles.signOutButton,
                                         { backgroundColor: semanticColors.error },
                                     ]}
                                     onPress={handleSignOut}
-                                    onPressIn={handleSignOutPressIn}
-                                    onPressOut={handleSignOutPressOut}
                                     android_ripple={{ color: theme.colors.surface + '33' }}
                                 >
                                     <ThemedIcon name="log-out" size={20} color="primary" />
                                     <Text style={[typography.body, styles.signOutText, { color: semanticColors.background }]}>
                                         {t('buttons.signout')}
                                     </Text>
-                                </AnimatedPressable>
-                            </Animated.View>
+                                </Pressable>
+                            </View>
 
                             <Text style={[typography.label, styles.signOutWarning, { color: semanticColors.secondary }]}>
                                 {t('account.signOutWarning', 'You will need to sign in again to access cloud features')}
                             </Text>
                         </View>
-                    </Animated.View>
-                </Animated.View>
+                    </View>
+                </View>
             </ScrollView>
         </ThemedSafeAreaView>
     );

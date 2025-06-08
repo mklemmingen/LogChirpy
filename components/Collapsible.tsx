@@ -1,19 +1,7 @@
 import React, { PropsWithChildren, useState } from 'react';
 import { Pressable, StyleSheet, ViewStyle, View } from 'react-native';
-// import { BlurView } from 'expo-blur';
 import { ThemedIcon } from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
-// COMMENTED OUT FOR DEBUGGING: Animation imports
-// import Animated, {
-//   useAnimatedStyle,
-//   useSharedValue,
-//   withSpring,
-//   withTiming,
-//   // interpolate,
-//   Layout,
-//   FadeInDown,
-//   FadeOutUp,
-// } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -38,8 +26,6 @@ interface CollapsibleProps extends PropsWithChildren {
   onToggle?: (isOpen: boolean) => void;
 }
 
-// COMMENTED OUT FOR DEBUGGING: Animated component
-// const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function Collapsible({
                               children,
@@ -56,15 +42,9 @@ export function Collapsible({
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const semanticColors = useSemanticColors();
   const variants = useColorVariants();
-  // const typography = useTypography();
   const theme = useTheme();
   const motion = useMotionValues();
   const colors = useColors();
-
-  // COMMENTED OUT FOR DEBUGGING: Animation values
-  // const rotation = useSharedValue(defaultOpen ? 180 : 0);
-  // const scale = useSharedValue(1);
-  // const backgroundOpacity = useSharedValue(0);
 
   // Get variant-specific styling
   const getVariantStyle = () => {
@@ -138,44 +118,8 @@ export function Collapsible({
 
     // Haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    // COMMENTED OUT FOR DEBUGGING: Animate chevron rotation
-    // rotation.value = withSpring(newState ? 180 : 0, {
-    //   damping: 15,
-    //   stiffness: 300,
-    // });
-
-    // COMMENTED OUT FOR DEBUGGING: Subtle background highlight on interaction
-    // backgroundOpacity.value = withTiming(0.5, { duration: 100 }, () => {
-    //   backgroundOpacity.value = withTiming(0, { duration: 200 });
-    // });
   };
 
-  // COMMENTED OUT FOR DEBUGGING: Handle press animations
-  // const handlePressIn = () => {
-  //   if (!disabled) {
-  //     scale.value = withSpring(0.98, { damping: 15, stiffness: 300 });
-  //   }
-  // };
-
-  // const handlePressOut = () => {
-  //   if (!disabled) {
-  //     scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-  //   }
-  // };
-
-  // COMMENTED OUT FOR DEBUGGING: Animated styles
-  // const headerAnimatedStyle = useAnimatedStyle(() => ({
-  //   transform: [{ scale: scale.value }],
-  // }));
-
-  // const chevronAnimatedStyle = useAnimatedStyle(() => ({
-  //   transform: [{ rotate: `${rotation.value}deg` }],
-  // }));
-
-  // const backgroundAnimatedStyle = useAnimatedStyle(() => ({
-  //   opacity: backgroundOpacity.value,
-  // }));
 
   const rippleColor = variant === 'card'
       ? variants.neutral.dark
@@ -189,31 +133,25 @@ export function Collapsible({
               styles.header,
               { 
                 padding: sizeConfig.headerPadding,
-                // COMMENTED OUT FOR DEBUGGING: Static transform instead of animated
                 transform: [{ scale: 1 }],
               },
-              // COMMENTED OUT FOR DEBUGGING: headerAnimatedStyle,
             ]}
             onPress={handleToggle}
-            // COMMENTED OUT FOR DEBUGGING: onPressIn={handlePressIn}
-            // COMMENTED OUT FOR DEBUGGING: onPressOut={handlePressOut}
             disabled={disabled}
             android_ripple={{ color: rippleColor }}
             accessibilityRole="button"
             accessibilityState={{ expanded: isOpen }}
             accessibilityHint={`${isOpen ? 'Collapse' : 'Expand'} ${title} section`}
         >
-          {/* COMMENTED OUT FOR DEBUGGING: Background highlight overlay */}
+          {/* Background highlight overlay */}
           <View
               style={[
                 StyleSheet.absoluteFillObject,
                 {
                   backgroundColor: variants.neutral.light,
                   borderRadius: variant === 'default' ? 0 : theme.borderRadius.md,
-                  // COMMENTED OUT FOR DEBUGGING: Static opacity instead of animated
                   opacity: 0,
                 },
-                // COMMENTED OUT FOR DEBUGGING: backgroundAnimatedStyle,
               ]}
               pointerEvents="none"
           />
@@ -264,10 +202,8 @@ export function Collapsible({
             {/* Chevron icon */}
             <View 
               style={{
-                // COMMENTED OUT FOR DEBUGGING: Static rotation instead of animated
                 transform: [{ rotate: isOpen ? '180deg' : '0deg' }],
               }}
-              // COMMENTED OUT FOR DEBUGGING: style={chevronAnimatedStyle}
             >
               <ThemedIcon
                   name="chevron-down"
@@ -280,12 +216,7 @@ export function Collapsible({
 
         {/* Content */}
         {isOpen && (
-            <View
-                // COMMENTED OUT FOR DEBUGGING: Animation props
-                // entering={FadeInDown.duration(200).springify()}
-                // exiting={FadeOutUp.duration(150).springify()}
-                // layout={Layout.springify()}
-            >
+            <View>
                 <ThemedView
                     style={[
                       styles.content,

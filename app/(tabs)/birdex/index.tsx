@@ -13,13 +13,6 @@ import { useRouter } from 'expo-router';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import Animated, {
-    FadeInDown,
-    Layout,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 // Components
@@ -88,10 +81,7 @@ function BirdCard({
     const styles = createBirdCardStyles(dimensions);
 
     return (
-        <Animated.View
-            entering={FadeInDown.delay(index * 50).springify()}
-            layout={Layout.springify()}
-        >
+        <View>
             <ThemedPressable
                 variant="ghost"
                 onPress={onPress}
@@ -157,7 +147,7 @@ function BirdCard({
                 </View>
                 </Card>
             </ThemedPressable>
-        </Animated.View>
+        </View>
     );
 }
 
@@ -285,10 +275,7 @@ function SearchHeader({
 
             {/* Sort Dropdown */}
             {showSortMenu && (
-                <Animated.View
-                    entering={FadeInDown.duration(200)}
-                    style={styles.dropdownMenu}
-                >
+                <View style={styles.dropdownMenu}>
                     <Card style={styles.menuContent}>
                         {sortOptions.map((option) => (
                             <Pressable
@@ -317,15 +304,12 @@ function SearchHeader({
                             </Pressable>
                         ))}
                     </Card>
-                </Animated.View>
+                </View>
             )}
 
             {/* Category Dropdown */}
             {showCategoryMenu && (
-                <Animated.View
-                    entering={FadeInDown.duration(200)}
-                    style={styles.dropdownMenu}
-                >
+                <View style={styles.dropdownMenu}>
                     <Card style={styles.menuContent}>
                         {categories.map((category) => (
                             <Pressable
@@ -361,7 +345,7 @@ function SearchHeader({
                             </Pressable>
                         ))}
                     </Card>
-                </Animated.View>
+                </View>
             )}
         </ThemedView>
     );

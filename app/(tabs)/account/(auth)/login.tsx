@@ -13,15 +13,6 @@ import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {BlurView} from 'expo-blur';
 import { ThemedIcon } from '@/components/ThemedIcon';
-import Animated, {
-    interpolate,
-    SlideInRight,
-    useAnimatedStyle,
-    useSharedValue,
-    withSequence,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 // Firebase imports
@@ -32,15 +23,13 @@ import {auth} from '@/firebase/config';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
-import {useSnackbar} from '@/components/ThemedSnackbar';
+import {ThemedSnackbar} from '@/components/ThemedSnackbar';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import { useUnifiedColors } from '@/hooks/useUnifiedColors';
 import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import {useTheme, useSemanticColors, useTypography, useColorVariants} from '@/hooks/useThemeColor';
 // import { useAuth } from '@/app/context/AuthContext';
 
-// Animated components
-const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 // Get screen width for styles
 const { width } = Dimensions.get('window');
@@ -83,43 +72,25 @@ function ModernTextInput({
     const [isFocused, setIsFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    // Animation values
-    const focusAnim = useSharedValue(0);
-    const errorAnim = useSharedValue(0);
 
-    React.useEffect(() => {
-        focusAnim.value = withSpring(isFocused ? 1 : 0, {
-            damping: 15,
-            stiffness: 300
-        });
-    }, [isFocused]);
 
-    React.useEffect(() => {
-        if (error) {
-            errorAnim.value = withSequence(
-                withTiming(1, { duration: 100 }),
-                withSpring(0, { damping: 8, stiffness: 300 })
-            );
-        }
-    }, [error]);
 
-    const containerStyle = useAnimatedStyle(() => ({
+    const containerStyle = {
         borderColor: error
             ? semanticColors.error
             : isFocused
                 ? semanticColors.primary
                 : semanticColors.secondary,
-        borderWidth: interpolate(focusAnim.value, [0, 1], [1, 2]),
-        transform: [{ scale: interpolate(errorAnim.value, [0, 1], [1, 1.02]) }],
-    }));
+        borderWidth: isFocused ? 2 : 1,
+    };
 
-    const labelStyle = useAnimatedStyle(() => ({
+    const labelStyle = {
         color: error
             ? semanticColors.error
             : isFocused
                 ? semanticColors.primary
                 : semanticColors.secondary,
-    }));
+    };
 
     return (
         <View style={styles.inputContainer}>
@@ -127,7 +98,7 @@ function ModernTextInput({
                 {label}
             </ThemedText>
 
-            <Animated.View style={[styles.inputWrapper, containerStyle]}>
+            <View style={[styles.inputWrapper, containerStyle]}>
                 <BlurView
                     intensity={20}
                     tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
@@ -145,7 +116,7 @@ function ModernTextInput({
                         </View>
                     )}
 
-                    <AnimatedTextInput
+                    <TextInput
                         style={[
                             typography.body,
                             styles.textInput,
@@ -180,18 +151,15 @@ function ModernTextInput({
                         </Pressable>
                     )}
                 </View>
-            </Animated.View>
+            </View>
 
             {error && (
-                <Animated.View
-                    entering={SlideInRight.duration(200)}
-                    style={styles.errorContainer}
-                >
+                <View style={styles.errorContainer}>
                     <ThemedIcon name="alert-circle" size={14} color="error" />
                     <ThemedText variant="caption" color="error">
                         {error}
                     </ThemedText>
-                </Animated.View>
+                </View>
             )}
         </View>
     );
@@ -212,18 +180,6 @@ export default function ModernLoginScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
 
-    // Animation values
-    const headerAnim = useSharedValue(0);
-    const cardAnim = useSharedValue(0);
-
-    React.useEffect(() => {
-        // Staggered entrance animations
-        headerAnim.value = withSpring(1, { damping: 20, stiffness: 300 });
-
-        setTimeout(() => {
-            cardAnim.value = withSpring(1, { damping: 20, stiffness: 300 });
-        }, 200);
-    }, []);
 
     // Form validation
     const validateForm = () => {
@@ -312,22 +268,7 @@ export default function ModernLoginScreen() {
         router.push('/account/signup');
     };
 
-    // Animation styles
-    const headerStyle = useAnimatedStyle(() => ({
-        opacity: headerAnim.value,
-        transform: [
-            { translateY: interpolate(headerAnim.value, [0, 1], [30, 0]) },
-            { scale: interpolate(headerAnim.value, [0, 1], [0.95, 1]) }
-        ],
-    }));
 
-    const cardStyle = useAnimatedStyle(() => ({
-        opacity: cardAnim.value,
-        transform: [
-            { translateY: interpolate(cardAnim.value, [0, 1], [50, 0]) },
-            { scale: interpolate(cardAnim.value, [0, 1], [0.9, 1]) }
-        ],
-    }));
 
     return (
         <ThemedSafeAreaView style={styles.container}>
@@ -351,7 +292,7 @@ export default function ModernLoginScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     {/* Header Section */}
-                    <Animated.View style={[styles.header, headerStyle]}>
+                    <View style={styles.header}>
                         <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
                             <ThemedIcon name="feather" size={40} color="accent" />
                         </View>
@@ -370,10 +311,10 @@ export default function ModernLoginScreen() {
                         >
                             {t('auth.login_subtitle')}
                         </ThemedText>
-                    </Animated.View>
+                    </View>
 
                     {/* Login Form */}
-                    <Animated.View style={cardStyle}>
+                    <View>
                         <ModernCard
                             elevated={false}
                             bordered={true}
@@ -457,7 +398,7 @@ export default function ModernLoginScreen() {
                                 </ThemedPressable>
                             </View>
                         </ModernCard>
-                    </Animated.View>
+                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
 
