@@ -15,7 +15,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 
 import { HelloWave } from '@/components/HelloWave';
-import BirdAnimation from '@/components/BirdAnimationJS';
+import { SimpleBirdAnimation } from '@/components/animations/SimpleBirdAnimation';
 import { ModernCard } from '@/components/ModernCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -197,8 +197,8 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <ThemedSafeAreaView style={styles.safeArea}>
 
-        {/* Bird Animation */}
-        {/* commented out Bird Animation <BirdAnimation numberOfBirds={3} /> */}
+        {/* Simplified Bird Animation */}
+        <SimpleBirdAnimation numberOfBirds={3} enabled={true} />
 
         <ScrollView
           style={styles.scrollView}

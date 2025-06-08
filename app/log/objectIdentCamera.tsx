@@ -34,6 +34,8 @@ import Slider from '@react-native-community/slider';
 
 import {ThemedSnackbar} from "@/components/ThemedSnackbar";
 import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
+import { usePhotoPreviewModal } from '@/app/context/ModalContext';
+import { Z_LAYERS, COMPONENT_Z_INDEX } from '@/constants/layers';
 
 import * as Haptics from 'expo-haptics';
 
@@ -241,7 +243,9 @@ function ObjectIdentCameraContent() {
     // Photo paths and image state
     const [photoPath, setPhotoPath] = useState<string | null>(null);
     const [lastPhotoUri, setLastPhotoUri] = useState<string | null>(null);
-    const [modalPhotoUri, setModalPhotoUri] = useState<string | null>(null);
+    
+    // Modal hook
+    const { showPhotoPreview } = usePhotoPreviewModal();
 
     // Detection pipeline controls
     const [isDetectionPaused, setIsDetectionPaused] = useState(false);
@@ -250,7 +254,6 @@ function ObjectIdentCameraContent() {
 
     // UI Settings and visibility toggles
     const [showSettings, setShowSettings] = useState(false);
-    const [modalVisible, setModalVisible] = useState(false);
 
     // Tooltip and label display info
     const [showDelayTooltip, setShowDelayTooltip] = useState(false);
@@ -270,8 +273,6 @@ function ObjectIdentCameraContent() {
                 // Cleanup when losing focus to prevent view conflicts
                 setIsInitialized(false);
                 setIsDetectionPaused(true);
-                setModalVisible(false);
-                setModalPhotoUri(null);
                 setShowOverlays(true);
             };
         }, [])
@@ -347,8 +348,6 @@ function ObjectIdentCameraContent() {
             console.log('[ObjectDetection] Component unmounting, cleaning up...');
             setIsInitialized(false);
             setIsDetectionPaused(true);
-            setModalVisible(false);
-            setModalPhotoUri(null);
         };
     }, []);
 
@@ -996,8 +995,11 @@ function ObjectIdentCameraContent() {
                 {lastPhotoUri && (
                     <TouchableOpacity
                         onPress={() => {
-                            setModalPhotoUri(lastPhotoUri); // freeze the preview
-                            setModalVisible(true);
+                            showPhotoPreview({
+                                imageUri: lastPhotoUri,
+                                detections: detections,
+                                onClose: () => {},
+                            });
                             setShowOverlays(false);
                         }}
                         style={styles.thumbnail}
@@ -1037,53 +1039,6 @@ function ObjectIdentCameraContent() {
                     />
                 </View>
             )}
-            <Modal
-                visible={modalVisible && modalPhotoUri !== null}
-                transparent={true}
-                onRequestClose={() => {
-                    setModalVisible(false);
-                    setModalPhotoUri(null);
-                    setShowOverlays(true);
-                }}
-            >
-                {modalPhotoUri && (
-                    <View style={styles.modalContainer}>
-                        <Image source={{ uri: modalPhotoUri }} style={styles.modalImage} />
-                        <View style={styles.modalOverlay}>
-                            {detections.map((d, i) => {
-                                const { origin, size } = d.frame;
-                                const label = d.labels[0];
-                                const conf = label?.confidence ?? 0;
-                                const { color } = getBoxStyle(conf);
-                                return (
-                                    <View
-                                        key={i}
-                                        style={{
-                                            position: 'absolute',
-                                            left: origin.x * scaleX,
-                                            top: origin.y * scaleY,
-                                            width: size.x * scaleX,
-                                            height: size.y * scaleY,
-                                            borderWidth: 2,
-                                            borderColor: color,
-                                        }}
-                                    />
-                                );
-                            })}
-                        </View>
-                        <View style={styles.modalButtons}>
-                            <Button title={t('buttons.close')} onPress={() => {
-                                setModalVisible(false);
-                                setModalPhotoUri(null);
-                                setShowOverlays(true);
-                            }} />
-                            {/* Optional, havent fully fletched out the UX yet */}
-                            {/* <Button title="Delete" onPress={...} /> */}
-                            {/* <Button title="Save" onPress={...} /> */}
-                        </View>
-                    </View>
-                )}
-            </Modal>
         </ThemedSafeAreaView>
     );
 }
@@ -1095,26 +1050,26 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         marginTop: 4,
         alignSelf: 'flex-start',
-        zIndex: 10,
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
     },
     tooltipText: {
         color: 'white',
         fontSize: 12,
         fontStyle: 'italic',
-        zIndex: 10,
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
     },
     modalContainer: {
         flex: 1,
         backgroundColor: 'black',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 10, // Ensure modal is above the SVG overlay
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI, // Ensure modal is above the SVG overlay
     },
     modalImage: {
         width: W,
         height: H,
         resizeMode: 'contain',
-        zIndex: 10, // Ensure modal image is above the SVG overlay
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI, // Ensure modal image is above the SVG overlay
     },
     modalOverlay: {
         position: 'absolute',
@@ -1122,7 +1077,7 @@ const styles = StyleSheet.create({
         left: 0,
         width: W,
         height: H,
-        zIndex: 10, // Ensure modal overlay is above the SVG overlay
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI, // Ensure modal overlay is above the SVG overlay
     },
     modalButtons: {
         position: 'absolute',
@@ -1131,7 +1086,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         width: '100%',
         paddingHorizontal: 20,
-        zIndex: 10, // Ensure modal buttons are above the SVG overlay
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI, // Ensure modal buttons are above the SVG overlay
     },
     statusBadge: {
         position: 'absolute',
@@ -1142,19 +1097,19 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         flexDirection: 'row',
         alignItems: 'center',
-        zIndex: 5,
+        zIndex: COMPONENT_Z_INDEX.STATUS_BADGE,
     },
     statusDot: {
         width: 10,
         height: 10,
         borderRadius: 5,
         marginRight: 6,
-        zIndex: 10,
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
     },
     statusText: {
         color: 'white',
         fontSize: 12,
-        zIndex: 10,
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
     },
     container: { flex: 1 },
     camera: {
@@ -1163,7 +1118,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 1,
+        zIndex: COMPONENT_Z_INDEX.MAIN_CONTENT,
     },
     overlay: {
         position: 'absolute',
@@ -1171,7 +1126,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 5, // Ensure SVG overlay is below the modal
+        zIndex: COMPONENT_Z_INDEX.DETECTION_OVERLAY,
     },
     thumbnail: {
         position: 'absolute',
@@ -1181,7 +1136,7 @@ const styles = StyleSheet.create({
         right: 10,
         borderColor: '#fff',
         borderWidth: 1,
-        zIndex: 20
+        zIndex: COMPONENT_Z_INDEX.CAMERA_CONTROLS
     },
     sliderValue: {
         color: 'white',
@@ -1202,7 +1157,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 8,
-        zIndex: 10,
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
     },
     debugText: { color: 'white', fontSize: 16 },
     sliderBlock: {
@@ -1212,11 +1167,11 @@ const styles = StyleSheet.create({
         right: 20,
         padding: 10,
         borderRadius: 10,
-        zIndex: 10,
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
     },
     sliderRow: {
         marginBottom: 10,
-        zIndex: 10,
+        zIndex: COMPONENT_Z_INDEX.CAMERA_UI,
     },
     sliderLabel: {
         color: 'white',
@@ -1231,7 +1186,7 @@ const styles = StyleSheet.create({
         right: 20,
         padding: 15,
         borderRadius: 10,
-        zIndex: 25, // Higher than other UI elements
+        zIndex: COMPONENT_Z_INDEX.CAMERA_CONTROLS + 1, // Higher than other UI elements
         alignItems: 'center',
     },
     permissionWarningText: {
@@ -1247,7 +1202,7 @@ const styles = StyleSheet.create({
         left: 20,
         flexDirection: 'column',
         gap: 12,
-        zIndex: 20,
+        zIndex: COMPONENT_Z_INDEX.CAMERA_CONTROLS,
     },
     captureButton: {
         width: 56,

@@ -24,6 +24,8 @@ import { useColors, useTheme, useTypography } from '@/hooks/useThemeColor';
 import { useUnifiedColors } from '@/hooks/useUnifiedColors';
 import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import { AuthProvider } from '@/app/context/AuthContext';
+import { ModalProvider } from '@/app/context/ModalContext';
+import { ModalRenderer } from '@/components/modals/ModalRenderer';
 import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
 
 import {
@@ -567,11 +569,12 @@ export default function EnhancedRootLayout() {
         );
     }
 
-    // Main app with enhanced theming
+    // Main app with enhanced theming and layer system
     return (
         <SafeAreaProvider>
             <AuthProvider>
-                <ThemeProvider
+                <ModalProvider>
+                    <ThemeProvider
                     value={{
                         dark: colors.isDark,
                         colors: {
@@ -622,7 +625,11 @@ export default function EnhancedRootLayout() {
                             <StatusBar style="auto" />
                         </ObjectDetectionProvider>
                     </ImageLabelingModelProvider>
-                </ThemeProvider>
+                    
+                    {/* Centralized Modal Layer */}
+                    <ModalRenderer />
+                    </ThemeProvider>
+                </ModalProvider>
             </AuthProvider>
         </SafeAreaProvider>
     );
