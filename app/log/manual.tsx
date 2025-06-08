@@ -43,7 +43,7 @@ import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import {BlurView} from 'expo-blur';
+import SafeBlurView from '@/components/ui/SafeBlurView';
 import { FeatureErrorBoundary } from '@/components/ComponentErrorBoundary';
 
 import { 

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {BlurView} from 'expo-blur';
+import SafeBlurView from '@/components/ui/SafeBlurView';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import {useIsFocused} from '@react-navigation/native';
@@ -101,7 +101,7 @@ function ModernTextInput({
             </ThemedText>
 
             <View style={[styles.inputWrapper, containerStyle]}>
-                <BlurView
+                <SafeBlurView
                     intensity={20}
                     tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
                     style={StyleSheet.absoluteFillObject}
@@ -236,12 +236,9 @@ export default function ModernLoginScreen() {
             if (mountedRef.current) {
                 showSuccess('Welcome back!');
 
-                // Navigate to account tab instead of tabs root to avoid navigation conflicts
-                setTimeout(() => {
-                    if (mountedRef.current) {
-                        router.replace('/(tabs)/account');
-                    }
-                }, 1000);
+                // Immediate navigation to avoid SafeViewManager timing conflicts
+                // No setTimeout needed as navigation should be immediate after auth success
+                router.replace('/(tabs)/account');
             }
 
         } catch (error: unknown) {

@@ -15,7 +15,8 @@ import {ThemedView} from '@/components/ThemedView';
 import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 import { useUnifiedColors } from '@/hooks/useUnifiedColors';
 import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
-import {type BirdDexRecord, searchBirdsByName} from '@/services/databaseBirDex';
+import {type BirdDexRecord, searchBirdsByNameCoordinated} from '@/services/databaseBirDex';
+import {cancelLowPriorityOperations} from '@/services/databaseCoordinator';
 
 /**
  * Extended bird record type with search match information
@@ -194,7 +195,7 @@ export default function SmartSearch() {
     
     const styles = createStyles(theme, dimensions);
 
-    // Cleanup on unmount
+    // Enhanced cleanup on unmount with database coordination
     useEffect(() => {
         return () => {
             mountedRef.current = false;
@@ -203,8 +204,18 @@ export default function SmartSearch() {
             if (searchTimeoutRef.current) {
                 clearTimeout(searchTimeoutRef.current);
             }
+            
+            // Cancel low priority database operations
+            cancelLowPriorityOperations();
         };
     }, []);
+    
+    // Cancel operations when tab becomes unfocused
+    useEffect(() => {
+        if (!isFocused) {
+            cancelLowPriorityOperations();
+        }
+    }, [isFocused]);
     
     if (!isFocused) {
         return null;
@@ -319,8 +330,8 @@ export default function SmartSearch() {
         }
 
         try {
-            // Get broader results from database
-            const dbResults = searchBirdsByName(query, 50);
+            // Get broader results from coordinated database operation
+            const dbResults = await searchBirdsByNameCoordinated(query, 50);
 
             // Check if still mounted before processing
             if (!mountedRef.current) return;

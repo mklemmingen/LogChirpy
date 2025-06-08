@@ -6,6 +6,7 @@
  */
 
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import type { ModalState, ModalContextType, ModalProps, ModalType } from '@/types/modal';
 
 // Modal reducer for state management
@@ -45,6 +46,18 @@ interface ModalProviderProps {
 
 export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(modalReducer, initialState);
+
+  // Focus-aware cleanup for modal stability during navigation
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // Force cleanup on navigation focus loss to prevent hierarchy conflicts
+        if (state.isVisible) {
+          dispatch({ type: 'HIDE_MODAL' });
+        }
+      };
+    }, [state.isVisible])
+  );
 
   const showModal = useCallback((modalProps: ModalProps) => {
     // Close any existing modal first with proper cleanup delay

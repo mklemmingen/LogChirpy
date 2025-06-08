@@ -173,10 +173,8 @@ export default function ModernSignupScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             showSuccess('Account created successfully!');
 
-            // Navigate to account tab instead of tabs root to avoid navigation conflicts
-            setTimeout(() => {
-                router.replace('/(tabs)/account');
-            }, 1000);
+            // Navigate immediately to account tab to avoid view hierarchy conflicts
+            router.replace('/(tabs)/account');
 
         } catch (error: unknown) {
             console.error(t('app_errors.signup_error'), error);

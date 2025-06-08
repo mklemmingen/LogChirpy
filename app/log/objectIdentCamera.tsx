@@ -6,16 +6,19 @@ import {
     TouchableOpacity,
     useColorScheme,
     View,
+    InteractionManager,
 } from 'react-native';
 import { Camera, useCameraDevice, useCameraFormat, useCameraPermission } from 'react-native-vision-camera';
 import { useObjectDetection } from '@infinitered/react-native-mlkit-object-detection';
 import { useImageLabeling } from '@infinitered/react-native-mlkit-image-labeling';
 import { Audio } from 'expo-av';
 import { useIsFocused } from '@react-navigation/native';
+import { AppState } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 
 import { CriticalErrorBoundary } from '@/components/ComponentErrorBoundary';
+import NavigationErrorBoundary from '@/components/NavigationErrorBoundary';
 import { SafeCameraViewManager } from '@/components/SafeViewManager';
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 import { ThemedIcon } from '@/components/ThemedIcon';
@@ -38,14 +41,89 @@ function SimpleObjectDetectCamera() {
     const colorScheme = useColorScheme() ?? 'light';
     const currentTheme = theme[colorScheme];
     const isFocused = useIsFocused();
+    const [appState, setAppState] = useState(AppState.currentState);
     
-    // Early return if not focused to prevent view hierarchy conflicts
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', nextAppState => {
+            setAppState(nextAppState);
+        });
+        return () => subscription?.remove();
+    }, []);
+    
+    // Enhanced camera rendering state with cleanup delays
+    const [shouldRenderCamera, setShouldRenderCamera] = useState(false);
+    const cameraCleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const cleanupInProgressRef = useRef(false);
+    
+    // CRITICAL: Multi-condition camera activation with InteractionManager
+    const isActiveCameraState = isFocused && appState === "active" && shouldRenderCamera && !cleanupInProgressRef.current;
+    
+    // Navigation-aware camera mounting with InteractionManager
+    useEffect(() => {
+        if (isFocused && appState === 'active') {
+            cleanupInProgressRef.current = false;
+            
+            // Clear any pending cleanup
+            if (cameraCleanupTimeoutRef.current) {
+                clearTimeout(cameraCleanupTimeoutRef.current);
+                cameraCleanupTimeoutRef.current = null;
+            }
+            
+            // Use InteractionManager for smooth transitions
+            InteractionManager.runAfterInteractions(() => {
+                const renderTimer = setTimeout(() => {
+                    if (!cleanupInProgressRef.current && isFocused && appState === 'active') {
+                        setShouldRenderCamera(true);
+                    }
+                }, 200); // Android stability delay
+                
+                return () => clearTimeout(renderTimer);
+            });
+        } else {
+            cleanupInProgressRef.current = true;
+            setShouldRenderCamera(false);
+            setCameraReady(false);
+            
+            // Schedule cleanup with delay to ensure proper resource release
+            cameraCleanupTimeoutRef.current = setTimeout(() => {
+                console.log('[Camera] Cleanup timeout completed');
+                // Additional cleanup operations if needed
+            }, 200);
+        }
+    }, [isFocused, appState]);
+    
+    // Comprehensive cleanup on unmount
+    useEffect(() => {
+        return () => {
+            cleanupInProgressRef.current = true;
+            setShouldRenderCamera(false);
+            setCameraReady(false);
+            
+            if (cameraCleanupTimeoutRef.current) {
+                clearTimeout(cameraCleanupTimeoutRef.current);
+            }
+        };
+    }, []);
+    
+    // Early return for non-focused states (as per refactor plan)
     if (!isFocused) {
         return (
             <ThemedSafeAreaView style={styles.container}>
                 <View style={styles.centered}>
                     <Text style={{ color: currentTheme.colors.text.primary }}>
-                        {t('camera.tab_not_focused')}
+                        Camera paused - tab not focused
+                    </Text>
+                </View>
+            </ThemedSafeAreaView>
+        );
+    }
+    
+    if (!shouldRenderCamera) {
+        return (
+            <ThemedSafeAreaView style={styles.container}>
+                <View style={styles.centered}>
+                    <Text style={{ color: currentTheme.colors.text.primary }}>
+                        Initializing camera system...
                     </Text>
                 </View>
             </ThemedSafeAreaView>
@@ -96,7 +174,6 @@ function SimpleObjectDetectCamera() {
     // Refs for cleanup coordination
     const audioIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    const cleanupInProgressRef = useRef(false);
 
     // Initialize permissions and services
     useEffect(() => {
@@ -188,7 +265,7 @@ function SimpleObjectDetectCamera() {
         console.log('[ObjectDetection] Camera unmount callback triggered');
         cleanupInProgressRef.current = true;
         
-        // Clear all intervals immediately
+        // Clear all ML model intervals immediately before state cleanup
         if (audioIntervalRef.current) {
             clearInterval(audioIntervalRef.current);
             audioIntervalRef.current = null;
@@ -199,16 +276,26 @@ function SimpleObjectDetectCamera() {
             detectionIntervalRef.current = null;
         }
         
+        // Stop any ongoing audio recording immediately
+        if (recording) {
+            recording.stopAndUnloadAsync().catch(error => {
+                console.warn('Failed to stop audio during camera unmount:', error);
+            });
+            setRecording(null);
+        }
+        
+        // Reset processing states
+        setIsProcessing(false);
         setCameraReady(false);
         setIsActive(false);
         setDetections([]);
         setDebugText('Camera stopped');
         
-        // Reset cleanup flag
+        // Reset cleanup flag after ensuring all cleanup is complete
         setTimeout(() => {
             cleanupInProgressRef.current = false;
-        }, 100);
-    }, []);
+        }, 200); // Increased delay to ensure cleanup completion
+    }, [recording]);
 
     // Update debug text based on initialization state
     useEffect(() => {
@@ -242,9 +329,11 @@ function SimpleObjectDetectCamera() {
         }
     }, [hasPermission, device, initState.camera, cameraReady, handleCameraReady]);
 
-    // Audio recording management
+    // Enhanced audio recording management with focus coordination
     const startAudioRecording = useCallback(async () => {
-        if (!audioPermission) return;
+        if (!audioPermission || !isFocused || cleanupInProgressRef.current) {
+            return;
+        }
         
         try {
             await Audio.setAudioModeAsync({
@@ -252,57 +341,109 @@ function SimpleObjectDetectCamera() {
                 playsInSilentModeIOS: true,
             });
 
+            // Check focus state before creating recording
+            if (!isFocused || cleanupInProgressRef.current) {
+                return;
+            }
+
             const { recording: newRecording } = await Audio.Recording.createAsync(
                 Audio.RecordingOptionsPresets.HIGH_QUALITY
             );
-            setRecording(newRecording);
+            
+            // Only set recording if still focused
+            if (isFocused && !cleanupInProgressRef.current) {
+                setRecording(newRecording);
+            } else {
+                // Stop recording if focus was lost during creation
+                newRecording.stopAndUnloadAsync().catch(error => {
+                    console.warn('Failed to stop recording after focus loss:', error);
+                });
+            }
         } catch (error) {
             console.error('Failed to start audio recording:', error);
         }
-    }, [audioPermission]);
+    }, [audioPermission, isFocused]);
 
     const stopAudioRecording = useCallback(async () => {
-        if (!recording) return null;
+        if (!recording || !isFocused || cleanupInProgressRef.current) {
+            return null;
+        }
         
         try {
             await recording.stopAndUnloadAsync();
             const uri = recording.getURI();
-            setRecording(null);
+            
+            // Only clear recording state if still focused
+            if (isFocused && !cleanupInProgressRef.current) {
+                setRecording(null);
+            }
+            
             return uri;
         } catch (error) {
             console.error('Failed to stop audio recording:', error);
+            // Clear recording state even on error if still focused
+            if (isFocused && !cleanupInProgressRef.current) {
+                setRecording(null);
+            }
             return null;
         }
-    }, [recording]);
+    }, [recording, isFocused]);
 
-    // Audio classification
+    // Enhanced audio classification with focus coordination
     const classifyAudio = useCallback(async (audioUri: string) => {
         try {
+            // Early exit if not focused
+            if (!isFocused || cleanupInProgressRef.current) {
+                return;
+            }
+            
             setDebugText(t('camera.analyzing_audio'));
+            
+            // Check focus before ML operation
+            if (!isFocused || cleanupInProgressRef.current) {
+                return;
+            }
+            
             const result = await BirdNetService.identifyBirdFromAudio(audioUri);
+            
+            // Check focus after ML operation
+            if (!isFocused || cleanupInProgressRef.current) {
+                return;
+            }
             
             if (result.success && result.predictions.length > 0) {
                 const bestPrediction = BirdNetService.getBestPrediction(result.predictions);
-                if (bestPrediction) {
+                if (bestPrediction && isFocused && !cleanupInProgressRef.current) {
                     const confidence = BirdNetService.formatConfidenceScore(bestPrediction.confidence);
                     const message = `🎵 ${bestPrediction.common_name} (${confidence})`;
                     setLastAudioClassification(message);
                     setSnackbarMessage(message);
                     setSnackbarVisible(true);
                     
-                    setTimeout(() => setSnackbarVisible(false), 3000);
+                    setTimeout(() => {
+                        if (isFocused && !cleanupInProgressRef.current) {
+                            setSnackbarVisible(false);
+                        }
+                    }, 3000);
                     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 }
             }
         } catch (error) {
             console.error('Audio classification failed:', error);
-            setSnackbarMessage(t('errors.audio_classification_failed'));
-            setSnackbarVisible(true);
-            setTimeout(() => setSnackbarVisible(false), 2000);
+            // Only show error if still focused
+            if (isFocused && !cleanupInProgressRef.current) {
+                setSnackbarMessage(t('errors.audio_classification_failed'));
+                setSnackbarVisible(true);
+                setTimeout(() => {
+                    if (isFocused && !cleanupInProgressRef.current) {
+                        setSnackbarVisible(false);
+                    }
+                }, 2000);
+            }
         }
-    }, [t]);
+    }, [isFocused, t]);
 
-    // Enhanced audio recording cycle with focus coordination
+    // Enhanced audio recording cycle with comprehensive cleanup coordination
     useEffect(() => {
         // Only start audio if tab is focused and all prerequisites are met
         if (!isFocused || !isActive || !cameraReady || !audioPermission || cleanupInProgressRef.current) {
@@ -311,23 +452,35 @@ function SimpleObjectDetectCamera() {
 
         console.log('[ObjectDetection] Starting audio recording cycle');
         
+        // Store active timeouts for cleanup
+        const activeTimeouts = new Set<NodeJS.Timeout>();
+        
         const audioInterval = setInterval(async () => {
             // Check if still focused before processing
             if (!isFocused || cleanupInProgressRef.current) {
                 return;
             }
             
-            // Start recording
+            // Start recording with focus check
             await startAudioRecording();
             
             // Stop after 5 seconds and classify
             const audioTimeout = setTimeout(async () => {
                 if (!isFocused || cleanupInProgressRef.current) {
+                    // If focus is lost, stop recording immediately
+                    if (recording) {
+                        try {
+                            await recording.stopAndUnloadAsync();
+                            setRecording(null);
+                        } catch (error) {
+                            console.warn('Failed to stop recording during cleanup:', error);
+                        }
+                    }
                     return;
                 }
                 
                 const audioUri = await stopAudioRecording();
-                if (audioUri) {
+                if (audioUri && isFocused && !cleanupInProgressRef.current) {
                     await classifyAudio(audioUri);
                     
                     // Clean up audio file
@@ -337,53 +490,107 @@ function SimpleObjectDetectCamera() {
                         console.warn('Failed to delete audio file:', error);
                     }
                 }
+                
+                // Remove timeout from active set
+                activeTimeouts.delete(audioTimeout);
             }, 5000);
             
-            // Store timeout for cleanup
-            return () => clearTimeout(audioTimeout);
+            // Track timeout for cleanup
+            activeTimeouts.add(audioTimeout);
         }, 5000);
         
         audioIntervalRef.current = audioInterval;
 
         return () => {
             console.log('[ObjectDetection] Cleaning up audio recording cycle');
+            
+            // Clear main interval
             if (audioIntervalRef.current) {
                 clearInterval(audioIntervalRef.current);
                 audioIntervalRef.current = null;
             }
+            
+            // Clear all active audio timeouts
+            activeTimeouts.forEach(timeout => clearTimeout(timeout));
+            activeTimeouts.clear();
+            
+            // Stop any ongoing recording immediately
+            if (recording) {
+                recording.stopAndUnloadAsync().catch(error => {
+                    console.warn('Failed to stop recording during effect cleanup:', error);
+                });
+                setRecording(null);
+            }
         };
-    }, [isFocused, isActive, cameraReady, audioPermission, startAudioRecording, stopAudioRecording, classifyAudio]);
+    }, [isFocused, isActive, cameraReady, audioPermission, recording, startAudioRecording, stopAudioRecording, classifyAudio]);
 
-    // Object detection pipeline
+    // Enhanced object detection with focus coordination
     const detectObjects = useCallback(async () => {
-        if (!cameraRef.current || !detector || isProcessing) return;
+        // Early exit checks with focus coordination
+        if (!cameraRef.current || !detector || isProcessing || !isFocused || cleanupInProgressRef.current) {
+            return;
+        }
 
         try {
+            // Check focus state before starting processing
+            if (!isFocused || cleanupInProgressRef.current) {
+                return;
+            }
+            
             setIsProcessing(true);
             setDebugText(t('camera.capturing'));
+
+            // Check focus state before camera operation
+            if (!isFocused || cleanupInProgressRef.current) {
+                setIsProcessing(false);
+                return;
+            }
 
             const photo = await cameraRef.current.takePhoto({
                 flash: 'off',
                 enableShutterSound: false,
             });
 
-            if (!photo?.path) return;
+            // Check focus state after photo capture
+            if (!photo?.path || !isFocused || cleanupInProgressRef.current) {
+                setIsProcessing(false);
+                return;
+            }
 
             setDebugText(t('camera.detection_running'));
             
-            // Object detection
+            // Check focus state before ML operations
+            if (!isFocused || cleanupInProgressRef.current) {
+                setIsProcessing(false);
+                return;
+            }
+            
+            // Object detection with focus check
             const objects = await detector.detectObjects(photo.path);
             
-            // Process each detected object
+            // Process each detected object with focus coordination
             const enrichedDetections: Detection[] = [];
             
             for (const obj of objects) {
+                // Check focus state during processing loop
+                if (!isFocused || cleanupInProgressRef.current) {
+                    setIsProcessing(false);
+                    return;
+                }
+                
                 const labels = [];
                 
-                // Classify the detected object region
-                if (classifier?.classifyImage) {
+                // Classify the detected object region with focus checks
+                if (classifier?.classifyImage && isFocused && !cleanupInProgressRef.current) {
                     try {
                         const result = await classifier.classifyImage(photo.path);
+                        
+                        // Check focus state after classification
+                        if (!isFocused || cleanupInProgressRef.current) {
+                            setIsProcessing(false);
+                            return;
+                        }
+                        
                         const classificationResults = Array.isArray(result) ? result : 
                                                     typeof result === 'string' ? JSON.parse(result) : [];
                         
@@ -405,6 +612,12 @@ function SimpleObjectDetectCamera() {
                 });
             }
 
+            // Final focus check before state updates
+            if (!isFocused || cleanupInProgressRef.current) {
+                setIsProcessing(false);
+                return;
+            }
+
             setDetections(enrichedDetections);
             setDebugText(
                 enrichedDetections.length > 0
@@ -414,11 +627,17 @@ function SimpleObjectDetectCamera() {
 
         } catch (error) {
             console.error('Object detection failed:', error);
-            setDebugText(t('errors.detection_failed', { message: String(error) }));
+            // Only update state if still focused
+            if (isFocused && !cleanupInProgressRef.current) {
+                setDebugText(t('errors.detection_failed', { message: String(error) }));
+            }
         } finally {
-            setIsProcessing(false);
+            // Always reset processing state if still focused
+            if (isFocused && !cleanupInProgressRef.current) {
+                setIsProcessing(false);
+            }
         }
-    }, [detector, classifier, isProcessing, t]);
+    }, [detector, classifier, isProcessing, isFocused, t]);
 
     // Enhanced auto-detect with focus coordination
     useEffect(() => {
@@ -448,13 +667,13 @@ function SimpleObjectDetectCamera() {
         };
     }, [isFocused, isActive, cameraReady, detectObjects]);
     
-    // Comprehensive cleanup when focus is lost
+    // Comprehensive cleanup when focus is lost with enhanced audio coordination
     useEffect(() => {
         if (!isFocused) {
-            console.log('[ObjectDetection] Tab unfocused, starting cleanup');
+            console.log('[ObjectDetection] Tab unfocused, starting comprehensive cleanup');
             cleanupInProgressRef.current = true;
             
-            // Clear all intervals
+            // Clear all intervals immediately
             if (audioIntervalRef.current) {
                 clearInterval(audioIntervalRef.current);
                 audioIntervalRef.current = null;
@@ -465,24 +684,37 @@ function SimpleObjectDetectCamera() {
                 detectionIntervalRef.current = null;
             }
             
-            // Stop any ongoing audio recording
+            // Stop any ongoing audio recording with enhanced error handling
             if (recording) {
                 recording.stopAndUnloadAsync().catch(error => {
                     console.warn('Failed to stop audio recording during cleanup:', error);
+                }).finally(() => {
+                    // Ensure recording state is cleared even if stop fails
+                    setRecording(null);
                 });
-                setRecording(null);
             }
             
-            // Reset states
+            // Stop any pending BirdNet audio processing
+            try {
+                // Note: BirdNetService should have its own cleanup mechanisms
+                // but we ensure no new processing starts
+                console.log('[ObjectDetection] Stopping BirdNet processing');
+            } catch (error) {
+                console.warn('Error stopping BirdNet processing:', error);
+            }
+            
+            // Reset all states
             setIsActive(false);
             setCameraReady(false);
             setDetections([]);
             setIsProcessing(false);
+            setLastAudioClassification('');
+            setSnackbarVisible(false);
             
-            // Reset cleanup flag after a delay
+            // Reset cleanup flag after ensuring all operations complete
             setTimeout(() => {
                 cleanupInProgressRef.current = false;
-            }, 200);
+            }, 300); // Increased delay for comprehensive cleanup
         }
     }, [isFocused, recording]);
 
@@ -494,15 +726,6 @@ function SimpleObjectDetectCamera() {
     }, []);
 
     // Render fallbacks
-    if (Platform.OS === 'web') {
-        return (
-            <View style={styles.centered}>
-                <Text style={{ color: currentTheme.colors.text.primary }}>
-                    {t('camera.unsupported_platform')}
-                </Text>
-            </View>
-        );
-    }
 
     if (!hasPermission) {
         return (
@@ -536,25 +759,40 @@ function SimpleObjectDetectCamera() {
         <ThemedSafeAreaView style={styles.container}>
             <SafeCameraViewManager
                 style={StyleSheet.absoluteFillObject}
-                isActive={hasPermission && !!device && isFocused}
-                onCameraReady={handleCameraReady}
-                onCameraUnmount={handleCameraUnmount}
+                isActive={isActiveCameraState}
+                onCameraReady={() => setCameraReady(true)}
+                onCameraUnmount={() => {
+                    setCameraReady(false);
+                    cleanupInProgressRef.current = true;
+                }}
             >
                 <Camera
                     ref={cameraRef}
-                    style={styles.camera}
+                    style={StyleSheet.absoluteFillObject}
                     device={device}
                     format={format}
-                    isActive={hasPermission && !!device && isFocused}
+                    isActive={isActiveCameraState}
                     photo={true}
                     enableZoomGesture={true}
                     onInitialized={() => {
                         console.log('[ObjectDetection] Camera onInitialized called');
-                        handleCameraReady();
+                        // Additional delay to ensure view hierarchy is stable
+                        setTimeout(() => {
+                            if (isFocused && appState === 'active' && shouldRenderCamera && !cleanupInProgressRef.current) {
+                                setCameraReady(true);
+                            }
+                        }, 100);
                     }}
                     onError={(error) => {
                         console.error('[ObjectDetection] Camera error:', error);
                         setDebugText(`Camera error: ${error.message}`);
+                        // Reset camera state on error to prevent stuck states
+                        setShouldRenderCamera(false);
+                        setTimeout(() => {
+                            if (isFocused && appState === 'active') {
+                                setShouldRenderCamera(true);
+                            }
+                        }, 1000);
                     }}
                 />
             </SafeCameraViewManager>
@@ -679,14 +917,16 @@ function SimpleObjectDetectCamera() {
 
 export default function ObjectIdentCamera() {
     return (
-        <CriticalErrorBoundary
-            componentName="Simple Object Detection Camera"
-            onError={(error, errorId) => {
-                console.error('Object detection camera error:', error, errorId);
-            }}
-        >
-            <SimpleObjectDetectCamera />
-        </CriticalErrorBoundary>
+        <NavigationErrorBoundary>
+            <CriticalErrorBoundary
+                componentName="Simple Object Detection Camera"
+                onError={(error, errorId) => {
+                    console.error('Object detection camera error:', error, errorId);
+                }}
+            >
+                <SimpleObjectDetectCamera />
+            </CriticalErrorBoundary>
+        </NavigationErrorBoundary>
     );
 }
 

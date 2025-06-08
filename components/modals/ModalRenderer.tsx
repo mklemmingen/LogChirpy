@@ -5,8 +5,10 @@
  * is rendered at a time, preventing view hierarchy conflicts.
  */
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Modal } from 'react-native';
+import { useIsFocused, useFocusEffect } from '@react-navigation/native';
+import NavigationErrorBoundary from '@/components/NavigationErrorBoundary';
 
 import { useModal } from '@/app/context/ModalContext';
 import { DatePickerModal } from './DatePickerModal';
@@ -19,8 +21,28 @@ import { Z_LAYERS } from '@/constants/layers';
 
 export const ModalRenderer: React.FC = () => {
   const { state, hideModal } = useModal();
+  const isFocused = useIsFocused();
+  const [isVisible, setIsVisible] = useState(false);
 
-  if (!state.isVisible || !state.currentModal) {
+  // Focus-based modal visibility with navigation awareness
+  useFocusEffect(
+    useCallback(() => {
+      if (state.isVisible && isFocused) {
+        setIsVisible(true);
+      }
+      
+      return () => {
+        // Force cleanup on screen blur to prevent hierarchy conflicts
+        setIsVisible(false);
+        if (state.isVisible) {
+          hideModal();
+        }
+      };
+    }, [state.isVisible, isFocused, hideModal])
+  );
+
+  // Don't render if screen not focused or modal not visible
+  if (!isFocused || !isVisible || !state.currentModal) {
     return null;
   }
 
@@ -53,14 +75,18 @@ export const ModalRenderer: React.FC = () => {
 
   return (
     <Modal
-      visible={state.isVisible}
+      visible={isVisible}
       transparent={true}
       onRequestClose={hideModal}
+      animationType="fade"
+      statusBarTranslucent={true} // Prevent StatusBar conflicts
       style={{
         zIndex: Z_LAYERS.MODALS,
       }}
     >
-      {renderModalContent()}
+      <NavigationErrorBoundary>
+        {renderModalContent()}
+      </NavigationErrorBoundary>
     </Modal>
   );
 };

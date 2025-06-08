@@ -1,6 +1,4 @@
-// import React from 'react';
-
-// This is a shim for web and Android where the tab bar is generally opaque.
+// Android-only tab bar background (opaque)
 export default undefined;
 
 export function useBottomTabOverflow() {

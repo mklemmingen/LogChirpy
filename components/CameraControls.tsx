@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { BlurView } from 'expo-blur';
+import SafeBlurView from '@/components/ui/SafeBlurView';
 import { ThemedIcon } from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 
@@ -151,7 +151,7 @@ export function EnhancedCameraControls({
                 >
                         {/* Glass effect matching app aesthetic */}
                         {variant === 'glass' && (
-                            <BlurView
+                            <SafeBlurView
                                 intensity={60}
                                 tint={colors.isDark ? 'dark' : 'light'}
                                 style={StyleSheet.absoluteFillObject}
@@ -205,7 +205,7 @@ export function EnhancedCameraControls({
                 >
                         {/* Consistent glass effect */}
                         {variant === 'glass' && (
-                            <BlurView
+                            <SafeBlurView
                                 intensity={40}
                                 tint={colors.isDark ? 'dark' : 'light'}
                                 style={StyleSheet.absoluteFillObject}

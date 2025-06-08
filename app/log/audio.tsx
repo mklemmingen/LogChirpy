@@ -5,7 +5,7 @@ import {router, Stack, useFocusEffect} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
-import {BlurView} from 'expo-blur';
+import SafeBlurView from '@/components/ui/SafeBlurView';
 
 import {useLogDraft} from '../context/LogDraftContext';
 import {ModernCard} from '@/components/ModernCard';
@@ -19,32 +19,14 @@ type RecordingStatus = 'idle' | 'recording' | 'stopping' | 'playback';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Enhanced Audio Quality Configuration
+// Android Audio Quality Configuration
 const AUDIO_QUALITY = {
-    android: {
-        extension: '.m4a',
-        outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-        audioEncoder: Audio.AndroidAudioEncoder.AAC,
-        sampleRate: 44100,
-        numberOfChannels: 2,
-        bitRate: 128000,
-    },
-    ios: {
-        extension: '.m4a',
-        outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-        audioQuality: Audio.IOSAudioQuality.HIGH,
-        sampleRate: 44100,
-        numberOfChannels: 2,
-        bitRate: 128000,
-        linearPCMBitDepth: 16,
-        linearPCMIsBigEndian: false,
-        linearPCMIsFloat: false,
-    },
-    web: {
-        extension: '.m4a',
-        mimeType: 'audio/mp4',
-        bitsPerSecond: 128000,
-    },
+    extension: '.m4a',
+    outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+    audioEncoder: Audio.AndroidAudioEncoder.AAC,
+    sampleRate: 44100,
+    numberOfChannels: 2,
+    bitRate: 128000,
 };
 
 function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
@@ -269,7 +251,7 @@ function PlaybackControls({
     const theme = useTheme();
 
     return (
-        <BlurView
+        <SafeBlurView
             intensity={80}
             tint={theme.colors.background.primary === '#FFFFFF' ? 'light' : 'dark'}
             style={{
@@ -309,7 +291,7 @@ function PlaybackControls({
                     <ThemedText color="primary">{t('common.confirm', 'Confirm')}</ThemedText>
                 </ThemedPressable>
             </ThemedView>
-        </BlurView>
+        </SafeBlurView>
     );
 }
 
@@ -434,8 +416,8 @@ export default function AudioScreen() {
             setDuration(0);
 
             await Audio.setAudioModeAsync({
-                allowsRecordingIOS: true,
-                playsInSilentModeIOS: true,
+                allowsRecordingIOS: true, // Kept for compatibility
+                playsInSilentModeIOS: true, // Kept for compatibility
                 shouldDuckAndroid: true,
                 playThroughEarpieceAndroid: false,
                 staysActiveInBackground: true,

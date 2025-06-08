@@ -1,11 +1,13 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {Alert, StyleSheet, useColorScheme, View,} from 'react-native';
+import {Alert, StyleSheet, useColorScheme, View, InteractionManager, Platform, AppState} from 'react-native';
 import {router, Stack, useFocusEffect} from 'expo-router';
 import {useTranslation} from 'react-i18next';
+import {useIsFocused} from '@react-navigation/native';
 import {Camera, useCameraDevice, useCameraFormat, useCameraPermission,} from 'react-native-vision-camera';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import { CriticalErrorBoundary } from '@/components/ComponentErrorBoundary';
+import NavigationErrorBoundary from '@/components/NavigationErrorBoundary';
 import { SafeCameraViewManager } from '@/components/SafeViewManager';
 
 import {theme} from '@/constants/theme';
@@ -31,6 +33,15 @@ function ModernCameraComponent() {
     const [flash, setFlash] = useState<'off' | 'on' | 'auto'>('auto');
     const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
     const [isCapturing, setIsCapturing] = useState(false);
+    
+    // Focus coordination refs
+    const isFocused = useIsFocused();
+    const [appState, setAppState] = useState(AppState.currentState);
+    const [shouldRenderCamera, setShouldRenderCamera] = useState(false);
+    const [cameraReady, setCameraReady] = useState(false);
+    const mountedRef = useRef(true);
+    const cleanupInProgressRef = useRef(false);
+    const cameraCleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const device = useCameraDevice(cameraPosition);
     const format = useCameraFormat(device, [
@@ -38,43 +49,159 @@ function ModernCameraComponent() {
         { fps: 30 }
     ]);
 
+    // CRITICAL: Multi-condition camera activation with InteractionManager
+    const isActiveCameraState = isFocused && appState === "active" && shouldRenderCamera && !cleanupInProgressRef.current;
+
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', nextAppState => {
+            setAppState(nextAppState);
+        });
+        return () => subscription?.remove();
+    }, []);
+
     useEffect(() => {
         if (!hasPermission) {
             requestPermission();
         }
     }, [hasPermission, requestPermission]);
 
-    // Camera lifecycle management with proper cleanup
-    const [cameraReady, setCameraReady] = useState(false);
+    // Navigation-aware camera mounting with InteractionManager
+    useEffect(() => {
+        if (isFocused && appState === 'active') {
+            cleanupInProgressRef.current = false;
+            
+            // Clear any pending cleanup
+            if (cameraCleanupTimeoutRef.current) {
+                clearTimeout(cameraCleanupTimeoutRef.current);
+                cameraCleanupTimeoutRef.current = null;
+            }
+            
+            // Use InteractionManager for smooth transitions
+            InteractionManager.runAfterInteractions(() => {
+                const renderTimer = setTimeout(() => {
+                    if (!cleanupInProgressRef.current && isFocused && appState === 'active') {
+                        setShouldRenderCamera(true);
+                    }
+                }, 200); // Android stability delay
+                
+                return () => clearTimeout(renderTimer);
+            });
+        } else {
+            cleanupInProgressRef.current = true;
+            setShouldRenderCamera(false);
+            setCameraReady(false);
+            setIsActive(false);
+            
+            // Schedule cleanup with delay to ensure proper resource release
+            cameraCleanupTimeoutRef.current = setTimeout(() => {
+                console.log('[Camera] Cleanup timeout completed');
+            }, 200);
+        }
+    }, [isFocused, appState]);
+
+    // Comprehensive cleanup on unmount
+    useEffect(() => {
+        return () => {
+            mountedRef.current = false;
+            cleanupInProgressRef.current = true;
+            setShouldRenderCamera(false);
+            setCameraReady(false);
+            setIsActive(false);
+            
+            if (cameraCleanupTimeoutRef.current) {
+                clearTimeout(cameraCleanupTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    // Early return for non-focused states (as per refactor plan)
+    if (!isFocused) {
+        return (
+            <ThemedSafeAreaView style={styles.container}>
+                <View style={styles.centered}>
+                    <ThemedText>Camera paused - tab not focused</ThemedText>
+                </View>
+            </ThemedSafeAreaView>
+        );
+    }
+
+    if (!shouldRenderCamera) {
+        return (
+            <ThemedSafeAreaView style={styles.container}>
+                <View style={styles.centered}>
+                    <ThemedText>Initializing camera system...</ThemedText>
+                </View>
+            </ThemedSafeAreaView>
+        );
+    }
 
     const handleCameraReady = useCallback(() => {
-        setCameraReady(true);
-        setIsActive(true);
-    }, []);
+        // Only activate if tab is focused and component is mounted
+        if (isFocused && mountedRef.current && !cleanupInProgressRef.current) {
+            setCameraReady(true);
+            setIsActive(true);
+        }
+    }, [isFocused]);
 
     const handleCameraUnmount = useCallback(() => {
+        cleanupInProgressRef.current = true;
+        
         setCameraReady(false);
         setIsActive(false);
-        setCapturedPhotos([]); // Clear photos on unmount
+        
+        // Clear captured photos state on unmount to prevent memory leaks
+        if (mountedRef.current) {
+            setCapturedPhotos([]);
+        }
+        
+        // Reset cleanup flag
+        setTimeout(() => {
+            cleanupInProgressRef.current = false;
+        }, 100);
     }, []);
 
-    // Focus-based camera management to prevent view conflicts
+    // Enhanced focus-based camera management with state coordination
     useFocusEffect(
         useCallback(() => {
+            // Reset cleanup flag when gaining focus
+            cleanupInProgressRef.current = false;
+            
             return () => {
+                // Mark cleanup in progress
+                cleanupInProgressRef.current = true;
+                
                 // Ensure cleanup when losing focus
                 setIsActive(false);
                 setCameraReady(false);
+                
+                // Clear captured photos on focus loss to prevent state conflicts
+                setCapturedPhotos([]);
             };
         }, [])
     );
+    
+    // Component unmount cleanup
+    useEffect(() => {
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
     const takePhoto = async () => {
-        if (!camera.current || isCapturing) return;
+        // Enhanced camera operation checks with focus coordination
+        if (!camera.current || isCapturing || !isFocused || !isActive || !cameraReady || cleanupInProgressRef.current) {
+            return;
+        }
 
         try {
             setIsCapturing(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+            // Check focus state before camera operation
+            if (!isFocused || cleanupInProgressRef.current) {
+                setIsCapturing(false);
+                return;
+            }
 
             const photo = await camera.current.takePhoto({
                 flash,
@@ -83,13 +210,25 @@ function ModernCameraComponent() {
                 enableAutoDistortionCorrection: true,
             });
 
+            // Check focus state after photo capture
+            if (!isFocused || cleanupInProgressRef.current || !mountedRef.current) {
+                setIsCapturing(false);
+                return;
+            }
+
             setCapturedPhotos(prev => [...prev, photo.path]);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (error) {
             console.error('Photo capture failed:', error);
-            Alert.alert(t('common.error'), t('camera.capture_failed'));
+            // Only show alert if still focused and mounted
+            if (isFocused && mountedRef.current && !cleanupInProgressRef.current) {
+                Alert.alert(t('common.error'), t('camera.capture_failed'));
+            }
         } finally {
-            setIsCapturing(false);
+            // Only update state if still focused and mounted
+            if (isFocused && mountedRef.current && !cleanupInProgressRef.current) {
+                setIsCapturing(false);
+            }
         }
     };
 
@@ -152,16 +291,19 @@ function ModernCameraComponent() {
 
             <SafeCameraViewManager
                 style={StyleSheet.absoluteFillObject}
-                isActive={isActive && cameraReady}
-                onCameraReady={handleCameraReady}
-                onCameraUnmount={handleCameraUnmount}
+                isActive={isActiveCameraState}
+                onCameraReady={() => setCameraReady(true)}
+                onCameraUnmount={() => {
+                    setCameraReady(false);
+                    cleanupInProgressRef.current = true;
+                }}
             >
                 <Camera
                     ref={camera}
                     style={StyleSheet.absoluteFillObject}
                     device={device}
                     format={format}
-                    isActive={isActive && cameraReady}
+                    isActive={isActiveCameraState}
                     photo={true}
                     enableZoomGesture={true}
                     enableLocation={true}
@@ -252,15 +394,17 @@ function ModernCameraComponent() {
 
 export default function ModernCamera() {
     return (
-        <CriticalErrorBoundary 
-            componentName="Camera"
-            onError={(error, errorId) => {
-                console.error('Camera component error:', error, errorId);
-                // Report camera errors for investigation
-            }}
-        >
-            <ModernCameraComponent />
-        </CriticalErrorBoundary>
+        <NavigationErrorBoundary>
+            <CriticalErrorBoundary 
+                componentName="Camera"
+                onError={(error, errorId) => {
+                    console.error('Camera component error:', error, errorId);
+                    // Report camera errors for investigation
+                }}
+            >
+                <ModernCameraComponent />
+            </CriticalErrorBoundary>
+        </NavigationErrorBoundary>
     );
 }
 

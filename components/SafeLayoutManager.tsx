@@ -21,7 +21,7 @@ export function SafeLayoutManager({
   const hasConfiguredAnimations = useRef(false);
 
   useEffect(() => {
-    if (Platform.OS === 'android' && !hasConfiguredAnimations.current) {
+    if (!hasConfiguredAnimations.current) {
       // Disable layout animations by default on Android to prevent UIFrameGuarded errors
       if (UIManager.setLayoutAnimationEnabledExperimental) {
         UIManager.setLayoutAnimationEnabledExperimental(enableLayoutAnimations);
@@ -32,25 +32,25 @@ export function SafeLayoutManager({
 
     return () => {
       // Cleanup: ensure animations are disabled when component unmounts
-      if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      if (UIManager.setLayoutAnimationEnabledExperimental) {
         UIManager.setLayoutAnimationEnabledExperimental(false);
       }
     };
   }, [enableLayoutAnimations]);
 
-  // Don't use LayoutAnimation.configureNext on Android by default
+  // Disable layout animations by default on Android
   const safeLayoutAnimation = {
     configureNext: (config: any, onAnimationDidEnd?: () => void) => {
-      if (Platform.OS === 'ios' || enableLayoutAnimations) {
+      if (enableLayoutAnimations) {
         LayoutAnimation.configureNext(config, onAnimationDidEnd);
       } else {
-        // Call the callback immediately on Android to maintain functionality
+        // Call the callback immediately to maintain functionality
         onAnimationDidEnd?.();
       }
     },
     
     easeInEaseOut: (onAnimationDidEnd?: () => void) => {
-      if (Platform.OS === 'ios' || enableLayoutAnimations) {
+      if (enableLayoutAnimations) {
         LayoutAnimation.easeInEaseOut(onAnimationDidEnd);
       } else {
         onAnimationDidEnd?.();
@@ -58,7 +58,7 @@ export function SafeLayoutManager({
     },
 
     linear: (onAnimationDidEnd?: () => void) => {
-      if (Platform.OS === 'ios' || enableLayoutAnimations) {
+      if (enableLayoutAnimations) {
         LayoutAnimation.linear(onAnimationDidEnd);
       } else {
         onAnimationDidEnd?.();
@@ -66,7 +66,7 @@ export function SafeLayoutManager({
     },
 
     spring: (onAnimationDidEnd?: () => void) => {
-      if (Platform.OS === 'ios' || enableLayoutAnimations) {
+      if (enableLayoutAnimations) {
         LayoutAnimation.spring(onAnimationDidEnd);
       } else {
         onAnimationDidEnd?.();
@@ -84,7 +84,7 @@ export function SafeLayoutManager({
 export function useSafeLayoutAnimation(enableAnimations = false) {
   return {
     configureNext: (config: any, onAnimationDidEnd?: () => void) => {
-      if (Platform.OS === 'ios' || enableAnimations) {
+      if (enableAnimations) {
         LayoutAnimation.configureNext(config, onAnimationDidEnd);
       } else {
         onAnimationDidEnd?.();
@@ -92,7 +92,7 @@ export function useSafeLayoutAnimation(enableAnimations = false) {
     },
     
     easeInEaseOut: (onAnimationDidEnd?: () => void) => {
-      if (Platform.OS === 'ios' || enableAnimations) {
+      if (enableAnimations) {
         LayoutAnimation.easeInEaseOut(onAnimationDidEnd);
       } else {
         onAnimationDidEnd?.();
@@ -100,7 +100,7 @@ export function useSafeLayoutAnimation(enableAnimations = false) {
     },
 
     linear: (onAnimationDidEnd?: () => void) => {
-      if (Platform.OS === 'ios' || enableAnimations) {
+      if (enableAnimations) {
         LayoutAnimation.linear(onAnimationDidEnd);
       } else {
         onAnimationDidEnd?.();
@@ -108,7 +108,7 @@ export function useSafeLayoutAnimation(enableAnimations = false) {
     },
 
     spring: (onAnimationDidEnd?: () => void) => {
-      if (Platform.OS === 'ios' || enableAnimations) {
+      if (enableAnimations) {
         LayoutAnimation.spring(onAnimationDidEnd);
       } else {
         onAnimationDidEnd?.();

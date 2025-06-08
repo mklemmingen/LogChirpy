@@ -12,9 +12,6 @@
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug"
       },
-      "ios": {
-        "simulator": true
-      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://dev.api.com"
       }
@@ -26,9 +23,6 @@
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
       },
-      "ios": {
-        "simulator": false
-      }
     },
     "production": {
       "autoSubmit": false,
@@ -49,11 +43,6 @@
       "android": {
         "serviceAccountKeyPath": "./android-upload-key.json",
         "track": "internal"
-      },
-      "ios": {
-        "appleId": "your-apple-id@example.com",
-        "ascAppId": "1234567890",
-        "appleTeamId": "ABCDEFGHIJ"
       }
     }
   },

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
+import SafeBlurView from '@/components/ui/SafeBlurView';
 
 import {
     useTheme,
@@ -104,7 +104,7 @@ export default function Section({
     // Extract useBlur and create clean style object
     const { useBlur, ...cleanVariantStyle } = variantStyle;
 
-    const containerStyle = [
+    const containerStyle = StyleSheet.flatten([
         styles.container,
         {
             borderRadius: theme.borderRadius.lg,
@@ -113,12 +113,12 @@ export default function Section({
             ...spacingStyle,
         },
         style,
-    ];
+    ]);
 
     // Render with or without blur
     if (useBlur) {
         return (
-            <BlurView
+            <SafeBlurView
                 intensity={60}
                 tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
                 style={containerStyle}
@@ -133,7 +133,7 @@ export default function Section({
                         {children}
                     </View>
                 </View>
-            </BlurView>
+            </SafeBlurView>
         );
     }
 

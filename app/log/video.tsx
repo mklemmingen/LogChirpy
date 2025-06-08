@@ -6,7 +6,7 @@ import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
-import {BlurView} from 'expo-blur';
+import SafeBlurView from '@/components/ui/SafeBlurView';
 
 // Modern components
 import {ThemedView} from '@/components/ThemedView';
@@ -38,7 +38,7 @@ function RecordingStatusIndicator({ isRecording, duration }: { isRecording: bool
 
   return (
       <View style={[styles.statusIndicator, { opacity: isRecording ? 1 : 0.7 }]}>
-        <BlurView
+        <SafeBlurView
             intensity={80}
             tint="dark"
             style={StyleSheet.absoluteFillObject}
@@ -132,7 +132,7 @@ function VideoPreview({
 
         {/* Header */}
         <View style={styles.previewHeader}>
-          <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFillObject} />
+          <SafeBlurView intensity={60} tint="dark" style={StyleSheet.absoluteFillObject} />
           <ThemedText variant="h3" color="primary">
             {t('video.preview_title')}
           </ThemedText>
@@ -140,7 +140,7 @@ function VideoPreview({
 
         {/* Controls */}
         <View style={styles.previewControls}>
-          <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
+          <SafeBlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
 
           <View style={styles.previewActions}>
             <ThemedPressable
@@ -420,7 +420,7 @@ export default function VideoScreen() {
         {/* Loading Overlay */}
         {state === 'stopping' && (
             <View style={styles.loadingOverlay}>
-              <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
+              <SafeBlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
               <ActivityIndicator size="large" color="white" />
               <ThemedText variant="bodyLarge" color="primary" style={{ marginTop: 16 }}>
                 {t('video.processing')}

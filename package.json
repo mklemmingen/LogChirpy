@@ -13,12 +13,10 @@
     "android": "npx expo run:android",
     "android:device": "npx expo run:android --device",
     "android:release": "npx expo run:android --variant release",
-    "ios": "npx expo run:ios",
-    "ios:device": "npx expo run:ios --device",
-    "export": "npx expo export",
-    "export:web": "npx expo export --platform web",
+    "export": "npx expo export --platform android",
     "doctor": "npx expo-doctor",
-    "reset-cache": "npx expo start --clear"
+    "reset-cache": "npx expo start --clear",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo/config-plugins": "^10.0.2",
@@ -38,7 +36,6 @@
     "eslint-config-expo": "~9.2.0",
     "expo": "53.0.11",
     "expo-av": "~15.1.5",
-    "expo-blur": "~14.1.5",
     "expo-camera": "~16.1.7",
     "expo-constants": "~17.1.6",
     "expo-dev-client": "~5.2.0",
@@ -54,11 +51,9 @@
     "expo-splash-screen": "~0.30.9",
     "expo-sqlite": "~15.2.12",
     "expo-status-bar": "~2.2.3",
-    "expo-symbols": "~0.4.5",
     "expo-system-ui": "~5.0.8",
     "expo-updates": "~0.28.14",
     "expo-video": "~2.2.0",
-    "expo-web-browser": "~14.1.6",
     "firebase": "^11.6.1",
     "fs-extra": "^11.3.0",
     "i18next": "^25.0.1",
@@ -75,18 +70,23 @@
     "react": "19.0.0",
     "react-i18next": "^15.5.1",
     "react-native": "0.79.3",
+    "react-native-fast-image": "^8.6.3",
     "react-native-fast-tflite": "^1.6.1",
     "react-native-fs": "^2.20.0",
+    "react-native-gesture-handler": "^2.25.0",
     "react-native-image-picker": "^8.2.1",
+    "react-native-modal": "^14.0.0-rc.1",
+    "react-native-paper": "^5.14.5",
+    "react-native-reanimated": "~3.15.0",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
     "react-native-vision-camera": "^4.6.4",
-    "react-native-web": "^0.20.0",
-    "react-native-webview": "13.13.5",
     "react-native-zip-archive": "^7.0.1",
+    "recyclerlistview": "^4.2.0",
     "winston": "^3.17.0",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
@@ -103,7 +103,7 @@
     "jest": "^29.7.0",
     "jest-expo": "~53.0.7",
     "jest-transform-stub": "^2.0.0",
-    "react-test-renderer": "^18.3.1",
+    "react-test-renderer": "^19.0.0",
     "typescript": "^5.8.3"
   },
   "jest": {
@@ -134,6 +134,10 @@
     }
   },
   "private": true,
+  "resolutions": {
+    "react-native-reanimated": "^3.15.0",
+    "react-native-svg": "^15.0.0"
+  },
   "overrides": {
     "ajv": "^8.17.1",
     "ajv-keywords": "^5.1.0"

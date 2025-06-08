@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { ReactNode } from 'react';
-import { BlurView } from 'expo-blur';
+import SafeBlurView from '@/components/ui/SafeBlurView';
 
 import {
     useSemanticColors,
@@ -102,7 +102,7 @@ export default function SettingsSection({
     if (isGlass) {
         return (
             <View style={[styles.container, variantStyle, style]}>
-                <BlurView
+                <SafeBlurView
                     intensity={60}
                     tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
                     style={StyleSheet.absoluteFillObject}

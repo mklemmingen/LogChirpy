@@ -30,9 +30,8 @@ export const DatePickerModal: React.FC<DatePickerModalComponentProps> = ({
   const dimensions = useResponsiveDimensions();
 
   const handleDateChange = (event: any, date?: Date) => {
-    if (Platform.OS === 'android') {
-      onClose();
-    }
+    // Android closes automatically after selection
+    onClose();
     if (date) {
       onDateChange(date);
     }
@@ -66,39 +65,10 @@ export const DatePickerModal: React.FC<DatePickerModalComponentProps> = ({
         <DateTimePicker
           value={selectedDate}
           mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          display="default"
           onChange={handleDateChange}
           maximumDate={maximumDate}
         />
-
-        {Platform.OS === 'ios' && (
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginTop: dimensions.layout.componentSpacing,
-            gap: dimensions.layout.componentSpacing / 2,
-          }}>
-            <ThemedPressable
-              variant="secondary"
-              onPress={onClose}
-              style={{ flex: 1 }}
-            >
-              <ThemedText variant="button">
-                {t('common.cancel')}
-              </ThemedText>
-            </ThemedPressable>
-            
-            <ThemedPressable
-              variant="primary"
-              onPress={handleConfirm}
-              style={{ flex: 1 }}
-            >
-              <ThemedText variant="button" color="primary">
-                {t('common.confirm')}
-              </ThemedText>
-            </ThemedPressable>
-          </View>
-        )}
       </ModernCard>
     </View>
   );

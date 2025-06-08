@@ -2,271 +2,190 @@ import React from 'react';
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useIsFocused } from '@react-navigation/native';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import { Feather } from '@expo/vector-icons';
+import { Text, Card, FAB } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
-import { SafeViewManager } from '@/components/SafeViewManager';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
-import { HelloWave } from '@/components/HelloWave';
 import { SimpleBirdAnimation } from '@/components/animations/SimpleBirdAnimation';
-import { ModernCard } from '@/components/ModernCard';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { useColors, useTypography, useBorderRadius } from '@/hooks/useThemeColor';
-import { useUnifiedColors } from '@/hooks/useUnifiedColors';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 
 const { width, height } = Dimensions.get('window');
 
-/**
- * Interface for feature action cards displayed on home screen
- */
 interface FeatureAction {
   id: string;
   title: string;
   description: string;
-  icon: keyof typeof Feather.glyphMap;
+  icon: string;
   route: string;
   primary?: boolean;
 }
 
-/**
- * Home Screen Component with responsive design and smooth animations
- * Main landing screen providing quick access to core app features
- * 
- * @returns {JSX.Element} Home screen with hero section and feature cards
- */
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const colors = useUnifiedColors();
-  const typography = useTypography();
-  const borderRadius = useBorderRadius();
-  const dimensions = useResponsiveDimensions();
-  const isFocused = useIsFocused();
   
-  const styles = createStyles(dimensions);
-
-  if (!isFocused) {
-    return null;
-  }
+  const styles = createStyles();
 
 
 
   const features: FeatureAction[] = [
     {
       id: 'detection',
-      title: t('buttons.objectCamera'),
-      description: t('home.camera_description'),
-      icon: 'zap',
-      route: '/log/objectIdentCamera',
+      title: 'Real-time Detection',
+      description: 'Use AI to detect birds in real-time',
+      icon: 'camera-burst',
+      route: '/detection',
       primary: true,
     },
     {
       id: 'photo',
-      title: t('buttons.photo'),
-      description: t('home.photo_description'),
+      title: 'Photo Logging',
+      description: 'Log birds from photos',
       icon: 'camera',
       route: '/log/photo',
     },
     {
       id: 'audio',
-      title: t('buttons.audio'),
-      description: t('home.audio_description'),
-      icon: 'mic',
+      title: 'Audio Recording',
+      description: 'Record and identify bird sounds',
+      icon: 'microphone',
       route: '/log/audio',
     },
     {
       id: 'manual',
-      title: t('buttons.manual'),
-      description: t('home.manual_description'),
-      icon: 'edit-3',
+      title: 'Manual Entry',
+      description: 'Manually log bird sightings',
+      icon: 'pencil',
       route: '/log/manual',
     },
   ];
 
-  /**
-   * Handles feature card press with haptic feedback and navigation
-   * 
-   * @param {string} route - Route to navigate to
-   */
   const handleFeaturePress = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(route as any);
   };
 
-  /**
-   * Renders individual feature card with responsive design and accessibility
-   * 
-   * @param {FeatureAction} feature - Feature data for the card
-   * @param {number} index - Index for staggered animations
-   * @returns {JSX.Element} Animated feature card
-   */
   const renderFeatureCard = (feature: FeatureAction, index: number) => {
     const isPrimary = feature.primary;
 
     return (
-      <View key={feature.id}>
-        <ModernCard
-          onPress={() => handleFeaturePress(feature.route)}
-          elevated={isPrimary}
-          bordered={!isPrimary}
-        >
-          <View style={styles.cardContent}>
-            {/* Icon */}
-            <ThemedView
-              style={[
-                styles.iconContainer,
-                { 
-                  backgroundColor: isPrimary ? colors.background.tertiary : colors.background.secondary,
-                  width: dimensions.icon.xxl,
-                  height: dimensions.icon.xxl,
-                  borderRadius: dimensions.card.borderRadius.md,
-                }
-              ]}
-              rounded="lg"
-            >
-              <ThemedIcon
-                name={feature.icon}
-                size={dimensions.icon.lg}
-                color="primary"
-              />
-            </ThemedView>
-
-            {/* Content */}
-            <View style={styles.cardTextContent}>
-              <ThemedText variant="h3" style={styles.cardTitle}>
-                {feature.title}
-              </ThemedText>
-              <ThemedText 
-                variant="bodySmall" 
-                color="secondary" 
-                style={styles.cardDescription}
-              >
-                {feature.description}
-              </ThemedText>
-            </View>
-
-            {/* Arrow */}
-            <ThemedIcon
-              name="chevron-right"
-              size={dimensions.icon.sm}
-              color="tertiary"
+      <Card 
+        key={feature.id}
+        style={[styles.card, isPrimary && styles.primaryCard]}
+        mode={isPrimary ? 'elevated' : 'outlined'}
+        onPress={() => handleFeaturePress(feature.route)}
+      >
+        <Card.Content style={styles.cardContent}>
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name={feature.icon}
+              size={32}
+              color={isPrimary ? '#4CAF50' : '#757575'}
             />
           </View>
-        </ModernCard>
-      </View>
+          
+          <View style={styles.cardTextContent}>
+            <Text variant="titleMedium" style={styles.cardTitle}>
+              {feature.title}
+            </Text>
+            <Text variant="bodyMedium" style={styles.cardDescription}>
+              {feature.description}
+            </Text>
+          </View>
+          
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={24}
+            color="#757575"
+          />
+        </Card.Content>
+      </Card>
     );
   };
 
   return (
-    <SafeViewManager enabled={isFocused}>
-      <ThemedView style={styles.container}>
-        <ThemedSafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <SimpleBirdAnimation numberOfBirds={3} enabled={true} />
+      
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.heroSection}>
+          <Text variant="displayMedium" style={styles.heroTitle}>
+            Welcome to LogChirpy
+          </Text>
+          <Text variant="bodyLarge" style={styles.heroSubtitle}>
+            Start logging your bird sightings
+          </Text>
+        </View>
 
-          {/* Simplified Bird Animation */}
-          <SimpleBirdAnimation numberOfBirds={3} enabled={true} />
-
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Hero Section */}
-            <View style={styles.heroSection}>
-              <View style={styles.heroContent}>
-                <HelloWave />
-                <ThemedText variant="h1" center style={styles.heroTitle}>
-                  {t('welcome')}
-                </ThemedText>
-                <ThemedText 
-                  variant="body" 
-                  color="secondary" 
-                  center 
-                  style={styles.heroSubtitle}
-                >
-                  {t('start_logging')}
-                </ThemedText>
-              </View>
-            </View>
-
-            {/* Features Section */}
-            <View style={styles.featuresSection}>
-              {features.map((feature, index) => renderFeatureCard(feature, index))}
-            </View>
-          </ScrollView>
-        </ThemedSafeAreaView>
-      </ThemedView>
-    </SafeViewManager>
+        <View style={styles.featuresSection}>
+          {features.map((feature, index) => renderFeatureCard(feature, index))}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
-const createStyles = (dimensions: ReturnType<typeof useResponsiveDimensions>) => StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   container: {
     flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#F5F5F5',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: dimensions.layout.sectionSpacing,
+    paddingBottom: 20,
   },
-
-  // Hero Section
   heroSection: {
-    paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-    paddingTop: dimensions.screen.isSmall ? 40 : 60,
-    paddingBottom: dimensions.layout.sectionSpacing,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 40,
     alignItems: 'center',
     minHeight: height * 0.3,
     justifyContent: 'center',
   },
-  heroContent: {
-    alignItems: 'center',
-  },
   heroTitle: {
-    marginTop: dimensions.layout.componentSpacing,
-    marginBottom: dimensions.layout.componentSpacing / 2,
+    marginBottom: 10,
+    textAlign: 'center',
+    color: '#2E7D32',
   },
   heroSubtitle: {
-    lineHeight: dimensions.screen.isSmall ? 20 : 24,
+    textAlign: 'center',
+    color: '#757575',
     maxWidth: width * 0.85,
   },
-
-  // Features Section
   featuresSection: {
-    paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-    gap: dimensions.layout.componentSpacing,
+    paddingHorizontal: 20,
+    gap: 16,
   },
-
-  // Feature Cards
-  featureCard: {
-    minHeight: dimensions.listItem.minHeight,
+  card: {
+    marginBottom: 8,
   },
   primaryCard: {
-    minHeight: dimensions.listItem.minHeight + 10,
+    backgroundColor: '#E8F5E8',
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: dimensions.layout.componentSpacing,
+    paddingVertical: 8,
   },
   iconContainer: {
+    width: 60,
+    height: 60,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 16,
   },
   cardTextContent: {
     flex: 1,
   },
   cardTitle: {
-    marginBottom: dimensions.layout.componentSpacing / 4,
+    marginBottom: 4,
+    fontWeight: 'bold',
   },
   cardDescription: {
-    lineHeight: dimensions.screen.isSmall ? 16 : 18,
+    color: '#757575',
   },
 });

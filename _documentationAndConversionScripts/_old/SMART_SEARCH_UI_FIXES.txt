@@ -1,0 +1,124 @@
+SMART SEARCH UI CONTRAST & LAYOUT FIXES
+=======================================
+
+Date: June 7, 2025
+Component: app/(tabs)/smart-search.tsx
+Issue Type: UI/UX - Contrast and Layout Problems
+
+ORIGINAL PROBLEMS IDENTIFIED:
+-----------------------------
+
+1. SEARCH INPUT CONTRAST ISSUES:
+   - BlurView component creating weird gray shading over input field
+   - Excessive shadows making the input appear muddy/unclear
+   - Poor contrast between input background and surrounding elements
+   - Border styling too heavy (2px) creating visual noise
+   - Background opacity issues with BlurView tint system
+
+2. SEARCH TIPS WHITE-ON-WHITE TEXT:
+   - ThemedText components using color="secondary" attribute
+   - In light mode: gray text on white background (low contrast)
+   - In dark mode: light gray on dark gray (poor readability)
+   - Text hierarchy not properly established with theme colors
+
+3. CIRCULAR ICON SHADOW PROBLEMS:
+   - Tips icon (help-circle) had unnecessary drop shadows
+   - Empty state icon had excessive elevation styling
+   - Shadows creating visual artifacts and inconsistent appearance
+   - Icon sizes too large (80px, 96px) making shadows more prominent
+   - Border styling conflicts with shadow rendering
+
+4. SQUISHED/CENTERED TEXT LAYOUT:
+   - Tips card padding too excessive (32px) forcing content inward
+   - Text alignment issues with tipText being centered instead of left-aligned
+   - Gap spacing too large (24px) between tip items creating awkward whitespace
+   - Line height too large (24px) making text appear stretched
+   - Icon-to-text gap too wide (16px) breaking visual connection
+
+TECHNICAL ROOT CAUSES:
+----------------------
+
+1. IMPROPER USE OF BLUR EFFECTS:
+   - BlurView with intensity={80} + backgroundColor overlay creating muddy appearance
+   - Tint property not properly responding to theme changes
+   - Multiple layered visual effects (blur + shadow + border) conflicting
+
+2. THEME COLOR MISAPPLICATION:
+   - Using color="secondary" prop instead of explicit color values
+   - backgroundTertiary vs backgroundSecondary confusion
+   - Not leveraging proper text color hierarchy from theme system
+
+3. EXCESSIVE VISUAL STYLING:
+   - Over-application of shadows, borders, and elevation
+   - Visual effects competing rather than enhancing readability
+   - Inconsistent spacing scale throughout component
+
+4. LAYOUT INFLEXIBILITY:
+   - Centered alignment forcing text into narrow columns
+   - Fixed padding values not responsive to content needs
+   - Gap values not following consistent spacing scale
+
+IMPLEMENTED SOLUTIONS:
+----------------------
+
+1. SEARCH INPUT CLEANUP (Lines 374-400):
+   ✅ Replaced BlurView with clean View component
+   ✅ Removed backgroundColor overlay (+E6 opacity)
+   ✅ Eliminated shadow styling (shadowColor, elevation, etc.)
+   ✅ Reduced border width from 2px to 1px
+   ✅ Used theme.background for clean, consistent appearance
+
+2. TEXT CONTRAST FIXES (Lines 409-438):
+   ✅ Replaced color="secondary" with explicit {color: colors.text}
+   ✅ Applied proper color hierarchy using theme system
+   ✅ Ensured consistent text contrast in both light/dark modes
+   ✅ Removed conflicting border/shadow styling from icon containers
+
+3. ICON STYLING NORMALIZATION (Lines 530-547):
+   ✅ Removed all shadow properties (shadowColor, shadowOffset, etc.)
+   ✅ Reduced tips icon size: 80px → 60px
+   ✅ Reduced empty icon size: 96px → 80px
+   ✅ Simplified background to clean backgroundSecondary
+   ✅ Removed border styling conflicts
+
+4. LAYOUT OPTIMIZATION (Lines 524-558):
+   ✅ Reduced card padding: 32px → 24px
+   ✅ Decreased gap between tips: 24px → 16px
+   ✅ Added textAlign: 'left' for proper text alignment
+   ✅ Reduced line height: 24px → 20px for better density
+   ✅ Optimized icon gap: 16px → 12px for better visual connection
+
+REMOVED DEPENDENCIES:
+---------------------
+✅ Removed BlurView import from expo-blur (no longer needed)
+✅ Eliminated shadow styling throughout component
+✅ Removed excessive border/elevation combinations
+
+CODE CHANGES SUMMARY:
+--------------------
+- Modified: Search input container (BlurView → View)
+- Modified: Text color applications (theme color system)
+- Modified: Icon styling (removed shadows, adjusted sizes)
+- Modified: Layout spacing (padding, gaps, alignment)
+- Removed: BlurView import and related styling
+- Improved: Overall contrast ratio for accessibility
+
+FINAL RESULT:
+-------------
+✅ Clean, high-contrast search input in both light/dark modes
+✅ Properly readable tip text with correct color hierarchy
+✅ Clean, professional icon styling without visual artifacts
+✅ Well-spaced, left-aligned text layout for better readability
+✅ Consistent with app's minimal design system
+✅ Improved accessibility and user experience
+✅ Reduced visual noise and enhanced focus on functionality
+
+TESTING RECOMMENDATIONS:
+------------------------
+- Test in both light and dark modes
+- Verify text readability on various screen sizes
+- Check search input behavior with keyboard focus
+- Validate icon touch targets and visual feedback
+- Ensure consistent appearance across different devices
+
+This fix establishes the smart-search component as a clean, accessible, and professional UI element that properly follows the app's design system while maintaining excellent usability across all supported themes and devices.

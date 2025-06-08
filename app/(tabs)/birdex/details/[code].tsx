@@ -14,8 +14,9 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
 import {useColorVariants, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
-import {type BirdDexRecord, getBirdBySpeciesCode} from '@/services/databaseBirDex';
-import {hasSpottingForLatin} from '@/services/database';
+import {type BirdDexRecord, getBirdBySpeciesCodeCoordinated} from '@/services/databaseBirDex';
+import {hasSpottingForLatinCoordinated} from '@/services/database';
+import {cancelLowPriorityOperations} from '@/services/databaseCoordinator';
 
 type DetailRecord = BirdDexRecord & {
     hasBeenLogged: 0 | 1;
@@ -215,12 +216,21 @@ export default function ModernBirdDexDetail() {
     const typography = useTypography();
     const theme = useTheme();
 
-    // Cleanup on unmount
+    // Enhanced cleanup on unmount with database coordination
     useEffect(() => {
         return () => {
             mountedRef.current = false;
+            // Cancel low priority database operations when leaving this screen
+            cancelLowPriorityOperations();
         };
     }, []);
+    
+    // Cancel operations when tab becomes unfocused
+    useEffect(() => {
+        if (!isFocused) {
+            cancelLowPriorityOperations();
+        }
+    }, [isFocused]);
     
     if (!isFocused) {
         return null;
@@ -247,15 +257,21 @@ export default function ModernBirdDexDetail() {
                     setLoading(true);
                 }
                 
-                const bird = getBirdBySpeciesCode(code);
+                // Use coordinated database operation
+                const bird = await getBirdBySpeciesCodeCoordinated(code);
 
                 // Check if component is still mounted before state updates
                 if (!mountedRef.current) return;
 
                 if (bird) {
+                    const hasBeenLogged = await hasSpottingForLatinCoordinated(bird.scientific_name);
+                    
+                    // Check again after async operation
+                    if (!mountedRef.current) return;
+                    
                     const detailRecord: DetailRecord = {
                         ...bird,
-                        hasBeenLogged: hasSpottingForLatin(bird.scientific_name) ? 1 : 0
+                        hasBeenLogged: hasBeenLogged ? 1 : 0
                     };
                     setRec(detailRecord);
                 } else {

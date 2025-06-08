@@ -2,7 +2,7 @@ import React from 'react';
 import {Tabs} from 'expo-router';
 import {Platform, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
-import {BlurView} from 'expo-blur';
+import SafeBlurView from '@/components/ui/SafeBlurView';
 import * as Haptics from 'expo-haptics';
 
 import {useTheme} from '@/hooks/useThemeColor';
@@ -10,6 +10,7 @@ import { useUnifiedColors } from '@/hooks/useUnifiedColors';
 import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedIcon} from '@/components/ThemedIcon';
+import NavigationErrorBoundary from '@/components/NavigationErrorBoundary';
 
 /**
  * Enhanced Tab Icon Component with responsive design and smooth animations
@@ -183,42 +184,57 @@ export default function ModernTabLayout() {
     // ];
 
     return (
-        <Tabs
-            screenOptions={{
+        <NavigationErrorBoundary>
+            <Tabs
+            screenOptions={({ route }) => ({
+                // CRITICAL: View hierarchy stability props
+                lazy: true,                                    // Load screens only when first accessed
+                unmountOnBlur: route.name === 'archive' ||     // Unmount memory-intensive screens
+                              route.name === 'smart-search',   // Smart search with heavy ML operations
+                freezeOnBlur: route.name !== 'index',          // Keep home active for performance
+                
+                // View hierarchy and animation stability
+                animation: 'none',                             // Prevent animation conflicts during navigation
+                tabBarHideOnKeyboard: true,
+
                 // Modern tab bar styling with responsive semantic colors
-                tabBarStyle: {
-                    backgroundColor: colors.background.secondary,
-                    borderTopWidth: 1,
-                    borderTopColor: colors.border.primary,
-                    height: dimensions.navigation.tabBarHeight,
-                    paddingBottom: Platform.OS === 'ios' ? dimensions.layout.screenPadding.vertical : dimensions.layout.componentSpacing / 2,
-                    paddingTop: dimensions.layout.componentSpacing / 2,
-                    paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-
-                    // Enhanced shadows for depth
-                    ...theme.shadows.lg,
-
-                    // Platform-specific enhancements
-                    ...(Platform.OS === 'android' && {
+                tabBarStyle: Platform.select({
+                    ios: {
+                        backgroundColor: colors.background.secondary,
+                        borderTopWidth: 1,
+                        borderTopColor: colors.border.primary,
+                        height: dimensions.navigation.tabBarHeight,
+                        paddingBottom: dimensions.layout.screenPadding.vertical,
+                        paddingTop: dimensions.layout.componentSpacing / 2,
+                        paddingHorizontal: dimensions.layout.screenPadding.horizontal,
+                        position: 'absolute',
+                        ...theme.shadows.lg,
+                    },
+                    android: {
+                        backgroundColor: colors.background.secondary + 'CC', // Semi-transparent for stability
+                        borderTopWidth: 1,
+                        borderTopColor: colors.border.primary,
+                        height: dimensions.navigation.tabBarHeight,
+                        paddingBottom: dimensions.layout.componentSpacing / 2,
+                        paddingTop: dimensions.layout.componentSpacing / 2,
+                        paddingHorizontal: dimensions.layout.screenPadding.horizontal,
+                        position: 'absolute',
                         elevation: 8,
                         shadowColor: colors.text.primary,
-                    }),
-                },
+                    }
+                }),
 
                 // Enhanced color system with unified colors
                 tabBarActiveTintColor: colors.text.primary,
                 tabBarInactiveTintColor: colors.text.secondary,
 
-                // Hide tab labels - icons only
+                // Hide tab labels - icons only for cleaner interface
                 tabBarShowLabel: false,
 
-                // Enhanced iOS blur effect
+                // Enhanced iOS blur effect with proper hierarchy
                 ...(Platform.OS === 'ios' && {
                     tabBarBackground: () => <EnhancedTabBackground />,
                 }),
-
-                // Improved animations
-                tabBarHideOnKeyboard: true,
 
                 // Enhanced header styling with responsive colors
                 headerStyle: {
@@ -230,7 +246,7 @@ export default function ModernTabLayout() {
                     ...theme.typography.h2,
                     fontWeight: '600',
                 },
-            }}
+            })}
         >
             {/* Home Tab - Enhanced with priority and accessibility */}
             <Tabs.Screen
@@ -346,5 +362,6 @@ export default function ModernTabLayout() {
                 }}
             />
         </Tabs>
+        </NavigationErrorBoundary>
     );
 }

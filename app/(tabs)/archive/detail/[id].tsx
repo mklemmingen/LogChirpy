@@ -17,7 +17,8 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
 import {SafeViewManager} from '@/components/SafeViewManager';
 
-import {type BirdSpotting, getSpottingById} from '@/services/database';
+import {type BirdSpotting, getSpottingByIdCoordinated} from '@/services/database';
+import {cancelLowPriorityOperations} from '@/services/databaseCoordinator';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
@@ -284,7 +285,8 @@ export default function ModernArchiveDetailScreen() {
                     setLoading(true);
                 }
                 
-                const data = getSpottingById(Number(id));
+                // Use coordinated database operation
+                const data = await getSpottingByIdCoordinated(Number(id));
                 
                 // Check if component is still mounted before state update
                 if (mountedRef.current) {
@@ -308,10 +310,13 @@ export default function ModernArchiveDetailScreen() {
         }
     }, [id, t, router]);
 
-    // Enhanced cleanup on unmount
+    // Enhanced cleanup on unmount with database coordination
     useEffect(() => {
         return () => {
             mountedRef.current = false;
+            
+            // Cancel low priority database operations
+            cancelLowPriorityOperations();
             
             if (currentSound) {
                 currentSound.unloadAsync().catch(error => {
@@ -320,6 +325,13 @@ export default function ModernArchiveDetailScreen() {
             }
         };
     }, [currentSound]);
+    
+    // Cancel operations when tab becomes unfocused
+    useEffect(() => {
+        if (!isFocused) {
+            cancelLowPriorityOperations();
+        }
+    }, [isFocused]);
 
     // Enhanced audio playback with memory leak prevention
     const playAudio = useCallback(async (uri: string) => {

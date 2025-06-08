@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import SafeBlurView from '@/components/ui/SafeBlurView';
 import * as Haptics from 'expo-haptics';
 import { SafeViewManager } from '@/components/SafeViewManager';
 

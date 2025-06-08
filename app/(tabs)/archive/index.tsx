@@ -14,7 +14,7 @@ import {useTranslation} from 'react-i18next';
 import {useIsFocused} from '@react-navigation/native';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
-import {BlurView} from 'expo-blur';
+import SafeBlurView from '@/components/ui/SafeBlurView';
 import {router} from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {SafeViewManager} from '@/components/SafeViewManager';
