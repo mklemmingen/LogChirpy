@@ -26,10 +26,11 @@ import { ThemedSnackbar } from '@/components/ThemedSnackbar';
 import { theme } from '@/constants/theme';
 import { COMPONENT_Z_INDEX } from '@/constants/layers';
 import { BirdNetService } from '@/services/birdNetService';
-import type { MyModelsConfig } from './../_layout';
 
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
+
+import type {MLModelsConfig} from './../context/CombinedMLProvider';
 
 interface Detection {
     frame: { origin: { x: number; y: number }; size: { x: number; y: number } };
@@ -158,7 +159,7 @@ function SimpleObjectDetectCamera() {
     const [debugText, setDebugText] = useState(t('camera.initializing'));
 
     // ML Kit hooks
-    const detector = useObjectDetection<MyModelsConfig>('efficientNetlite0int8');
+    const detector = useObjectDetection<MLModelsConfig>('efficientNetlite0int8');
     const classifier = useImageLabeling('birdClassifier');
 
     // Initialization state tracking with focus coordination

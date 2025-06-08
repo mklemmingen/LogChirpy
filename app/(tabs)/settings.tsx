@@ -24,7 +24,7 @@ export default function SettingsScreen() {
   }) => (
     <View style={styles.settingItem}>
       <View style={styles.settingLeft}>
-        <MaterialCommunityIcons name={icon} size={24} color="#4CAF50" />
+        <MaterialCommunityIcons name={icon as any} size={24} color="#4CAF50" />
         <View style={styles.settingText}>
           <Text variant="titleMedium">{title}</Text>
           <Text variant="bodySmall" style={styles.description}>

@@ -76,9 +76,9 @@ export default function HomeScreen() {
         <Card.Content style={styles.cardContent}>
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
-              name={feature.icon}
-              size={32}
-              color={isPrimary ? '#4CAF50' : '#757575'}
+                name={feature.icon as any}
+                size={32}
+                color={isPrimary ? '#4CAF50' : '#757575'}
             />
           </View>
           

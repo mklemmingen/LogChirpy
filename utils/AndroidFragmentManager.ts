@@ -5,6 +5,7 @@
  * Handles Fragment transactions and prevents "child already has a parent" errors
  */
 
+import React from 'react';
 import { Platform } from 'react-native';
 import { StackNavigationOptions } from '@react-navigation/stack';
 import { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';

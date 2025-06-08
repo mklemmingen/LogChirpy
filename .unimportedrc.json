@@ -1,0 +1,14 @@
+{
+  "entry": [
+    "app/_layout.tsx",
+    "app/(tabs)/**/*.tsx",
+    "expo-router/entry"
+  ],
+  "extensions": [".ts", ".tsx", ".js", ".jsx"],
+  "ignorePatterns": [
+    "node_modules/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "_documentationAndConversionScripts/**"
+  ]
+}

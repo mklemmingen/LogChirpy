@@ -45,8 +45,8 @@ export default function TabNavigator() {
               iconName = focused ? 'cog' : 'cog-outline';
               break;
           }
-          
-          return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
+
+            return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
         },
       })}
     >

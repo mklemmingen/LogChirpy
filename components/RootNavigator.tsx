@@ -13,23 +13,23 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 
 // Android 2025 optimizations
-import { useAndroidViewManager } from '../../utils/AndroidViewManager';
-import { AndroidFragmentManager } from '../../utils/AndroidFragmentManager';
+import { useAndroidViewManager } from '@/utils/AndroidViewManager';
+import { AndroidFragmentManager } from '@/utils/AndroidFragmentManager';
 
 // Screens
-import HomeScreen from '../(tabs)/index';
-import ArchiveScreen from '../(tabs)/archive/index';
-import BirdexScreen from '../(tabs)/birdex/index';
-import SettingsScreen from '../(tabs)/settings';
-import SmartSearchScreen from '../(tabs)/smart-search';
+import HomeScreen from '../app/(tabs)/index';
+import ArchiveScreen from '../app/(tabs)/archive/index';
+import BirdexScreen from '../app/(tabs)/birdex/index';
+import SettingsScreen from '../app/(tabs)/settings';
+import SmartSearchScreen from '../app/(tabs)/smart-search';
 
 // Log screens
-import AudioLogScreen from '../log/audio';
-import CameraLogScreen from '../log/camera';
-import ManualLogScreen from '../log/manual';
-import PhotoLogScreen from '../log/photo';
-import VideoLogScreen from '../log/video';
-import Android2025CameraScreen from '../log/objectIdentCameraAndroid2025';
+import AudioLogScreen from '../app/log/audio';
+import CameraLogScreen from '../app/log/camera';
+import ManualLogScreen from '../app/log/manual';
+import PhotoLogScreen from '../app/log/photo';
+import VideoLogScreen from '../app/log/video';
+import Android2025CameraScreen from '../app/log/objectIdentCameraAndroid2025';
 
 // Modal screens
 import { BirdPredictionsModal } from '@/components/modals/BirdPredictionsModal';
@@ -37,9 +37,9 @@ import { PhotoPreviewModal } from '@/components/modals/PhotoPreviewModal';
 import { VideoPlayerModal } from '@/components/modals/VideoPlayerModal';
 
 // Auth screens
-import LoginScreen from '../(tabs)/account/(auth)/login';
-import SignupScreen from '../(tabs)/account/(auth)/signup';
-import ForgotPasswordScreen from '../(tabs)/account/(auth)/forgot-password';
+import LoginScreen from '../app/(tabs)/account/(auth)/login';
+import SignupScreen from '../app/(tabs)/account/(auth)/signup';
+import ForgotPasswordScreen from '../app/(tabs)/account/(auth)/forgot-password';
 
 // Theme
 import { ThemedIcon } from '@/components/ThemedIcon';
@@ -230,13 +230,17 @@ export default function RootNavigator() {
       theme={{
         dark: false,
         colors: {
-          primary: colors.text.accent,
+          primary: colors.text.tertiary,
           background: colors.background.primary,
           card: colors.background.secondary,
           text: colors.text.primary,
           border: colors.border.primary,
-          notification: colors.text.accent,
+          notification: colors.text.tertiary,
         },
+          fonts: {
+             // FontStyle
+              regular: 'Roboto-Regular',
+          }
       }}
     >
       <RootStack.Navigator

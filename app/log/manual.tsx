@@ -1,9 +1,6 @@
 /**
  * Manual Bird Spotting Entry Screen
- * 
- * A clean, minimal interface for manually logging bird sightings with the new design system.
- * Supports multiple media types, AI identification, and comprehensive data entry.
- * 
+ *
  * Key Features:
  * - Multi-media capture (photo, video, audio)
  * - BirdNet AI identification for audio

@@ -5,6 +5,7 @@
  * Integrates with existing ML Kit services and BirdNet classification
  */
 
+import React from 'react';
 import { Platform } from 'react-native';
 import { useDetectionStore } from '@/store/detectionStore';
 import { BirdNetService } from '@/services/birdNetService';

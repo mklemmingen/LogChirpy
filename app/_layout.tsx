@@ -5,9 +5,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, UIManager } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { MD3LightTheme, MD3DarkTheme, PaperProvider } from 'react-native-paper';
+import {MD3LightTheme, MD3DarkTheme, PaperProvider} from 'react-native-paper';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Text, Button } from 'react-native';
 
 // Context and Services
 import { AuthProvider } from '@/app/context/AuthContext';
@@ -32,14 +33,7 @@ if (Platform.OS === 'android') {
     UIManager.setLayoutAnimationEnabledExperimental(false);
   }
 
-  // Enable Fragment-compatible view management
-  UIManager.constants = {
-    ...UIManager.constants,
-    AndroidViewHierarchyOptimized: true,
-    FragmentLifecycleEnabled: true,
-  };
-
-  console.log('Android Fragment lifecycle optimizations enabled');
+  console.log('Android lifecycle optimizations enabled');
 }
 
 /**
@@ -79,7 +73,7 @@ function getMaterialYouTheme(colorScheme: 'light' | 'dark' | null) {
  */
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const theme = getMaterialYouTheme(colorScheme);
+  const theme = getMaterialYouTheme(colorScheme || 'light');
 
   // Font loading with Fragment lifecycle awareness
   const [loaded] = useFonts({
@@ -107,15 +101,21 @@ export default function RootLayout() {
   }
 
   if (isDatabaseLoading) {
-    return <DatabaseLoadingScreen />;
+    return (
+        <DatabaseLoadingScreen
+            isVisible={true}
+            loadingProgress={0.5}
+            loadingStatus="Loading database..."
+        />
+    );
   }
 
   if (databaseError) {
     return (
-      <NavigationErrorBoundary
-        error={databaseError}
-        onRetry={() => window.location.reload()}
-      />
+        <NavigationErrorBoundary>
+          <Text>Database Error: {databaseError}</Text>
+          <Button title="Retry" onPress={() => window.location.reload()} />
+        </NavigationErrorBoundary>
     );
   }
 
@@ -142,7 +142,6 @@ export default function RootLayout() {
                       fullScreenGestureEnabled: false, // Prevent Fragment conflicts
                       // Fragment lifecycle optimizations
                       freezeOnBlur: true, // Preserve Fragment state
-                      unmountOnBlur: false, // Keep Fragments mounted for faster transitions
                     }}
                   >
                     {/* Main tab navigator */}
