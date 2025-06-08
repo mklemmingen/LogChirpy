@@ -101,3 +101,9 @@ yarn-error.*
 /_birdNetH5toTFlite/model_conversion_env/lib/
 /_tensorflow-js_fast_repo/
 /_old/
+/_documentationAndConversionScripts/_model_conversion_scripts/tfjs_model/
+/_documentationAndConversionScripts/_model_conversion_scripts/ssd_mobilenet_v2_320x320_coco17_tpu-8/
+/_documentationAndConversionScripts/_model_conversion_scripts/v1_224/
+/_documentationAndConversionScripts/_model_conversion_scripts/faster-rcnn-inception-resnet-v2-tensorflow2-640x640-v1/
+/_documentationAndConversionScripts/_model_conversion_scripts/saved_model/
+/_documentationAndConversionScripts/_model_conversion_scripts/objectDet/

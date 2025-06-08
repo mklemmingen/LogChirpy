@@ -9,7 +9,7 @@
 import React from 'react';
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useDetectionStore } from '../app/store/detectionStore';
+import { useDetectionStore } from '@/store/detectionStore';
 import { TensorFlowLiteGPUService } from './TensorFlowLiteGPUService';
 import { BirdNetService } from '@/services/birdNetService';
 

@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Platform } from 'react-native';
-import { useDetectionStore } from '../app/store/detectionStore';
+import { useDetectionStore } from '@/store/detectionStore';
 
 export interface HermesConfig {
   enableConcurrentGC: boolean;

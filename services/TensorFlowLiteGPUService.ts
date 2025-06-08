@@ -8,7 +8,7 @@
 import React from 'react';
 import { Platform, NativeModules } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useDetectionStore } from '../app/store/detectionStore';
+import { useDetectionStore } from '@/store/detectionStore';
 
 export interface TensorFlowLiteConfig {
   enableGPUDelegate: boolean;

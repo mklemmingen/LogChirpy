@@ -28,7 +28,7 @@ import * as FileSystem from 'expo-file-system';
 import { useAndroidViewManager } from '../../utils/AndroidViewManager';
 import { useCameraService } from '../../services/CameraService';
 import { useMLModelManager } from '../../services/MLModelManager';
-import { useDetectionStore, selectCameraState, selectMLModelState, selectAppSettings } from '../store/detectionStore';
+import { useDetectionStore, selectCameraState, selectMLModelState, selectAppSettings } from '@/store/detectionStore';
 
 // Existing imports
 import { CriticalErrorBoundary } from '@/components/ComponentErrorBoundary';

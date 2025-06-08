@@ -9,7 +9,7 @@ import { Camera, useCameraDevice, useCameraFormat, useFrameProcessor } from 'rea
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { runOnJS, runOnUI } from 'react-native-reanimated';
-import { useDetectionStore } from '../app/store/detectionStore';
+import { useDetectionStore } from '@/store/detectionStore';
 
 export interface CameraConfig {
   targetWidth: number;

@@ -9,7 +9,7 @@
 import React from 'react';
 import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
 import { request, check, PERMISSIONS, RESULTS, Permission } from 'react-native-permissions';
-import { useDetectionStore } from '../app/store/detectionStore';
+import { useDetectionStore } from '@/store/detectionStore';
 
 export interface PermissionStatus {
   granted: boolean;

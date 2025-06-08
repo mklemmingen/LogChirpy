@@ -6,7 +6,7 @@
  */
 
 import { Platform } from 'react-native';
-import { useDetectionStore } from '../app/store/detectionStore';
+import { useDetectionStore } from '@/store/detectionStore';
 import { BirdNetService } from '@/services/birdNetService';
 
 export interface MLConfig {
