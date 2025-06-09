@@ -19,7 +19,6 @@ import Svg, {Rect, Text as SvgText} from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
 import {useObjectDetection} from '@infinitered/react-native-mlkit-object-detection';
 import type {MyModelsConfig} from './../_layout';
-import {Directory, File, Paths} from 'expo-file-system/next';
 
 import {useFocusEffect, useIsFocused} from '@react-navigation/native';
 import {useAppState} from '@react-native-community/hooks';
@@ -431,28 +430,20 @@ function ObjectIdentCameraContent() {
 
                 setImageDims({ width: manipResult.width, height: manipResult.height });
 
-                // Save manipulated image to the document directory using expo-file-system/next
+                // Save manipulated image to the document directory using standard FileSystem
                 try {
-                    const destDir = new Directory(Paths.document);
-                    try {
-                        destDir.create(); // ensure the document directory exists
-                    } catch {
-                        // Directory likely exists; ignore error
-                    }
                     const fileName = `photo_${Date.now()}.jpg`;
-                    const destFile = new File(destDir, fileName);
+                    const destPath = `${FileSystem.documentDirectory}${fileName}`;
 
-                    // Prepare source file instance from the manipulate result URI
-                    const manipUri = manipResult.uri;
-                    const srcName = Paths.basename(manipUri);
-                    const srcDirPath = Paths.dirname(manipUri);
-                    const srcDir = new Directory(srcDirPath);
-                    const srcFile = new File(srcDir, srcName);
-
-                    await srcFile.copy(destFile);
-                    console.log('Photo saved to document directory:', destFile.uri);
+                    // Copy the manipulated image to document directory
+                    await FileSystem.copyAsync({
+                        from: manipResult.uri,
+                        to: destPath
+                    });
+                    
+                    console.log('Photo saved to document directory:', destPath);
                     // Set photoPath to the URI for MLKit
-                    const savedPath = destFile.uri;
+                    const savedPath = destPath;
 
                     setPhotoPath(savedPath);
 
@@ -537,11 +528,10 @@ function ObjectIdentCameraContent() {
             // Delete the last photo file (cleanup) if it exists
             if (lastPhotoUri) {
                 try {
-                    const lastFileName = Paths.basename(lastPhotoUri);
-                    const lastFile = new File(Paths.document, lastFileName);
-                    if (lastFile.exists) {
-                        await lastFile.delete();
-                        console.log('Deleted previous photo:', lastFile.uri);
+                    const fileInfo = await FileSystem.getInfoAsync(lastPhotoUri);
+                    if (fileInfo.exists) {
+                        await FileSystem.deleteAsync(lastPhotoUri);
+                        console.log('Deleted previous photo:', lastPhotoUri);
                     }
                 } catch (deleteError) {
                     console.warn('Error deleting previous photo:', deleteError);
@@ -557,34 +547,18 @@ function ObjectIdentCameraContent() {
                 });
 
                 // Save the rendered image to document directory
-                const resultPath = result.uri;
-                const resultName = Paths.basename(resultPath);
-                const resultDirPath = Paths.dirname(resultPath);
-                const resultDir = new Directory(resultDirPath);
-                const srcResultFile = new File(resultDir, resultName);
+                const fileName = `photo_${Date.now()}.jpg`;
+                const imagePath = `${FileSystem.documentDirectory}${fileName}`;
 
-                const destDir2 = new Directory(Paths.document);
-                try {
-                    destDir2.create();
-                } catch {
-                    // Directory likely exists; ignore error
-                }
+                await FileSystem.copyAsync({
+                    from: result.uri,
+                    to: imagePath
+                });
 
-                const destFile2 = new File(destDir2, `photo_${Date.now()}.jpg`);
-                await srcResultFile.copy(destFile2);
-
-                const { exists } = await FileSystem.getInfoAsync(destFile2.uri);
+                const { exists } = await FileSystem.getInfoAsync(imagePath);
                 if (!exists) {
-                    throw new Error(`File not ready at ${destFile2.uri}`);
+                    throw new Error(`File not ready at ${imagePath}`);
                 }
-
-                // Ensure file exists (this should be immediate after copy)
-                if (!destFile2.exists) {
-                    throw new Error(`File still doesn't exist at ${destFile2.uri}`);
-                }
-
-                // Prepare the path for MLKit
-                const imagePath = destFile2.uri;
 
                 console.log('Original result URI:', result.uri);
                 console.log('MLKit Path:', imagePath);
@@ -670,16 +644,9 @@ function ObjectIdentCameraContent() {
                         console.warn('Failed to classify crop:', e);
                     }
 
-                    // get the directory and filename straight from the URI:
-                    const dirPath  = Paths.dirname(cropUri);
-                    const fileName = Paths.basename(cropUri);
-
-                    // construct a Directory/File pair for that path + name
-                    const cropDir  = new Directory(dirPath);
-                    const cropFile = new File(cropDir, fileName);
-
+                    // Delete the crop file
                     try {
-                        await cropFile.delete();
+                        await FileSystem.deleteAsync(cropUri);
                         console.log('Deleted crop:', cropUri);
                     } catch (err) {
                         console.warn('Could not delete crop file:', err);
