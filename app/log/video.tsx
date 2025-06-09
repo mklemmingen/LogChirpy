@@ -27,7 +27,7 @@ import {EnhancedCameraControls} from '@/components/CameraControls';
 import {useTheme, useTypography, useColors} from '@/hooks/useThemeColor';
 
 // Context
-import {useLogDraft} from '../context/LogDraftContext';
+import {useLogDraft} from '@/contexts/LogDraftContext';
 
 type RecordingState = 'idle' | 'recording' | 'stopping' | 'preview';
 

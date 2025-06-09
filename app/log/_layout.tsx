@@ -1,6 +1,6 @@
 import {Stack} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {LogDraftProvider} from '../context/LogDraftContext';
+import {LogDraftProvider} from '@/contexts/LogDraftContext';
 
 export default function LogLayout() {
     const { t } = useTranslation();

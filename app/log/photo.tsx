@@ -10,7 +10,7 @@ import {ThemedView} from '@/components/ThemedView';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {theme} from '@/constants/theme';
-import {useLogDraft} from '../context/LogDraftContext';
+import {useLogDraft} from '@/contexts/LogDraftContext';
 
 export default function PhotoCapture() {
   const { t } = useTranslation();

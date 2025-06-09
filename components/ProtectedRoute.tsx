@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '@/app/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSemanticColors } from '../hooks/useThemeColor';
 
 interface ProtectedRouteProps {

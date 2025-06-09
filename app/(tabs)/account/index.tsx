@@ -8,7 +8,7 @@ import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 
 import {ModernCard} from '@/components/ModernCard';
 import {useTheme, useTypography, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
-import { useAuth } from '@/app/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Feather } from '@expo/vector-icons';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);

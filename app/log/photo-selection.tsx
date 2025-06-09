@@ -9,7 +9,7 @@ import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {theme} from '@/constants/theme';
-import {useLogDraft} from '../context/LogDraftContext';
+import {useLogDraft} from '@/contexts/LogDraftContext';
 import {useColors} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

@@ -16,7 +16,7 @@ import Animated, {
     withTiming,
 } from 'react-native-reanimated';
 
-import {useLogDraft} from '../context/LogDraftContext';
+import {useLogDraft} from '@/contexts/LogDraftContext';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';

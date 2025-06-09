@@ -1,7 +1,7 @@
 import React from 'react';
 import {Stack} from 'expo-router';
 
-export default function ArchiveLayout() {
+export default function BirdexLayout() {
     return (
         <Stack
             screenOptions={{

@@ -46,7 +46,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import {BlurView} from 'expo-blur';
 
-import {useLogDraft} from '../context/LogDraftContext';
+import {useLogDraft} from '@/contexts/LogDraftContext';
 import {BirdSpotting, insertBirdSpotting} from '@/services/database';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {BirdNetService, BirdNetPrediction} from '@/services/birdNetService';

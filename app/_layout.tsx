@@ -20,7 +20,7 @@ import "@/i18n/i18n";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColors, useTheme, useTypography, useShadows } from '@/hooks/useThemeColor';
-import { AuthProvider } from '@/app/context/AuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
 
 import {

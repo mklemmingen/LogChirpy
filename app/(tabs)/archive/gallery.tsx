@@ -68,7 +68,7 @@ export default function GalleryManagementScreen() {
                     return {
                         uri: filePath,
                         filename: filename,
-                        size: info.size || 0,
+                        size: info.exists && 'size' in info ? info.size : 0,
                         modificationTime: info.modificationTime || 0,
                         classification,
                     };
