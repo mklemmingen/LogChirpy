@@ -78,10 +78,11 @@ export function useMLDetection(): UseMLDetectionReturn {
 
   const checkGPUAvailability = useCallback(async () => {
     try {
-      // GPU availability check - will be implemented when service supports it
+      // Check actual GPU availability
+      const gpuAvailable = await fastTfliteBirdClassifier.isGPUAvailable();
       setPerformance(prev => ({
         ...prev,
-        gpuAccelerated: Platform.OS === 'android',
+        gpuAccelerated: gpuAvailable,
       }));
     } catch (error) {
       console.warn('[useMLDetection] GPU availability check failed:', error);
@@ -105,21 +106,50 @@ export function useMLDetection(): UseMLDetectionReturn {
 
       // FastTFLite detection with GPU acceleration
       if (config.enableFastTFLite) {
-        const fastTFLitePromise = Promise.resolve([
-          // Mock results for now - will be replaced with actual service call
-          { label: 'Robin', confidence: 0.85, timestamp: Date.now() },
-          { label: 'Sparrow', confidence: 0.72, timestamp: Date.now() },
-        ]);
+        const fastTFLitePromise = (async () => {
+          try {
+            // For image classification, we use the classifyImage method
+            // Note: BirdNet model is designed for audio, so this is a placeholder
+            const results = await fastTfliteBirdClassifier.classifyImage(imagePath, {
+              enableGPU: config.enableGPU,
+              confidenceThreshold: config.confidenceThreshold,
+              maxResults: config.maxResults,
+            });
+            
+            // Convert BirdClassificationResult to MLDetectionResult
+            return results.map(result => ({
+              label: result.species,
+              confidence: result.confidence,
+              timestamp: Date.now()
+            }));
+          } catch (error) {
+            console.error('FastTFLite detection error:', error);
+            // Return empty array on error to allow other detectors to continue
+            return [];
+          }
+        })();
         
         detectionPromises.push(fastTFLitePromise);
       }
 
       // MLKit detection as fallback/comparison
       if (config.enableMLKit) {
-        const mlkitPromise = Promise.resolve([
-          // Mock results for now - will be replaced with actual service call
-          { label: 'Cardinal', confidence: 0.78, timestamp: Date.now() },
-        ]);
+        // Import mlkitBirdClassifier when available
+        const mlkitPromise = (async () => {
+          try {
+            // TODO: Replace with actual MLKit service call when available
+            // const { mlkitBirdClassifier } = await import('@/services/mlkitBirdClassifier');
+            // const results = await mlkitBirdClassifier.classifyImage(imagePath, options);
+            
+            // For now, return mock data
+            return [
+              { label: 'MLKit: Cardinal', confidence: 0.78, timestamp: Date.now() },
+            ];
+          } catch (error) {
+            console.error('MLKit detection error:', error);
+            return [];
+          }
+        })();
         
         detectionPromises.push(mlkitPromise);
       }

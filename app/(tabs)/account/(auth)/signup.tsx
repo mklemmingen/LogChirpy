@@ -252,7 +252,7 @@ export default function ModernSignupScreen() {
             <ThemedSafeAreaView style={styles.container}>
             <KeyboardAvoidingView
                 style={styles.keyboardView}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior="height"
             >
                 <ScrollView
                     style={styles.scrollView}

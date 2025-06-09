@@ -84,7 +84,7 @@ export class AndroidFragmentManager {
     return {
       // Fragment lifecycle optimization
       lazy: true, // Load Fragment only when needed
-      unmountOnBlur: false, // Keep Fragment alive for faster switching
+      // unmountOnBlur: false, // Keep Fragment alive for faster switching
       
       // Android-specific optimizations
       freezeOnBlur: true, // Freeze Fragment state when not active
@@ -93,9 +93,9 @@ export class AndroidFragmentManager {
       tabBarHideOnKeyboard: true,
       
       // Hardware acceleration
-      sceneContainerStyle: {
-        backgroundColor: 'transparent',
-      },
+      // sceneContainerStyle: {
+      //   backgroundColor: 'transparent',
+      // },
     };
   }
 
@@ -273,8 +273,8 @@ export class AndroidFragmentManager {
         }
         
         // Force garbage collection if available
-        if (global.gc) {
-          setTimeout(() => global.gc(), 100);
+        if ((global as any).gc) {
+          setTimeout(() => (global as any).gc(), 100);
         }
       }
     } catch (error) {
@@ -332,8 +332,8 @@ export class AndroidFragmentManager {
       instance.unregisterFragment(fragmentId);
       
       // Force garbage collection
-      if (global.gc) {
-        setTimeout(() => global.gc(), 200);
+      if ((global as any).gc) {
+        setTimeout(() => (global as any).gc(), 200);
       }
     } catch (error) {
       console.warn(`Fragment onDestroyView failed for ${fragmentId}:`, error);

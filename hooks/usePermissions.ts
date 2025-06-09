@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
-import { Camera } from 'react-native-vision-camera';
-import * as Location from 'expo-location';
-import * as MediaLibrary from 'expo-media-library';
+import { Alert, Linking } from 'react-native';
 import { Android14PermissionManager } from '@/services/Android14PermissionManager';
 
 interface PermissionStatus {
@@ -71,14 +68,12 @@ export function usePermissions(): UsePermissionsReturn {
 
   const checkCameraPermission = useCallback(async (): Promise<PermissionStatus['camera']> => {
     try {
-      if (Platform.OS === 'android') {
-        // Mock implementation for now - will be replaced with actual Android14PermissionManager
-        const status = await Camera.getCameraPermissionStatus();
-        return status as PermissionStatus['camera'];
-      } else {
-        const status = await Camera.getCameraPermissionStatus();
-        return status as PermissionStatus['camera'];
-      }
+      // Use Android14PermissionManager for Android
+      const manager = Android14PermissionManager.getInstance();
+      const status = await manager.requestCameraPermission();
+      if (status.granted) return 'granted';
+      if (status.blocked) return 'blocked';
+      return 'denied';
     } catch (error) {
       console.error('[usePermissions] Camera permission check failed:', error);
       return 'denied';
@@ -87,8 +82,13 @@ export function usePermissions(): UsePermissionsReturn {
 
   const checkLocationPermission = useCallback(async (): Promise<PermissionStatus['location']> => {
     try {
-      const { status } = await Location.getForegroundPermissionsAsync();
-      return mapExpoPermissionStatus(status);
+      // Use Android14PermissionManager for Android
+      const manager = Android14PermissionManager.getInstance();
+      const result = await manager.requestLocationPermissions(false);
+      const status = result.foreground;
+      if (status.granted) return 'granted';
+      if (status.blocked) return 'blocked';
+      return 'denied';
     } catch (error) {
       console.error('[usePermissions] Location permission check failed:', error);
       return 'denied';
@@ -97,8 +97,13 @@ export function usePermissions(): UsePermissionsReturn {
 
   const checkMediaLibraryPermission = useCallback(async (): Promise<PermissionStatus['mediaLibrary']> => {
     try {
-      const { status } = await MediaLibrary.getPermissionsAsync();
-      return mapExpoPermissionStatus(status);
+      // Use Android14PermissionManager for Android
+      const manager = Android14PermissionManager.getInstance();
+      const result = await manager.requestPhotoPermissions();
+      const status = result.read; // Use read permission as main status
+      if (status.granted || status.limited) return 'granted';
+      if (status.blocked) return 'blocked';
+      return 'denied';
     } catch (error) {
       console.error('[usePermissions] Media library permission check failed:', error);
       return 'denied';
@@ -107,13 +112,12 @@ export function usePermissions(): UsePermissionsReturn {
 
   const checkNotificationPermission = useCallback(async (): Promise<PermissionStatus['notifications']> => {
     try {
-      if (Platform.OS === 'android') {
-        // Mock implementation for Android notifications
-        return 'granted';
-      } else {
-        // iOS notification permissions would go here
-        return 'granted';
-      }
+      // Use Android14PermissionManager for Android
+      const manager = Android14PermissionManager.getInstance();
+      const status = await manager.requestNotificationPermission();
+      if (status.granted) return 'granted';
+      if (status.blocked) return 'blocked';
+      return 'denied';
     } catch (error) {
       console.error('[usePermissions] Notification permission check failed:', error);
       return 'denied';
@@ -122,10 +126,12 @@ export function usePermissions(): UsePermissionsReturn {
 
   const requestCameraPermission = useCallback(async (): Promise<boolean> => {
     try {
-      const status = await Camera.requestCameraPermission();
-      const granted = status === 'granted';
-
-      const newStatus = granted ? 'granted' : 'denied';
+      // Use Android14PermissionManager for Android
+      const manager = Android14PermissionManager.getInstance();
+      const result = await manager.requestCameraPermission();
+      const granted = result.granted;
+      
+      const newStatus = granted ? 'granted' : (result.blocked ? 'blocked' : 'denied');
       setPermissions(prev => ({ ...prev, camera: newStatus }));
       
       return granted;
@@ -138,10 +144,13 @@ export function usePermissions(): UsePermissionsReturn {
 
   const requestLocationPermission = useCallback(async (): Promise<boolean> => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      const granted = status === 'granted';
-
-      const newStatus = granted ? 'granted' : 'denied';
+      // Use Android14PermissionManager for Android
+      const manager = Android14PermissionManager.getInstance();
+      const result = await manager.requestLocationPermissions(false);
+      const status = result.foreground;
+      const granted = status.granted;
+      
+      const newStatus = granted ? 'granted' : (status.blocked ? 'blocked' : 'denied');
       setPermissions(prev => ({ ...prev, location: newStatus }));
       
       return granted;
@@ -154,10 +163,13 @@ export function usePermissions(): UsePermissionsReturn {
 
   const requestMediaLibraryPermission = useCallback(async (): Promise<boolean> => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      const granted = status === 'granted';
-
-      const newStatus = granted ? 'granted' : 'denied';
+      // Use Android14PermissionManager for Android
+      const manager = Android14PermissionManager.getInstance();
+      const result = await manager.requestPhotoPermissions();
+      const status = result.read; // Use read permission as main status
+      const granted = status.granted || status.limited;
+      
+      const newStatus = granted ? 'granted' : (status.blocked ? 'blocked' : 'denied');
       setPermissions(prev => ({ ...prev, mediaLibrary: newStatus }));
       
       return granted;
@@ -170,10 +182,12 @@ export function usePermissions(): UsePermissionsReturn {
 
   const requestNotificationPermission = useCallback(async (): Promise<boolean> => {
     try {
-      // Mock implementation for notifications
-      const granted = true;
-
-      const newStatus = granted ? 'granted' : 'denied';
+      // Use Android14PermissionManager for Android
+      const manager = Android14PermissionManager.getInstance();
+      const result = await manager.requestNotificationPermission();
+      const granted = result.granted;
+      
+      const newStatus = granted ? 'granted' : (result.blocked ? 'blocked' : 'denied');
       setPermissions(prev => ({ ...prev, notifications: newStatus }));
       
       return granted;
@@ -202,21 +216,17 @@ export function usePermissions(): UsePermissionsReturn {
   }, []);
 
   const openSettings = useCallback(() => {
-    if (Platform.OS === 'android') {
-      Alert.alert(
-        'Permissions Required',
-        'Please enable the required permissions in Settings to use all features of LogChirpy.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Open Settings', 
-            onPress: () => Linking.openSettings(),
-          },
-        ]
-      );
-    } else {
-      Linking.openSettings();
-    }
+    Alert.alert(
+      'Permissions Required',
+      'Please enable the required permissions in Settings to use all features of LogChirpy.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Open Settings', 
+          onPress: () => Linking.openSettings(),
+        },
+      ]
+    );
   }, []);
 
   // Helper functions
@@ -230,19 +240,6 @@ export function usePermissions(): UsePermissionsReturn {
         return 'blocked';
       default:
         return 'pending';
-    }
-  };
-
-  const mapExpoPermissionStatus = (status: string): PermissionStatus['camera'] => {
-    switch (status) {
-      case 'granted':
-        return 'granted';
-      case 'denied':
-        return 'denied';
-      case 'undetermined':
-        return 'pending';
-      default:
-        return 'denied';
     }
   };
 

@@ -82,14 +82,14 @@ export class NavigationErrorBoundary extends React.Component<Props, State> {
       
       console.log(`[NavigationErrorBoundary] Auto-recovery scheduled in ${recoveryDelay}ms (attempt ${newErrorCount}/${this.maxErrorCount})`);
       
-      this.recoveryTimeoutId = window.setTimeout(() => {
+      this.recoveryTimeoutId = setTimeout(() => {
         console.log('[NavigationErrorBoundary] Attempting auto-recovery...');
         this.setState({ 
           hasError: false, 
           error: null,
           errorBoundaryId: Math.random().toString(36).substr(2, 9) 
         });
-      }, recoveryDelay);
+      }, recoveryDelay) as any;
     } else {
       console.error('[NavigationErrorBoundary] Max error count reached, stopping auto-recovery');
     }

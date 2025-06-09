@@ -17,6 +17,7 @@ import { CombinedMLProvider } from '@/app/context/CombinedMLProvider';
 import { ModalRenderer } from '@/components/modals/ModalRenderer';
 import { DatabaseLoadingScreen } from '@/components/DatabaseLoadingScreen';
 import { NavigationErrorBoundary } from '@/components/NavigationErrorBoundary';
+import { birdDexDB } from '@/services/databaseBirDex';
 
 // Hooks and Utils
 import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
@@ -114,7 +115,10 @@ export default function RootLayout() {
     return (
         <NavigationErrorBoundary>
           <Text>Database Error: {databaseError}</Text>
-          <Button title="Retry" onPress={() => window.location.reload()} />
+          <Button title="Retry" onPress={() => {
+            // Android-compatible retry: re-initialize the database
+            birdDexDB.initialize();
+          }} />
         </NavigationErrorBoundary>
     );
   }

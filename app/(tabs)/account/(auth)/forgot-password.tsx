@@ -256,8 +256,8 @@ export default function ForgotPasswordScreen() {
             <ThemedSafeAreaView style={styles.container}>
             <KeyboardAvoidingView
                 style={styles.keyboardView}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                behavior="height"
+                keyboardVerticalOffset={20}
             >
                 <ScrollView
                     style={styles.scrollView}

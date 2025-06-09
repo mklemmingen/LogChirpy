@@ -18,10 +18,4 @@ config.resolver.extraNodeModules = {
   'react-native-fs': require.resolve('expo-file-system'),
 };
 
-// 4) Blacklist everything in the stray X:\node_modules (so Metro never scans the drive root)
-const driveRootNodeModules = path.win32.join('X:', 'node_modules');
-config.resolver.blacklistRE = exclusionList([
-  new RegExp(`^${driveRootNodeModules.replace(/\\/g, '\\\\')}\\\\.*$`),
-]);
-
 module.exports = config;

@@ -11,6 +11,13 @@ import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
 import { request, check, PERMISSIONS, RESULTS, Permission } from 'react-native-permissions';
 import { useDetectionStore } from '@/store/detectionStore';
 
+// Helper function to safely get numeric Platform.Version
+const getPlatformVersion = (): number => {
+  return typeof Platform.Version === 'string' 
+    ? parseInt(Platform.Version, 10) 
+    : Platform.Version;
+};
+
 export interface PermissionStatus {
   granted: boolean;
   limited: boolean;
@@ -189,12 +196,12 @@ export class Android14PermissionManager {
       // Android 14+ granular media permissions
       const permissions = [];
       
-      if (Platform.Version >= 34) { // Android 14+
+      if (getPlatformVersion() >= 34) { // Android 14+
         permissions.push(
           PERMISSIONS.ANDROID.READ_MEDIA_IMAGES,
           PERMISSIONS.ANDROID.READ_MEDIA_VISUAL_USER_SELECTED // Partial access
         );
-      } else if (Platform.Version >= 33) { // Android 13
+      } else if (getPlatformVersion() >= 33) { // Android 13
         permissions.push(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES);
       } else {
         // Android 12 and below
@@ -228,13 +235,13 @@ export class Android14PermissionManager {
       this.permissionState.photosPartial = partialStatus;
 
       // Handle Android 14+ partial photo access
-      if (Platform.Version >= 34 && this.config.enablePartialPhotoAccess) {
+      if (getPlatformVersion() >= 34 && this.config.enablePartialPhotoAccess) {
         await this.handlePartialPhotoAccess(readStatus, partialStatus);
       }
 
       // Request write permission if needed
       let writeStatus = this.getInitialPermissionStatus();
-      if (Platform.Version < 29) { // Before Android 10 (scoped storage)
+      if (getPlatformVersion() < 29) { // Before Android 10 (scoped storage)
         const writeResult = await request(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
         writeStatus = this.mapPermissionResult(writeResult);
         this.permissionState.photosWrite = writeStatus;
@@ -319,7 +326,7 @@ export class Android14PermissionManager {
     try {
       console.log('[PermissionManager] Requesting notification permission');
 
-      if (Platform.Version < 33) {
+      if (getPlatformVersion() < 33) {
         // Android 12 and below don't require notification permission
         const status = { granted: true, limited: false, denied: false, blocked: false, unavailable: false };
         this.permissionState.notifications = status;
@@ -381,7 +388,7 @@ export class Android14PermissionManager {
       let backgroundStatus: PermissionStatus | undefined;
 
       // Request background location if needed and granted foreground
-      if (includeBackground && foregroundStatus.granted && Platform.Version >= 29) {
+      if (includeBackground && foregroundStatus.granted && getPlatformVersion() >= 29) {
         // Show additional rationale for background location
         const shouldRequestBackground = await this.showBackgroundLocationRationale();
         
@@ -459,16 +466,16 @@ export class Android14PermissionManager {
       ];
 
       // Add version-specific permissions
-      if (Platform.Version >= 33) {
+      if (getPlatformVersion() >= 33) {
         permissions.push({ key: 'notifications', permission: PERMISSIONS.ANDROID.POST_NOTIFICATIONS });
       }
 
-      if (Platform.Version >= 34) {
+      if (getPlatformVersion() >= 34) {
         permissions.push(
           { key: 'photosRead', permission: PERMISSIONS.ANDROID.READ_MEDIA_IMAGES },
           { key: 'photosPartial', permission: PERMISSIONS.ANDROID.READ_MEDIA_VISUAL_USER_SELECTED }
         );
-      } else if (Platform.Version >= 33) {
+      } else if (getPlatformVersion() >= 33) {
         permissions.push({ key: 'photosRead', permission: PERMISSIONS.ANDROID.READ_MEDIA_IMAGES });
       } else {
         permissions.push({ key: 'photosRead', permission: PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE });

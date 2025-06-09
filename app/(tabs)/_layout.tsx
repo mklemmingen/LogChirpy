@@ -91,45 +91,6 @@ function EnhancedTabIcon({
     );
 }
 
-/**
- * Enhanced Tab Background Component for iOS with themed styling
- * Provides translucent background effect with proper contrast support
- * 
- * @returns {JSX.Element} Tab bar background with border and themed colors
- */
-function EnhancedTabBackground() {
-    const colors = useUnifiedColors();
-
-    return (
-        <>
-            {/* Main background with proper theme support */}
-            <ThemedView
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    bottom: 0,
-                    right: 0,
-                    backgroundColor: colors.background.elevated,
-                    opacity: 0.95,
-                }}
-            />
-
-            {/* Subtle border for definition */}
-            <ThemedView
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 1,
-                    backgroundColor: colors.border.primary,
-                    opacity: 0.3,
-                }}
-            />
-        </>
-    );
-}
 
 /**
  * Modern Tab Layout Component with responsive design and accessibility
@@ -197,32 +158,19 @@ export default function ModernTabLayout() {
                 animation: 'none',                             // Prevent animation conflicts during navigation
                 tabBarHideOnKeyboard: true,
 
-                // Modern tab bar styling with responsive semantic colors
-                tabBarStyle: Platform.select({
-                    ios: {
-                        backgroundColor: colors.background.secondary,
-                        borderTopWidth: 1,
-                        borderTopColor: colors.border.primary,
-                        height: dimensions.navigation.tabBarHeight,
-                        paddingBottom: dimensions.layout.screenPadding.vertical,
-                        paddingTop: dimensions.layout.componentSpacing / 2,
-                        paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-                        position: 'absolute',
-                        ...theme.shadows.lg,
-                    },
-                    android: {
-                        backgroundColor: colors.background.secondary + 'CC', // Semi-transparent for stability
-                        borderTopWidth: 1,
-                        borderTopColor: colors.border.primary,
-                        height: dimensions.navigation.tabBarHeight,
-                        paddingBottom: dimensions.layout.componentSpacing / 2,
-                        paddingTop: dimensions.layout.componentSpacing / 2,
-                        paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-                        position: 'absolute',
-                        elevation: 8,
-                        shadowColor: colors.text.primary,
-                    }
-                }),
+                // Modern tab bar styling for Android
+                tabBarStyle: {
+                    backgroundColor: colors.background.secondary + 'CC', // Semi-transparent for stability
+                    borderTopWidth: 1,
+                    borderTopColor: colors.border.primary,
+                    height: dimensions.navigation.tabBarHeight,
+                    paddingBottom: dimensions.layout.componentSpacing / 2,
+                    paddingTop: dimensions.layout.componentSpacing / 2,
+                    paddingHorizontal: dimensions.layout.screenPadding.horizontal,
+                    position: 'absolute',
+                    elevation: 8,
+                    shadowColor: colors.text.primary,
+                },
 
                 // Enhanced color system with unified colors
                 tabBarActiveTintColor: colors.text.primary,
@@ -231,10 +179,7 @@ export default function ModernTabLayout() {
                 // Hide tab labels - icons only for cleaner interface
                 tabBarShowLabel: false,
 
-                // Enhanced iOS blur effect with proper hierarchy
-                ...(Platform.OS === 'ios' && {
-                    tabBarBackground: () => <EnhancedTabBackground />,
-                }),
+                // Android-only - no blur effect needed
 
                 // Enhanced header styling with responsive colors
                 headerStyle: {

@@ -141,8 +141,8 @@ export class AndroidViewManager {
         // Trigger cleanup for non-visible items
         if (viewableItems.length > 20) {
           // Force garbage collection on large lists
-          if (global.gc) {
-            setTimeout(() => global.gc(), 100);
+          if ((global as any).gc) {
+            setTimeout(() => (global as any).gc(), 100);
           }
         }
       },
@@ -192,8 +192,8 @@ export class AndroidViewManager {
         });
         
         // Force garbage collection if available
-        if (global.gc) {
-          setTimeout(() => global.gc(), 0);
+        if ((global as any).gc) {
+          setTimeout(() => (global as any).gc(), 0);
         }
       } catch (error) {
         console.warn('Fragment cleanup failed:', error);
