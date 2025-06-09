@@ -228,15 +228,8 @@ async function uploadLocal(
   remotePath: string
 ): Promise<string> {
   try {
-    // Read file as base64 and convert to blob for Android
-    const base64 = await FileSystem.readAsStringAsync(localPath, { encoding: FileSystem.EncodingType.Base64 });
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray]);
+    const response = await fetch(localPath);
+    const blob = await response.blob();
 
     const storage = getStorage();
     const storageRef = ref(storage, remotePath);

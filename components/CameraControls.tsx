@@ -1,11 +1,16 @@
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import SafeBlurView from '@/components/ui/SafeBlurView';
+import { BlurView } from 'expo-blur';
 import { ThemedIcon } from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+    interpolate,
+} from 'react-native-reanimated';
 
-import { useUnifiedColors } from '@/hooks/useUnifiedColors';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import {
     useTheme,
     useSemanticColors,
@@ -24,6 +29,7 @@ interface EnhancedCameraControlsProps {
     variant?: 'default' | 'glass';
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function EnhancedCameraControls({
                                            onCapture,
@@ -35,43 +41,43 @@ export function EnhancedCameraControls({
                                            variant = 'glass',
                                        }: EnhancedCameraControlsProps) {
     const theme = useTheme();
-    const colors = useUnifiedColors();
-    const dimensions = useResponsiveDimensions();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const motion = useMotionValues();
 
+    // Animation values
+    const captureScale = useSharedValue(1);
+    const captureGlow = useSharedValue(0);
+    const flipScale = useSharedValue(1);
+    const flipRotation = useSharedValue(0);
 
-    // Size configurations following responsive design system
+    // Size configurations following design system
     const getSizeConfig = () => {
-        const baseSize = dimensions.touchTarget.large;
-        const multiplier = dimensions.multipliers.size;
-        
         switch (size) {
             case 'small':
                 return {
-                    captureSize: Math.max(baseSize * 0.75 * multiplier, 48),
-                    captureInner: Math.max(baseSize * 0.6 * multiplier, 40),
-                    flipSize: Math.max(baseSize * 0.5 * multiplier, 32),
-                    flipIcon: dimensions.icon.sm,
-                    containerPadding: dimensions.layout.componentSpacing
+                    captureSize: 60,
+                    captureInner: 48,
+                    flipSize: 40,
+                    flipIcon: 16,
+                    containerPadding: 16
                 };
             case 'medium':
                 return {
-                    captureSize: Math.max(baseSize * 0.875 * multiplier, 56),
-                    captureInner: Math.max(baseSize * 0.7 * multiplier, 48),
-                    flipSize: Math.max(baseSize * 0.6 * multiplier, 40),
-                    flipIcon: dimensions.icon.md,
-                    containerPadding: dimensions.layout.componentSpacing * 1.25
+                    captureSize: 70,
+                    captureInner: 56,
+                    flipSize: 48,
+                    flipIcon: 20,
+                    containerPadding: 20
                 };
             case 'large':
             default:
                 return {
-                    captureSize: Math.max(baseSize * multiplier, 64),
-                    captureInner: Math.max(baseSize * 0.8 * multiplier, 56),
-                    flipSize: Math.max(baseSize * 0.7 * multiplier, 48),
-                    flipIcon: dimensions.icon.lg,
-                    containerPadding: dimensions.layout.componentSpacing * 1.5
+                    captureSize: 80,
+                    captureInner: 64,
+                    flipSize: 56,
+                    flipIcon: 24,
+                    containerPadding: 24
                 };
         }
     };
@@ -87,6 +93,28 @@ export function EnhancedCameraControls({
                 : Haptics.ImpactFeedbackStyle.Medium
         );
 
+        // Spring animation matching design system
+        captureScale.value = withSpring(0.95, {
+            damping: 15,
+            stiffness: 300
+        }, () => {
+            captureScale.value = withSpring(1, {
+                damping: 15,
+                stiffness: 300
+            });
+        });
+
+        // Glow effect for visual feedback
+        if (!isRecording) {
+            captureGlow.value = withTiming(1, {
+                duration: 150
+            }, () => {
+                captureGlow.value = withTiming(0, {
+                    duration: 200
+                });
+            });
+        }
+
         onCapture();
     };
 
@@ -95,9 +123,45 @@ export function EnhancedCameraControls({
         if (isFlipDisabled) return;
 
         Haptics.selectionAsync();
+
+        flipScale.value = withSpring(0.9, {
+            damping: 15,
+            stiffness: 300
+        }, () => {
+            flipScale.value = withSpring(1, {
+                damping: 15,
+                stiffness: 300
+            });
+        });
+
+        // Smooth rotation animation
+        flipRotation.value = withTiming(
+            flipRotation.value + 180,
+            { duration: 200 }
+        );
+
         onFlip();
     };
 
+    // Animated styles using design system motion values
+    const captureAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: captureScale.value }],
+    }));
+
+    const captureGlowStyle = useAnimatedStyle(() => ({
+        opacity: captureGlow.value * 0.6,
+        transform: [{
+            scale: interpolate(captureGlow.value, [0, 1], [1, 1.15])
+        }],
+    }));
+
+    const flipAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [
+            { scale: flipScale.value },
+            { rotate: `${flipRotation.value}deg` }
+        ],
+        opacity: isFlipDisabled ? 0.4 : 1,
+    }));
 
     return (
         <View style={[
@@ -110,50 +174,48 @@ export function EnhancedCameraControls({
 
             {/* Enhanced Capture Button */}
             <View style={styles.section}>
-                {/* Glow effect using design system colors */}
-                <View
-                    style={[
-                        styles.glowEffect,
-                        {
-                            width: sizeConfig.captureSize + 20,
-                            height: sizeConfig.captureSize + 20,
-                            borderRadius: (sizeConfig.captureSize + 20) / 2,
-                            backgroundColor: isRecording
-                                ? semanticColors.error
-                                : semanticColors.primary,
-                            opacity: 0,
-                        },
-                    ]}
-                />
+                <Animated.View style={captureAnimatedStyle}>
+                    {/* Glow effect using design system colors */}
+                    <Animated.View
+                        style={[
+                            styles.glowEffect,
+                            {
+                                width: sizeConfig.captureSize + 20,
+                                height: sizeConfig.captureSize + 20,
+                                borderRadius: (sizeConfig.captureSize + 20) / 2,
+                                backgroundColor: isRecording
+                                    ? semanticColors.error
+                                    : semanticColors.primary,
+                            },
+                            captureGlowStyle,
+                        ]}
+                    />
 
-                <Pressable
-                    onPress={handleCapturePress}
-                    accessibilityRole="button"
-                    accessibilityLabel={isRecording ? "Stop recording" : "Take photo"}
-                    accessibilityHint={isRecording ? "Stop video recording" : "Capture a photo"}
-                    style={[
-                        styles.captureButton,
-                        {
-                            width: sizeConfig.captureSize,
-                            height: sizeConfig.captureSize,
-                            borderRadius: sizeConfig.captureSize / 2,
-                            borderColor: isRecording
-                                ? semanticColors.error
-                                : semanticColors.primary,
-                        }
-                    ]}
-                    android_ripple={{
-                        color: isRecording
-                            ? variants.primary.dark
-                            : variants.primary.dark,
-                        borderless: true
-                    }}
-                >
+                    <AnimatedPressable
+                        onPress={handleCapturePress}
+                        style={[
+                            styles.captureButton,
+                            {
+                                width: sizeConfig.captureSize,
+                                height: sizeConfig.captureSize,
+                                borderRadius: sizeConfig.captureSize / 2,
+                                borderColor: isRecording
+                                    ? semanticColors.error
+                                    : semanticColors.primary,
+                            }
+                        ]}
+                        android_ripple={{
+                            color: isRecording
+                                ? variants.primary.dark
+                                : variants.primary.dark,
+                            borderless: true
+                        }}
+                    >
                         {/* Glass effect matching app aesthetic */}
                         {variant === 'glass' && (
-                            <SafeBlurView
+                            <BlurView
                                 intensity={60}
-                                tint={colors.isDark ? 'dark' : 'light'}
+                                tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
                                 style={StyleSheet.absoluteFillObject}
                             />
                         )}
@@ -173,41 +235,37 @@ export function EnhancedCameraControls({
                                 }
                             ]}
                         />
-                </Pressable>
+                    </AnimatedPressable>
+                </Animated.View>
             </View>
 
             {/* Enhanced Flip Camera Button */}
             <View style={styles.section}>
-                <Pressable
-                    onPress={handleFlipPress}
-                    disabled={isFlipDisabled}
-                    accessibilityRole="button"
-                    accessibilityLabel="Flip camera"
-                    accessibilityHint="Switch between front and back camera"
-                    accessibilityState={{ disabled: isFlipDisabled }}
-                    style={[
-                        styles.flipButton,
-                        {
-                            width: sizeConfig.flipSize,
-                            height: sizeConfig.flipSize,
-                            borderRadius: sizeConfig.flipSize / 2,
-                            backgroundColor: variant === 'glass'
-                                ? colors.interactive.ghost
-                                : theme.colors.overlay.light,
-                            borderColor: `${colors.border.secondary}33`, // 20% opacity
-                            opacity: isFlipDisabled ? 0.4 : 1,
-                        }
-                    ]}
-                    android_ripple={{
-                        color: variants.neutral.dark,
-                        borderless: true
-                    }}
-                >
+                <Animated.View style={flipAnimatedStyle}>
+                    <AnimatedPressable
+                        onPress={handleFlipPress}
+                        disabled={isFlipDisabled}
+                        style={[
+                            styles.flipButton,
+                            {
+                                width: sizeConfig.flipSize,
+                                height: sizeConfig.flipSize,
+                                borderRadius: sizeConfig.flipSize / 2,
+                                backgroundColor: variant === 'glass'
+                                    ? 'transparent'
+                                    : theme.colors.overlay.light,
+                            }
+                        ]}
+                        android_ripple={{
+                            color: variants.neutral.dark,
+                            borderless: true
+                        }}
+                    >
                         {/* Consistent glass effect */}
                         {variant === 'glass' && (
-                            <SafeBlurView
+                            <BlurView
                                 intensity={40}
-                                tint={colors.isDark ? 'dark' : 'light'}
+                                tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
                                 style={StyleSheet.absoluteFillObject}
                             />
                         )}
@@ -217,7 +275,8 @@ export function EnhancedCameraControls({
                             size={sizeConfig.flipIcon}
                             color="primary"
                         />
-                </Pressable>
+                    </AnimatedPressable>
+                </Animated.View>
             </View>
         </View>
     );
@@ -253,6 +312,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         overflow: 'hidden',
         borderWidth: 1,
-        // borderColor will be set dynamically using unified colors
+        borderColor: 'rgba(255, 255, 255, 0.2)',
     },
 });

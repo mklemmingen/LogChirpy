@@ -130,3 +130,4 @@ yarn-error.*
 /_documentationAndConversionScripts/_model_conversion_scripts/mobilenet_quant_v1_224.tflite
 /_documentationAndConversionScripts/_model_conversion_scripts/mobilenet_v2_1.0_224_quant.tflite
 /_documentationAndConversionScripts/_model_conversion_scripts/mobilenet_v2_1.0_224_quant_info.txt
+/_REVERT_/

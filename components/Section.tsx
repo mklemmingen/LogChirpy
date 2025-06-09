@@ -1,6 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import SafeBlurView from '@/components/ui/SafeBlurView';
+import { BlurView } from 'expo-blur';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+} from 'react-native-reanimated';
 
 import {
     useTheme,
@@ -19,6 +24,7 @@ interface SectionProps {
     animated?: boolean;
 }
 
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 export default function Section({
                                     title,
@@ -33,6 +39,16 @@ export default function Section({
     const variants = useColorVariants();
     const typography = useTypography();
 
+    // Animation values
+    const scale = useSharedValue(1);
+    const opacity = useSharedValue(1);
+
+    React.useEffect(() => {
+        if (animated) {
+            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+            opacity.value = withSpring(1, { duration: 300 });
+        }
+    }, [animated, opacity, scale]);
 
     // Get variant-specific styling
     const getVariantStyle = () => {
@@ -101,10 +117,16 @@ export default function Section({
     const variantStyle = getVariantStyle();
     const spacingStyle = getSpacingStyle();
 
+    // Animation style
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+        opacity: opacity.value,
+    }));
+
     // Extract useBlur and create clean style object
     const { useBlur, ...cleanVariantStyle } = variantStyle;
 
-    const containerStyle = StyleSheet.flatten([
+    const containerStyle = [
         styles.container,
         {
             borderRadius: theme.borderRadius.lg,
@@ -112,13 +134,14 @@ export default function Section({
             ...cleanVariantStyle,
             ...spacingStyle,
         },
+        animated && animatedStyle,
         style,
-    ]);
+    ];
 
     // Render with or without blur
     if (useBlur) {
         return (
-            <SafeBlurView
+            <AnimatedBlurView
                 intensity={60}
                 tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
                 style={containerStyle}
@@ -133,12 +156,12 @@ export default function Section({
                         {children}
                     </View>
                 </View>
-            </SafeBlurView>
+            </AnimatedBlurView>
         );
     }
 
     return (
-        <View style={containerStyle}>
+        <Animated.View style={containerStyle}>
             <View style={styles.content}>
                 {title && (
                     <Text style={[typography.headlineSmall, styles.title]}>
@@ -149,7 +172,7 @@ export default function Section({
                     {children}
                 </View>
             </View>
-        </View>
+        </Animated.View>
     );
 }
 

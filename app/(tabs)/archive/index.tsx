@@ -11,13 +11,19 @@ import {
   View,
 } from 'react-native';
 import {useTranslation} from 'react-i18next';
-import {useIsFocused} from '@react-navigation/native';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
-import SafeBlurView from '@/components/ui/SafeBlurView';
+import {BlurView} from 'expo-blur';
 import {router} from 'expo-router';
+import Animated, {
+  FadeInDown,
+  FadeOutUp,
+  Layout,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import {SafeViewManager} from '@/components/SafeViewManager';
 
 import {ThemedView, Card} from '@/components/ThemedView';
 import {ThemedPressable} from '@/components/ThemedPressable';
@@ -25,11 +31,10 @@ import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {ThemedText} from '@/components/ThemedText';
 import {Button} from '@/components/Button';
 import {useColors, useTypography, useBorderRadius, useShadows, useSpacing} from '@/hooks/useThemeColor';
-import { useUnifiedColors } from '@/hooks/useUnifiedColors';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import {type BirdSpotting, getBirdSpottings} from '@/services/database';
 import {syncDatabase} from '@/services/sync_layer';
 
+// These will be calculated in the styles function based on responsive dimensions
 
 /**
  * Enhanced empty state component with responsive design and animations
@@ -40,20 +45,27 @@ import {syncDatabase} from '@/services/sync_layer';
  * @returns {JSX.Element} Animated empty state with call-to-action
  */
 function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) {
-  const colors = useUnifiedColors();
+  const colors = useColors();
   const typography = useTypography();
-  const dimensions = useResponsiveDimensions();
   const { t } = useTranslation();
 
-  const styles = createEmptyStateStyles(dimensions);
+  const styles = createEmptyStateStyles();
 
+  const floatAnimation = useSharedValue(0);
 
+  React.useEffect(() => {
+    floatAnimation.value = withSpring(1, { damping: 15, stiffness: 300 });
+  }, []);
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: (floatAnimation.value - 0.5) * 10 }],
+    opacity: floatAnimation.value,
+  }));
 
   return (
-      <View style={styles.emptyState}>
-        <View style={[styles.emptyIcon, { backgroundColor: colors.background.secondary }]}>
-          <ThemedIcon name="archive" size={dimensions.icon.xxl} color="primary" />
+      <Animated.View style={[styles.emptyState, animatedStyle]}>
+        <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
+          <ThemedIcon name="archive" size={48} color="primary" />
         </View>
 
         <ThemedText variant="h2" style={styles.emptyTitle}>
@@ -79,7 +91,7 @@ function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) 
             {t('archive.start_logging')}
           </ThemedText>
         </ThemedPressable>
-      </View>
+      </Animated.View>
   );
 }
 
@@ -105,12 +117,11 @@ function SearchHeader({
   onSync: () => void;
   isLoading: boolean;
 }) {
-  const colors = useUnifiedColors();
+  const colors = useColors();
   const typography = useTypography();
-  const dimensions = useResponsiveDimensions();
   const { t } = useTranslation();
   
-  const styles = createSearchStyles(dimensions);
+  const styles = createSearchStyles();
 
   const [showSortMenu, setShowSortMenu] = useState(false);
 
@@ -136,17 +147,17 @@ function SearchHeader({
       <View style={styles.searchHeader}>
         {/* Search Bar */}
         <Card style={styles.searchContainer}>
-          <ThemedIcon name="search" size={dimensions.icon.sm} color="secondary" />
+          <ThemedIcon name="search" size={20} color="secondary" />
           <TextInput
-              style={[styles.searchInput, { color: colors.text.primary }]}
+              style={[styles.searchInput, { color: colors.text }]}
               placeholder={t('archive.search_placeholder')}
-              placeholderTextColor={colors.text.secondary}
+              placeholderTextColor={colors.textSecondary}
               value={searchQuery}
               onChangeText={onSearchChange}
           />
           {searchQuery.length > 0 && (
               <Pressable onPress={() => onSearchChange('')}>
-                <ThemedIcon name="x" size={dimensions.icon.xs} color="secondary" />
+                <ThemedIcon name="x" size={16} color="secondary" />
               </Pressable>
           )}
         </Card>
@@ -159,7 +170,7 @@ function SearchHeader({
               style={styles.actionButton}
               onPress={() => setShowSortMenu(!showSortMenu)}
           >
-            <ThemedIcon name={getSortIcon()} size={dimensions.icon.xs} color="primary" />
+            <ThemedIcon name={getSortIcon()} size={16} color="primary" />
           </ThemedPressable>
 
           {/* Sync Button */}
@@ -171,7 +182,7 @@ function SearchHeader({
           >
             <ThemedIcon
                 name="refresh-cw"
-                size={dimensions.icon.xs}
+                size={16}
                 color={isLoading ? 'secondary' : 'primary'}
             />
           </ThemedPressable>
@@ -179,7 +190,11 @@ function SearchHeader({
 
         {/* Sort Menu */}
         {showSortMenu && (
-            <View style={styles.sortMenu}>
+            <Animated.View
+                entering={FadeInDown.duration(200)}
+                exiting={FadeOutUp.duration(150)}
+                style={styles.sortMenu}
+            >
               <Card style={styles.sortMenuContent}>
                 {[
                   { key: 'newest', label: t('archive.sort_newest'), icon: 'arrow-down' as keyof typeof Feather.glyphMap },
@@ -190,7 +205,7 @@ function SearchHeader({
                         key={option.key}
                         style={[
                           styles.sortOption,
-                          sortOrder === option.key && { backgroundColor: colors.background.secondary }
+                          sortOrder === option.key && { backgroundColor: colors.backgroundSecondary }
                         ]}
                         onPress={() => {
                           onSortChange(option.key as any);
@@ -200,7 +215,7 @@ function SearchHeader({
                     >
                       <ThemedIcon
                           name={option.icon}
-                          size={dimensions.icon.xs}
+                          size={16}
                           color={sortOrder === option.key ? 'primary' : 'secondary'}
                       />
                       <ThemedText
@@ -212,7 +227,7 @@ function SearchHeader({
                     </Pressable>
                 ))}
               </Card>
-            </View>
+            </Animated.View>
         )}
       </View>
   );
@@ -226,16 +241,10 @@ function SearchHeader({
  */
 export default function ArchiveScreen() {
   const {t} = useTranslation();
-  const colors = useUnifiedColors();
+  const colors = useColors();
   const typography = useTypography();
-  const dimensions = useResponsiveDimensions();
-  const isFocused = useIsFocused();
   
-  const styles = createStyles(dimensions);
-
-  if (!isFocused) {
-    return null;
-  }
+  const styles = createStyles();
 
   // State management
   const [spottings, setSpottings] = useState<BirdSpotting[]>([]);
@@ -352,7 +361,11 @@ export default function ArchiveScreen() {
 
   // Render spotting card
   const renderSpotting = useCallback(({item, index}: { item: BirdSpotting; index: number }) => (
-      <View style={styles.cardContainer}>
+      <Animated.View
+          entering={FadeInDown.delay(index * 50).springify()}
+          layout={Layout.springify()}
+          style={styles.cardContainer}
+      >
         <ThemedPressable
             variant="ghost"
             onPress={() => handleSpottingPress(item)}
@@ -380,13 +393,13 @@ export default function ArchiveScreen() {
                 </ThemedText>
               )}
               <View style={styles.mediaIndicators}>
-                {item.audioUri && <ThemedIcon name="mic" size={dimensions.icon.xs} color="primary" />}
-                {item.videoUri && <ThemedIcon name="video" size={dimensions.icon.xs} color="primary" />}
+                {item.audioUri && <ThemedIcon name="mic" size={16} color="primary" />}
+                {item.videoUri && <ThemedIcon name="video" size={16} color="primary" />}
               </View>
             </View>
           </Card>
         </ThemedPressable>
-      </View>
+      </Animated.View>
   ), [handleSpottingPress, t, colors]);
 
   // Loading state
@@ -394,7 +407,7 @@ export default function ArchiveScreen() {
     return (
         <ThemedSafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <ThemedIcon name="archive" size={dimensions.icon.xxl} color="primary"/>
+            <ThemedIcon name="archive" size={48} color="primary"/>
             <ThemedText variant="body" color="secondary" style={styles.loadingText}>
               {t('archive.loading')}
             </ThemedText>
@@ -404,8 +417,7 @@ export default function ArchiveScreen() {
   }
 
   return (
-      <SafeViewManager enabled={isFocused}>
-        <ThemedSafeAreaView style={styles.container}>
+      <ThemedSafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -448,7 +460,7 @@ export default function ArchiveScreen() {
         {filteredSpottings.length === 0 ? (
             searchQuery ? (
                 <View style={styles.noResultsContainer}>
-                  <ThemedIcon name="search" size={dimensions.icon.xxl} color="secondary"/>
+                  <ThemedIcon name="search" size={48} color="secondary"/>
                   <ThemedText variant="h3" color="secondary">
                     {t('archive.no_search_results')}
                   </ThemedText>
@@ -473,37 +485,36 @@ export default function ArchiveScreen() {
                   <RefreshControl
                       refreshing={refreshing}
                       onRefresh={() => loadSpottings(true)}
-                      tintColor={colors.interactive.primary}
-                      colors={[colors.interactive.primary]}
+                      tintColor={colors.primary}
+                      colors={[colors.primary]}
                   />
                 }
                 ItemSeparatorComponent={() => <View style={styles.separator}/>}
             />
         )}
-        </ThemedSafeAreaView>
-      </SafeViewManager>
+      </ThemedSafeAreaView>
   );
 }
 
 /**
- * Creates responsive styles for empty state component
+ * Creates styles for empty state component
  */
-function createEmptyStateStyles(dimensions: ReturnType<typeof useResponsiveDimensions>) {
+function createEmptyStateStyles() {
   return StyleSheet.create({
     emptyState: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-      gap: dimensions.layout.sectionSpacing,
+      paddingHorizontal: 20,
+      gap: 32,
     },
     emptyIcon: {
-      width: dimensions.icon.xxl * 2.5,
-      height: dimensions.icon.xxl * 2.5,
-      borderRadius: dimensions.icon.xxl * 1.25,
+      width: 120,
+      height: 120,
+      borderRadius: 60,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: dimensions.layout.componentSpacing / 2,
+      marginBottom: 8,
     },
     emptyTitle: {
       textAlign: 'center',
@@ -511,50 +522,50 @@ function createEmptyStateStyles(dimensions: ReturnType<typeof useResponsiveDimen
     },
     emptyDescription: {
       textAlign: 'center',
-      lineHeight: dimensions.screen.isSmall ? 20 : 22,
-      maxWidth: dimensions.screen.width * 0.8,
+      lineHeight: 22,
+      maxWidth: 280,
     },
     startButton: {
       flexDirection: 'row',
-      gap: dimensions.layout.componentSpacing / 2,
-      marginTop: dimensions.layout.componentSpacing / 2,
+      gap: 8,
+      marginTop: 8,
     },
   });
 }
 
 /**
- * Creates responsive styles for search header component
+ * Creates styles for search header component
  */
-function createSearchStyles(dimensions: ReturnType<typeof useResponsiveDimensions>) {
+function createSearchStyles() {
   return StyleSheet.create({
     searchHeader: {
-      paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-      marginBottom: dimensions.layout.componentSpacing,
+      paddingHorizontal: 20,
+      marginBottom: 16,
       position: 'relative',
     },
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: dimensions.layout.componentSpacing,
-      paddingVertical: dimensions.layout.componentSpacing * 0.75,
-      borderRadius: dimensions.card.borderRadius.lg,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 12,
       borderWidth: 1,
-      marginBottom: dimensions.layout.componentSpacing,
-      gap: dimensions.layout.componentSpacing,
-      height: dimensions.input.md.height,
+      marginBottom: 16,
+      gap: 16,
+      height: 48,
     },
     searchInput: {
       flex: 1,
-      fontSize: Math.max(16 * dimensions.multipliers.font, 14),
+      fontSize: 16,
     },
     actionButtons: {
       flexDirection: 'row',
-      gap: dimensions.layout.componentSpacing / 2,
+      gap: 8,
     },
     actionButton: {
-      width: dimensions.touchTarget.comfortable,
-      height: dimensions.touchTarget.comfortable,
-      borderRadius: dimensions.touchTarget.comfortable / 2,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -563,46 +574,44 @@ function createSearchStyles(dimensions: ReturnType<typeof useResponsiveDimension
       top: '100%',
       right: 0,
       zIndex: 10,
-      marginTop: dimensions.layout.componentSpacing / 2,
+      marginTop: 8,
     },
     sortMenuContent: {
-      borderRadius: dimensions.card.borderRadius.md,
+      borderRadius: 8,
       borderWidth: 1,
       overflow: 'hidden',
-      minWidth: 160 * dimensions.multipliers.size,
+      minWidth: 160,
     },
     sortOption: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: dimensions.layout.componentSpacing,
-      paddingVertical: dimensions.layout.componentSpacing,
-      gap: dimensions.layout.componentSpacing,
-      minHeight: dimensions.touchTarget.comfortable,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      gap: 16,
+      minHeight: 44,
     },
   });
 }
 
 /**
- * Creates responsive styles for main archive screen
+ * Creates styles for main archive screen
  */
-function createStyles(dimensions: ReturnType<typeof useResponsiveDimensions>) {
-  const cardMargin = dimensions.layout.componentSpacing;
-  // Responsive cards per row based on screen size
-  const cardsPerRow = dimensions.screen.isTablet ? 3 : dimensions.screen.isLarge ? 2 : dimensions.screen.isSmall ? 1 : 2;
-  const totalMargins = cardMargin * (cardsPerRow + 1);
-  const cardWidth = (dimensions.screen.width - totalMargins) / cardsPerRow;
+function createStyles() {
+  const cardMargin = 16;
+  const cardsPerRow = 2;
+  const cardWidth = (350 - (cardMargin * 3)) / cardsPerRow; // Assuming reasonable screen width
   
   return StyleSheet.create({
     container: {
       flex: 1,
-      paddingTop: dimensions.layout.sectionSpacing,
+      paddingTop: 32,
     },
 
     // Header
     header: {
-      paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-      paddingTop: dimensions.layout.componentSpacing,
-      paddingBottom: dimensions.layout.sectionSpacing,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 32,
     },
     headerContent: {
       flexDirection: 'row',
@@ -611,39 +620,35 @@ function createStyles(dimensions: ReturnType<typeof useResponsiveDimensions>) {
     },
     headerText: {
       flex: 1,
-      marginRight: dimensions.layout.componentSpacing,
+      marginRight: 16,
     },
     title: {
       fontWeight: 'bold',
-      marginBottom: dimensions.layout.componentSpacing / 4,
+      marginBottom: 4,
     },
     subtitle: {
       opacity: 0.8,
     },
     galleryButton: {
       flexDirection: 'row',
-      gap: dimensions.layout.componentSpacing / 4,
+      gap: 4,
     },
-
-    // Search styles moved to createSearchStyles function above
-
-    // Sort menu styles moved to createSearchStyles function above
 
     // List
     listContent: {
-      paddingHorizontal: dimensions.layout.componentSpacing,
-      paddingBottom: dimensions.layout.sectionSpacing,
+      paddingHorizontal: 16,
+      paddingBottom: 32,
     },
     row: {
       justifyContent: 'space-between',
-      paddingHorizontal: dimensions.layout.componentSpacing / 2,
+      paddingHorizontal: 8,
     },
     cardContainer: {
-      marginBottom: dimensions.layout.componentSpacing,
+      marginBottom: 16,
       width: cardWidth,
     },
     spottingCard: {
-      borderRadius: dimensions.card.borderRadius.md,
+      borderRadius: 8,
     },
     spottingCardInner: {
       overflow: 'hidden',
@@ -651,32 +656,32 @@ function createStyles(dimensions: ReturnType<typeof useResponsiveDimensions>) {
     },
     spottingImage: {
       width: '100%',
-      height: 80 * dimensions.multipliers.size,
+      height: 80,
       resizeMode: 'cover',
     },
     spottingContent: {
-      padding: dimensions.card.padding.sm,
-      gap: dimensions.layout.componentSpacing / 4,
+      padding: 12,
+      gap: 4,
     },
     birdName: {
       fontWeight: '600',
     },
     mediaIndicators: {
       flexDirection: 'row',
-      gap: dimensions.layout.componentSpacing / 2,
-      marginTop: dimensions.layout.componentSpacing / 4,
+      gap: 8,
+      marginTop: 4,
     },
     separator: {
-      height: dimensions.layout.componentSpacing / 2,
+      height: 8,
     },
 
-    // Empty States (main empty state moved to createEmptyStateStyles)
+    // Empty States
     noResultsContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-      gap: dimensions.layout.componentSpacing,
+      paddingHorizontal: 20,
+      gap: 16,
     },
 
     // Loading
@@ -684,7 +689,7 @@ function createStyles(dimensions: ReturnType<typeof useResponsiveDimensions>) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      gap: dimensions.layout.componentSpacing,
+      gap: 16,
     },
     loadingText: {
       textAlign: 'center',

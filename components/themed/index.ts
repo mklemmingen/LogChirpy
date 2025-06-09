@@ -4,7 +4,7 @@ export { ThemedText } from '../ThemedText';
 export { ThemedPressable } from '../ThemedPressable';
 export { ThemedIcon } from '../ThemedIcon';
 export { ThemedSnackbar } from '../ThemedSnackbar';
-// export { ThemedTextInput } from '../ThemedTextInput';
+export { ThemedTextInput } from '../ThemedTextInput';
 export { ThemedScrollView } from '../ThemedScrollView';
 export { ThemedSafeAreaView } from '../ThemedSafeAreaView';
 

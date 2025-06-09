@@ -1,11 +1,17 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, FlatList, StyleSheet, TextInput, View} from 'react-native';
+import React, {useCallback, useEffect, useState} from 'react';
+import {ActivityIndicator, FlatList, StyleSheet, TextInput} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
-import {useIsFocused} from '@react-navigation/native';
 import {ThemedIcon} from '@/components/ThemedIcon';
+import Animated, {
+    FadeInDown,
+    FadeOutUp,
+    Layout,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import {SafeViewManager} from '@/components/SafeViewManager';
 
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedText} from '@/components/ThemedText';
@@ -13,10 +19,7 @@ import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {ThemedView} from '@/components/ThemedView';
 import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
-import { useUnifiedColors } from '@/hooks/useUnifiedColors';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
-import {type BirdDexRecord, searchBirdsByNameCoordinated} from '@/services/databaseBirDex';
-import {cancelLowPriorityOperations} from '@/services/databaseCoordinator';
+import {type BirdDexRecord, searchBirdsByName} from '@/services/databaseBirDex';
 
 /**
  * Extended bird record type with search match information
@@ -47,18 +50,30 @@ function SearchResultCard({
     onPress: () => void;
 }) {
     const theme = useTheme();
-    const colors = useUnifiedColors();
+    const colors = useColors();
     const typography = useTypography();
-    const dimensions = useResponsiveDimensions();
     const { t } = useTranslation();
     
-    const styles = createStyles(theme, dimensions);
+    const styles = createStyles(theme);
 
+    const scale = useSharedValue(1);
+
+    const handlePressIn = () => {
+        scale.value = withSpring(0.98, { damping: 15, stiffness: 300 });
+    };
+
+    const handlePressOut = () => {
+        scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    };
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
 
     const getConfidenceColor = (confidence: number) => {
-        if (confidence >= 80) return colors.status.success;
-        if (confidence >= 60) return colors.interactive.primary;
-        return colors.text.secondary;
+        if (confidence >= 80) return colors.success;
+        if (confidence >= 60) return colors.primary;
+        return colors.textSecondary;
     };
 
     const getConfidenceText = (confidence: number) => {
@@ -69,12 +84,22 @@ function SearchResultCard({
     };
 
     return (
-        <ModernCard
-            elevated={true}
-            bordered={false}
-            onPress={onPress}
-            style={styles.resultCard}
+        <Animated.View
+            entering={FadeInDown.delay(index * 100).springify()}
+            exiting={FadeOutUp.springify()}
+            layout={Layout.springify()}
         >
+            <Animated.View style={animatedStyle}>
+                <ModernCard
+                    elevated={true}
+                    bordered={false}
+                    onPress={onPress}
+                    // Remove these lines:
+                    // onPressIn={handlePressIn}
+                    // onPressOut={handlePressOut}
+                    // animateOnPress={false}
+                    style={styles.resultCard}
+                >
                 {/* Header with matched name and confidence */}
                 <ThemedView style={styles.resultHeader}>
                     <ThemedView style={styles.matchInfo}>
@@ -96,16 +121,16 @@ function SearchResultCard({
                     <ThemedView style={[
                         styles.confidenceBadge,
                         { 
-                            backgroundColor: colors.background.secondary,
+                            backgroundColor: colors.backgroundSecondary,
                             borderWidth: 1,
-                            borderColor: colors.border.primary
+                            borderColor: colors.border
                         }
                     ]}>
                         <ThemedText
                             variant="labelSmall"
                             style={[
                                 styles.confidenceText, 
-                                { color: colors.text.primary }
+                                { color: colors.text }
                             ]}
                         >
                             {Math.round(item.confidence)}%
@@ -174,7 +199,9 @@ function SearchResultCard({
                 <ThemedView style={styles.chevronContainer}>
                     <ThemedIcon name="chevron-right" size={20} color="secondary" />
                 </ThemedView>
-        </ModernCard>
+            </ModernCard>
+            </Animated.View>
+        </Animated.View>
     );
 }
 
@@ -187,48 +214,16 @@ function SearchResultCard({
 export default function SmartSearch() {
     const { t } = useTranslation();
     const router = useRouter();
-    const colors = useUnifiedColors();
+    const colors = useColors();
     const typography = useTypography();
     const theme = useTheme();
-    const dimensions = useResponsiveDimensions();
-    const isFocused = useIsFocused();
     
-    const styles = createStyles(theme, dimensions);
-
-    // Enhanced cleanup on unmount with database coordination
-    useEffect(() => {
-        return () => {
-            mountedRef.current = false;
-            
-            // Clear search timeout
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current);
-            }
-            
-            // Cancel low priority database operations
-            cancelLowPriorityOperations();
-        };
-    }, []);
-    
-    // Cancel operations when tab becomes unfocused
-    useEffect(() => {
-        if (!isFocused) {
-            cancelLowPriorityOperations();
-        }
-    }, [isFocused]);
-    
-    if (!isFocused) {
-        return null;
-    }
+    const styles = createStyles(theme);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [results, setResults] = useState<SmartSearchResult[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
-    
-    // Memory leak prevention refs
-    const mountedRef = useRef(true);
-    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     /**
      * Calculates fuzzy matching score between query and target strings
@@ -317,24 +312,17 @@ export default function SmartSearch() {
      */
     const performSmartSearch = useCallback(async (query: string) => {
         if (!query.trim() || query.length < 2) {
-            if (mountedRef.current) {
-                setResults([]);
-                setHasSearched(false);
-            }
+            setResults([]);
+            setHasSearched(false);
             return;
         }
 
-        if (mountedRef.current) {
-            setLoading(true);
-            setHasSearched(true);
-        }
+        setLoading(true);
+        setHasSearched(true);
 
         try {
-            // Get broader results from coordinated database operation
-            const dbResults = await searchBirdsByNameCoordinated(query, 50);
-
-            // Check if still mounted before processing
-            if (!mountedRef.current) return;
+            // Get broader results from database
+            const dbResults = searchBirdsByName(query, 50);
 
             // Score each result across all name fields
             const scoredResults: SmartSearchResult[] = [];
@@ -370,9 +358,6 @@ export default function SmartSearch() {
                 }
             });
 
-            // Check if still mounted before sorting and setting results
-            if (!mountedRef.current) return;
-
             // Sort by confidence score
             scoredResults.sort((a, b) => b.confidence - a.confidence);
 
@@ -381,37 +366,19 @@ export default function SmartSearch() {
 
         } catch (error) {
             console.error('Smart search error:', error);
-            if (mountedRef.current) {
-                setResults([]);
-            }
+            setResults([]);
         } finally {
-            if (mountedRef.current) {
-                setLoading(false);
-            }
+            setLoading(false);
         }
     }, [calculateMatchScore, t]);
 
-    // Enhanced search with memory leak prevention
+    // Debounced search
     useEffect(() => {
-        // Clear previous timeout
-        if (searchTimeoutRef.current) {
-            clearTimeout(searchTimeoutRef.current);
-        }
-        
         const timeoutId = setTimeout(() => {
-            // Only perform search if component is still mounted
-            if (mountedRef.current) {
-                performSmartSearch(searchQuery);
-            }
+            performSmartSearch(searchQuery);
         }, 300);
-        
-        searchTimeoutRef.current = timeoutId;
 
-        return () => {
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current);
-            }
-        };
+        return () => clearTimeout(timeoutId);
     }, [searchQuery, performSmartSearch]);
 
     const handleResultPress = useCallback((item: SmartSearchResult) => {
@@ -432,10 +399,12 @@ export default function SmartSearch() {
     ), [handleResultPress]);
 
     return (
-        <SafeViewManager enabled={isFocused}>
-            <ThemedSafeAreaView style={styles.container}>
+        <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
+            <Animated.View
+                entering={FadeInDown.delay(50).springify()}
+                style={styles.header}
+            >
                 <ThemedPressable
                     variant="ghost"
                     size="sm"
@@ -453,10 +422,13 @@ export default function SmartSearch() {
                         {t('smartSearch.subtitle')}
                     </ThemedText>
                 </ThemedView>
-            </View>
+            </Animated.View>
 
             {/* Search Input */}
-            <View style={styles.searchSection}>
+            <Animated.View
+                entering={FadeInDown.delay(150).springify()}
+                style={styles.searchSection}
+            >
                 <ModernCard elevated={true} bordered={false} style={styles.searchCard}>
                     <ThemedView style={styles.searchContainer}>
                         <ThemedIcon name="search" size={20} color="secondary" />
@@ -465,17 +437,17 @@ export default function SmartSearch() {
                                 styles.searchInput, 
                                 typography.body, 
                                 { 
-                                    color: colors.text.primary
+                                    color: colors.text
                                 }
                             ]}
                             placeholder={t('smartSearch.placeholder')}
-                            placeholderTextColor={colors.text.secondary}
+                            placeholderTextColor={colors.textSecondary}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             returnKeyType="search"
                             autoCapitalize="none"
                             autoCorrect={false}
-                            selectionColor={colors.interactive.primary}
+                            selectionColor={colors.primary}
                         />
                         {searchQuery.length > 0 && (
                             <ThemedPressable variant="ghost" size="sm" onPress={() => setSearchQuery('')}>
@@ -484,17 +456,20 @@ export default function SmartSearch() {
                         )}
                     </ThemedView>
                 </ModernCard>
-            </View>
+            </Animated.View>
 
             {/* Content */}
             {!hasSearched ? (
                 // Search Tips
-                <View style={styles.tipsContainer}>
+                <Animated.View
+                    entering={FadeInDown.delay(250).springify()}
+                    style={styles.tipsContainer}
+                >
                     <ModernCard elevated={false} bordered={true} style={styles.tipsCard}>
                         <ThemedView style={styles.tipsHeader}>
                             <ThemedView style={[
                                 styles.tipsIconContainer, 
-                                { backgroundColor: colors.background.secondary }
+                                { backgroundColor: colors.backgroundSecondary }
                             ]}>
                                 <ThemedIcon name="help-circle" size={16} color="primary" />
                             </ThemedView>
@@ -506,29 +481,29 @@ export default function SmartSearch() {
                         <ThemedView style={styles.tipsGrid}>
                             <ThemedView style={styles.tipItem}>
                                 <ThemedIcon name="globe" size={16} color="primary" />
-                                <ThemedText variant="bodySmall" style={{ color: colors.text.secondary }}>
+                                <ThemedText variant="bodySmall" style={{ color: colors.textSecondary }}>
                                     {t('smartSearch.tip1')}
                                 </ThemedText>
                             </ThemedView>
                             <ThemedView style={styles.tipItem}>
                                 <ThemedIcon name="search" size={16} color="primary" />
-                                <ThemedText variant="bodySmall" style={{ color: colors.text.secondary }}>
+                                <ThemedText variant="bodySmall" style={{ color: colors.textSecondary }}>
                                     {t('smartSearch.tip2')}
                                 </ThemedText>
                             </ThemedView>
                             <ThemedView style={styles.tipItem}>
                                 <ThemedIcon name="zap" size={16} color="primary" />
-                                <ThemedText variant="bodySmall" style={{ color: colors.text.secondary }}>
+                                <ThemedText variant="bodySmall" style={{ color: colors.textSecondary }}>
                                     {t('smartSearch.tip3')}
                                 </ThemedText>
                             </ThemedView>
                         </ThemedView>
                     </ModernCard>
-                </View>
+                </Animated.View>
             ) : loading ? (
                 // Loading state
                 <ThemedView style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.interactive.primary} />
+                    <ActivityIndicator size="large" color={colors.primary} />
                     <ThemedText variant="bodySmall" color="secondary" style={styles.loadingText}>
                         {t('smartSearch.searching')}
                     </ThemedText>
@@ -545,7 +520,7 @@ export default function SmartSearch() {
                         <ThemedView style={styles.emptyContainer}>
                             <ThemedView style={[
                                 styles.emptyIcon, 
-                                { backgroundColor: colors.background.secondary }
+                                { backgroundColor: colors.backgroundSecondary }
                             ]}>
                                 <ThemedIcon name="search" size={40} color="secondary" />
                             </ThemedView>
@@ -559,19 +534,17 @@ export default function SmartSearch() {
                     }
                 />
             )}
-            </ThemedSafeAreaView>
-        </SafeViewManager>
+        </ThemedSafeAreaView>
     );
 }
 
 /**
- * Creates responsive styles for smart search components
+ * Creates styles for smart search components
  * 
  * @param {Object} theme - Theme object with spacing and typography
- * @param {Object} dimensions - Responsive dimensions object
- * @returns {Object} StyleSheet with responsive styles
+ * @returns {Object} StyleSheet with styles
  */
-function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDimensions>) {
+function createStyles(theme: any) {
     return StyleSheet.create({
         container: {
             flex: 1,
@@ -581,16 +554,16 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
         header: {
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-            paddingBottom: dimensions.layout.sectionSpacing,
-            gap: dimensions.layout.componentSpacing,
+            paddingHorizontal: 20,
+            paddingBottom: 32,
+            gap: 16,
         },
         backButton: {
             alignSelf: 'flex-start',
         },
         headerText: {
             flex: 1,
-            gap: dimensions.layout.componentSpacing / 4,
+            gap: 4,
         },
         headerTitle: {
             fontWeight: 'bold',
@@ -598,8 +571,8 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
 
         // Search
         searchSection: {
-            paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-            marginBottom: dimensions.layout.sectionSpacing,
+            paddingHorizontal: 20,
+            marginBottom: 32,
         },
         searchCard: {
             padding: 0,
@@ -607,9 +580,9 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
         searchContainer: {
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: dimensions.layout.componentSpacing,
-            height: dimensions.input.md.height,
-            gap: dimensions.layout.componentSpacing,
+            paddingHorizontal: 16,
+            height: 48,
+            gap: 16,
         },
         searchInput: {
             flex: 1,
@@ -617,32 +590,32 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
 
         // Tips
         tipsContainer: {
-            paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-            paddingBottom: dimensions.layout.componentSpacing,
+            paddingHorizontal: 20,
+            paddingBottom: 16,
         },
         tipsCard: {
-            padding: dimensions.card.padding.md,
-            gap: dimensions.layout.componentSpacing,
+            padding: 16,
+            gap: 16,
         },
         tipsHeader: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: dimensions.layout.componentSpacing / 2,
+            gap: 8,
         },
         tipsIconContainer: {
-            width: dimensions.icon.lg,
-            height: dimensions.icon.lg,
-            borderRadius: dimensions.card.borderRadius.sm,
+            width: 24,
+            height: 24,
+            borderRadius: 6,
             justifyContent: 'center',
             alignItems: 'center',
         },
         tipsGrid: {
-            gap: dimensions.layout.componentSpacing / 2,
+            gap: 8,
         },
         tipItem: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: dimensions.layout.componentSpacing / 2,
+            gap: 8,
         },
 
         // Loading
@@ -650,7 +623,7 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            gap: dimensions.layout.componentSpacing,
+            gap: 16,
         },
         loadingText: {
             textAlign: 'center',
@@ -658,9 +631,9 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
 
         // Results
         resultsContainer: {
-            paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-            paddingBottom: dimensions.layout.sectionSpacing,
-            gap: dimensions.layout.componentSpacing,
+            paddingHorizontal: 20,
+            paddingBottom: 32,
+            gap: 16,
         },
         resultCard: {
             position: 'relative',
@@ -669,40 +642,40 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            marginBottom: dimensions.layout.componentSpacing,
+            marginBottom: 16,
         },
         matchInfo: {
             flex: 1,
-            marginRight: dimensions.layout.componentSpacing,
-            gap: dimensions.layout.componentSpacing / 4,
+            marginRight: 16,
+            gap: 4,
         },
         matchedName: {
             fontWeight: '700',
-            fontSize: Math.max(18 * dimensions.multipliers.font, 16),
+            fontSize: 18,
         },
         confidenceBadge: {
-            paddingHorizontal: dimensions.layout.componentSpacing,
-            paddingVertical: dimensions.layout.componentSpacing / 4,
-            borderRadius: dimensions.card.borderRadius.lg,
-            minWidth: dimensions.screen.isTablet ? 80 : dimensions.screen.isSmall ? 40 : 60,
+            paddingHorizontal: 16,
+            paddingVertical: 4,
+            borderRadius: 12,
+            minWidth: 50,
             alignItems: 'center',
         },
         confidenceText: {
             fontWeight: '700',
             textTransform: 'uppercase',
-            fontSize: Math.max(11 * dimensions.multipliers.font, 10),
+            fontSize: 11,
         },
         allNames: {
-            gap: dimensions.layout.componentSpacing / 2,
-            marginBottom: dimensions.layout.componentSpacing / 2,
+            gap: 8,
+            marginBottom: 8,
         },
         nameRow: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: dimensions.layout.componentSpacing / 2,
+            gap: 8,
         },
         nameLabel: {
-            minWidth: dimensions.icon.md,
+            minWidth: 20,
         },
         scientific: {
             fontStyle: 'italic',
@@ -710,7 +683,7 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
         },
         chevronContainer: {
             position: 'absolute',
-            right: dimensions.layout.screenPadding.horizontal,
+            right: 20,
             top: '50%',
             marginTop: -10,
         },
@@ -718,13 +691,13 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
         // Empty state
         emptyContainer: {
             alignItems: 'center',
-            paddingVertical: dimensions.layout.sectionSpacing * 2,
-            gap: dimensions.layout.sectionSpacing,
+            paddingVertical: 64,
+            gap: 32,
         },
         emptyIcon: {
-            width: dimensions.icon.xxl * 1.5,
-            height: dimensions.icon.xxl * 1.5,
-            borderRadius: dimensions.card.borderRadius.xl,
+            width: 72,
+            height: 72,
+            borderRadius: 24,
             justifyContent: 'center',
             alignItems: 'center',
         },
@@ -734,7 +707,7 @@ function createStyles(theme: any, dimensions: ReturnType<typeof useResponsiveDim
         },
         emptySubtext: {
             textAlign: 'center',
-            lineHeight: dimensions.screen.isSmall ? 18 : 20,
+            lineHeight: 20,
         },
     });
 }

@@ -1,11 +1,20 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, Alert, BackHandler, Dimensions, Linking, StatusBar, View, Pressable} from 'react-native';
+import {ActivityIndicator, Alert, BackHandler, Dimensions, Linking, StatusBar,} from 'react-native';
 import {Audio} from 'expo-av';
 import {router, Stack, useFocusEffect} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
-import SafeBlurView from '@/components/ui/SafeBlurView';
+import {BlurView} from 'expo-blur';
+import Animated, {
+    Easing,
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSpring,
+    withTiming,
+} from 'react-native-reanimated';
 
 import {useLogDraft} from '../context/LogDraftContext';
 import {ModernCard} from '@/components/ModernCard';
@@ -18,19 +27,52 @@ import {useTheme} from '@/hooks/useThemeColor';
 type RecordingStatus = 'idle' | 'recording' | 'stopping' | 'playback';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const AnimatedPressable = Animated.createAnimatedComponent(ThemedPressable);
 
-// Android Audio Quality Configuration
+// Enhanced Audio Quality Configuration
 const AUDIO_QUALITY = {
-    extension: '.m4a',
-    outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-    audioEncoder: Audio.AndroidAudioEncoder.AAC,
-    sampleRate: 44100,
-    numberOfChannels: 2,
-    bitRate: 128000,
+    android: {
+        extension: '.m4a',
+        outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+        audioEncoder: Audio.AndroidAudioEncoder.AAC,
+        sampleRate: 44100,
+        numberOfChannels: 2,
+        bitRate: 128000,
+    },
+    ios: {
+        extension: '.m4a',
+        outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+        audioQuality: Audio.IOSAudioQuality.HIGH,
+        sampleRate: 44100,
+        numberOfChannels: 2,
+        bitRate: 128000,
+        linearPCMBitDepth: 16,
+        linearPCMIsBigEndian: false,
+        linearPCMIsFloat: false,
+    },
+    web: {
+        extension: '.m4a',
+        mimeType: 'audio/mp4',
+        bitsPerSecond: 128000,
+    },
 };
 
+// Animated Wave Visualization Component
 function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
+    const waveAnim = useSharedValue(0);
     const theme = useTheme();
+
+    useEffect(() => {
+        if (isRecording) {
+            waveAnim.value = withRepeat(
+                withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+                -1,
+                true
+            );
+        } else {
+            waveAnim.value = withTiming(0, { duration: 300 });
+        }
+    }, [isRecording]);
 
     return (
         <ThemedView style={{ 
@@ -42,9 +84,21 @@ function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
             paddingVertical: 16 
         }}>
             {[...Array(7)].map((_, index) => {
+                const animatedStyle = useAnimatedStyle(() => {
+                    const delay = index * 0.1;
+                    const height = interpolate(
+                        waveAnim.value,
+                        [0, 1],
+                        [4, 30 + Math.sin(delay * 4) * 15]
+                    );
+                    return {
+                        height: Math.max(4, height),
+                        opacity: interpolate(waveAnim.value, [0, 1], [0.3, 1]),
+                    };
+                });
 
                 return (
-                    <View
+                    <Animated.View
                         key={index}
                         style={[
                             {
@@ -52,9 +106,8 @@ function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
                                 backgroundColor: theme.colors.text.primary,
                                 borderRadius: 2,
                                 minHeight: 4,
-                                height: isRecording ? 20 + Math.sin(index * 0.4) * 10 : 4,
-                                opacity: isRecording ? 1 : 0.3,
                             },
+                            animatedStyle,
                         ]}
                     />
                 );
@@ -76,6 +129,36 @@ function RecordingButton({
     const theme = useTheme();
     const { t } = useTranslation();
 
+    const scale = useSharedValue(1);
+    const glowOpacity = useSharedValue(0);
+
+    useEffect(() => {
+        if (status === 'recording') {
+            scale.value = withRepeat(
+                withTiming(1.05, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+                -1,
+                true
+            );
+            glowOpacity.value = withRepeat(
+                withTiming(0.6, { duration: 1500 }),
+                -1,
+                true
+            );
+        } else {
+            scale.value = withSpring(1);
+            glowOpacity.value = withTiming(0);
+        }
+    }, [status]);
+
+    const buttonStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
+    const glowStyle = useAnimatedStyle(() => ({
+        opacity: glowOpacity.value,
+        transform: [{ scale: scale.value * 1.2 }],
+    }));
+
     const isRecording = status === 'recording';
     const buttonColor = isRecording ? theme.colors.status.error : theme.colors.background.secondary;
 
@@ -84,7 +167,7 @@ function RecordingButton({
             <ThemedView style={{ position: 'relative', alignItems: 'center' }}>
                 {/* Glow Effect */}
                 {isRecording && (
-                    <View
+                    <Animated.View
                         style={[
                             {
                                 position: 'absolute',
@@ -92,14 +175,14 @@ function RecordingButton({
                                 height: 160,
                                 borderRadius: 80,
                                 backgroundColor: theme.colors.status.error,
-                                opacity: 0.3,
                             },
+                            glowStyle,
                         ]}
                     />
                 )}
 
                 {/* Main Button */}
-                <ThemedPressable
+                <AnimatedPressable
                     variant="ghost"
                     style={[
                         {
@@ -112,8 +195,8 @@ function RecordingButton({
                             justifyContent: 'center',
                             alignItems: 'center',
                             ...theme.shadows.lg,
-                            transform: [{ scale: isRecording ? 1.02 : 1 }],
                         },
+                        buttonStyle,
                     ]}
                     onPress={onPress}
                     disabled={status === 'stopping'}
@@ -123,7 +206,7 @@ function RecordingButton({
                         size={48}
                         color={isRecording ? 'error' : 'primary'}
                     />
-                </ThemedPressable>
+                </AnimatedPressable>
             </ThemedView>
 
             {/* Status Text */}
@@ -251,7 +334,7 @@ function PlaybackControls({
     const theme = useTheme();
 
     return (
-        <SafeBlurView
+        <BlurView
             intensity={80}
             tint={theme.colors.background.primary === '#FFFFFF' ? 'light' : 'dark'}
             style={{
@@ -291,7 +374,7 @@ function PlaybackControls({
                     <ThemedText color="primary">{t('common.confirm', 'Confirm')}</ThemedText>
                 </ThemedPressable>
             </ThemedView>
-        </SafeBlurView>
+        </BlurView>
     );
 }
 
@@ -416,8 +499,8 @@ export default function AudioScreen() {
             setDuration(0);
 
             await Audio.setAudioModeAsync({
-                allowsRecordingIOS: true, // Kept for compatibility
-                playsInSilentModeIOS: true, // Kept for compatibility
+                allowsRecordingIOS: true,
+                playsInSilentModeIOS: true,
                 shouldDuckAndroid: true,
                 playThroughEarpieceAndroid: false,
                 staysActiveInBackground: true,

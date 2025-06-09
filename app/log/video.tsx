@@ -6,7 +6,15 @@ import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
-import SafeBlurView from '@/components/ui/SafeBlurView';
+import {BlurView} from 'expo-blur';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 
 // Modern components
 import {ThemedView} from '@/components/ThemedView';
@@ -23,10 +31,30 @@ import {useLogDraft} from '../context/LogDraftContext';
 
 type RecordingState = 'idle' | 'recording' | 'stopping' | 'preview';
 
+const AnimatedPressable = Animated.createAnimatedComponent(ThemedPressable);
+
 // Recording Status Indicator Component
 function RecordingStatusIndicator({ isRecording, duration }: { isRecording: boolean; duration: number }) {
   const typography = useTypography();
   const theme = useTheme();
+  const pulse = useSharedValue(0);
+
+  useEffect(() => {
+    if (isRecording) {
+      pulse.value = withRepeat(
+          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+          -1,
+          true
+      );
+    } else {
+      pulse.value = withTiming(0);
+    }
+  }, [isRecording]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulse.value, [0, 1], [0.7, 1]),
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [0.95, 1.05]) }],
+  }));
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -37,8 +65,8 @@ function RecordingStatusIndicator({ isRecording, duration }: { isRecording: bool
   if (!isRecording && duration === 0) return null;
 
   return (
-      <View style={[styles.statusIndicator, { opacity: isRecording ? 1 : 0.7 }]}>
-        <SafeBlurView
+      <Animated.View style={[styles.statusIndicator, animatedStyle]}>
+        <BlurView
             intensity={80}
             tint="dark"
             style={StyleSheet.absoluteFillObject}
@@ -51,7 +79,7 @@ function RecordingStatusIndicator({ isRecording, duration }: { isRecording: bool
             {isRecording ? 'REC' : 'STOPPED'} {formatTime(duration)}
           </Text>
         </View>
-      </View>
+      </Animated.View>
   );
 }
 
@@ -132,7 +160,7 @@ function VideoPreview({
 
         {/* Header */}
         <View style={styles.previewHeader}>
-          <SafeBlurView intensity={60} tint="dark" style={StyleSheet.absoluteFillObject} />
+          <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFillObject} />
           <ThemedText variant="h3" color="primary">
             {t('video.preview_title')}
           </ThemedText>
@@ -140,10 +168,10 @@ function VideoPreview({
 
         {/* Controls */}
         <View style={styles.previewControls}>
-          <SafeBlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
+          <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
 
           <View style={styles.previewActions}>
-            <ThemedPressable
+            <AnimatedPressable
                 variant="secondary"
                 style={[styles.previewButton, { backgroundColor: colors.surface + '33' }]}
                 onPress={onRetake}
@@ -152,9 +180,9 @@ function VideoPreview({
               <Text style={[styles.buttonText, { color: 'white' }]}>
                 {t('camera.retake')}
               </Text>
-            </ThemedPressable>
+            </AnimatedPressable>
 
-            <ThemedPressable
+            <AnimatedPressable
                 variant="primary"
                 style={[styles.previewButton]}
                 onPress={onConfirm}
@@ -163,7 +191,7 @@ function VideoPreview({
               <Text style={[styles.buttonText]}>
                 {t('common.confirm')}
               </Text>
-            </ThemedPressable>
+            </AnimatedPressable>
           </View>
         </View>
       </ThemedView>
@@ -420,7 +448,7 @@ export default function VideoScreen() {
         {/* Loading Overlay */}
         {state === 'stopping' && (
             <View style={styles.loadingOverlay}>
-              <SafeBlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
+              <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
               <ActivityIndicator size="large" color="white" />
               <ThemedText variant="bodyLarge" color="primary" style={{ marginTop: 16 }}>
                 {t('video.processing')}

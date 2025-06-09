@@ -1,17 +1,17 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect} from 'react';
 import {Alert, Pressable, ScrollView, StyleSheet, Text, View,} from 'react-native';
 import {router, useFocusEffect} from 'expo-router';
-import {useIsFocused} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import { ThemedIcon } from '@/components/ThemedIcon';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { SafeViewManager } from '@/components/SafeViewManager';
 
 import {ModernCard} from '@/components/ModernCard';
 import {useTheme, useTypography, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
 import { useAuth } from '@/app/context/AuthContext';
 import { Feather } from '@expo/vector-icons';
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
  * Enhanced Account Screen Component with responsive design and smooth animations
@@ -26,26 +26,31 @@ export default function ModernAccountScreen() {
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const { user, isAuthenticated, signOut: authSignOut, isLoading } = useAuth();
-    const isFocused = useIsFocused();
-    
-    // Memory leak prevention
-    const mountedRef = useRef(true);
 
-    // Cleanup on unmount
+    // Animation values
+    const signOutScale = useSharedValue(1);
+    const fadeInOpacity = useSharedValue(0);
+
     useEffect(() => {
-        return () => {
-            mountedRef.current = false;
-        };
-    }, []);
-    
-    if (!isFocused) {
-        return null;
-    }
+        if (isAuthenticated) {
+            // Fade in animation when user loads
+            fadeInOpacity.value = withTiming(1, { duration: 300 });
+        }
+    }, [isAuthenticated]);
 
+    const fadeInStyle = useAnimatedStyle(() => ({
+        opacity: fadeInOpacity.value,
+    }));
+
+    const slideInStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: withTiming(fadeInOpacity.value === 1 ? 0 : 20) }],
+    }));
+
+    const signOutAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: signOutScale.value }],
+    }));
 
     const handleSignOut = async () => {
-        if (!mountedRef.current) return;
-        
         Alert.alert(
             t('account.signOutTitle', 'Sign Out'),
             t('account.signOutMessage', 'Are you sure you want to sign out?'),
@@ -58,18 +63,14 @@ export default function ModernAccountScreen() {
                     text: t('buttons.signout'),
                     style: 'destructive',
                     onPress: async () => {
-                        if (!mountedRef.current) return;
-                        
                         try {
                             await authSignOut();
                         } catch (error) {
                             console.error('Error signing out:', error);
-                            if (mountedRef.current) {
-                                Alert.alert(
-                                    t('common.error'),
-                                    t('account.signOutError', 'Failed to sign out. Please try again.')
-                                );
-                            }
+                            Alert.alert(
+                                t('common.error'),
+                                t('account.signOutError', 'Failed to sign out. Please try again.')
+                            );
                         }
                     },
                 },
@@ -77,10 +78,17 @@ export default function ModernAccountScreen() {
         );
     };
 
+    const handleSignOutPressIn = () => {
+        signOutScale.value = withSpring(0.95);
+    };
+
+    const handleSignOutPressOut = () => {
+        signOutScale.value = withSpring(1);
+    };
 
     useFocusEffect(
         React.useCallback(() => {
-            if (!isLoading && !isAuthenticated && mountedRef.current) {
+            if (!isLoading && !isAuthenticated) {
                 router.replace('/(tabs)/account/(auth)/login');
             }
         }, [isLoading, isAuthenticated])
@@ -95,8 +103,7 @@ export default function ModernAccountScreen() {
     }
 
     return (
-        <SafeViewManager enabled={isFocused}>
-            <ThemedSafeAreaView style={styles.container}>
+        <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <Text style={[styles.headerTitle]}>
@@ -112,8 +119,8 @@ export default function ModernAccountScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <View>
-                    <View>
+                <Animated.View style={fadeInStyle}>
+                    <Animated.View style={slideInStyle}>
                         {/* Profile Section */}
                         <ModernCard
                         elevated={true}
@@ -149,7 +156,7 @@ export default function ModernAccountScreen() {
                             <Pressable
                                 style={styles.actionItem}
                                 onPress={() => {
-                                // Navigate to sync settings or show sync status
+                                    // Navigate to sync settings or show sync status
                                 }}
                                 android_ripple={{ color: variants.secondary.light }}
                             >
@@ -221,31 +228,32 @@ export default function ModernAccountScreen() {
 
                         {/* Sign Out Section */}
                         <View style={styles.signOutSection}>
-                            <View>
-                                <Pressable
+                            <Animated.View style={signOutAnimatedStyle}>
+                                <AnimatedPressable
                                     style={[
                                         styles.signOutButton,
                                         { backgroundColor: semanticColors.error },
                                     ]}
                                     onPress={handleSignOut}
+                                    onPressIn={handleSignOutPressIn}
+                                    onPressOut={handleSignOutPressOut}
                                     android_ripple={{ color: theme.colors.surface + '33' }}
                                 >
                                     <ThemedIcon name="log-out" size={20} color="primary" />
                                     <Text style={[typography.body, styles.signOutText, { color: semanticColors.background }]}>
                                         {t('buttons.signout')}
                                     </Text>
-                                </Pressable>
-                            </View>
+                                </AnimatedPressable>
+                            </Animated.View>
 
                             <Text style={[typography.label, styles.signOutWarning, { color: semanticColors.secondary }]}>
                                 {t('account.signOutWarning', 'You will need to sign in again to access cloud features')}
                             </Text>
                         </View>
-                    </View>
-                </View>
+                    </Animated.View>
+                </Animated.View>
             </ScrollView>
-            </ThemedSafeAreaView>
-        </SafeViewManager>
+        </ThemedSafeAreaView>
     );
 }
 

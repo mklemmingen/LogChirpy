@@ -3,7 +3,6 @@ import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
 import * as Papa from 'papaparse';
 import { Platform } from 'react-native';
-import { coordinatedDatabaseOperation } from './databaseCoordinator';
 
 const SQLite: any = require('expo-sqlite');
 type SQLiteDatabase = any;
@@ -700,30 +699,6 @@ export function getBirdBySpeciesCode(speciesCode: string): BirdDexRecord | null 
         console.error('Get bird by code error:', err);
         return null;
     }
-}
-
-// Coordinated version for tab transitions
-export function getBirdBySpeciesCodeCoordinated(speciesCode: string): Promise<BirdDexRecord | null> {
-    return coordinatedDatabaseOperation(
-        `getBird_${speciesCode}`,
-        () => getBirdBySpeciesCode(speciesCode),
-        'medium',
-        true
-    );
-}
-
-// Coordinated version of search function
-export function searchBirdsByNameCoordinated(
-    searchTerm: string,
-    limit: number = 50,
-    categoryFilter: BirdCategory = 'all'
-): Promise<BirdDexRecord[]> {
-    return coordinatedDatabaseOperation(
-        `search_${searchTerm}_${limit}_${categoryFilter}`,
-        () => searchBirdsByName(searchTerm, limit, categoryFilter),
-        'medium',
-        true
-    );
 }
 
 // Utility functions

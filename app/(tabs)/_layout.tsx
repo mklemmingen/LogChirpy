@@ -1,16 +1,20 @@
 import React from 'react';
 import {Tabs} from 'expo-router';
-import {Platform, View} from 'react-native';
+import {Platform} from 'react-native';
 import {useTranslation} from 'react-i18next';
-import SafeBlurView from '@/components/ui/SafeBlurView';
+import {BlurView} from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+} from 'react-native-reanimated';
 
-import {useTheme} from '@/hooks/useThemeColor';
-import { useUnifiedColors } from '@/hooks/useUnifiedColors';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
+import {useTheme, useColors, useShadows} from '@/hooks/useThemeColor';
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import NavigationErrorBoundary from '@/components/NavigationErrorBoundary';
 
 /**
  * Enhanced Tab Icon Component with responsive design and smooth animations
@@ -35,61 +39,126 @@ function EnhancedTabIcon({
     size: number;
 }) {
     const theme = useTheme();
-    const colors = useUnifiedColors();
-    const dimensions = useResponsiveDimensions();
+    const colors = useColors();
+
+    // Animation values with responsive sizing
+    const scale = useSharedValue(focused ? 1 : 0.9);
+    const indicatorWidth = useSharedValue(focused ? 24 : 4);
+    const opacity = useSharedValue(focused ? 1 : 0.7);
     
     // Responsive icon size
-    const responsiveIconSize = Math.max(size * dimensions.multipliers.size, dimensions.icon.md);
+    const responsiveIconSize = Math.max(size * 1.1, 20);
 
-    // Simple haptic feedback
     React.useEffect(() => {
+        // Smooth scale animation for icon
+        scale.value = withSpring(focused ? 1 : 0.9, {
+            damping: 15,
+            stiffness: 300,
+        });
+
+        // Indicator animation with responsive width
+        indicatorWidth.value = withSpring(focused ? 24 : 4, {
+            damping: 15,
+            stiffness: 300,
+        });
+
+        // Opacity animation
+        opacity.value = withTiming(focused ? 1 : 0.7, {
+            duration: theme.motion.duration.fast,
+        });
+
+        // Haptic feedback on focus change
         if (focused) {
             Haptics.selectionAsync();
         }
-    }, [focused]);
+    }, [focused, indicatorWidth, opacity, scale, theme.motion.duration.fast]);
+
+    const iconAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+        opacity: opacity.value,
+    }));
+
+    const indicatorAnimatedStyle = useAnimatedStyle(() => ({
+        width: indicatorWidth.value,
+        opacity: focused ? 1 : 0,
+    }));
 
     return (
-        <View
+        <ThemedView
+            background="transparent"
             style={{
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative',
-                paddingHorizontal: dimensions.layout.componentSpacing / 4,
-                paddingVertical: dimensions.layout.componentSpacing / 3,
-                minHeight: dimensions.touchTarget.minimum,
+                paddingHorizontal: 4,
+                paddingVertical: 6,
+                minHeight: 44,
             }}>
             {/* Main icon - no background, just scale and opacity changes */}
-            <View 
-                style={{
-                    opacity: focused ? 1 : 0.7,
-                    transform: [{ scale: focused ? 1 : 0.9 }]
-                }}
-            >
+            <Animated.View style={iconAnimatedStyle}>
                 <ThemedIcon
                     name={iconName as any}
                     size={responsiveIconSize}
                     color={focused ? 'primary' : 'secondary'}
                 />
-            </View>
+            </Animated.View>
 
             {/* Active indicator bar - more prominent than dot */}
-            <View
+            <Animated.View
                 style={[
                     {
                         position: 'absolute',
                         bottom: 0,
-                        height: dimensions.screen.isSmall ? 2 : 3,
-                        borderRadius: dimensions.screen.isSmall ? 1 : 1.5,
-                        backgroundColor: colors.interactive.primary,
-                        width: focused ? dimensions.navigation.tabIconSize : 4,
-                        opacity: focused ? 1 : 0,
+                        height: 3,
+                        borderRadius: 1.5,
+                        backgroundColor: colors.primary,
                     },
+                    indicatorAnimatedStyle,
                 ]}
             />
-        </View>
+        </ThemedView>
     );
 }
 
+/**
+ * Enhanced Tab Background Component for iOS with themed styling
+ * Provides translucent background effect with proper contrast support
+ * 
+ * @returns {JSX.Element} Tab bar background with border and themed colors
+ */
+function EnhancedTabBackground() {
+    const colors = useColors();
+
+    return (
+        <>
+            {/* Main background with proper theme support */}
+            <ThemedView
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                    backgroundColor: colors.backgroundSecondary,
+                    opacity: 0.95,
+                }}
+            />
+
+            {/* Subtle border for definition */}
+            <ThemedView
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 1,
+                    backgroundColor: colors.border,
+                    opacity: 0.3,
+                }}
+            />
+        </>
+    );
+}
 
 /**
  * Modern Tab Layout Component with responsive design and accessibility
@@ -100,8 +169,8 @@ function EnhancedTabIcon({
 export default function ModernTabLayout() {
     const { t } = useTranslation();
     const theme = useTheme();
-    const colors = useUnifiedColors();
-    const dimensions = useResponsiveDimensions();
+    const colors = useColors();
+    const shadows = useShadows();
 
     // Tab configuration available for future enhancements
     // const tabsConfig = [
@@ -144,52 +213,54 @@ export default function ModernTabLayout() {
     // ];
 
     return (
-        <NavigationErrorBoundary>
-            <Tabs
-            screenOptions={({ route }) => ({
-                // CRITICAL: View hierarchy stability props
-                lazy: true,                                    // Load screens only when first accessed
-                unmountOnBlur: route.name === 'archive' ||     // Unmount memory-intensive screens
-                              route.name === 'smart-search',   // Smart search with heavy ML operations
-                freezeOnBlur: route.name !== 'index',          // Keep home active for performance
-                
-                // View hierarchy and animation stability
-                animation: 'none',                             // Prevent animation conflicts during navigation
-                tabBarHideOnKeyboard: true,
-
-                // Modern tab bar styling for Android
+        <Tabs
+            screenOptions={{
+                // Modern tab bar styling with responsive semantic colors
                 tabBarStyle: {
-                    backgroundColor: colors.background.secondary,
+                    backgroundColor: colors.backgroundSecondary,
                     borderTopWidth: 1,
-                    borderTopColor: colors.border.primary,
-                    height: dimensions.navigation.tabBarHeight,
-                    paddingBottom: dimensions.layout.componentSpacing / 2,
-                    paddingTop: dimensions.layout.componentSpacing / 2,
-                    paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-                    elevation: 8,
-                    shadowColor: colors.text.primary,
+                    borderTopColor: colors.border,
+                    height: 80,
+                    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+                    paddingTop: 8,
+                    paddingHorizontal: 16,
+
+                    // Enhanced shadows for depth
+                    ...shadows.lg,
+
+                    // Platform-specific enhancements
+                    ...(Platform.OS === 'android' && {
+                        elevation: 8,
+                        shadowColor: colors.text,
+                    }),
                 },
 
                 // Enhanced color system with unified colors
-                tabBarActiveTintColor: colors.text.primary,
-                tabBarInactiveTintColor: colors.text.secondary,
+                tabBarActiveTintColor: colors.text,
+                tabBarInactiveTintColor: colors.textSecondary,
 
-                // Hide tab labels - icons only for cleaner interface
+                // Hide tab labels - icons only
                 tabBarShowLabel: false,
 
-                // Android-only - no blur effect needed
+                // Enhanced iOS blur effect
+                ...(Platform.OS === 'ios' && {
+                    tabBarBackground: () => <EnhancedTabBackground />,
+                }),
+
+                // Improved animations
+                tabBarHideOnKeyboard: true,
 
                 // Enhanced header styling with responsive colors
                 headerStyle: {
-                    backgroundColor: colors.background.secondary,
-                    ...theme.shadows.sm,
+                    backgroundColor: colors.backgroundSecondary,
+                    ...shadows.sm,
                 },
-                headerTintColor: colors.text.primary,
+                headerTintColor: colors.text,
                 headerTitleStyle: {
                     ...theme.typography.h2,
                     fontWeight: '600',
                 },
-            })}
+            }}
         >
             {/* Home Tab - Enhanced with priority and accessibility */}
             <Tabs.Screen
@@ -305,6 +376,5 @@ export default function ModernTabLayout() {
                 }}
             />
         </Tabs>
-        </NavigationErrorBoundary>
     );
 }

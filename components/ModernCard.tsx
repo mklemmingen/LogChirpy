@@ -5,9 +5,7 @@ import React from 'react';
 import { View, Pressable, StyleSheet, ViewStyle, Image } from 'react-native';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
-import { useUnifiedColors } from '@/hooks/useUnifiedColors';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
-import { useBorderRadius, useShadows, useTheme } from '@/hooks/useThemeColor';
+import { useColors, useBorderRadius, useShadows } from '@/hooks/useThemeColor';
 import { ImageSourcePropType } from "react-native";
 
 interface ModernCardProps {
@@ -37,13 +35,9 @@ export function ModernCard({
   elevated = false,
   bordered = true,
 }: ModernCardProps) {
-  const colors = useUnifiedColors();
-  const dimensions = useResponsiveDimensions();
+  const colors = useColors();
   const borderRadius = useBorderRadius();
   const shadows = useShadows();
-  const theme = useTheme();
-  
-  const styles = createStyles(dimensions);
 
   const cardContent = (
     <ThemedView
@@ -53,7 +47,7 @@ export function ModernCard({
           borderRadius: borderRadius.lg,
           ...(bordered && {
             borderWidth: 1,
-            borderColor: colors.border.primary,
+            borderColor: colors.border,
           }),
           ...(elevated && shadows.md),
         },
@@ -108,21 +102,21 @@ export function ModernCard({
   return cardContent;
 }
 
-const createStyles = (dimensions: ReturnType<typeof useResponsiveDimensions>) => StyleSheet.create({
+const styles = StyleSheet.create({
   card: {
     overflow: 'hidden',
   },
   image: {
     width: '100%',
-    height: dimensions.screen.isSmall ? 120 * dimensions.multipliers.size : dimensions.screen.isLarge ? 200 * dimensions.multipliers.size : 160 * dimensions.multipliers.size,
+    height: 160,
   },
   content: {
-    padding: dimensions.layout.componentSpacing,
+    padding: 16,
   },
   title: {
-    marginBottom: dimensions.layout.componentSpacing / 4,
+    marginBottom: 4,
   },
   subtitle: {
-    marginBottom: dimensions.layout.componentSpacing / 2,
+    marginBottom: 12,
   },
 });

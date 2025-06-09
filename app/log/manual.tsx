@@ -1,6 +1,9 @@
 /**
  * Manual Bird Spotting Entry Screen
- *
+ * 
+ * A clean, minimal interface for manually logging bird sightings with the new design system.
+ * Supports multiple media types, AI identification, and comprehensive data entry.
+ * 
  * Key Features:
  * - Multi-media capture (photo, video, audio)
  * - BirdNet AI identification for audio
@@ -25,6 +28,7 @@ import {
     Dimensions,
     Image,
     Linking,
+    Modal,
     Platform,
     ScrollView,
     StatusBar,
@@ -40,10 +44,7 @@ import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import SafeBlurView from '@/components/ui/SafeBlurView';
-import { FeatureErrorBoundary } from '@/components/ComponentErrorBoundary';
-
-import { BirdPredictionsModal } from '@/components/modals/BirdPredictionsModal';
+import {BlurView} from 'expo-blur';
 
 import {useLogDraft} from '../context/LogDraftContext';
 import {BirdSpotting, insertBirdSpotting} from '@/services/database';
@@ -57,9 +58,9 @@ import {ThemedPressable} from '@/components/ThemedPressable';
 import {useSnackbar} from '@/components/ThemedSnackbar';
 
 // Theme hooks
-import { useUnifiedColors } from '@/hooks/useUnifiedColors';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
-import {useTypography, useBorderRadius, useShadows, useSpacing} from '@/hooks/useThemeColor';
+import {useColors, useTypography, useBorderRadius, useShadows, useSpacing} from '@/hooks/useThemeColor';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface ValidationError {
     field: string;
@@ -73,15 +74,14 @@ interface ValidationError {
  * Integrates with the draft context system for auto-save functionality.
  * Supports multiple media types and AI-powered identification.
  */
-function EnhancedManualComponent() {
+export default function EnhancedManual() {
     const params = useLocalSearchParams();
     const { t } = useTranslation();
     const { draft, update, clear } = useLogDraft();
     const colorScheme = useColorScheme() ?? 'light';
 
     // Theme system
-    const colors = useUnifiedColors();
-    const dimensions = useResponsiveDimensions();
+    const colors = useColors();
     const typography = useTypography();
     const borderRadius = useBorderRadius();
     const shadows = useShadows();
@@ -97,11 +97,11 @@ function EnhancedManualComponent() {
     // Bird identification state
     const [isIdentifyingBird, setIsIdentifyingBird] = useState(false);
     const [birdPredictions, setBirdPredictions] = useState<BirdNetPrediction[]>([]);
+    const [showPredictions, setShowPredictions] = useState(false);
 
-    // Modal state
-    const [showBirdPredictionsModal, setShowBirdPredictionsModal] = useState(false);
-    const [modalPredictions, setModalPredictions] = useState<BirdNetPrediction[]>([]);
-    
+    // Modal states
+    const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
+    const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
 
     // Video players
@@ -109,7 +109,9 @@ function EnhancedManualComponent() {
         if (draft.videoUri) {
             player.loop = true;
             player.muted = true;
-            player.play();
+            if (!isVideoModalVisible) {
+                player.play();
+            }
         }
     });
 
@@ -117,7 +119,9 @@ function EnhancedManualComponent() {
         if (draft.videoUri) {
             player.loop = false;
             player.muted = false;
-            // Video will play when needed
+            if (isVideoModalVisible) {
+                player.play();
+            }
         }
     });
 
@@ -131,7 +135,7 @@ function EnhancedManualComponent() {
             bottom: 0,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: colors.background.primary + '4D',
+            backgroundColor: colors.background + '4D',
         },
         textInput: {
             fontSize: 16,
@@ -140,13 +144,13 @@ function EnhancedManualComponent() {
             borderRadius: 8,
             borderWidth: 1,
             borderColor: 'transparent',
-            backgroundColor: colors.background.secondary + '1A',
+            backgroundColor: colors.backgroundSecondary + '1A',
         },
         videoModalControls: {
             flexDirection: 'row',
             justifyContent: 'space-around',
             padding: 20,
-            backgroundColor: colors.background.primary + 'CC',
+            backgroundColor: colors.background + 'CC',
         },
         predictionInfo: {
             flexDirection: 'row',
@@ -155,14 +159,14 @@ function EnhancedManualComponent() {
             paddingHorizontal: 12,
             paddingVertical: 8,
             borderRadius: 8,
-            backgroundColor: colors.background.secondary + '1A',
+            backgroundColor: colors.backgroundSecondary + '1A',
         },
         modalOverlay: {
             flex: 1,
-            backgroundColor: colors.background.primary + '80',
+            backgroundColor: colors.background + '80',
         },
         predictionsModalContainer: {
-            backgroundColor: colors.background.tertiary + 'F2',
+            backgroundColor: colors.surface + 'F2',
             borderRadius: 16,
             maxHeight: '80%',
             width: '100%',
@@ -193,12 +197,12 @@ function EnhancedManualComponent() {
             height: 6,
             borderRadius: 3,
             overflow: 'hidden',
-            backgroundColor: colors.background.secondary,
+            backgroundColor: colors.backgroundSecondary,
         },
         progressFill: {
             height: '100%',
             borderRadius: 3,
-            backgroundColor: colors.interactive.primary,
+            backgroundColor: colors.primary,
         },
     }), [colors]);
 
@@ -222,13 +226,16 @@ function EnhancedManualComponent() {
         }
     }, [params, draft, update]);
 
-    // Video preview management
+    // Video modal management
     useEffect(() => {
-        if (draft.videoUri) {
+        if (isVideoModalVisible && draft.videoUri) {
+            previewPlayer.pause();
+            fullscreenPlayer.play();
+        } else if (draft.videoUri) {
             fullscreenPlayer.pause();
             previewPlayer.play();
         }
-    }, [draft.videoUri, previewPlayer, fullscreenPlayer]);
+    }, [isVideoModalVisible, draft.videoUri, previewPlayer, fullscreenPlayer]);
 
     // Navigation guard for unsaved changes
     useFocusEffect(
@@ -294,7 +301,10 @@ function EnhancedManualComponent() {
                 if (sound) {
                     sound.unloadAsync();
                 }
-                // Modal cleanup is handled by the modal provider
+                // Close any open modals
+                setIsVideoModalVisible(false);
+                setIsDatePickerVisible(false);
+                setShowPredictions(false);
             };
         }, [sound])
     );
@@ -389,8 +399,7 @@ function EnhancedManualComponent() {
 
             if (response.success && response.predictions.length > 0) {
                 setBirdPredictions(response.predictions);
-                setModalPredictions(response.predictions);
-                setShowBirdPredictionsModal(true);
+                setShowPredictions(true);
                 
                 // Auto-fill with the best prediction
                 const bestPrediction = BirdNetService.getBestPrediction(response.predictions);
@@ -432,60 +441,10 @@ function EnhancedManualComponent() {
             birdType: prediction.common_name,
             audioPrediction: `${prediction.common_name} (${BirdNetService.formatConfidenceScore(prediction.confidence)} confidence)`,
         });
+        setShowPredictions(false);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         showSuccess(t('birdnet.prediction_selected', 'Prediction selected!'));
     }, [update, t, showSuccess]);
-
-    const handleIdentifyBirdFromImage = useCallback(async () => {
-        if (!draft.imageUri) {
-            showError(t('birdnet.no_image_error', 'No image available for identification'));
-            return;
-        }
-
-        setIsIdentifyingBird(true);
-        
-        try {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            
-            const response = await BirdNetService.identifyBirdFromImage(draft.imageUri);
-
-            if (response.success && response.predictions.length > 0) {
-                setBirdPredictions(response.predictions);
-                setModalPredictions(response.predictions);
-                setShowBirdPredictionsModal(true);
-                
-                // Auto-fill with the best prediction
-                const bestPrediction = BirdNetService.getBestPrediction(response.predictions);
-                if (bestPrediction) {
-                    update({
-                        birdType: bestPrediction.common_name,
-                        imagePrediction: `${bestPrediction.common_name} (${BirdNetService.formatConfidenceScore(bestPrediction.confidence)} confidence)`,
-                    });
-                }
-                
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                showSuccess(t('birdnet.image_identification_success', 'Bird image identification completed!'));
-            } else {
-                showError(response.error || t('birdnet.no_birds_detected_image', 'No birds detected in image with sufficient confidence'));
-            }
-        } catch (error) {
-            console.error('Bird image identification error:', error);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            
-            let errorMessage = t('birdnet.image_identification_failed', 'Bird image identification failed');
-            if (error instanceof Error) {
-                if (error.message.includes('not found')) {
-                    errorMessage = t('birdnet.image_not_found', 'Image file not found');
-                } else {
-                    errorMessage = error.message;
-                }
-            }
-            
-            showError(errorMessage);
-        } finally {
-            setIsIdentifyingBird(false);
-        }
-    }, [draft.imageUri, update, t, showSuccess, showError]);
 
     const handleGetLocation = useCallback(async () => {
         setIsLoadingLocation(true);
@@ -530,6 +489,10 @@ function EnhancedManualComponent() {
     }, [update]);
 
     const handleDateChange = useCallback((event: { type: string; nativeEvent?: { timestamp?: number } }, date?: Date) => {
+        if (Platform.OS === 'android') {
+            setIsDatePickerVisible(false);
+        }
+
         if (date) {
             setSelectedDate(date);
             update({ date: date.toISOString() });
@@ -642,9 +605,7 @@ function EnhancedManualComponent() {
                 {/* Video Card */}
                 <ThemedPressable
                     variant="ghost"
-                    onPress={() => draft.videoUri ? 
-                        console.log('Video playback not implemented') : 
-                        handleMediaNavigation('/log/video')}
+                    onPress={() => draft.videoUri ? setIsVideoModalVisible(true) : handleMediaNavigation('/log/video')}
                     style={styles.mediaCard}
                 >
                     <Card style={styles.mediaCardInner}>
@@ -697,94 +658,52 @@ function EnhancedManualComponent() {
             </View>
 
             {/* Bird Identification Section */}
-            {(draft.audioUri || draft.imageUri) && (
+            {draft.audioUri && (
                 <View style={styles.identificationSection}>
-                    {draft.audioUri && (
-                        <ThemedPressable
-                            variant="primary"
-                            style={[
-                                styles.identifyButton,
-                                {
-                                    opacity: isIdentifyingBird ? 0.7 : 1,
+                    <ThemedPressable
+                        variant="primary"
+                        style={[
+                            styles.identifyButton,
+                            {
+                                opacity: isIdentifyingBird ? 0.7 : 1,
+                            }
+                        ]}
+                        onPress={handleIdentifyBird}
+                        disabled={isIdentifyingBird}
+                    >
+                        <View style={styles.identifyButtonContent}>
+                            {isIdentifyingBird ? (
+                                <ActivityIndicator 
+                                    size="small" 
+                                    color={colors.textInverse}
+                                    style={styles.identifyLoader}
+                                />
+                            ) : (
+                                <ThemedIcon 
+                                    name="search" 
+                                    size={20} 
+                                    color="primary"
+                                    style={styles.identifyIcon}
+                                />
+                            )}
+                            <ThemedText 
+                                variant="button" 
+                                style={[styles.identifyButtonText, { color: colors.textInverse }]}
+                            >
+                                {isIdentifyingBird 
+                                    ? t('birdnet.identifying', 'Identifying Bird...') 
+                                    : t('birdnet.identify_button_offline', 'Identify Bird (AI)')
                                 }
-                            ]}
-                            onPress={handleIdentifyBird}
-                            disabled={isIdentifyingBird}
-                        >
-                            <View style={styles.identifyButtonContent}>
-                                {isIdentifyingBird ? (
-                                    <ActivityIndicator 
-                                        size="small" 
-                                        color={colors.text.inverse}
-                                        style={styles.identifyLoader}
-                                    />
-                                ) : (
-                                    <ThemedIcon 
-                                        name="volume-2" 
-                                        size={20} 
-                                        color="primary"
-                                        style={styles.identifyIcon}
-                                    />
-                                )}
-                                <ThemedText 
-                                    variant="button" 
-                                    style={[styles.identifyButtonText, { color: colors.text.inverse }]}
-                                >
-                                    {isIdentifyingBird 
-                                        ? t('birdnet.identifying', 'Identifying Bird...') 
-                                        : t('birdnet.identify_from_audio', 'Identify from Audio')
-                                    }
-                                </ThemedText>
-                            </View>
+                            </ThemedText>
+                        </View>
                     </ThemedPressable>
-                    )}
-
-                    {draft.imageUri && (
-                        <ThemedPressable
-                            variant="secondary"
-                            style={[
-                                styles.identifyButton,
-                                {
-                                    opacity: isIdentifyingBird ? 0.7 : 1,
-                                }
-                            ]}
-                            onPress={handleIdentifyBirdFromImage}
-                            disabled={isIdentifyingBird}
-                        >
-                            <View style={styles.identifyButtonContent}>
-                                {isIdentifyingBird ? (
-                                    <ActivityIndicator 
-                                        size="small" 
-                                        color={colors.text.primary}
-                                        style={styles.identifyLoader}
-                                    />
-                                ) : (
-                                    <ThemedIcon 
-                                        name="camera" 
-                                        size={20} 
-                                        color="secondary"
-                                        style={styles.identifyIcon}
-                                    />
-                                )}
-                                <ThemedText 
-                                    variant="button" 
-                                    style={[styles.identifyButtonText, { color: colors.text.primary }]}
-                                >
-                                    {isIdentifyingBird 
-                                        ? t('birdnet.identifying', 'Identifying Bird...') 
-                                        : t('birdnet.identify_from_image', 'Identify from Photo')
-                                    }
-                                </ThemedText>
-                            </View>
-                        </ThemedPressable>
-                    )}
 
                     {/* Show prediction confidence if available */}
-                    {(draft.audioPrediction || draft.imagePrediction) && (
+                    {draft.audioPrediction && (
                         <View style={dynamicStyles.predictionInfo}>
                             <ThemedIcon name="check-circle" size={16} color="success" />
                             <ThemedText variant="bodySmall" color="secondary" style={styles.predictionInfoText}>
-                                {draft.audioPrediction || draft.imagePrediction}
+                                {draft.audioPrediction}
                             </ThemedText>
                         </View>
                     )}
@@ -812,11 +731,11 @@ function EnhancedManualComponent() {
                             {t('log.bird_type')} *
                         </ThemedText>
                         <TextInput
-                            style={[dynamicStyles.textInput, { color: colors.text.primary }]}
+                            style={[dynamicStyles.textInput, { color: colors.text }]}
                             value={draft.birdType || ''}
                             onChangeText={(text) => handleTextChange('birdType', text)}
                             placeholder={t('log.bird_type_placeholder')}
-                            placeholderTextColor={colors.text.secondary}
+                            placeholderTextColor={colors.textSecondary}
                         />
                     </View>
                 </Card>
@@ -828,11 +747,11 @@ function EnhancedManualComponent() {
                             {t('log.notes')}
                         </ThemedText>
                         <TextInput
-                            style={[dynamicStyles.textInput, styles.notesInput, { color: colors.text.primary }]}
+                            style={[dynamicStyles.textInput, styles.notesInput, { color: colors.text }]}
                             value={draft.textNote || ''}
                             onChangeText={(text) => handleTextChange('textNote', text)}
                             placeholder={t('log.notes_placeholder')}
-                            placeholderTextColor={colors.text.secondary}
+                            placeholderTextColor={colors.textSecondary}
                             multiline
                             textAlignVertical="top"
                         />
@@ -858,11 +777,8 @@ function EnhancedManualComponent() {
                 <ThemedPressable
                     variant="ghost"
                     onPress={() => {
-                        const currentDate = draft.date ? new Date(draft.date) : new Date();
-                        setSelectedDate(currentDate);
-                        // For now, just update the date directly
-                        // You can add a date picker modal here if needed
-                        update({ date: currentDate.toISOString() });
+                        setSelectedDate(draft.date ? new Date(draft.date) : new Date());
+                        setIsDatePickerVisible(true);
                     }}
                     style={styles.metadataCard}
                 >
@@ -891,7 +807,7 @@ function EnhancedManualComponent() {
                     <Card style={styles.metadataCardInner}>
                     <View style={styles.metadataContent}>
                         {isLoadingLocation ? (
-                            <ActivityIndicator size="small" color={colors.interactive.primary} />
+                            <ActivityIndicator size="small" color={colors.primary} />
                         ) : (
                             <ThemedIcon name="map-pin" size={20} color="accent" />
                         )}
@@ -1003,7 +919,7 @@ function EnhancedManualComponent() {
                     style={styles.saveButton}
                 >
                     {isSaving ? (
-                        <ActivityIndicator size="small" color={colors.text.inverse} />
+                        <ActivityIndicator size="small" color={colors.textInverse} />
                     ) : (
                         <ThemedIcon name="save" size={20} color="primary" />
                     )}
@@ -1013,20 +929,160 @@ function EnhancedManualComponent() {
                 </ThemedPressable>
             </ThemedView>
 
+            {/* Date Picker Modal */}
+            {isDatePickerVisible && (
+                <Modal
+                    transparent
+                    animationType="slide"
+                    visible={isDatePickerVisible}
+                    onRequestClose={() => setIsDatePickerVisible(false)}
+                >
+                    <BlurView intensity={80} style={styles.modalContainer}>
+                        <Card style={styles.datePickerCard}>
+                            <ThemedText variant="h3" style={styles.modalTitle}>
+                                {t('log.select_date')}
+                            </ThemedText>
+                            <DateTimePicker
+                                value={selectedDate}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={handleDateChange}
+                                maximumDate={new Date()}
+                            />
+                            {Platform.OS === 'ios' && (
+                                <View style={styles.datePickerButtons}>
+                                    <ThemedPressable
+                                        variant="secondary"
+                                        onPress={() => setIsDatePickerVisible(false)}
+                                        style={styles.dateButton}
+                                    >
+                                        <ThemedText variant="button">
+                                            {t('common.cancel')}
+                                        </ThemedText>
+                                    </ThemedPressable>
+                                    <ThemedPressable
+                                        variant="primary"
+                                        onPress={() => {
+                                            handleDateChange({ type: 'set' }, selectedDate);
+                                            setIsDatePickerVisible(false);
+                                        }}
+                                        style={styles.dateButton}
+                                    >
+                                        <ThemedText variant="button" color="primary">
+                                            {t('common.confirm')}
+                                        </ThemedText>
+                                    </ThemedPressable>
+                                </View>
+                            )}
+                        </Card>
+                    </BlurView>
+                </Modal>
+            )}
+
+            {/* Video Modal */}
+            <Modal
+                visible={isVideoModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setIsVideoModalVisible(false)}
+            >
+                <View style={styles.videoModalContainer}>
+                    {fullscreenPlayer && (
+                        <VideoView
+                            player={fullscreenPlayer}
+                            style={styles.fullscreenVideo}
+                            contentFit="contain"
+                            nativeControls
+                        />
+                    )}
+                    <View style={dynamicStyles.videoModalControls}>
+                        <ThemedPressable
+                            variant="secondary"
+                            onPress={() => setIsVideoModalVisible(false)}
+                            style={styles.videoButton}
+                        >
+                            <ThemedIcon name="x" size={20} color="primary" />
+                            <ThemedText variant="button">
+                                {t('common.close')}
+                            </ThemedText>
+                        </ThemedPressable>
+                        <ThemedPressable
+                            variant="primary"
+                            onPress={() => {
+                                setIsVideoModalVisible(false);
+                                handleMediaNavigation('/log/video');
+                            }}
+                            style={styles.videoButton}
+                        >
+                            <ThemedIcon name="refresh-cw" size={20} color="primary" />
+                            <ThemedText variant="button" color="primary">
+                                {t('camera.retake')}
+                            </ThemedText>
+                        </ThemedPressable>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Bird Predictions Modal */}
+            <Modal
+                visible={showPredictions}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowPredictions(false)}
+            >
+                <View style={dynamicStyles.modalOverlay}>
+                    <BlurView intensity={80} style={styles.modalBlur}>
+                        <View style={dynamicStyles.predictionsModalContainer}>
+                            <View style={dynamicStyles.predictionsHeader}>
+                                <ThemedText variant="h3">
+                                    {t('birdnet.predictions_title', 'Bird Identification Results')}
+                                </ThemedText>
+                                <ThemedPressable
+                                    style={styles.modalCloseButton}
+                                    onPress={() => setShowPredictions(false)}
+                                >
+                                    <ThemedIcon name="x" size={24} color="primary" />
+                                </ThemedPressable>
+                            </View>
+                            
+                            <ScrollView style={styles.predictionsScrollView}>
+                                {birdPredictions.map((prediction, index) => (
+                                    <ThemedPressable
+                                        key={index}
+                                        style={[dynamicStyles.predictionItem, { backgroundColor: colors.surface }]}
+                                        onPress={() => handleSelectPrediction(prediction)}
+                                    >
+                                        <View style={styles.predictionItemContent}>
+                                            <View style={dynamicStyles.predictionInfo}>
+                                                <ThemedText variant="body" style={styles.predictionCommonName}>
+                                                    {prediction.common_name}
+                                                </ThemedText>
+                                                <ThemedText variant="bodySmall" color="secondary" style={styles.predictionScientificName}>
+                                                    {prediction.scientific_name}
+                                                </ThemedText>
+                                            </View>
+                                            <View style={styles.predictionConfidence}>
+                                                <ThemedText variant="label" color="primary">
+                                                    {BirdNetService.formatConfidenceScore(prediction.confidence)}
+                                                </ThemedText>
+                                                <ThemedIcon name="chevron-right" size={20} color="secondary" />
+                                            </View>
+                                        </View>
+                                    </ThemedPressable>
+                                ))}
+                            </ScrollView>
+                            
+                            <View style={dynamicStyles.predictionsFooter}>
+                                <ThemedText variant="bodySmall" color="secondary" style={styles.predictionsDisclaimer}>
+                                    {t('birdnet.disclaimer', 'Tap a prediction to select it. Results are AI-generated and may not be 100% accurate.')}
+                                </ThemedText>
+                            </View>
+                        </View>
+                    </BlurView>
+                </View>
+            </Modal>
 
             <SnackbarComponent />
-            
-            {/* Bird Predictions Modal */}
-            {showBirdPredictionsModal && (
-                <BirdPredictionsModal
-                    predictions={modalPredictions}
-                    onSelectPrediction={(prediction: BirdNetPrediction) => {
-                        handleSelectPrediction(prediction);
-                        setShowBirdPredictionsModal(false);
-                    }}
-                    onClose={() => setShowBirdPredictionsModal(false)}
-                />
-            )}
         </ThemedView>
     );
 }
@@ -1299,17 +1355,3 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
 });
-
-export default function EnhancedManual() {
-    return (
-        <FeatureErrorBoundary 
-            featureName="Manual Entry"
-            onError={(error, errorId) => {
-                console.error('Manual entry feature error:', error, errorId);
-                // Report manual entry errors for investigation
-            }}
-        >
-            <EnhancedManualComponent />
-        </FeatureErrorBoundary>
-    );
-}

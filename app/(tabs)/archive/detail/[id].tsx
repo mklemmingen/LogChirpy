@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -6,19 +6,23 @@ import {
     Linking,
     Share,
     StyleSheet,
-    View,
 } from 'react-native';
 import {Audio} from 'expo-av';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {useIsFocused} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as MediaLibrary from 'expo-media-library';
+import Animated, {
+    FadeInDown,
+    FadeInUp,
+    Layout,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import {SafeViewManager} from '@/components/SafeViewManager';
 
-import {type BirdSpotting, getSpottingByIdCoordinated} from '@/services/database';
-import {cancelLowPriorityOperations} from '@/services/databaseCoordinator';
+import {type BirdSpotting, getSpottingById} from '@/services/database';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
@@ -43,16 +47,26 @@ function DetailHeader({
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
 
+    const scale = useSharedValue(1);
 
     const handleBackPress = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        scale.value = withSpring(0.95, { damping: 15, stiffness: 300 }, () => {
+            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+        });
         onBack();
     };
 
+    const backButtonStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
 
     return (
-        <View style={[styles.header, { marginTop: insets.top }]}>
-            <View>
+        <Animated.View
+            entering={FadeInUp.springify()}
+            style={[styles.header, { marginTop: insets.top }]}
+        >
+            <Animated.View style={backButtonStyle}>
                 <ThemedPressable
                     variant="secondary"
                     size="md"
@@ -61,7 +75,7 @@ function DetailHeader({
                 >
                     <ThemedIcon name="arrow-left" size={20} color="primary" />
                 </ThemedPressable>
-            </View>
+            </Animated.View>
 
             <ThemedView style={styles.headerInfo}>
                 <ThemedText
@@ -87,7 +101,7 @@ function DetailHeader({
             >
                 <ThemedIcon name="share" size={18} color="primary" />
             </ThemedPressable>
-        </View>
+        </Animated.View>
     );
 }
 
@@ -111,7 +125,7 @@ function MediaSection({
     if (!entry.imageUri && !entry.videoUri && !entry.audioUri) return null;
 
     return (
-        <View>
+        <Animated.View entering={FadeInDown.delay(100).springify()} layout={Layout.springify()}>
             <ModernCard elevated={true} bordered={false} style={styles.section}>
                 <ThemedView style={styles.sectionHeader}>
                     <ThemedIcon name="camera" size={20} color="primary" />
@@ -169,7 +183,7 @@ function MediaSection({
                     )}
                 </ThemedView>
             </ModernCard>
-        </View>
+        </Animated.View>
     );
 }
 
@@ -186,7 +200,10 @@ function InfoSection({
     delay?: number;
 }) {
     return (
-        <View>
+        <Animated.View
+            entering={FadeInDown.delay(delay).springify()}
+            layout={Layout.springify()}
+        >
             <ModernCard elevated={true} bordered={false} style={styles.section}>
                 <ThemedView style={styles.sectionHeader}>
                     <ThemedIcon name={icon as any} size={20} color="primary" />
@@ -198,7 +215,7 @@ function InfoSection({
                     {children}
                 </ThemedView>
             </ModernCard>
-        </View>
+        </Animated.View>
     );
 }
 
@@ -263,45 +280,25 @@ export default function ModernArchiveDetailScreen() {
     const { t } = useTranslation();
     const router = useRouter();
     const theme = useTheme();
-    const isFocused = useIsFocused();
-
-    if (!isFocused) {
-        return null;
-    }
 
     const [entry, setEntry] = useState<SpottingDetail>(null);
     const [loading, setLoading] = useState(true);
     const [audioLoading, setAudioLoading] = useState(false);
     const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
-    
-    // Memory leak prevention
-    const mountedRef = useRef(true);
 
-    // Enhanced data loading with memory leak prevention
+    // Load spotting data
     useEffect(() => {
         const loadSpotting = async () => {
             try {
-                if (mountedRef.current) {
-                    setLoading(true);
-                }
-                
-                // Use coordinated database operation
-                const data = await getSpottingByIdCoordinated(Number(id));
-                
-                // Check if component is still mounted before state update
-                if (mountedRef.current) {
-                    setEntry(data);
-                }
+                setLoading(true);
+                const data = getSpottingById(Number(id));
+                setEntry(data);
             } catch (e) {
                 console.error(e);
-                if (mountedRef.current) {
-                    Alert.alert(t('archive.error'), t('archive.load_detail_failed'));
-                    router.back();
-                }
+                Alert.alert(t('archive.error'), t('archive.load_detail_failed'));
+                router.back();
             } finally {
-                if (mountedRef.current) {
-                    setLoading(false);
-                }
+                setLoading(false);
             }
         };
 
@@ -310,36 +307,20 @@ export default function ModernArchiveDetailScreen() {
         }
     }, [id, t, router]);
 
-    // Enhanced cleanup on unmount with database coordination
+    // Cleanup audio on unmount
     useEffect(() => {
         return () => {
-            mountedRef.current = false;
-            
-            // Cancel low priority database operations
-            cancelLowPriorityOperations();
-            
             if (currentSound) {
-                currentSound.unloadAsync().catch(error => {
-                    console.warn('Failed to unload audio during cleanup:', error);
-                });
+                currentSound.unloadAsync();
             }
         };
     }, [currentSound]);
-    
-    // Cancel operations when tab becomes unfocused
-    useEffect(() => {
-        if (!isFocused) {
-            cancelLowPriorityOperations();
-        }
-    }, [isFocused]);
 
-    // Enhanced audio playback with memory leak prevention
+    // Audio playback
     const playAudio = useCallback(async (uri: string) => {
         try {
-            if (mountedRef.current) {
-                setAudioLoading(true);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }
+            setAudioLoading(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
             if (currentSound) {
                 await currentSound.unloadAsync();
@@ -350,27 +331,19 @@ export default function ModernArchiveDetailScreen() {
                 { shouldPlay: true }
             );
 
-            if (mountedRef.current) {
-                setCurrentSound(sound);
-            }
+            setCurrentSound(sound);
 
             sound.setOnPlaybackStatusUpdate((status) => {
                 if (status.isLoaded && status.didJustFinish) {
                     sound.unloadAsync();
-                    if (mountedRef.current) {
-                        setCurrentSound(null);
-                    }
+                    setCurrentSound(null);
                 }
             });
         } catch (error) {
             console.error('Audio playback error:', error);
-            if (mountedRef.current) {
-                Alert.alert(t('archive.error'), t('archive.audio_play_failed'));
-            }
+            Alert.alert(t('archive.error'), t('archive.audio_play_failed'));
         } finally {
-            if (mountedRef.current) {
-                setAudioLoading(false);
-            }
+            setAudioLoading(false);
         }
     }, [currentSound, t]);
 
@@ -446,8 +419,7 @@ export default function ModernArchiveDetailScreen() {
     }
 
     return (
-        <SafeViewManager enabled={isFocused}>
-            <ThemedView style={styles.container}>
+        <ThemedView style={styles.container}>
             {/* Header */}
             <DetailHeader
                 entry={entry}
@@ -548,8 +520,7 @@ export default function ModernArchiveDetailScreen() {
                     />
                 </InfoSection>
             </ThemedScrollView>
-            </ThemedView>
-        </SafeViewManager>
+        </ThemedView>
     );
 }
 

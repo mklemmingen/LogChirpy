@@ -1,8 +1,7 @@
 import React from 'react';
 import { ThemedPressable } from './ThemedPressable';
 import { ThemedText } from './ThemedText';
-import { useUnifiedColors } from '@/hooks/useUnifiedColors';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
+import { useColors } from '@/hooks/useThemeColor';
 
 interface ButtonProps {
   title: string;
@@ -21,17 +20,16 @@ export function Button({
   disabled = false,
   fullWidth = false,
 }: ButtonProps) {
-  const colors = useUnifiedColors();
-  const dimensions = useResponsiveDimensions();
+  const colors = useColors();
 
   const getTextColor = () => {
-    if (disabled) return colors.interactive.disabledText;
+    if (disabled) return colors.textDisabled;
     
     switch (variant) {
-      case 'primary': return colors.interactive.primaryText;
-      case 'secondary': return colors.interactive.secondaryText;
-      case 'ghost': return colors.interactive.ghostText;
-      default: return colors.interactive.primaryText;
+      case 'primary': return colors.textInverse;
+      case 'secondary': return colors.text;
+      case 'ghost': return colors.text;
+      default: return colors.text;
     }
   };
 

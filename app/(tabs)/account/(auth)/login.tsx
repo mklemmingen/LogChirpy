@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useState} from 'react';
 import {
     Dimensions,
     KeyboardAvoidingView,
@@ -11,11 +11,18 @@ import {
 } from 'react-native';
 import {router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import SafeBlurView from '@/components/ui/SafeBlurView';
+import {BlurView} from 'expo-blur';
 import { ThemedIcon } from '@/components/ThemedIcon';
+import Animated, {
+    interpolate,
+    SlideInRight,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring,
+    withTiming,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import {useIsFocused} from '@react-navigation/native';
-import {SafeViewManager} from '@/components/SafeViewManager';
 
 // Firebase imports
 import {signInWithEmailAndPassword} from 'firebase/auth';
@@ -25,16 +32,16 @@ import {auth} from '@/firebase/config';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
-import {ThemedSnackbar, useSnackbar} from '@/components/ThemedSnackbar';
+import {useSnackbar} from '@/components/ThemedSnackbar';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import { useUnifiedColors } from '@/hooks/useUnifiedColors';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import {useTheme, useSemanticColors, useTypography, useColorVariants} from '@/hooks/useThemeColor';
 // import { useAuth } from '@/app/context/AuthContext';
 
+// Constants
+const { width, height } = Dimensions.get('window');
 
-// Get screen width for styles
-const { width } = Dimensions.get('window');
+// Animated components
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 // Types
 interface FormErrors {
@@ -74,25 +81,43 @@ function ModernTextInput({
     const [isFocused, setIsFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    // Animation values
+    const focusAnim = useSharedValue(0);
+    const errorAnim = useSharedValue(0);
 
+    React.useEffect(() => {
+        focusAnim.value = withSpring(isFocused ? 1 : 0, {
+            damping: 15,
+            stiffness: 300
+        });
+    }, [isFocused]);
 
+    React.useEffect(() => {
+        if (error) {
+            errorAnim.value = withSequence(
+                withTiming(1, { duration: 100 }),
+                withSpring(0, { damping: 8, stiffness: 300 })
+            );
+        }
+    }, [error]);
 
-    const containerStyle = {
+    const containerStyle = useAnimatedStyle(() => ({
         borderColor: error
             ? semanticColors.error
             : isFocused
                 ? semanticColors.primary
                 : semanticColors.secondary,
-        borderWidth: isFocused ? 2 : 1,
-    };
+        borderWidth: interpolate(focusAnim.value, [0, 1], [1, 2]),
+        transform: [{ scale: interpolate(errorAnim.value, [0, 1], [1, 1.02]) }],
+    }));
 
-    const labelStyle = {
+    const labelStyle = useAnimatedStyle(() => ({
         color: error
             ? semanticColors.error
             : isFocused
                 ? semanticColors.primary
                 : semanticColors.secondary,
-    };
+    }));
 
     return (
         <View style={styles.inputContainer}>
@@ -100,8 +125,8 @@ function ModernTextInput({
                 {label}
             </ThemedText>
 
-            <View style={[styles.inputWrapper, containerStyle]}>
-                <SafeBlurView
+            <Animated.View style={[styles.inputWrapper, containerStyle]}>
+                <BlurView
                     intensity={20}
                     tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
                     style={StyleSheet.absoluteFillObject}
@@ -118,7 +143,7 @@ function ModernTextInput({
                         </View>
                     )}
 
-                    <TextInput
+                    <AnimatedTextInput
                         style={[
                             typography.body,
                             styles.textInput,
@@ -153,15 +178,18 @@ function ModernTextInput({
                         </Pressable>
                     )}
                 </View>
-            </View>
+            </Animated.View>
 
             {error && (
-                <View style={styles.errorContainer}>
+                <Animated.View
+                    entering={SlideInRight.duration(200)}
+                    style={styles.errorContainer}
+                >
                     <ThemedIcon name="alert-circle" size={14} color="error" />
                     <ThemedText variant="caption" color="error">
                         {error}
                     </ThemedText>
-                </View>
+                </Animated.View>
             )}
         </View>
     );
@@ -169,36 +197,30 @@ function ModernTextInput({
 
 // Main Component
 export default function ModernLoginScreen() {
-    const isFocused = useIsFocused();
-    
-    // Early return must be before any other hooks
-    if (!isFocused) {
-        return null;
-    }
-
     const { t } = useTranslation();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const typography = useTypography();
     const { showError, showSuccess, SnackbarComponent } = useSnackbar();
-    const dimensions = useResponsiveDimensions();
 
     // Form state
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
-    
-    // Memory leak prevention
-    const mountedRef = useRef(true);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            mountedRef.current = false;
-        };
+    // Animation values
+    const headerAnim = useSharedValue(0);
+    const cardAnim = useSharedValue(0);
+
+    React.useEffect(() => {
+        // Staggered entrance animations
+        headerAnim.value = withSpring(1, { damping: 20, stiffness: 300 });
+
+        setTimeout(() => {
+            cardAnim.value = withSpring(1, { damping: 20, stiffness: 300 });
+        }, 200);
     }, []);
-
 
     // Form validation
     const validateForm = () => {
@@ -218,35 +240,30 @@ export default function ModernLoginScreen() {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Enhanced login handler with memory leak prevention
+    // Login handler
     const handleLogin = async () => {
         if (!validateForm()) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             return;
         }
 
-        if (mountedRef.current) {
-            setIsLoading(true);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        }
+        setIsLoading(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         try {
             // Firebase authentication
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             console.log('Login successful:', userCredential.user);
 
-            if (mountedRef.current) {
-                showSuccess('Welcome back!');
+            showSuccess('Welcome back!');
 
-                // Immediate navigation to avoid SafeViewManager timing conflicts
-                // No setTimeout needed as navigation should be immediate after auth success
+            // Navigate to account tab instead of tabs root to avoid navigation conflicts
+            setTimeout(() => {
                 router.replace('/(tabs)/account');
-            }
+            }, 1000);
 
         } catch (error: unknown) {
             console.error('Login error:', error);
-
-            if (!mountedRef.current) return;
 
             // Map Firebase errors to user-friendly messages
             let errorMessage = t('errors.sign_in_error');
@@ -277,9 +294,7 @@ export default function ModernLoginScreen() {
             showError(errorMessage);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         } finally {
-            if (mountedRef.current) {
-                setIsLoading(false);
-            }
+            setIsLoading(false);
         }
     };
 
@@ -294,11 +309,25 @@ export default function ModernLoginScreen() {
         router.push('/account/signup');
     };
 
+    // Animation styles
+    const headerStyle = useAnimatedStyle(() => ({
+        opacity: headerAnim.value,
+        transform: [
+            { translateY: interpolate(headerAnim.value, [0, 1], [30, 0]) },
+            { scale: interpolate(headerAnim.value, [0, 1], [0.95, 1]) }
+        ],
+    }));
 
+    const cardStyle = useAnimatedStyle(() => ({
+        opacity: cardAnim.value,
+        transform: [
+            { translateY: interpolate(cardAnim.value, [0, 1], [50, 0]) },
+            { scale: interpolate(cardAnim.value, [0, 1], [0.9, 1]) }
+        ],
+    }));
 
     return (
-        <SafeViewManager enabled={isFocused}>
-            <ThemedSafeAreaView style={styles.container}>
+        <ThemedSafeAreaView style={styles.container}>
             {/* Background Elements */}
             <View style={styles.backgroundElements}>
                 <View style={[
@@ -309,8 +338,8 @@ export default function ModernLoginScreen() {
 
             <KeyboardAvoidingView
                 style={styles.keyboardView}
-                behavior="height"
-                keyboardVerticalOffset={20}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
                 <ScrollView
                     style={styles.scrollView}
@@ -319,7 +348,7 @@ export default function ModernLoginScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     {/* Header Section */}
-                    <View style={styles.header}>
+                    <Animated.View style={[styles.header, headerStyle]}>
                         <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
                             <ThemedIcon name="feather" size={40} color="accent" />
                         </View>
@@ -338,10 +367,10 @@ export default function ModernLoginScreen() {
                         >
                             {t('auth.login_subtitle')}
                         </ThemedText>
-                    </View>
+                    </Animated.View>
 
                     {/* Login Form */}
-                    <View>
+                    <Animated.View style={cardStyle}>
                         <ModernCard
                             elevated={false}
                             bordered={true}
@@ -425,14 +454,13 @@ export default function ModernLoginScreen() {
                                 </ThemedPressable>
                             </View>
                         </ModernCard>
-                    </View>
+                    </Animated.View>
                 </ScrollView>
             </KeyboardAvoidingView>
 
             {/* Snackbar */}
             <SnackbarComponent />
-            </ThemedSafeAreaView>
-        </SafeViewManager>
+        </ThemedSafeAreaView>
     );
 }
 

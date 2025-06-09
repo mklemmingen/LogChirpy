@@ -97,10 +97,8 @@ class FastTfliteBirdClassifierService {
       }
       
       // Get model size for metrics
-      // Note: When using require() for bundled assets, we can't get the actual file size
-      // The model is loaded correctly, but size will be reported as 0 for bundled assets
       const modelUri = this.config.modelPath;
-      if (typeof modelUri === 'string' && modelUri.startsWith('file://')) {
+      if (typeof modelUri === 'string') {
         try {
           const fileInfo = await FileSystem.getInfoAsync(modelUri);
           if (fileInfo.exists && 'size' in fileInfo) {
@@ -109,11 +107,6 @@ class FastTfliteBirdClassifierService {
         } catch (error) {
           console.warn('Could not get model file size:', error);
         }
-      } else {
-        // For bundled assets (require()), estimate size based on known model
-        // BirdNet v2.4 model is approximately 26MB
-        this.performanceMetrics.modelSize = 26 * 1024 * 1024; // 26MB in bytes
-        console.log('Using estimated model size for bundled asset');
       }
 
       this.modelLoaded = true;
@@ -432,68 +425,6 @@ class FastTfliteBirdClassifierService {
   isReady(): boolean {
     return this.modelLoaded && this.model !== null;
   }
-
-  /**
-   * Check if GPU is available for inference
-   */
-  async isGPUAvailable(): Promise<boolean> {
-    try {
-      // Android GPU support depends on device capabilities
-      // Try to create a test model with GPU delegate
-      try {
-        const testModel = await loadTensorflowModel(
-          this.config.modelPath,
-          'android-gpu' as TensorflowModelDelegate
-        );
-        if (testModel) {
-          testModel.release();
-          return true;
-        }
-      } catch (e) {
-        console.log('GPU delegate test failed:', e);
-      }
-      return false;
-    } catch (error) {
-      console.warn('Error checking GPU availability:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Classify image for bird detection
-   * This is primarily for testing - main functionality is audio classification
-   */
-  async classifyImage(imagePath: string, options?: {
-    enableGPU?: boolean;
-    confidenceThreshold?: number;
-    maxResults?: number;
-  }): Promise<BirdClassificationResult[]> {
-    try {
-      if (!this.modelLoaded || !this.model) {
-        await this.initialize();
-      }
-
-      // For bird classification, we actually need audio data
-      // This method would need to extract audio from video or use a different model
-      console.warn('classifyImage called but BirdNet model expects audio input');
-      
-      // Return mock data for now - in production, this would either:
-      // 1. Use a different visual bird classification model
-      // 2. Extract audio from video files
-      // 3. Throw an error indicating wrong input type
-      return [
-        {
-          species: 'Visual classification not supported',
-          scientificName: 'Use audio classification instead',
-          confidence: 0,
-          index: -1
-        }
-      ];
-    } catch (error) {
-      console.error('Image classification error:', error);
-      throw error;
-    }
-  }
 }
 
 // Create singleton instance
@@ -506,44 +437,3 @@ export const classifyBirdWithFastTflite = (
   audioUri?: string
 ) => fastTfliteBirdClassifier.classifyBirdAudio(spectrogramData, audioUri);
 export const getFastTfliteMetrics = () => fastTfliteBirdClassifier.getPerformanceMetrics();
-
-/**
- * Full audio classification pipeline: from audio file to bird identification
- * This is the main function that combines audio preprocessing with TFLite classification
- */
-export const classifyBirdFromAudioFile = async (audioUri: string) => {
-  try {
-    // Import here to avoid circular dependencies
-    const { AudioPreprocessingTFLite } = await import('./audioPreprocessingTFLite');
-    
-    console.log('[FastTFLite Pipeline] Starting full audio classification...');
-    
-    // Step 1: Initialize the model if not already done
-    if (!fastTfliteBirdClassifier.isReady()) {
-      console.log('[FastTFLite Pipeline] Initializing model...');
-      await fastTfliteBirdClassifier.initialize();
-    }
-    
-    // Step 2: Preprocess audio to mel-spectrogram
-    console.log('[FastTFLite Pipeline] Preprocessing audio...');
-    const processedAudio = await AudioPreprocessingTFLite.processAudioFile(audioUri);
-    
-    // Step 3: Run classification
-    console.log('[FastTFLite Pipeline] Running bird classification...');
-    const classification = await fastTfliteBirdClassifier.classifyBirdAudio(
-      processedAudio.melSpectrogram,
-      audioUri
-    );
-    
-    // Step 4: Return combined results
-    return {
-      ...classification,
-      audioMetadata: processedAudio.metadata,
-      audioShape: processedAudio.shape
-    };
-    
-  } catch (error) {
-    console.error('[FastTFLite Pipeline] Full classification failed:', error);
-    throw error;
-  }
-};

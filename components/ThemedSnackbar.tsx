@@ -1,18 +1,32 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
+    ViewStyle,
     Pressable,
-    Animated,
-    PanResponder,
-    Dimensions,
+    Text,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { ThemedIcon } from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    useAnimatedGestureHandler,
+    withSpring,
+    withTiming,
+    runOnJS,
+    interpolate,
+    Easing,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import {
+    useTheme,
+    useSemanticColors,
+    useColorVariants,
+    useTypography,
+    useMotionValues,
+} from '../hooks/useThemeColor';
+import {PanGestureHandler} from "react-native-gesture-handler";
 
 // Snackbar variants with semantic meaning
 type SnackbarVariant = 'default' | 'success' | 'error' | 'warning' | 'info';
@@ -30,354 +44,430 @@ interface ModernSnackbarProps {
     };
     icon?: string;
     position?: 'top' | 'bottom';
+    style?: ViewStyle;
     swipeToDismiss?: boolean;
 }
 
-// Icon mapping for variants
-const VARIANT_ICONS: Record<SnackbarVariant, string> = {
-    default: 'info',
-    success: 'check',
-    error: 'x',
-    warning: 'alert-triangle',
-    info: 'info',
-};
-
-// Simple variant colors
-const VARIANT_COLORS = {
-    default: {
-        backgroundColor: '#333',
-        borderColor: '#555',
-        iconColor: '#007AFF',
-    },
-    success: {
-        backgroundColor: '#10B981',
-        borderColor: '#059669',
-        iconColor: '#ffffff',
-    },
-    error: {
-        backgroundColor: '#EF4444',
-        borderColor: '#DC2626',
-        iconColor: '#ffffff',
-    },
-    warning: {
-        backgroundColor: '#F59E0B',
-        borderColor: '#D97706',
-        iconColor: '#ffffff',
-    },
-    info: {
-        backgroundColor: '#3B82F6',
-        borderColor: '#2563EB',
-        iconColor: '#ffffff',
-    },
-};
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function ThemedSnackbar({
-    visible,
-    message,
-    onHide,
-    variant = 'default',
-    duration = 4000,
-    action,
-    icon,
-    position = 'bottom',
-    swipeToDismiss = true,
-}: ModernSnackbarProps) {
+                                   visible,
+                                   message,
+                                   onHide,
+                                   variant = 'default',
+                                   duration = 4000,
+                                   action,
+                                   icon,
+                                   position = 'bottom',
+                                   style,
+                                   swipeToDismiss = true,
+                               }: ModernSnackbarProps) {
+    const theme = useTheme();
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const typography = useTypography();
+    const motion = useMotionValues();
     const insets = useSafeAreaInsets();
 
-    // Animation values using React Native's Animated API
-    const translateY = useRef(new Animated.Value(100)).current;
-    const opacity = useRef(new Animated.Value(0)).current;
-    const translateX = useRef(new Animated.Value(0)).current;
-    const scale = useRef(new Animated.Value(0.9)).current;
+    // Animation values
+    const translateY = useSharedValue(position === 'bottom' ? 100 : -100);
+    const opacity = useSharedValue(0);
+    const scale = useSharedValue(0.9);
+    const gestureTranslateY = useSharedValue(0);
+    const gestureOpacity = useSharedValue(1);
 
-    // Auto-hide timer
-    const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+    // Timer ref for auto-dismiss
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Show animation
+    // Get variant-specific styling
+    const getVariantStyle = () => {
+        switch (variant) {
+            case 'success':
+                return {
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    borderColor: semanticColors.success,
+                    iconColor: semanticColors.success,
+                    iconName: icon || 'check-circle',
+                };
+            case 'error':
+                return {
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderColor: semanticColors.error,
+                    iconColor: semanticColors.error,
+                    iconName: icon || 'alert-circle',
+                };
+            case 'warning':
+                return {
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderColor: semanticColors.warning,
+                    iconColor: semanticColors.warning,
+                    iconName: icon || 'alert-triangle',
+                };
+            case 'info':
+                return {
+                    backgroundColor: 'rgba(115, 115, 115, 0.1)',
+                    borderColor: semanticColors.info,
+                    iconColor: semanticColors.info,
+                    iconName: icon || 'info',
+                };
+            default:
+                return {
+                    backgroundColor: 'transparent',
+                    borderColor: variants.primary.light,
+                    iconColor: semanticColors.primary,
+                    iconName: icon || 'message-circle',
+                };
+        }
+    };
+
+    const variantStyle = getVariantStyle();
+
+    // Enhanced entrance animation
     const showSnackbar = useCallback(() => {
-        Animated.parallel([
-            Animated.timing(opacity, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-            }),
-            Animated.timing(translateY, {
-                toValue: 0,
-                duration: 300,
-                useNativeDriver: true,
-            }),
-            Animated.timing(scale, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-            }),
-        ]).start();
-
-        // Haptic feedback
+        // Haptic feedback on show
         Haptics.notificationAsync(
-            variant === 'success' ? Haptics.NotificationFeedbackType.Success :
-            variant === 'error' ? Haptics.NotificationFeedbackType.Error :
-            Haptics.NotificationFeedbackType.Warning
+            variant === 'error'
+                ? Haptics.NotificationFeedbackType.Error
+                : variant === 'success'
+                    ? Haptics.NotificationFeedbackType.Success
+                    : Haptics.NotificationFeedbackType.Warning
         );
-    }, [opacity, translateY, scale, variant]);
 
-    // Hide animation
-    const hideSnackbar = useCallback(() => {
-        Animated.parallel([
-            Animated.timing(opacity, {
-                toValue: 0,
-                duration: 250,
-                useNativeDriver: true,
-            }),
-            Animated.timing(translateY, {
-                toValue: position === 'bottom' ? 100 : -100,
-                duration: 250,
-                useNativeDriver: true,
-            }),
-            Animated.timing(scale, {
-                toValue: 0.9,
-                duration: 250,
-                useNativeDriver: true,
-            }),
-        ]).start(() => {
-            onHide();
-            translateX.setValue(0); // Reset swipe position
+        // Smooth spring entrance
+        translateY.value = withSpring(0, {
+            damping: 20,
+            stiffness: 300,
+            mass: 0.8,
         });
-    }, [opacity, translateY, scale, position, onHide, translateX]);
 
-    // Pan responder for swipe to dismiss
-    const panResponder = useRef(
-        PanResponder.create({
-            onMoveShouldSetPanResponder: (_, gestureState) => {
-                return swipeToDismiss && Math.abs(gestureState.dx) > 10;
-            },
-            onPanResponderMove: (_, gestureState) => {
-                translateX.setValue(gestureState.dx);
-            },
-            onPanResponderRelease: (_, gestureState) => {
-                const { dx, vx } = gestureState;
-                const shouldDismiss = Math.abs(dx) > SCREEN_WIDTH * 0.3 || Math.abs(vx) > 0.5;
+        opacity.value = withTiming(1, {
+            duration: 200,
+            easing: Easing.out(Easing.exp),
+        });
 
-                if (shouldDismiss) {
-                    // Swipe off screen
-                    Animated.parallel([
-                        Animated.timing(translateX, {
-                            toValue: dx > 0 ? SCREEN_WIDTH : -SCREEN_WIDTH,
-                            duration: 200,
-                            useNativeDriver: true,
-                        }),
-                        Animated.timing(opacity, {
-                            toValue: 0,
-                            duration: 200,
-                            useNativeDriver: true,
-                        }),
-                    ]).start(() => {
-                        onHide();
-                        translateX.setValue(0);
-                    });
-                } else {
-                    // Spring back to center
-                    Animated.spring(translateX, {
-                        toValue: 0,
-                        useNativeDriver: true,
-                    }).start();
+        scale.value = withSpring(1, {
+            damping: 15,
+            stiffness: 400,
+        });
+
+        // Auto-dismiss timer
+        if (duration > 0) {
+            timeoutRef.current = setTimeout(() => {
+                onHide();
+            }, duration);
+        }
+    }, [variant, translateY, opacity, scale, duration, onHide]);
+
+    // Enhanced exit animation
+    const hideSnackbar = useCallback(() => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+
+        translateY.value = withSpring(position === 'bottom' ? 100 : -100, {
+            damping: 20,
+            stiffness: 300,
+        });
+
+        opacity.value = withTiming(0, {
+            duration: 150,
+        });
+
+        scale.value = withTiming(0.9, {
+            duration: 150,
+        });
+
+        // Call onHide after animation
+        setTimeout(onHide, 150);
+    }, [position, translateY, opacity, scale, onHide]);
+
+    // Swipe to dismiss gesture handler
+    const gestureHandler = useAnimatedGestureHandler({
+        onStart: () => {
+            if (timeoutRef.current) {
+                runOnJS(clearTimeout)(timeoutRef.current);
+            }
+        },
+        onActive: (event) => {
+            if (!swipeToDismiss) return;
+
+            const dismissDirection = position === 'bottom' ? 1 : -1;
+            const translation = event.translationY * dismissDirection;
+
+            if (translation > 0) {
+                gestureTranslateY.value = translation;
+                gestureOpacity.value = interpolate(
+                    translation,
+                    [0, 150],
+                    [1, 0],
+                    'clamp'
+                );
+            }
+        },
+        onEnd: (event) => {
+            const dismissDirection = position === 'bottom' ? 1 : -1;
+            const translation = event.translationY * dismissDirection;
+            const velocity = event.velocityY * dismissDirection;
+
+            if (translation > 50 || velocity > 500) {
+                // Dismiss
+                gestureTranslateY.value = withTiming(200 * dismissDirection, {
+                    duration: 150,
+                });
+                gestureOpacity.value = withTiming(0, {
+                    duration: 150,
+                });
+
+                setTimeout(() => runOnJS(onHide)(), 150);
+            } else {
+                // Snap back
+                gestureTranslateY.value = withSpring(0);
+                gestureOpacity.value = withSpring(1);
+
+                // Restart auto-dismiss timer
+                if (duration > 0) {
+                    timeoutRef.current = setTimeout(() => {
+                        runOnJS(hideSnackbar)();
+                    }, duration);
                 }
-            },
-        })
-    ).current;
+            }
+        },
+    });
 
     // Handle visibility changes
     useEffect(() => {
         if (visible) {
             showSnackbar();
-            
-            // Set auto-hide timer
-            if (duration > 0) {
-                hideTimerRef.current = setTimeout(() => {
-                    hideSnackbar();
-                }, duration) as any;
-            }
         } else {
             hideSnackbar();
         }
 
         return () => {
-            if (hideTimerRef.current) {
-                clearTimeout(hideTimerRef.current);
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
             }
         };
-    }, [visible, duration, showSnackbar, hideSnackbar]);
+    }, [visible, hideSnackbar, showSnackbar]);
 
-    if (!visible) return null;
+    // Animated styles
+    const containerStyle = useAnimatedStyle(() => ({
+        transform: [
+            { translateY: translateY.value + gestureTranslateY.value },
+            { scale: scale.value },
+        ],
+        opacity: opacity.value * gestureOpacity.value,
+    }));
 
-    const variantStyles = VARIANT_COLORS[variant];
-    const displayIcon = icon || VARIANT_ICONS[variant];
+    // Don't render if not visible
+    if (!visible && opacity.value === 0) return null;
+
+    const bottomOffset = insets.bottom + theme.spacing.lg;
+    const topOffset = insets.top + theme.spacing.lg;
 
     return (
-        <Animated.View
-            style={[
-                styles.container,
-                {
-                    [position]: insets[position] + 20,
-                    transform: [
-                        { translateY },
-                        { translateX },
-                        { scale },
-                    ],
-                    opacity,
-                },
-            ]}
-            {...(swipeToDismiss ? panResponder.panHandlers : {})}
-        >
-            <View
+        <PanGestureHandler onGestureEvent={gestureHandler} enabled={swipeToDismiss}>
+            <Animated.View
                 style={[
-                    styles.content,
                     {
-                        backgroundColor: variantStyles.backgroundColor,
-                        borderColor: variantStyles.borderColor,
+                        position: 'absolute',
+                        left: theme.spacing.md,
+                        right: theme.spacing.md,
+                        [position]: position === 'bottom' ? bottomOffset : topOffset,
+                        zIndex: 1000,
                     },
+                    containerStyle,
+                    style,
                 ]}
             >
-                {/* Icon */}
-                {displayIcon && (
-                    <ThemedIcon
-                        name={displayIcon as any}
-                        size={20}
-                        color="primary"
-                        style={[styles.icon, { tintColor: variantStyles.iconColor }]}
-                    />
-                )}
-
-                {/* Message */}
-                <Text
-                    style={[styles.message, { color: 'white' }]}
-                    numberOfLines={2}
+                <BlurView
+                    intensity={variant === 'default' ? 80 : 60}
+                    tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+                    style={{
+                        borderRadius: theme.borderRadius.lg,
+                        borderWidth: 1,
+                        borderColor: variantStyle.borderColor,
+                        overflow: 'hidden',
+                        ...theme.shadows.lg,
+                    }}
                 >
-                    {message}
-                </Text>
+                    {/* Background overlay for variant colors */}
+                    {variant !== 'default' && (
+                        <Animated.View
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: variantStyle.backgroundColor,
+                                opacity: 0.15,
+                            }}
+                        />
+                    )}
 
-                {/* Action button */}
-                {action && (
-                    <Pressable
-                        style={styles.actionButton}
-                        onPress={() => {
-                            action.onPress();
-                            hideSnackbar();
+                    <AnimatedPressable
+                        style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: theme.spacing.md,
+                            paddingHorizontal: theme.spacing.md,
+                            gap: theme.spacing.sm,
                         }}
+                        onPress={action ? undefined : hideSnackbar}
+                        android_ripple={!action ? { color: variants.neutral.dark } : null}
                     >
+                        {/* Icon */}
+                        {variantStyle.iconName && (
+                            <ThemedIcon
+                                name={variantStyle.iconName as any}
+                                size={20}
+                                color="accent"
+                            />
+                        )}
+
+                        {/* Message */}
                         <Text
                             style={[
-                                styles.actionText,
-                                { color: variantStyles.iconColor },
+                                typography.body,
+                                {
+                                    color: semanticColors.primary,
+                                    flex: 1,
+                                    lineHeight: 20,
+                                },
                             ]}
+                            numberOfLines={2}
                         >
-                            {action.label}
+                            {message}
                         </Text>
-                    </Pressable>
-                )}
 
-                {/* Close button */}
-                <Pressable
-                    style={styles.closeButton}
-                    onPress={hideSnackbar}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                    <ThemedIcon
-                        name="x" 
-                        size={16}
-                        color="primary"
-                        style={{ tintColor: 'rgba(255, 255, 255, 0.7)' }}
-                    />
-                </Pressable>
-            </View>
-        </Animated.View>
+                        {/* Action button */}
+                        {action && (
+                            <Pressable
+                                style={{
+                                    paddingVertical: theme.spacing.xs,
+                                    paddingHorizontal: theme.spacing.sm,
+                                    borderRadius: theme.borderRadius.sm,
+                                    backgroundColor: variants.primary.light,
+                                }}
+                                onPress={() => {
+                                    Haptics.selectionAsync();
+                                    action.onPress();
+                                    hideSnackbar();
+                                }}
+                                android_ripple={{ color: variants.primary.dark }}
+                            >
+                                <Text
+                                    style={[
+                                        typography.label,
+                                        {
+                                            color: semanticColors.primary,
+                                            fontWeight: '600',
+                                        },
+                                    ]}
+                                >
+                                    {action.label}
+                                </Text>
+                            </Pressable>
+                        )}
+
+                        {/* Close button for persistent snackbars */}
+                        {duration === 0 && !action && (
+                            <Pressable
+                                style={{
+                                    padding: theme.spacing.xs,
+                                    borderRadius: theme.borderRadius.sm,
+                                }}
+                                onPress={hideSnackbar}
+                                android_ripple={{ color: variants.neutral.dark }}
+                            >
+                                <ThemedIcon
+                                    name="x"
+                                    size={16}
+                                    color="secondary"
+                                />
+                            </Pressable>
+                        )}
+                    </AnimatedPressable>
+
+                    {/* Swipe indicator for touch targets */}
+                    {swipeToDismiss && (
+                        <Animated.View
+                            style={{
+                                position: 'absolute',
+                                top: 4,
+                                left: '50%',
+                                marginLeft: -12,
+                                width: 24,
+                                height: 3,
+                                borderRadius: 1.5,
+                                backgroundColor: semanticColors.secondary,
+                                opacity: 0.5,
+                            }}
+                        />
+                    )}
+                </BlurView>
+            </Animated.View>
+        </PanGestureHandler>
     );
 }
 
-// Hook for using snackbar in components
-export function useSnackbar() {
-    const [snackbarState, setSnackbarState] = useState({
+// Convenience hooks for different variants
+export const useSnackbar = () => {
+    const [snackbarState, setSnackbarState] = React.useState<{
+        visible: boolean;
+        message: string;
+        variant: SnackbarVariant;
+        action?: { label: string; onPress: () => void };
+    }>({
         visible: false,
         message: '',
-        variant: 'default' as SnackbarVariant,
+        variant: 'default',
     });
 
-    const showSnackbar = useCallback((message: string, variant: SnackbarVariant = 'default') => {
-        setSnackbarState({ visible: true, message, variant });
+    const show = React.useCallback((
+        message: string,
+        variant: SnackbarVariant = 'default',
+        action?: { label: string; onPress: () => void }
+    ) => {
+        setSnackbarState({ visible: true, message, variant, action });
     }, []);
 
-    const showSuccess = useCallback((message: string) => {
-        showSnackbar(message, 'success');
-    }, [showSnackbar]);
-
-    const showError = useCallback((message: string) => {
-        showSnackbar(message, 'error');
-    }, [showSnackbar]);
-
-    const hideSnackbar = useCallback(() => {
+    const hide = React.useCallback(() => {
         setSnackbarState(prev => ({ ...prev, visible: false }));
     }, []);
 
-    const SnackbarComponent = useCallback(() => (
-        <ThemedSnackbar
-            visible={snackbarState.visible}
-            message={snackbarState.message}
-            variant={snackbarState.variant}
-            onHide={hideSnackbar}
-        />
-    ), [snackbarState, hideSnackbar]);
+    const showSuccess = React.useCallback((message: string, action?: { label: string; onPress: () => void }) => {
+        show(message, 'success', action);
+    }, [show]);
+
+    const showError = React.useCallback((message: string, action?: { label: string; onPress: () => void }) => {
+        show(message, 'error', action);
+    }, [show]);
+
+    const showWarning = React.useCallback((message: string, action?: { label: string; onPress: () => void }) => {
+        show(message, 'warning', action);
+    }, [show]);
+
+    const showInfo = React.useCallback((message: string, action?: { label: string; onPress: () => void }) => {
+        show(message, 'info', action);
+    }, [show]);
 
     return {
-        showSnackbar,
+        ...snackbarState,
+        show,
+        hide,
         showSuccess,
         showError,
-        hideSnackbar,
-        SnackbarComponent,
+        showWarning,
+        showInfo,
+        SnackbarComponent: () => (
+            <ThemedSnackbar
+                visible={snackbarState.visible}
+                message={snackbarState.message}
+                variant={snackbarState.variant}
+                action={snackbarState.action}
+                onHide={hide}
+            />
+        ),
     };
-}
-
-const styles = StyleSheet.create({
-    container: {
-        position: 'absolute',
-        left: 16,
-        right: 16,
-        zIndex: 9999,
-    },
-    content: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 8,
-    },
-    icon: {
-        marginRight: 12,
-    },
-    message: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: '500',
-        lineHeight: 20,
-    },
-    actionButton: {
-        marginLeft: 12,
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-    },
-    actionText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    closeButton: {
-        marginLeft: 8,
-        padding: 4,
-    },
-});
-
-export default ThemedSnackbar;
+};

@@ -1,22 +1,27 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import {useIsFocused} from '@react-navigation/native';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import Animated, {
+    FadeInDown,
+    FadeInUp,
+    Layout,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import {SafeViewManager} from '@/components/SafeViewManager';
 
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
 import {useColorVariants, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
-import {type BirdDexRecord, getBirdBySpeciesCodeCoordinated} from '@/services/databaseBirDex';
-import {hasSpottingForLatinCoordinated} from '@/services/database';
-import {cancelLowPriorityOperations} from '@/services/databaseCoordinator';
+import {type BirdDexRecord, getBirdBySpeciesCode} from '@/services/databaseBirDex';
+import {hasSpottingForLatin} from '@/services/database';
 
 type DetailRecord = BirdDexRecord & {
     hasBeenLogged: 0 | 1;
@@ -45,12 +50,19 @@ function DetailHeader({
     const { t, i18n } = useTranslation();
     const insets = useSafeAreaInsets();
 
+    const scale = useSharedValue(1);
 
     const handleBackPress = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        scale.value = withSpring(0.95, { damping: 15, stiffness: 300 }, () => {
+            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+        });
         onBack();
     };
 
+    const backButtonStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
 
     // Get localized display name
     const lang = i18n.language.split('-')[0];
@@ -63,8 +75,11 @@ function DetailHeader({
     const displayName = localizedName || bird.english_name;
 
     return (
-        <View style={[styles.header, { marginTop: insets.top }]}>
-            <View>
+        <Animated.View
+            entering={FadeInUp.springify()}
+            style={[styles.header, { marginTop: insets.top }]}
+        >
+            <Animated.View style={backButtonStyle}>
                 <ThemedPressable
                     variant="secondary"
                     size="md"
@@ -73,7 +88,7 @@ function DetailHeader({
                 >
                     <ThemedIcon name="arrow-left" size={20} color="primary" />
                 </ThemedPressable>
-            </View>
+            </Animated.View>
 
             <ThemedView background="transparent" style={styles.headerInfo}>
                 <ThemedText
@@ -93,7 +108,10 @@ function DetailHeader({
                 </ThemedText>
 
                 {bird.hasBeenLogged === 1 && (
-                    <View style={[styles.loggedBadge, { backgroundColor: variants.primary.light }]}>
+                    <Animated.View
+                        entering={FadeInDown.delay(200).springify()}
+                        style={[styles.loggedBadge, { backgroundColor: variants.primary.light }]}
+                    >
                         <ThemedIcon name="check" size={14} color="primary" />
                         <ThemedText
                             variant="label"
@@ -102,7 +120,7 @@ function DetailHeader({
                         >
                             {t('birddex.spotted')}
                         </ThemedText>
-                    </View>
+                    </Animated.View>
                 )}
             </ThemedView>
 
@@ -116,7 +134,7 @@ function DetailHeader({
                     <ThemedIcon name="plus" size={18} color="primary" />
                 </ThemedPressable>
             )}
-        </View>
+        </Animated.View>
     );
 }
 
@@ -135,7 +153,11 @@ function QuickActionButton({
     const semanticColors = useSemanticColors();
 
     return (
-        <View style={styles.actionButtonContainer}>
+        <Animated.View
+            entering={FadeInDown.delay(delay).springify()}
+            layout={Layout.springify()}
+            style={styles.actionButtonContainer}
+        >
             <ThemedPressable
                 variant="secondary"
                 onPress={onPress}
@@ -145,7 +167,7 @@ function QuickActionButton({
                 <ThemedText variant="label">{title}</ThemedText>
                 <ThemedIcon name="external-link" size={14} color="secondary" />
             </ThemedPressable>
-        </View>
+        </Animated.View>
     );
 }
 
@@ -155,7 +177,11 @@ function NameRow({ field, index }: { field: NameField; index: number }) {
     const typography = useTypography();
 
     return (
-        <View style={styles.nameRow}>
+        <Animated.View
+            entering={FadeInDown.delay(index * 50).springify()}
+            layout={Layout.springify()}
+            style={styles.nameRow}
+        >
             <ThemedText style={styles.nameFlag}>{field.flag}</ThemedText>
             <ThemedView background="transparent" style={styles.nameInfo}>
                 <ThemedText
@@ -178,7 +204,7 @@ function NameRow({ field, index }: { field: NameField; index: number }) {
                     {field.value}
                 </ThemedText>
             </ThemedView>
-        </View>
+        </Animated.View>
     );
 }
 
@@ -193,14 +219,18 @@ function ClassificationItem({
     index: number;
 }) {
     return (
-        <View style={styles.classificationItem}>
+        <Animated.View
+            entering={FadeInDown.delay(index * 100).springify()}
+            layout={Layout.springify()}
+            style={styles.classificationItem}
+        >
             <ThemedText variant="label" color="secondary" style={styles.classificationLabel}>
                 {label}
             </ThemedText>
             <ThemedText variant="body" style={styles.classificationValue}>
                 {value}
             </ThemedText>
-        </View>
+        </Animated.View>
     );
 }
 
@@ -208,7 +238,6 @@ export default function ModernBirdDexDetail() {
     const { code } = useLocalSearchParams<{ code: string }>();
     const { t, i18n } = useTranslation();
     const router = useRouter();
-    const isFocused = useIsFocused();
 
     // Modern theme hooks
     const semanticColors = useSemanticColors();
@@ -216,62 +245,25 @@ export default function ModernBirdDexDetail() {
     const typography = useTypography();
     const theme = useTheme();
 
-    // Enhanced cleanup on unmount with database coordination
-    useEffect(() => {
-        return () => {
-            mountedRef.current = false;
-            // Cancel low priority database operations when leaving this screen
-            cancelLowPriorityOperations();
-        };
-    }, []);
-    
-    // Cancel operations when tab becomes unfocused
-    useEffect(() => {
-        if (!isFocused) {
-            cancelLowPriorityOperations();
-        }
-    }, [isFocused]);
-    
-    if (!isFocused) {
-        return null;
-    }
-
     const [rec, setRec] = useState<DetailRecord | null>(null);
     const [loading, setLoading] = useState(true);
-    
-    // Memory leak prevention
-    const mountedRef = useRef(true);
 
     useEffect(() => {
         const loadBirdDetail = async () => {
             if (!code) {
-                if (mountedRef.current) {
-                    Alert.alert(t('birddex.error'), 'No species code provided');
-                    router.back();
-                }
+                Alert.alert(t('birddex.error'), 'No species code provided');
+                router.back();
                 return;
             }
 
             try {
-                if (mountedRef.current) {
-                    setLoading(true);
-                }
-                
-                // Use coordinated database operation
-                const bird = await getBirdBySpeciesCodeCoordinated(code);
-
-                // Check if component is still mounted before state updates
-                if (!mountedRef.current) return;
+                setLoading(true);
+                const bird = getBirdBySpeciesCode(code);
 
                 if (bird) {
-                    const hasBeenLogged = await hasSpottingForLatinCoordinated(bird.scientific_name);
-                    
-                    // Check again after async operation
-                    if (!mountedRef.current) return;
-                    
                     const detailRecord: DetailRecord = {
                         ...bird,
-                        hasBeenLogged: hasBeenLogged ? 1 : 0
+                        hasBeenLogged: hasSpottingForLatin(bird.scientific_name) ? 1 : 0
                     };
                     setRec(detailRecord);
                 } else {
@@ -280,14 +272,10 @@ export default function ModernBirdDexDetail() {
                 }
             } catch (e) {
                 console.error('Load bird detail error:', e);
-                if (mountedRef.current) {
-                    Alert.alert(t('birddex.error'), 'Failed to load bird details');
-                    router.back();
-                }
+                Alert.alert(t('birddex.error'), 'Failed to load bird details');
+                router.back();
             } finally {
-                if (mountedRef.current) {
-                    setLoading(false);
-                }
+                setLoading(false);
             }
         };
 
@@ -366,8 +354,7 @@ export default function ModernBirdDexDetail() {
     ].filter(field => field.value && field.value.trim() !== '');
 
     return (
-        <SafeViewManager enabled={isFocused}>
-            <ThemedView background="primary" style={styles.container}>
+        <ThemedView background="primary" style={styles.container}>
             {/* Header */}
             <DetailHeader
                 bird={rec}
@@ -382,8 +369,9 @@ export default function ModernBirdDexDetail() {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Quick Actions */}
-                <View
-                                        style={styles.quickActions}
+                <Animated.View
+                    entering={FadeInDown.delay(100).springify()}
+                    style={styles.quickActions}
                 >
                     <QuickActionButton
                         title={t('birddex.wikipedia')}
@@ -403,10 +391,10 @@ export default function ModernBirdDexDetail() {
                         onPress={openAllAboutBirds}
                         delay={100}
                     />
-                </View>
+                </Animated.View>
 
                 {/* Names Section */}
-                <View>
+                <Animated.View entering={FadeInDown.delay(200).springify()}>
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <ThemedIcon name="globe" size={20} color="primary" />
@@ -420,10 +408,10 @@ export default function ModernBirdDexDetail() {
                             ))}
                         </ThemedView>
                     </ModernCard>
-                </View>
+                </Animated.View>
 
                 {/* Classification Section */}
-                <View >
+                <Animated.View entering={FadeInDown.delay(300).springify()}>
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <ThemedIcon name="layers" size={20} color="primary" />
@@ -455,10 +443,10 @@ export default function ModernBirdDexDetail() {
                             )}
                         </ThemedView>
                     </ModernCard>
-                </View>
+                </Animated.View>
 
                 {/* Distribution Section */}
-                <View >
+                <Animated.View entering={FadeInDown.delay(400).springify()}>
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <ThemedIcon name="map-pin" size={20} color="primary" />
@@ -468,17 +456,23 @@ export default function ModernBirdDexDetail() {
                         </ThemedView>
                         <ThemedView background="transparent" style={styles.distributionContent}>
                             {rec.range && (
-                                <View style={styles.infoItem}>
+                                <Animated.View
+                                    entering={FadeInDown.delay(450).springify()}
+                                    style={styles.infoItem}
+                                >
                                     <ThemedText variant="label" color="secondary" style={styles.infoLabel}>
                                         {t('birddex.range')}
                                     </ThemedText>
                                     <ThemedText variant="body" style={styles.infoValue}>
                                         {rec.range}
                                     </ThemedText>
-                                </View>
+                                </Animated.View>
                             )}
 
-                            <View style={styles.infoItem}>
+                            <Animated.View
+                                entering={FadeInDown.delay(500).springify()}
+                                style={styles.infoItem}
+                            >
                                 <ThemedText variant="label" color="secondary" style={styles.infoLabel}>
                                     {t('birddex.conservationStatus')}
                                 </ThemedText>
@@ -499,13 +493,13 @@ export default function ModernBirdDexDetail() {
                                         </>
                                     )}
                                 </ThemedView>
-                            </View>
+                            </Animated.View>
                         </ThemedView>
                     </ModernCard>
-                </View>
+                </Animated.View>
 
                 {/* Metadata Section */}
-                <View >
+                <Animated.View entering={FadeInDown.delay(500).springify()}>
                     <ModernCard elevated={false} bordered={true} style={styles.section}>
                         <ThemedView style={styles.sectionHeader}>
                             <ThemedIcon name="database" size={20} color="primary" />
@@ -514,29 +508,34 @@ export default function ModernBirdDexDetail() {
                             </ThemedText>
                         </ThemedView>
                         <ThemedView background="transparent" style={styles.metadataGrid}>
-                            <View style={styles.metadataItem}>
+                            <Animated.View
+                                entering={FadeInDown.delay(550).springify()}
+                                style={styles.metadataItem}
+                            >
                                 <ThemedText variant="label" color="secondary" style={styles.metadataLabel}>
                                     {t('birddex.speciesCode')}
                                 </ThemedText>
                                 <ThemedText variant="body" style={styles.metadataValue}>
                                     {rec.species_code}
                                 </ThemedText>
-                            </View>
+                            </Animated.View>
 
-                            <View style={styles.metadataItem}>
+                            <Animated.View
+                                entering={FadeInDown.delay(600).springify()}
+                                style={styles.metadataItem}
+                            >
                                 <ThemedText variant="label" color="secondary" style={styles.metadataLabel}>
                                     {t('birddex.clements2024')}
                                 </ThemedText>
                                 <ThemedText variant="body" style={styles.metadataValue}>
                                     {rec.clements_v2024b_change || t('birddex.noChanges')}
                                 </ThemedText>
-                            </View>
+                            </Animated.View>
                         </ThemedView>
                     </ModernCard>
-                </View>
+                </Animated.View>
             </ScrollView>
-            </ThemedView>
-        </SafeViewManager>
+        </ThemedView>
     );
 }
 

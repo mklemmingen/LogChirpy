@@ -1,7 +1,6 @@
 import {openDatabaseSync, type SQLiteDatabase} from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import {Asset} from "expo-asset";
-import { coordinatedDatabaseOperation } from './databaseCoordinator';
 
 /**
  * A single bird‐spotting record in SQLite.
@@ -142,16 +141,6 @@ export function hasSpottingForLatin(latinBirDex: string): boolean {
   }
 }
 
-// Coordinated version for tab transitions
-export function hasSpottingForLatinCoordinated(latinBirDex: string): Promise<boolean> {
-  return coordinatedDatabaseOperation(
-    `hasSpotting_${latinBirDex}`,
-    () => hasSpottingForLatin(latinBirDex),
-    'low',
-    true
-  );
-}
-
 /**
  * Fetch all spot entries that have the given latinBirDex.
  */
@@ -195,16 +184,6 @@ export function getSpottingById(id: number): BirdSpotting | null {
   } finally {
     stmt.finalizeSync();
   }
-}
-
-// Coordinated version for tab transitions
-export function getSpottingByIdCoordinated(id: number): Promise<BirdSpotting | null> {
-  return coordinatedDatabaseOperation(
-    `getSpotting_${id}`,
-    () => getSpottingById(id),
-    'medium',
-    true
-  );
 }
 
 export function dropAllSightings(): void {

@@ -2,190 +2,299 @@ import React from 'react';
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Text, Card, FAB } from 'react-native-paper';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import { Feather } from '@expo/vector-icons';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
-import { SimpleBirdAnimation } from '@/components/animations/SimpleBirdAnimation';
+import { HelloWave } from '@/components/HelloWave';
+import BirdAnimation from '@/components/BirdAnimationJS';
+import { ModernCard } from '@/components/ModernCard';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { useColors, useTypography, useBorderRadius } from '@/hooks/useThemeColor';
 
 const { width, height } = Dimensions.get('window');
 
+/**
+ * Interface for feature action cards displayed on home screen
+ */
 interface FeatureAction {
   id: string;
   title: string;
   description: string;
-  icon: string;
+  icon: keyof typeof Feather.glyphMap;
   route: string;
   primary?: boolean;
 }
 
+/**
+ * Home Screen Component with responsive design and smooth animations
+ * Main landing screen providing quick access to core app features
+ * 
+ * @returns {JSX.Element} Home screen with hero section and feature cards
+ */
 export default function HomeScreen() {
   const { t } = useTranslation();
+  const colors = useColors();
+  const typography = useTypography();
+  const borderRadius = useBorderRadius();
   
   const styles = createStyles();
 
+  // Subtle floating animation
+  const floatAnimation = useSharedValue(0);
 
+  React.useEffect(() => {
+    floatAnimation.value = withRepeat(
+      withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, []);
+
+  /**
+   * Creates floating animation style for feature cards
+   * 
+   * @param {number} delay - Animation delay for staggered effect
+   * @returns {Object} Animated style object with transform
+   */
+  const getFloatingStyle = React.useCallback((delay: number) => {
+    return useAnimatedStyle(() => {
+      'worklet';
+      return {
+        transform: [
+          {
+            translateY: interpolate(
+              floatAnimation.value,
+              [0, 1],
+              [0, -4]
+            ) * Math.sin(floatAnimation.value * 2 + delay),
+          },
+        ],
+      };
+    });
+  }, [floatAnimation]);
 
   const features: FeatureAction[] = [
     {
       id: 'detection',
-      title: 'Real-time Detection',
-      description: 'Use AI to detect birds in real-time',
-      icon: 'camera-burst',
-      route: '/detection',
+      title: t('buttons.objectCamera'),
+      description: t('home.camera_description'),
+      icon: 'zap',
+      route: '/log/objectIdentCamera',
       primary: true,
     },
     {
       id: 'photo',
-      title: 'Photo Logging',
-      description: 'Log birds from photos',
+      title: t('buttons.photo'),
+      description: t('home.photo_description'),
       icon: 'camera',
       route: '/log/photo',
     },
     {
       id: 'audio',
-      title: 'Audio Recording',
-      description: 'Record and identify bird sounds',
-      icon: 'microphone',
+      title: t('buttons.audio'),
+      description: t('home.audio_description'),
+      icon: 'mic',
       route: '/log/audio',
     },
     {
       id: 'manual',
-      title: 'Manual Entry',
-      description: 'Manually log bird sightings',
-      icon: 'pencil',
+      title: t('buttons.manual'),
+      description: t('home.manual_description'),
+      icon: 'edit-3',
       route: '/log/manual',
     },
   ];
 
+  /**
+   * Handles feature card press with haptic feedback and navigation
+   * 
+   * @param {string} route - Route to navigate to
+   */
   const handleFeaturePress = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(route as any);
   };
 
+  /**
+   * Renders individual feature card with responsive design and accessibility
+   * 
+   * @param {FeatureAction} feature - Feature data for the card
+   * @param {number} index - Index for staggered animations
+   * @returns {JSX.Element} Animated feature card
+   */
   const renderFeatureCard = (feature: FeatureAction, index: number) => {
     const isPrimary = feature.primary;
 
     return (
-      <Card 
-        key={feature.id}
-        style={[styles.card, isPrimary && styles.primaryCard]}
-        mode={isPrimary ? 'elevated' : 'outlined'}
-        onPress={() => handleFeaturePress(feature.route)}
-      >
-        <Card.Content style={styles.cardContent}>
-          <View style={styles.iconContainer}>
-            <MaterialCommunityIcons
-                name={feature.icon as any}
-                size={32}
-                color={isPrimary ? '#4CAF50' : '#757575'}
+      <Animated.View key={feature.id} style={getFloatingStyle(index * 0.5)}>
+        <ModernCard
+          onPress={() => handleFeaturePress(feature.route)}
+          elevated={isPrimary}
+          bordered={!isPrimary}
+        >
+          <View style={styles.cardContent}>
+            {/* Icon */}
+            <ThemedView
+              style={[
+                styles.iconContainer,
+                { 
+                  backgroundColor: isPrimary ? colors.backgroundTertiary : colors.backgroundSecondary,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                }
+              ]}
+              rounded="lg"
+            >
+              <ThemedIcon
+                name={feature.icon}
+                size={24}
+                color="primary"
+              />
+            </ThemedView>
+
+            {/* Content */}
+            <View style={styles.cardTextContent}>
+              <ThemedText variant="h3" style={styles.cardTitle}>
+                {feature.title}
+              </ThemedText>
+              <ThemedText 
+                variant="bodySmall" 
+                color="secondary" 
+                style={styles.cardDescription}
+              >
+                {feature.description}
+              </ThemedText>
+            </View>
+
+            {/* Arrow */}
+            <ThemedIcon
+              name="chevron-right"
+              size={16}
+              color="tertiary"
             />
           </View>
-          
-          <View style={styles.cardTextContent}>
-            <Text variant="titleMedium" style={styles.cardTitle}>
-              {feature.title}
-            </Text>
-            <Text variant="bodyMedium" style={styles.cardDescription}>
-              {feature.description}
-            </Text>
-          </View>
-          
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={24}
-            color="#757575"
-          />
-        </Card.Content>
-      </Card>
+        </ModernCard>
+      </Animated.View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <SimpleBirdAnimation numberOfBirds={3} enabled={true} />
-      
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.heroSection}>
-          <Text variant="displayMedium" style={styles.heroTitle}>
-            Welcome to LogChirpy
-          </Text>
-          <Text variant="bodyLarge" style={styles.heroSubtitle}>
-            Start logging your bird sightings
-          </Text>
-        </View>
+    <ThemedView style={styles.container}>
+      <ThemedSafeAreaView style={styles.safeArea}>
 
-        <View style={styles.featuresSection}>
-          {features.map((feature, index) => renderFeatureCard(feature, index))}
-        </View>
-      </ScrollView>
-    </View>
+        {/* Bird Animation */}
+        <BirdAnimation numberOfBirds={3} />
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero Section */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroContent}>
+              <HelloWave />
+              <ThemedText variant="h1" center style={styles.heroTitle}>
+                {t('welcome')}
+              </ThemedText>
+              <ThemedText 
+                variant="body" 
+                color="secondary" 
+                center 
+                style={styles.heroSubtitle}
+              >
+                {t('start_logging')}
+              </ThemedText>
+            </View>
+          </View>
+
+          {/* Features Section */}
+          <View style={styles.featuresSection}>
+            {features.map((feature, index) => renderFeatureCard(feature, index))}
+          </View>
+        </ScrollView>
+      </ThemedSafeAreaView>
+    </ThemedView>
   );
 }
 
 const createStyles = () => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 32,
   },
+
+  // Hero Section
   heroSection: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 60,
-    paddingBottom: 40,
+    paddingBottom: 32,
     alignItems: 'center',
     minHeight: height * 0.3,
     justifyContent: 'center',
   },
+  heroContent: {
+    alignItems: 'center',
+  },
   heroTitle: {
-    marginBottom: 10,
-    textAlign: 'center',
-    color: '#2E7D32',
-  },
-  heroSubtitle: {
-    textAlign: 'center',
-    color: '#757575',
-    maxWidth: width * 0.85,
-  },
-  featuresSection: {
-    paddingHorizontal: 20,
-    gap: 16,
-  },
-  card: {
+    marginTop: 16,
     marginBottom: 8,
   },
+  heroSubtitle: {
+    lineHeight: 24,
+    maxWidth: width * 0.85,
+  },
+
+  // Features Section
+  featuresSection: {
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+
+  // Feature Cards
+  featureCard: {
+    minHeight: 72,
+  },
   primaryCard: {
-    backgroundColor: '#E8F5E8',
+    minHeight: 82,
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    gap: 16,
   },
   iconContainer: {
-    width: 60,
-    height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
   },
   cardTextContent: {
     flex: 1,
   },
   cardTitle: {
     marginBottom: 4,
-    fontWeight: 'bold',
   },
   cardDescription: {
-    color: '#757575',
+    lineHeight: 18,
   },
 });
