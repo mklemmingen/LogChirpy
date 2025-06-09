@@ -203,6 +203,11 @@
     "close": "Fermer"
   },
   "auth": {
+    "welcome_back": "Bon retour",
+    "email_label": "Email",
+    "password_label": "Mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "no_account": "Pas de compte ?",
     "login_title": "Bon retour",
     "login_subtitle": "Connectez-vous pour continuer",
     "signup_title": "Créer un compte",
@@ -570,9 +575,6 @@
   "validation": {
     "bird_type_required": "Spécifiez le type d'oiseau",
     "media_or_notes_required": "Ajoutez au moins une photo, audio, vidéo ou note"
-  },
-  "warnings": {
-    "media_permission_required": "Permission galerie requise"
   },
   "window": "LogChirpy"
 }
