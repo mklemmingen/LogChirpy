@@ -49,7 +49,7 @@
     "error": "خطأ",
     "loadFailed": "فشل في تحميل المشاهدات.",
     "confirmTitle": "تأكيد التعيين",
-    "confirmMessage": "تعيين “{{latin}}” للمشاهدة في {{date}}؟",
+    "confirmMessage": "تعيين \"{{latin}}\" للمشاهدة في {{date}}؟",
     "cancel": "إلغاء",
     "ok": "موافق",
     "success": "نجاح",
@@ -88,6 +88,11 @@
     "confirm": "تأكيد"
   },
   "auth": {
+    "welcome_back": "مرحباً بعودتك",
+    "email_label": "البريد الإلكتروني",
+    "password_label": "كلمة المرور",
+    "forgot_password": "هل نسيت كلمة المرور؟",
+    "no_account": "ليس لديك حساب؟",
     "login_title": "مرحباً بعودتك",
     "login_subtitle": "سجّل الدخول للمتابعة",
     "signup_title": "إنشاء حساب",

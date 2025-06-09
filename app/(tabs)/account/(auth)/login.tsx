@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
     Dimensions,
     KeyboardAvoidingView,
@@ -9,9 +9,9 @@ import {
     TextInput,
     View,
 } from 'react-native';
-import {router} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {BlurView} from 'expo-blur';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { BlurView } from 'expo-blur';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
     interpolate,
@@ -25,23 +25,24 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 
 // Firebase imports
-import {signInWithEmailAndPassword} from 'firebase/auth';
-import {auth} from '@/firebase/config';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/firebase/config';
 
 // Local component imports
-import {ModernCard} from '@/components/ModernCard';
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ThemedText} from '@/components/ThemedText';
-import {useSnackbar} from '@/components/ThemedSnackbar';
-import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {useSemanticColors, useTypography, useColorVariants} from '@/hooks/useThemeColor';
+import { ModernCard } from '@/components/ModernCard';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedText } from '@/components/ThemedText';
+import { useSnackbar } from '@/components/ThemedSnackbar';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { useSemanticColors, useTypography, useColorVariants } from '@/hooks/useThemeColor';
 // import { useAuth } from '@/app/context/AuthContext';
 
 // Constants
 const { width } = Dimensions.get('window');
 
 // Animated components
-const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+const AnimatedView = Animated.createAnimatedComponent(View);
+const AnimatedText = Animated.createAnimatedComponent(ThemedText);
 
 // Types
 interface FormErrors {
@@ -63,19 +64,18 @@ interface ModernTextInputProps {
 }
 
 // Helper Components
-
 function ModernTextInput({
-                             label,
-                             value,
-                             onChangeText,
-                             placeholder,
-                             secureTextEntry = false,
-                             keyboardType = 'default',
-                             autoCapitalize = 'none',
-                             error,
-                             disabled = false,
-                             icon,
-                         }: ModernTextInputProps) {
+    label,
+    value,
+    onChangeText,
+    placeholder,
+    secureTextEntry = false,
+    keyboardType = 'default',
+    autoCapitalize = 'none',
+    error,
+    disabled = false,
+    icon,
+}: ModernTextInputProps) {
     const semanticColors = useSemanticColors();
     const typography = useTypography();
     const [isFocused, setIsFocused] = useState(false);
@@ -121,11 +121,11 @@ function ModernTextInput({
 
     return (
         <View style={styles.inputContainer}>
-            <ThemedText variant="label" style={[styles.inputLabel, labelStyle]}>
+            <AnimatedText variant="label" style={[styles.inputLabel, labelStyle]}>
                 {label}
-            </ThemedText>
+            </AnimatedText>
 
-            <Animated.View style={[styles.inputWrapper, containerStyle]}>
+            <AnimatedView style={[styles.inputWrapper, containerStyle]}>
                 <BlurView
                     intensity={20}
                     tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
@@ -143,7 +143,7 @@ function ModernTextInput({
                         </View>
                     )}
 
-                    <AnimatedTextInput
+                    <TextInput
                         style={[
                             typography.body,
                             styles.textInput,
@@ -178,7 +178,7 @@ function ModernTextInput({
                         </Pressable>
                     )}
                 </View>
-            </Animated.View>
+            </AnimatedView>
 
             {error && (
                 <Animated.View
