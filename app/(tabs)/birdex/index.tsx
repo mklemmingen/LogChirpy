@@ -94,7 +94,7 @@ function BirdCard({
                 onPress={onPress}
                 style={styles.birdCard}
             >
-                <Card style={[styles.birdCardInner, bird.logged && { borderColor: colors.interactive.primary, borderWidth: 2 }]}>
+                <Card style={[styles.birdCardInner, bird.logged && { borderColor: colors.primary, borderWidth: 2 }]}>
                 <View style={styles.cardContent}>
                     {/* Header Row */}
                     <View style={styles.cardHeader}>
@@ -144,7 +144,7 @@ function BirdCard({
                             </View>
                         )}
 
-                        <View style={[styles.metaBadge, { backgroundColor: colors.background.secondary }]}>
+                        <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
                             <ThemedIcon name="tag" size={12} color="primary" />
                             <ThemedText variant="caption" color="primary">
                                 {bird.category}

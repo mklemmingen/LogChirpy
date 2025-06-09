@@ -401,7 +401,7 @@ function ObjectIdentCameraContent() {
         }
     };
 
-    const imageContext = ImageManipulator.useImageManipulator(photoPath || '');
+    // Image manipulator context removed - not needed
     const isActive = useRef(true);
 
     // Capture loop: take photo, manipulate, and save to document directory
@@ -545,32 +545,19 @@ function ObjectIdentCameraContent() {
             }
 
             try {
-                console.log('Rendering and saving new image...');
-                const imageRef = await imageContext.renderAsync();
-                const result = await imageRef.saveAsync({
-                    format: ImageManipulator.SaveFormat.JPEG,
-                    compress: 0.3,
-                });
-
-                // Save the rendered image to document directory
-                const fileName = `photo_${Date.now()}.jpg`;
-                const imagePath = `${FileSystem.documentDirectory}${fileName}`;
-
-                await FileSystem.copyAsync({
-                    from: result.uri,
-                    to: imagePath
-                });
+                console.log('Processing image...');
+                // Use the photoPath directly since it's already been processed
+                const imagePath = photoPath;
 
                 const { exists } = await FileSystem.getInfoAsync(imagePath);
                 if (!exists) {
                     throw new Error(`File not ready at ${imagePath}`);
                 }
 
-                console.log('Original result URI:', result.uri);
                 console.log('MLKit Path:', imagePath);
 
                 setLastPhotoUri(imagePath);
-                setImageDims({ width: result.width, height: result.height });
+                // Keep existing image dimensions from when photo was first processed
                 setDebugText(t('camera.detection_running'));
 
                 // Run object detection on the image

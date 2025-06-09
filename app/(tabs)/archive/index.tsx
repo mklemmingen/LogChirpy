@@ -434,7 +434,8 @@ export default function ArchiveScreen() {
               size="sm"
               onPress={() => {
                 Haptics.selectionAsync();
-                router.push('/archive/gallery');
+                // TODO: Implement gallery route
+                console.log('Gallery not implemented yet');
               }}
               style={styles.galleryButton}
             >

@@ -109,7 +109,7 @@ function LanguageCard({
                     style={[
                         StyleSheet.absoluteFillObject,
                         {
-                            backgroundColor: colors.background.secondary,
+                            backgroundColor: colors.backgroundSecondary,
                             borderRadius: theme.borderRadius.lg,
                             margin: -2,
                         },
@@ -533,7 +533,7 @@ export default function ModernSettingsScreen() {
                             <View style={styles.aboutContent}>
                                 <View style={[
                                     styles.aboutIcon,
-                                    { backgroundColor: colors.background.secondary }
+                                    { backgroundColor: colors.backgroundSecondary }
                                 ]}>
                                     <ThemedIcon
                                         name="feather"

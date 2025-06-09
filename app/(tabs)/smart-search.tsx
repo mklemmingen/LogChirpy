@@ -473,7 +473,7 @@ export default function SmartSearch() {
                             ]}>
                                 <ThemedIcon name="help-circle" size={16} color="primary" />
                             </ThemedView>
-                            <ThemedText variant="label" style={{ color: colors.text.primary }}>
+                            <ThemedText variant="label" style={{ color: colors.text }}>
                                 Search Tips
                             </ThemedText>
                         </ThemedView>

@@ -403,13 +403,13 @@ function AppInitializationScreen({ message, error, onRetry }: {
     }
 
     return (
-        <View style={[styles.loadingContainer, { backgroundColor: colors.background.primary }]}>
+        <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
             <View style={styles.loadingContent}>
                 <LoadingAnimation />
-                <Text style={[typography.h2, { color: colors.text.primary }]}>
+                <Text style={[typography.h2, { color: colors.text }]}>
                     LogChirpy
                 </Text>
-                <Text style={[typography.body, { color: colors.text.secondary }]}>
+                <Text style={[typography.body, { color: colors.textSecondary }]}>
                     {message}
                 </Text>
             </View>
@@ -561,12 +561,6 @@ export default function EnhancedRootLayout() {
                             text: colors.text,
                             border: colors.border,
                             primary: colors.primary,
-                        },
-                        fonts: {
-                            regular: { fontFamily: 'SpaceMono', fontWeight: 'normal' },
-                            medium: { fontFamily: 'SpaceMono', fontWeight: '500' },
-                            bold: { fontFamily: 'SpaceMono', fontWeight: 'bold' },
-                            heavy: { fontFamily: 'SpaceMono', fontWeight: '800' },
                         },
                     }}
                 >

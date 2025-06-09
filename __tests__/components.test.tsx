@@ -411,9 +411,7 @@ describe('Component Tests', () => {
       it('should render loading state', () => {
         const { getByText } = render(
           <DatabaseLoadingScreen 
-            isVisible={true}
-            loadingProgress={0.5}
-            loadingStatus="Loading..."
+            onReady={() => {}}
           />
         );
         
@@ -423,9 +421,7 @@ describe('Component Tests', () => {
       it('should render error state', () => {
         const { getByText } = render(
           <DatabaseLoadingScreen 
-            isVisible={true}
-            loadingProgress={0.5}
-            loadingStatus="Loading..."
+            onReady={() => {}}
           />
         );
         
@@ -435,9 +431,7 @@ describe('Component Tests', () => {
       it('should render completed state', () => {
         const { getByText } = render(
           <DatabaseLoadingScreen 
-            isVisible={true}
-            loadingProgress={0.5}
-            loadingStatus="Loading..."
+            onReady={() => {}}
           />
         );
         
@@ -447,9 +441,7 @@ describe('Component Tests', () => {
       it('should show progress indicator', () => {
         const { getByText } = render(
           <DatabaseLoadingScreen 
-            isVisible={true}
-            loadingProgress={0.5}
-            loadingStatus="Loading..."
+            onReady={() => {}}
           />
         );
         
