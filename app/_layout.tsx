@@ -1,26 +1,22 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, UIManager } from 'react-native';
+import { Platform, UIManager, View, Text, Button, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import {MD3LightTheme, MD3DarkTheme, PaperProvider} from 'react-native-paper';
-import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Text, Button } from 'react-native';
 
 // Context and Services
 import { AuthProvider } from '@/app/context/AuthContext';
-import { ModalProvider } from '@/app/context/ModalContext';
 import { CombinedMLProvider } from '@/app/context/CombinedMLProvider';
-import { ModalRenderer } from '@/components/modals/ModalRenderer';
 import { DatabaseLoadingScreen } from '@/components/DatabaseLoadingScreen';
-import { NavigationErrorBoundary } from '@/components/NavigationErrorBoundary';
 import { birdDexDB } from '@/services/databaseBirDex';
 
 // Hooks and Utils
 import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
+import { useUnifiedColors } from '@/hooks/useUnifiedColors';
+import { useTheme } from '@/hooks/useThemeColor';
 import '@/i18n/i18n';
 import '@/services/nativeErrorInterceptor';
 
@@ -37,44 +33,14 @@ if (Platform.OS === 'android') {
   console.log('Android lifecycle optimizations enabled');
 }
 
-/**
- * Material You Dynamic Theme Configuration
- * Implements Android 2025 theming with Fragment lifecycle support
- */
-function getMaterialYouTheme(colorScheme: 'light' | 'dark' | null) {
-  const baseTheme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
-  
-  return {
-    ...baseTheme,
-    colors: {
-      ...baseTheme.colors,
-      // Material You adaptive colors
-      primary: '#4CAF50',
-      primaryContainer: '#A8E6CF',
-      secondary: '#2196F3',
-      secondaryContainer: '#BBDEFB',
-      surface: colorScheme === 'dark' ? '#121212' : '#FFFFFF',
-      surfaceVariant: colorScheme === 'dark' ? '#2C2C2C' : '#F5F5F5',
-      onSurface: colorScheme === 'dark' ? '#FFFFFF' : '#000000',
-      // Fragment-safe background colors
-      background: colorScheme === 'dark' ? '#000000' : '#FAFAFA',
-    },
-    // Android Fragment lifecycle animation durations
-    animation: {
-      scale: 300,
-      fade: 200,
-      defaultAnimationDuration: 250,
-    },
-  };
-}
 
 /**
  * Root Layout with Android Fragment Lifecycle Management
  * Implements expo-router with Fragment-aware navigation
  */
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const theme = getMaterialYouTheme(colorScheme || 'light');
+  const colors = useUnifiedColors();
+  const theme = useTheme();
 
   // Font loading with Fragment lifecycle awareness
   const [loaded] = useFonts({
@@ -82,7 +48,12 @@ export default function RootLayout() {
   });
 
   // Database initialization with Fragment-safe loading
-  const { isLoading: isDatabaseLoading, error: databaseError } = useBirdDexDatabase();
+  const { 
+    isLoading: isDatabaseLoading, 
+    error: databaseError,
+    progress: databaseProgress,
+    loadedRecords
+  } = useBirdDexDatabase();
 
   // Fragment-aware splash screen management
   useEffect(() => {
@@ -96,96 +67,107 @@ export default function RootLayout() {
     }
   }, [loaded, isDatabaseLoading]);
 
-  // Fragment loading state management
+  // Loading state management - no providers needed during loading
   if (!loaded) {
     return null;
   }
 
   if (isDatabaseLoading) {
     return (
-        <DatabaseLoadingScreen
-            isVisible={true}
-            loadingProgress={0.5}
-            loadingStatus="Loading database..."
-        />
+      <DatabaseLoadingScreen
+        isVisible={true}
+        loadingProgress={databaseProgress || 0}
+        loadingStatus={`Loading database... ${loadedRecords || 0} species loaded`}
+      />
     );
   }
 
   if (databaseError) {
     return (
-        <NavigationErrorBoundary>
-          <Text>Database Error: {databaseError}</Text>
-          <Button title="Retry" onPress={() => {
-            // Android-compatible retry: re-initialize the database
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorTitle}>Database Error</Text>
+        <Text style={styles.errorMessage}>{databaseError}</Text>
+        <Button 
+          title="Retry" 
+          onPress={() => {
             birdDexDB.initialize();
-          }} />
-        </NavigationErrorBoundary>
+          }} 
+        />
+      </View>
     );
   }
 
+  // Main app render - with providers that need navigation context
   return (
-    <NavigationErrorBoundary>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <PaperProvider theme={theme}>
-            <AuthProvider>
-              <CombinedMLProvider>
-                <ModalProvider>
-                  {/* Fragment-aware status bar */}
-                  <StatusBar 
-                    style={colorScheme === 'dark' ? 'light' : 'dark'} 
-                    backgroundColor={theme.colors.surface}
-                  />
-                  
-                  {/* expo-router Stack with Fragment optimizations */}
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      animation: 'fade', // Fragment-safe animation
-                      gestureEnabled: true,
-                      fullScreenGestureEnabled: false, // Prevent Fragment conflicts
-                      // Fragment lifecycle optimizations
-                      freezeOnBlur: true, // Preserve Fragment state
-                    }}
-                  >
-                    {/* Main tab navigator */}
-                    <Stack.Screen 
-                      name="(tabs)" 
-                      options={{
-                        title: 'LogChirpy',
-                        headerShown: false,
-                      }}
-                    />
-                    
-                    {/* Log flow screens */}
-                    <Stack.Screen 
-                      name="log" 
-                      options={{
-                        title: 'Log Bird Sighting',
-                        headerShown: false,
-                        presentation: 'modal',
-                        animation: 'slide_from_bottom',
-                      }}
-                    />
-                    
-                    {/* Not found screen */}
-                    <Stack.Screen 
-                      name="+not-found" 
-                      options={{
-                        title: 'Not Found',
-                        headerShown: false,
-                      }}
-                    />
-                  </Stack>
-                  
-                  {/* Modal system with Fragment lifecycle support */}
-                  <ModalRenderer />
-                </ModalProvider>
-              </CombinedMLProvider>
-            </AuthProvider>
-          </PaperProvider>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </NavigationErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <CombinedMLProvider>
+            <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+              <StatusBar 
+                style={colors.isDark ? 'light' : 'dark'} 
+                backgroundColor={colors.background.elevated}
+              />
+              
+              {/* expo-router Stack */}
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  animation: 'fade',
+                  gestureEnabled: true,
+                  fullScreenGestureEnabled: false,
+                  freezeOnBlur: true,
+                }}
+              >
+                <Stack.Screen 
+                  name="(tabs)" 
+                  options={{
+                    title: 'LogChirpy',
+                    headerShown: false,
+                  }}
+                />
+                
+                <Stack.Screen 
+                  name="log" 
+                  options={{
+                    title: 'Log Bird Sighting',
+                    headerShown: false,
+                    presentation: 'modal',
+                    animation: 'slide_from_bottom',
+                  }}
+                />
+                
+                <Stack.Screen 
+                  name="+not-found" 
+                  options={{
+                    title: 'Not Found',
+                    headerShown: false,
+                  }}
+                />
+              </Stack>
+            </View>
+          </CombinedMLProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  errorMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+});

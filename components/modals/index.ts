@@ -1,10 +1,9 @@
 /**
  * Modal Components Export
  * 
- * Centralized export for all modal components and related utilities.
+ * Centralized export for all modal components.
  */
 
-export { ModalRenderer } from './ModalRenderer';
 export { DatePickerModal } from './DatePickerModal';
 export { VideoPlayerModal } from './VideoPlayerModal';
 export { BirdPredictionsModal } from './BirdPredictionsModal';

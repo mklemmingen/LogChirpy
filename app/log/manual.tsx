@@ -43,11 +43,7 @@ import {ThemedIcon} from '@/components/ThemedIcon';
 import SafeBlurView from '@/components/ui/SafeBlurView';
 import { FeatureErrorBoundary } from '@/components/ComponentErrorBoundary';
 
-import { 
-    useDatePickerModal, 
-    useVideoPlayerModal, 
-    useBirdPredictionsModal 
-} from '@/app/context/ModalContext';
+import { BirdPredictionsModal } from '@/components/modals/BirdPredictionsModal';
 
 import {useLogDraft} from '../context/LogDraftContext';
 import {BirdSpotting, insertBirdSpotting} from '@/services/database';
@@ -102,10 +98,9 @@ function EnhancedManualComponent() {
     const [isIdentifyingBird, setIsIdentifyingBird] = useState(false);
     const [birdPredictions, setBirdPredictions] = useState<BirdNetPrediction[]>([]);
 
-    // Modal hooks
-    const { showDatePicker, isDatePickerVisible } = useDatePickerModal();
-    const { showVideoPlayer, isVideoPlayerVisible } = useVideoPlayerModal();
-    const { showBirdPredictions, isBirdPredictionsVisible } = useBirdPredictionsModal();
+    // Modal state
+    const [showBirdPredictionsModal, setShowBirdPredictionsModal] = useState(false);
+    const [modalPredictions, setModalPredictions] = useState<BirdNetPrediction[]>([]);
     
     const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -114,9 +109,7 @@ function EnhancedManualComponent() {
         if (draft.videoUri) {
             player.loop = true;
             player.muted = true;
-            if (!isVideoPlayerVisible()) {
-                player.play();
-            }
+            player.play();
         }
     });
 
@@ -124,9 +117,7 @@ function EnhancedManualComponent() {
         if (draft.videoUri) {
             player.loop = false;
             player.muted = false;
-            if (isVideoPlayerVisible()) {
-                player.play();
-            }
+            // Video will play when needed
         }
     });
 
@@ -231,16 +222,13 @@ function EnhancedManualComponent() {
         }
     }, [params, draft, update]);
 
-    // Video modal management
+    // Video preview management
     useEffect(() => {
-        if (isVideoPlayerVisible() && draft.videoUri) {
-            previewPlayer.pause();
-            fullscreenPlayer.play();
-        } else if (draft.videoUri) {
+        if (draft.videoUri) {
             fullscreenPlayer.pause();
             previewPlayer.play();
         }
-    }, [isVideoPlayerVisible, draft.videoUri, previewPlayer, fullscreenPlayer]);
+    }, [draft.videoUri, previewPlayer, fullscreenPlayer]);
 
     // Navigation guard for unsaved changes
     useFocusEffect(
@@ -401,11 +389,8 @@ function EnhancedManualComponent() {
 
             if (response.success && response.predictions.length > 0) {
                 setBirdPredictions(response.predictions);
-                showBirdPredictions({
-                    predictions: response.predictions,
-                    onSelectPrediction: handleSelectPrediction,
-                    onClose: () => {},
-                });
+                setModalPredictions(response.predictions);
+                setShowBirdPredictionsModal(true);
                 
                 // Auto-fill with the best prediction
                 const bestPrediction = BirdNetService.getBestPrediction(response.predictions);
@@ -466,11 +451,8 @@ function EnhancedManualComponent() {
 
             if (response.success && response.predictions.length > 0) {
                 setBirdPredictions(response.predictions);
-                showBirdPredictions({
-                    predictions: response.predictions,
-                    onSelectPrediction: handleSelectPrediction,
-                    onClose: () => {},
-                });
+                setModalPredictions(response.predictions);
+                setShowBirdPredictionsModal(true);
                 
                 // Auto-fill with the best prediction
                 const bestPrediction = BirdNetService.getBestPrediction(response.predictions);
@@ -660,11 +642,9 @@ function EnhancedManualComponent() {
                 {/* Video Card */}
                 <ThemedPressable
                     variant="ghost"
-                    onPress={() => draft.videoUri ? showVideoPlayer({
-                        videoPlayer: fullscreenPlayer,
-                        onRetake: () => handleMediaNavigation('/log/video'),
-                        onClose: () => {},
-                    }) : handleMediaNavigation('/log/video')}
+                    onPress={() => draft.videoUri ? 
+                        console.log('Video playback not implemented') : 
+                        handleMediaNavigation('/log/video')}
                     style={styles.mediaCard}
                 >
                     <Card style={styles.mediaCardInner}>
@@ -880,15 +860,9 @@ function EnhancedManualComponent() {
                     onPress={() => {
                         const currentDate = draft.date ? new Date(draft.date) : new Date();
                         setSelectedDate(currentDate);
-                        showDatePicker({
-                            selectedDate: currentDate,
-                            onDateChange: (date) => {
-                                setSelectedDate(date);
-                                update({ date: date.toISOString() });
-                            },
-                            maximumDate: new Date(),
-                            onClose: () => {},
-                        });
+                        // For now, just update the date directly
+                        // You can add a date picker modal here if needed
+                        update({ date: currentDate.toISOString() });
                     }}
                     style={styles.metadataCard}
                 >
@@ -1041,6 +1015,18 @@ function EnhancedManualComponent() {
 
 
             <SnackbarComponent />
+            
+            {/* Bird Predictions Modal */}
+            {showBirdPredictionsModal && (
+                <BirdPredictionsModal
+                    predictions={modalPredictions}
+                    onSelectPrediction={(prediction: BirdNetPrediction) => {
+                        handleSelectPrediction(prediction);
+                        setShowBirdPredictionsModal(false);
+                    }}
+                    onClose={() => setShowBirdPredictionsModal(false)}
+                />
+            )}
         </ThemedView>
     );
 }
