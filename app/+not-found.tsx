@@ -84,7 +84,7 @@ function LostBirdIcon() {
 function FloatingElements() {
   const colors = useColors();
 
-  const elements: Array<{ icon: keyof typeof Feather.glyphMap; delay: number }> = [
+  const elements: { icon: keyof typeof Feather.glyphMap; delay: number }[] = [
     { icon: 'feather', delay: 0 },
     { icon: 'map-pin', delay: 500 },
     { icon: 'camera', delay: 1000 },

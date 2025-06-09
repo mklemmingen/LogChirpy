@@ -20,7 +20,7 @@ import { ModernCard } from '@/components/ModernCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { useColors, useTypography, useBorderRadius } from '@/hooks/useThemeColor';
+import { useColors } from '@/hooks/useThemeColor';
 
 const { width, height } = Dimensions.get('window');
 
@@ -45,8 +45,6 @@ interface FeatureAction {
 export default function HomeScreen() {
   const { t } = useTranslation();
   const colors = useColors();
-  const typography = useTypography();
-  const borderRadius = useBorderRadius();
   
   const styles = createStyles();
 
@@ -59,30 +57,26 @@ export default function HomeScreen() {
       -1,
       true
     );
-  }, []);
+  }, [floatAnimation]);
 
   /**
    * Creates floating animation style for feature cards
-   * 
-   * @param {number} delay - Animation delay for staggered effect
-   * @returns {Object} Animated style object with transform
+   * Uses a shared animation value for consistent floating effect
    */
-  const getFloatingStyle = React.useCallback((delay: number) => {
-    return useAnimatedStyle(() => {
-      'worklet';
-      return {
-        transform: [
-          {
-            translateY: interpolate(
-              floatAnimation.value,
-              [0, 1],
-              [0, -4]
-            ) * Math.sin(floatAnimation.value * 2 + delay),
-          },
-        ],
-      };
-    });
-  }, [floatAnimation]);
+  const floatingStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      transform: [
+        {
+          translateY: interpolate(
+            floatAnimation.value,
+            [0, 1],
+            [0, -4]
+          ),
+        },
+      ],
+    };
+  });
 
   const features: FeatureAction[] = [
     {
@@ -137,7 +131,7 @@ export default function HomeScreen() {
     const isPrimary = feature.primary;
 
     return (
-      <Animated.View key={feature.id} style={getFloatingStyle(index * 0.5)}>
+      <Animated.View key={feature.id} style={floatingStyle}>
         <ModernCard
           onPress={() => handleFeaturePress(feature.route)}
           elevated={isPrimary}

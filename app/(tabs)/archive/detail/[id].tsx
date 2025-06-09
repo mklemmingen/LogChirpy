@@ -4,8 +4,11 @@ import {
     Alert,
     Image,
     Linking,
+    Modal,
+    Pressable,
     Share,
     StyleSheet,
+    View,
 } from 'react-native';
 import {Audio} from 'expo-av';
 import {useLocalSearchParams, useRouter} from 'expo-router';
@@ -32,6 +35,111 @@ import {ThemedIcon} from '@/components/ThemedIcon';
 import {useTheme} from '@/hooks/useThemeColor';
 
 type SpottingDetail = BirdSpotting | null;
+
+// Share Options Modal Component
+function ShareModal({
+                        visible,
+                        onClose,
+                        entry,
+                        onTextShare,
+                        onImageShare,
+                        onSaveImage
+                    }: {
+    visible: boolean;
+    onClose: () => void;
+    entry: BirdSpotting;
+    onTextShare: () => void;
+    onImageShare: () => void;
+    onSaveImage: () => void;
+}) {
+    const theme = useTheme();
+    const { t } = useTranslation();
+
+    const shareOptions = [
+        {
+            id: 'text',
+            icon: 'message-circle',
+            title: t('archive.share_text'),
+            subtitle: t('archive.share_text_description'),
+            onPress: onTextShare
+        },
+        ...(entry.imageUri ? [
+            {
+                id: 'image',
+                icon: 'image',
+                title: t('archive.share_with_image'),
+                subtitle: t('archive.share_image_description'),
+                onPress: onImageShare
+            },
+            {
+                id: 'save',
+                icon: 'download',
+                title: t('archive.save_to_gallery'),
+                subtitle: t('archive.save_image_description'),
+                onPress: onSaveImage
+            }
+        ] : [])
+    ];
+
+    return (
+        <Modal
+            visible={visible}
+            transparent
+            animationType="slide"
+            onRequestClose={onClose}
+        >
+            <Pressable style={styles.modalOverlay} onPress={onClose}>
+                <Animated.View
+                    entering={FadeInUp.duration(300)}
+                    style={[styles.shareModal, { backgroundColor: theme.colors.background.primary }]}
+                >
+                    <Pressable onPress={(e) => e.stopPropagation()}>
+                        <View style={styles.modalHeader}>
+                            <ThemedText variant="h3" style={styles.modalTitle}>
+                                {t('archive.share_options')}
+                            </ThemedText>
+                            <ThemedPressable
+                                variant="ghost"
+                                size="sm"
+                                onPress={onClose}
+                                style={styles.modalCloseButton}
+                            >
+                                <ThemedIcon name="x" size={20} color="secondary" />
+                            </ThemedPressable>
+                        </View>
+
+                        <View style={styles.shareOptionsContainer}>
+                            {shareOptions.map((option) => (
+                                <ThemedPressable
+                                    key={option.id}
+                                    variant="ghost"
+                                    style={styles.shareOption}
+                                    onPress={() => {
+                                        option.onPress();
+                                        onClose();
+                                    }}
+                                >
+                                    <View style={[styles.shareIconContainer, { backgroundColor: theme.colors.background.secondary }]}>
+                                        <ThemedIcon name={option.icon as any} size={24} color="primary" />
+                                    </View>
+                                    <View style={styles.shareTextContainer}>
+                                        <ThemedText variant="body" style={styles.shareOptionTitle}>
+                                            {option.title}
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary" style={styles.shareOptionSubtitle}>
+                                            {option.subtitle}
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedIcon name="chevron-right" size={16} color="tertiary" />
+                                </ThemedPressable>
+                            ))}
+                        </View>
+                    </Pressable>
+                </Animated.View>
+            </Pressable>
+        </Modal>
+    );
+}
 
 // Enhanced Header Component
 function DetailHeader({
@@ -285,6 +393,7 @@ export default function ModernArchiveDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [audioLoading, setAudioLoading] = useState(false);
     const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
+    const [shareModalVisible, setShareModalVisible] = useState(false);
 
     // Load spotting data
     useEffect(() => {
@@ -355,7 +464,8 @@ export default function ModernArchiveDetailScreen() {
         }
     }, [entry]);
 
-    const shareSpotting = useCallback(async () => {
+    // Enhanced sharing functions
+    const shareText = useCallback(async () => {
         if (!entry) return;
 
         try {
@@ -373,9 +483,43 @@ export default function ModernArchiveDetailScreen() {
                 title: t('archive.share_title')
             });
         } catch (error) {
-            console.error('Share error:', error);
+            console.error('Share text error:', error);
+            Alert.alert(t('archive.error'), t('archive.share_failed'));
         }
     }, [entry, t]);
+
+    const shareWithImage = useCallback(async () => {
+        if (!entry?.imageUri) return;
+
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            
+            // Create message with image description
+            const message = t('archive.share_message', {
+                bird: entry.birdType || t('archive.unknown_bird'),
+                date: new Date(entry.date).toLocaleDateString(),
+                location: entry.gpsLat && entry.gpsLng
+                    ? `${entry.gpsLat.toFixed(6)}, ${entry.gpsLng.toFixed(6)}`
+                    : t('archive.location_unknown')
+            });
+
+            // On mobile platforms, we can share the image URI directly
+            // The Share API will handle the image sharing
+            await Share.share({
+                message,
+                url: entry.imageUri, // This works on iOS and some Android apps
+                title: t('archive.share_title')
+            });
+        } catch (error) {
+            console.error('Share image error:', error);
+            Alert.alert(t('archive.error'), t('archive.share_image_failed'));
+        }
+    }, [entry, t]);
+
+    const showShareModal = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setShareModalVisible(true);
+    }, []);
 
     const saveImageToLibrary = useCallback(async (uri: string) => {
         try {
@@ -424,7 +568,17 @@ export default function ModernArchiveDetailScreen() {
             <DetailHeader
                 entry={entry}
                 onBack={() => router.back()}
-                onShare={shareSpotting}
+                onShare={showShareModal}
+            />
+
+            {/* Share Modal */}
+            <ShareModal
+                visible={shareModalVisible}
+                onClose={() => setShareModalVisible(false)}
+                entry={entry}
+                onTextShare={shareText}
+                onImageShare={shareWithImage}
+                onSaveImage={() => entry?.imageUri && saveImageToLibrary(entry.imageUri)}
             />
 
             {/* Content */}
@@ -662,5 +816,67 @@ const styles = StyleSheet.create({
     },
     coordinatesText: {
         fontFamily: 'monospace',
+    },
+
+    // Share Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    shareModal: {
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingBottom: 34, // Safe area padding
+        maxHeight: '70%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    },
+    modalTitle: {
+        fontWeight: '600',
+    },
+    modalCloseButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    shareOptionsContainer: {
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+    },
+    shareOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        marginVertical: 4,
+    },
+    shareIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    shareTextContainer: {
+        flex: 1,
+        gap: 2,
+    },
+    shareOptionTitle: {
+        fontWeight: '500',
+    },
+    shareOptionSubtitle: {
+        lineHeight: 18,
     },
 });

@@ -266,7 +266,33 @@
   "settings": {
     "language": "Changer la langue",
     "enable_gps_logging": "Activer la localisation GPS",
-    "logging": "Paramètres d'enregistrement"
+    "logging": "Paramètres d'enregistrement",
+    "tutorial": {
+      "title": "Guide de l'application",
+      "subtitle": "Apprenez à utiliser LogChirpy efficacement",
+      "how_to_use": {
+        "title": "Comment utiliser LogChirpy",
+        "description": "LogChirpy est votre compagnon numérique d'observation ornithologique qui vous aide à identifier, enregistrer et suivre vos observations d'oiseaux. Utilisez la caméra principale pour la détection en temps réel, capturez des photos et vidéos, enregistrez de l'audio, ou enregistrez manuellement vos observations. L'application fonctionne en ligne et hors ligne pour une utilisation sur le terrain."
+      },
+      "image_processing": {
+        "title": "Traitement de vos images",
+        "description": "Les photos sont traitées localement sur votre appareil en utilisant des modèles IA pour l'identification des oiseaux. Les images sont temporairement stockées dans le dossier documents de votre appareil et peuvent être sauvegardées manuellement dans votre galerie photo via la page Galerie. Aucune image n'est automatiquement envoyée vers des serveurs externes."
+      },
+      "ai_models": {
+        "title": "Fonctionnement des modèles IA",
+        "description": "LogChirpy utilise des modèles d'apprentissage automatique sur appareil (TensorFlow Lite) pour la détection et classification d'oiseaux en temps réel. Les modèles s'exécutent entièrement sur votre appareil, garantissant la confidentialité et permettant un fonctionnement hors ligne. L'application inclut des modèles de détection d'objets et de classification d'images optimisés pour les performances mobiles."
+      },
+      "data_privacy": {
+        "title": "Firebase et confidentialité des données",
+        "description": "Vos journaux d'observations d'oiseaux sont stockés de manière sécurisée dans Firebase Firestore avec chiffrement de bout en bout. Seules les données essentielles comme le type d'oiseau, la localisation (si activée), la date et les notes sont synchronisées. L'authentification est gérée de manière sécurisée via Firebase Auth. Aucune image personnelle ou enregistrement audio n'est envoyé vers Firebase - ils restent sur votre appareil."
+      }
+    },
+    "about": {
+      "title": "À propos de LogChirpy",
+      "subtitle": "Rencontrez l'équipe derrière votre compagnon ornithologique",
+      "app_description": "Une application moderne d'observation et d'enregistrement ornithologique alimentée par l'IA, conçue pour les passionnés de nature et observateurs d'oiseaux de tous niveaux.",
+      "created_by": "Créé par"
+    }
   },
   "audio": {
     "start": "Démarrer l'enregistrement",

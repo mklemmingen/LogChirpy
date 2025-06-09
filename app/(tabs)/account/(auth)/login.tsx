@@ -34,11 +34,11 @@ import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {useSnackbar} from '@/components/ThemedSnackbar';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {useTheme, useSemanticColors, useTypography, useColorVariants} from '@/hooks/useThemeColor';
+import {useSemanticColors, useTypography, useColorVariants} from '@/hooks/useThemeColor';
 // import { useAuth } from '@/app/context/AuthContext';
 
 // Constants
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 // Animated components
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);

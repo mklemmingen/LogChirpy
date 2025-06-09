@@ -188,7 +188,7 @@ function SearchHeader({
     const [showSortMenu, setShowSortMenu] = useState(false);
     const [showCategoryMenu, setShowCategoryMenu] = useState(false);
 
-    const sortOptions: Array<{ key: SortOption; label: string; icon: keyof typeof Feather.glyphMap }> = [
+    const sortOptions: { key: SortOption; label: string; icon: keyof typeof Feather.glyphMap }[] = [
         { key: 'name', label: t('birddex.sortByName'), icon: 'type' },
         { key: 'scientific', label: t('birddex.sortByScientific'), icon: 'book' },
         { key: 'family', label: t('birddex.sortByFamily'), icon: 'users' },
