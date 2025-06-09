@@ -169,24 +169,19 @@ function ModernTextInput({
 
 // Main Component
 export default function ModernLoginScreen() {
+    const isFocused = useIsFocused();
+    
+    // Early return must be before any other hooks
+    if (!isFocused) {
+        return null;
+    }
+
     const { t } = useTranslation();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
     const typography = useTypography();
     const { showError, showSuccess, SnackbarComponent } = useSnackbar();
     const dimensions = useResponsiveDimensions();
-    const isFocused = useIsFocused();
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            mountedRef.current = false;
-        };
-    }, []);
-    
-    if (!isFocused) {
-        return null;
-    }
 
     // Form state
     const [email, setEmail] = useState('');
@@ -196,6 +191,13 @@ export default function ModernLoginScreen() {
     
     // Memory leak prevention
     const mountedRef = useRef(true);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
 
     // Form validation

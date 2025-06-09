@@ -149,7 +149,7 @@ export default function ModernAccountScreen() {
                             <Pressable
                                 style={styles.actionItem}
                                 onPress={() => {
-                                    // Navigate to sync settings or show sync status
+                                // Navigate to sync settings or show sync status
                                 }}
                                 android_ripple={{ color: variants.secondary.light }}
                             >

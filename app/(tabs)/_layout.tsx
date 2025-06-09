@@ -49,8 +49,7 @@ function EnhancedTabIcon({
     }, [focused]);
 
     return (
-        <ThemedView
-            background="transparent"
+        <View
             style={{
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -87,7 +86,7 @@ function EnhancedTabIcon({
                     },
                 ]}
             />
-        </ThemedView>
+        </View>
     );
 }
 
@@ -160,14 +159,13 @@ export default function ModernTabLayout() {
 
                 // Modern tab bar styling for Android
                 tabBarStyle: {
-                    backgroundColor: colors.background.secondary + 'CC', // Semi-transparent for stability
+                    backgroundColor: colors.background.secondary,
                     borderTopWidth: 1,
                     borderTopColor: colors.border.primary,
                     height: dimensions.navigation.tabBarHeight,
                     paddingBottom: dimensions.layout.componentSpacing / 2,
                     paddingTop: dimensions.layout.componentSpacing / 2,
                     paddingHorizontal: dimensions.layout.screenPadding.horizontal,
-                    position: 'absolute',
                     elevation: 8,
                     shadowColor: colors.text.primary,
                 },

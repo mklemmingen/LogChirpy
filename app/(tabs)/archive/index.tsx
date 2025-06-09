@@ -30,7 +30,6 @@ import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import {type BirdSpotting, getBirdSpottings} from '@/services/database';
 import {syncDatabase} from '@/services/sync_layer';
 
-// These will be calculated in the styles function based on responsive dimensions
 
 /**
  * Enhanced empty state component with responsive design and animations
