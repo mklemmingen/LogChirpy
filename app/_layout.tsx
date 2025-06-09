@@ -272,10 +272,10 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                         style={[
                             styles.progressCard, 
                             { 
-                                backgroundColor: colors.background.elevated,
-                                borderColor: colors.border.primary,
-                                padding: dimensions.card.padding.lg,
-                                borderRadius: dimensions.card.borderRadius.lg,
+                                backgroundColor: colors.backgroundSecondary,
+                                borderColor: colors.border,
+                                padding: 24,
+                                borderRadius: 20,
                                 borderWidth: 1,
                             }
                         ]}
@@ -381,9 +381,9 @@ function AppInitializationScreen({ message, error, onRetry }: {
                             style={[
                                 styles.retryButton, 
                                 { 
-                                    backgroundColor: colors.interactive.primary,
-                                    height: dimensions.button.md.height,
-                                    paddingHorizontal: dimensions.button.md.paddingHorizontal,
+                                    backgroundColor: colors.primary,
+                                    height: 48,
+                                    paddingHorizontal: 24,
                                 }
                             ]}
                             onPress={onRetry}
