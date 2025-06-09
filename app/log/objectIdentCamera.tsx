@@ -21,7 +21,7 @@ import {useObjectDetection} from '@infinitered/react-native-mlkit-object-detecti
 import type {MyModelsConfig} from './../_layout';
 
 import {useFocusEffect, useIsFocused} from '@react-navigation/native';
-import {useAppState} from '@react-native-community/hooks';
+import {AppState} from 'react-native';
 import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
 
 import * as FileSystem from 'expo-file-system';
@@ -259,7 +259,13 @@ function ObjectIdentCameraContent() {
 
     // Focus/app state control
     const isFocused = useIsFocused();
-    const appState = useAppState();
+    const [appState, setAppState] = useState(AppState.currentState);
+    
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', setAppState);
+        return () => subscription?.remove();
+    }, []);
+    
     const isCameraActive = isFocused && appState === 'active';
     
     // Component cleanup to prevent view conflicts
