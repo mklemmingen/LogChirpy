@@ -1,12 +1,12 @@
-import React, {useEffect, useMemo, useState} from 'react';
-import {ThemeProvider} from '@react-navigation/native';
-import {useFonts} from 'expo-font';
-import {Stack, useSegments} from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import {StatusBar} from 'expo-status-bar';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {BlurView} from 'expo-blur';
-import {ThemedIcon} from '@/components/ThemedIcon';
+import { StatusBar } from 'expo-status-bar';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -21,7 +21,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColors, useTheme, useTypography, useShadows } from '@/hooks/useThemeColor';
 import { AuthProvider } from '@/contexts/AuthContext';
-import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
+import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
 
 import {
     ImageLabelingConfig,
@@ -36,9 +36,9 @@ import {
 } from '@infinitered/react-native-mlkit-object-detection';
 
 // Database imports
-import {initDB} from '@/services/database';
-import {BirdNetService} from '@/services/birdNetService';
-import {fastTfliteBirdClassifier} from '@/services/fastTfliteBirdClassifier';
+import { initDB } from '@/services/database';
+import { BirdNetService } from '@/services/birdNetService';
+import { fastTfliteBirdClassifier } from '@/services/fastTfliteBirdClassifier';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -129,7 +129,7 @@ function LoadingAnimation() {
 
     const iconSize = 32;
     const containerSize = iconSize * 2;
-    
+
     return (
         <Animated.View
             style={[
@@ -203,8 +203,8 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     }
                 ]}>
                     <View style={[
-                        styles.errorIconContainer, 
-                        { 
+                        styles.errorIconContainer,
+                        {
                             backgroundColor: colors.backgroundSecondary,
                             width: 96,
                             height: 96,
@@ -224,8 +224,8 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
 
                     <Pressable
                         style={[
-                            styles.retryButton, 
-                            { 
+                            styles.retryButton,
+                            {
                                 backgroundColor: colors.primary,
                                 height: 48,
                                 paddingHorizontal: 24,
@@ -270,8 +270,8 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     {/* Progress Section */}
                     <View
                         style={[
-                            styles.progressCard, 
-                            { 
+                            styles.progressCard,
+                            {
                                 backgroundColor: colors.backgroundSecondary,
                                 borderColor: colors.border,
                                 padding: 24,
@@ -287,8 +287,8 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                         {/* Progress Bar */}
                         <View style={styles.progressSection}>
                             <View style={[
-                                styles.progressTrack, 
-                                { 
+                                styles.progressTrack,
+                                {
                                     backgroundColor: colors.backgroundSecondary,
                                     height: 8,
                                 }
@@ -357,8 +357,8 @@ function AppInitializationScreen({ message, error, onRetry }: {
             <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <View style={styles.errorContent}>
                     <View style={[
-                        styles.errorIconContainer, 
-                        { 
+                        styles.errorIconContainer,
+                        {
                             backgroundColor: colors.backgroundSecondary,
                             width: 96,
                             height: 96,
@@ -379,8 +379,8 @@ function AppInitializationScreen({ message, error, onRetry }: {
                     {onRetry && (
                         <Pressable
                             style={[
-                                styles.retryButton, 
-                                { 
+                                styles.retryButton,
+                                {
                                     backgroundColor: colors.primary,
                                     height: 48,
                                     paddingHorizontal: 24,
@@ -440,24 +440,31 @@ export default function EnhancedRootLayout() {
     const [offlineModelReady, setOfflineModelReady] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
 
-    // ML Models setup (same as before)
-    console.log('[ML Models] Initializing image labeling models...');
-    const models_class = useImageLabelingModels(MODELS_CLASS);
-    const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
-    console.log('[ML Models] Image labeling models initialized:', !!models_class);
-
-    console.log('[ML Models] Initializing object detection models...');
-    const models = useObjectDetectionModels<typeof MODELS_OBJECT>(useMemo(() => ({
+    // ML Models setup with useMemo to prevent recreation
+    const objectDetectionConfig = useMemo(() => ({
         assets: MODELS_OBJECT,
         loadDefaultModel: true,
         defaultModelOptions: {
             shouldEnableMultipleObjects: true,
             shouldEnableClassification: true,
-            detectorMode: 'singleImage',
+            detectorMode: 'singleImage' as const,
         },
-    }), []));
+    }), []);
+
+    // Initialize models with memoization
+    const models_class = useImageLabelingModels(MODELS_CLASS);
+    const { ImageLabelingModelProvider } = useImageLabelingProvider(models_class);
+
+    const models = useObjectDetectionModels<typeof MODELS_OBJECT>(objectDetectionConfig);
     const { ObjectDetectionProvider } = useObjectDetectionProvider(models);
-    console.log('[ML Models] Object detection models initialized:', !!models);
+
+    // Log initialization only once
+    useEffect(() => {
+        if (models_class && models) {
+            console.log('[ML Models] Image labeling models initialized:', !!models_class);
+            console.log('[ML Models] Object detection models initialized:', !!models);
+        }
+    }, [models_class, models]);
 
     // Initialize local database
     useEffect(() => {
