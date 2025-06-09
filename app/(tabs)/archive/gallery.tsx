@@ -10,7 +10,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Directory, File, Paths } from 'expo-file-system/next';
+import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
 
@@ -49,30 +49,31 @@ export default function GalleryManagementScreen() {
     const loadPhotos = useCallback(async () => {
         try {
             setLoading(true);
-            const documentDir = new Directory(Paths.document);
+            const documentDirPath = FileSystem.documentDirectory;
             
-            if (!documentDir.exists) {
+            if (!documentDirPath) {
                 setPhotos([]);
                 return;
             }
 
-            const files = await documentDir.list();
-            const photoFiles = files.filter(file => 
-                file.name.startsWith('photo_') && file.name.endsWith('.jpg')
+            const files = await FileSystem.readDirectoryAsync(documentDirPath);
+            const photoFiles = files.filter((fileName: string) => 
+                fileName.startsWith('photo_') && fileName.endsWith('.jpg')
             );
 
             const photoItems: PhotoItem[] = await Promise.all(
-                photoFiles.map(async (file) => {
-                    const info = await (file as any).stat();
+                photoFiles.map(async (fileName: string) => {
+                    const filePath = `${documentDirPath}${fileName}`;
+                    const info = await FileSystem.getInfoAsync(filePath);
                     // Extract classification from filename if present
-                    const match = file.name.match(/photo_(\d+)\.jpg/);
-                    const classification = extractClassificationFromFilename(file.name);
+                    const match = fileName.match(/photo_(\d+)\.jpg/);
+                    const classification = extractClassificationFromFilename(fileName);
                     
                     return {
-                        uri: file.uri,
-                        filename: file.name,
-                        size: info.size || 0,
-                        modificationTime: info.modificationTime || 0,
+                        uri: filePath,
+                        filename: fileName,
+                        size: (info as any).size || 0,
+                        modificationTime: (info as any).modificationTime || 0,
                         classification,
                     };
                 })
@@ -179,10 +180,9 @@ export default function GalleryManagementScreen() {
                     onPress: async () => {
                         try {
                             for (const uri of photoUris) {
-                                const filename = Paths.basename(uri);
-                                const file = new File(Paths.document, filename);
-                                if (file.exists) {
-                                    await file.delete();
+                                const info = await FileSystem.getInfoAsync(uri);
+                                if (info.exists) {
+                                    await FileSystem.deleteAsync(uri);
                                 }
                             }
                             setSelectedPhotos(new Set());

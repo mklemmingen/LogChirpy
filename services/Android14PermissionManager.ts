@@ -9,7 +9,6 @@
 import React from 'react';
 import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
 import { request, check, PERMISSIONS, RESULTS, Permission } from 'react-native-permissions';
-import { useDetectionStore } from '@/store/detectionStore';
 
 // Helper function to safely get numeric Platform.Version
 const getPlatformVersion = (): number => {
