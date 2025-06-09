@@ -5,7 +5,7 @@ import { useTheme } from '@/hooks/useThemeColor';
 interface ThemedIconProps {
     name: keyof typeof Feather.glyphMap;
     size?: number;
-    color?: 'primary' | 'secondary' | 'tertiary' | 'accent' | 'error' | 'success';
+    color?: 'primary' | 'secondary' | 'tertiary' | 'accent' | 'error' | 'success' | 'inverse';
     style?: object;
 }
 
@@ -25,6 +25,7 @@ export function ThemedIcon({
             case 'accent': return theme.colors.border.secondary;
             case 'error': return theme.colors.status.error;
             case 'success': return theme.colors.status.success;
+            case 'inverse': return theme.colors.text.inverse;
             default: return theme.colors.text.primary;
         }
     };

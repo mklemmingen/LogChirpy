@@ -1,9 +1,9 @@
-import React, {useEffect} from 'react';
-import {Dimensions, StyleSheet, View} from 'react-native';
-import {Link, Stack} from 'expo-router';
-import {useTranslation} from 'react-i18next';
+import React, { useEffect } from 'react';
+import { Dimensions, StyleSheet, View } from 'react-native';
+import { Link, Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Feather } from '@expo/vector-icons';
-import {ThemedIcon} from '@/components/ThemedIcon';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -14,11 +14,11 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import {ThemedView} from '@/components/ThemedView';
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ModernCard} from '@/components/ModernCard';
-import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ModernCard } from '@/components/ModernCard';
+import { useColors, useTheme, useTypography } from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -33,19 +33,19 @@ function LostBirdIcon() {
   useEffect(() => {
     // Gentle swaying motion
     rotation.value = withRepeat(
-        withSequence(
-            withTiming(-10, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-            withTiming(10, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-        false
+      withSequence(
+        withTiming(-10, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(10, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false
     );
 
     // Breathing scale animation
     scale.value = withRepeat(
-        withTiming(1.1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true
+      withTiming(1.1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
     );
 
     // Fade in
@@ -61,22 +61,22 @@ function LostBirdIcon() {
   }));
 
   return (
-      <Animated.View
-          style={[
-            {
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: colors.backgroundSecondary,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 32,
-            },
-            animatedStyle,
-          ]}
-      >
-        <ThemedIcon name="help-circle" size={48} color="primary" />
-      </Animated.View>
+    <Animated.View
+      style={[
+        {
+          width: 120,
+          height: 120,
+          borderRadius: 60,
+          backgroundColor: colors.backgroundSecondary,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 32,
+        },
+        animatedStyle,
+      ]}
+    >
+      <ThemedIcon name="help-circle" size={48} color="primary" />
+    </Animated.View>
   );
 }
 
@@ -92,71 +92,71 @@ function FloatingElements() {
   ];
 
   return (
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        {elements.map((element, index) => {
-          const FloatingElement = () => {
-            const translateY = useSharedValue(50);
-            const opacity = useSharedValue(0);
-            const scale = useSharedValue(0.8);
+    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      {elements.map((element, index) => {
+        const FloatingElement = () => {
+          const translateY = useSharedValue(50);
+          const opacity = useSharedValue(0);
+          const scale = useSharedValue(0.8);
 
-            useEffect(() => {
-              setTimeout(() => {
-                translateY.value = withRepeat(
-                    withSequence(
-                        withTiming(-20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
-                        withTiming(20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
-                    ),
-                    -1,
-                    false
-                );
+          useEffect(() => {
+            setTimeout(() => {
+              translateY.value = withRepeat(
+                withSequence(
+                  withTiming(-20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
+                  withTiming(20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
+                ),
+                -1,
+                false
+              );
 
-                opacity.value = withTiming(0.15, { duration: 1000 });
-                scale.value = withTiming(1, { duration: 1000 });
-              }, element.delay);
-            }, []);
+              opacity.value = withTiming(0.15, { duration: 1000 });
+              scale.value = withTiming(1, { duration: 1000 });
+            }, element.delay);
+          }, []);
 
-            const animatedStyle = useAnimatedStyle(() => ({
-              transform: [
-                { translateY: translateY.value },
-                { scale: scale.value },
-              ],
-              opacity: opacity.value,
-            }));
+          const animatedStyle = useAnimatedStyle(() => ({
+            transform: [
+              { translateY: translateY.value },
+              { scale: scale.value },
+            ],
+            opacity: opacity.value,
+          }));
 
-            return (
-                <Animated.View
-                    style={[
-                      {
-                        position: 'absolute',
-                        left: (index % 2 === 0 ? 30 : SCREEN_WIDTH - 80) + (index * 20),
-                        top: 100 + (index * 80),
-                      },
-                      animatedStyle,
-                    ]}
-                >
-                  <View
-                      style={{
-                        width: 50,
-                        height: 50,
-                        borderRadius: 25,
-                        backgroundColor: colors.backgroundSecondary,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                  >
-                    <ThemedIcon
-                        name={element.icon}
-                        size={20}
-                        color="tertiary"
-                    />
-                  </View>
-                </Animated.View>
-            );
-          };
+          return (
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  left: (index % 2 === 0 ? 30 : SCREEN_WIDTH - 80) + (index * 20),
+                  top: 100 + (index * 80),
+                },
+                animatedStyle,
+              ]}
+            >
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: colors.backgroundSecondary,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <ThemedIcon
+                  name={element.icon}
+                  size={20}
+                  color="tertiary"
+                />
+              </View>
+            </Animated.View>
+          );
+        };
 
-          return <FloatingElement key={index} />;
-        })}
-      </View>
+        return <FloatingElement key={index} />;
+      })}
+    </View>
   );
 }
 
@@ -189,91 +189,91 @@ export default function NotFoundScreen() {
   }));
 
   return (
-      <ThemedView background="primary" style={styles.container}>
-        <Stack.Screen options={{
-          title: t('not_found.page_title'),
-          headerShown: false
-        }} />
+    <ThemedView background="primary" style={styles.container}>
+      <Stack.Screen options={{
+        title: t('not_found.page_title'),
+        headerShown: false
+      }} />
 
-        {/* Floating background elements */}
-        <FloatingElements />
+      {/* Floating background elements */}
+      <FloatingElements />
 
-        {/* Main content */}
-        <Animated.View style={[styles.content, contentAnimatedStyle]}>
-          <ModernCard
-              elevated={false}
-              bordered={true}
-              style={styles.card}
-          >
-            {/* Lost bird illustration */}
-            <View style={styles.illustration}>
-              <LostBirdIcon />
-            </View>
+      {/* Main content */}
+      <Animated.View style={[styles.content, contentAnimatedStyle]}>
+        <ModernCard
+          elevated={false}
+          bordered={true}
+          style={styles.card}
+        >
+          {/* Lost bird illustration */}
+          <View style={styles.illustration}>
+            <LostBirdIcon />
+          </View>
 
-            {/* Error message */}
-            <View style={styles.messageContainer}>
-              <ThemedText
-                  variant="displayMedium"
-                  style={[styles.title, { textAlign: 'center' }]}
+          {/* Error message */}
+          <View style={styles.messageContainer}>
+            <ThemedText
+              variant="displayMedium"
+              style={[styles.title, { textAlign: 'center' }]}
+            >
+              {t('not_found.nest_not_found')}
+            </ThemedText>
+
+            <ThemedText
+              variant="bodyLarge"
+              color="secondary"
+              style={[styles.subtitle, { textAlign: 'center' }]}
+            >
+              {t('not_found.page_description')}
+            </ThemedText>
+          </View>
+
+          {/* Action buttons */}
+          <View style={styles.actions}>
+            <Link href="/" asChild>
+              <ThemedPressable
+                variant="primary"
+                size="lg"
+                style={styles.primaryAction}
               >
-                {t('not_found.nest_not_found')}
-              </ThemedText>
-
-              <ThemedText
-                  variant="bodyLarge"
-                  color="secondary"
-                  style={[styles.subtitle, { textAlign: 'center' }]}
-              >
-                {t('not_found.page_description')}
-              </ThemedText>
-            </View>
-
-            {/* Action buttons */}
-            <View style={styles.actions}>
-              <Link href="/" asChild>
-                <ThemedPressable
-                    variant="primary"
-                    size="lg"
-                    style={styles.primaryAction}
+                <ThemedIcon name="home" size={20} color="inverse" />
+                <ThemedText
+                  variant="labelLarge"
+                  color="inverse"
                 >
-                  <ThemedIcon name="home" size={20} color="primary" />
-                  <ThemedText
-                      variant="labelLarge"
-                      color="primary"
-                  >
-                    {t('not_found.return_to_nest')}
-                  </ThemedText>
-                </ThemedPressable>
-              </Link>
+                  {t('not_found.return_to_nest')}
+                </ThemedText>
+              </ThemedPressable>
+            </Link>
 
-              <Link href="/(tabs)" asChild>
-                <ThemedPressable
-                    variant="secondary"
-                    size="lg"
-                    style={styles.secondaryAction}
-                >
-                  <ThemedIcon name="map" size={20} color="primary" />
-                  <ThemedText variant="labelLarge">
-                    {t('not_found.explore_birdex')}
-                  </ThemedText>
-                </ThemedPressable>
-              </Link>
-            </View>
-
-            {/* Fun fact */}
-            <View style={[styles.funFact, { backgroundColor: colors.backgroundSecondary }]}>
-              <ThemedIcon name="info" size={16} color="primary" />
-              <ThemedText
-                  variant="labelMedium"
-                  color="primary"
-                  style={{ flex: 1, lineHeight: 18 }}
+            <Link href="/(tabs)" asChild>
+              <ThemedPressable
+                variant="secondary"
+                size="lg"
+                style={styles.secondaryAction}
               >
-                {t('not_found.fun_fact')}
-              </ThemedText>
-            </View>
-          </ModernCard>
-        </Animated.View>
-      </ThemedView>
+                <ThemedIcon name="map" size={20} color="primary" />
+                <ThemedText variant="labelLarge">
+                  {t('not_found.explore_birdex')}
+                </ThemedText>
+              </ThemedPressable>
+            </Link>
+          </View>
+
+          {/* Fun fact */}
+          <View style={[styles.funFact, { backgroundColor: colors.backgroundSecondary }]}>
+            <ThemedIcon name="info" size={16} color="primary" />
+            <ThemedText
+              variant="labelMedium"
+              color="primary"
+              style={{ flex: 1, lineHeight: 18 }}
+            >
+              {t('not_found.fun_fact')}
+            </ThemedText>
+          </View>
+        </ModernCard>
+      </Animated.View>
+    </ThemedView>
   );
 }
 
@@ -312,7 +312,6 @@ const styles = StyleSheet.create({
     maxWidth: 300,
   },
   actions: {
-    width: '100%',
     gap: 16,
     marginBottom: 24,
   },
@@ -323,6 +322,7 @@ const styles = StyleSheet.create({
   secondaryAction: {
     flexDirection: 'row',
     gap: 8,
+
   },
   funFact: {
     flexDirection: 'row',
