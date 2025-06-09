@@ -57,7 +57,7 @@ jest.mock('expo-router', () => ({
   Link: ({ children, href, ...props }: any) => children,
 }));
 
-jest.mock('@/app/context/AuthContext', () => ({
+jest.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
     user: { email: 'test@example.com' },
     isAuthenticated: true,

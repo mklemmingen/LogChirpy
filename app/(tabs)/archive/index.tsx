@@ -1,7 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   Alert,
-  Dimensions,
   FlatList,
   Image,
   Pressable,
@@ -13,7 +12,6 @@ import {
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
-import {BlurView} from 'expo-blur';
 import {router} from 'expo-router';
 import Animated, {
   FadeInDown,
@@ -25,12 +23,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import {ThemedView, Card} from '@/components/ThemedView';
+import {Card} from '@/components/ThemedView';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {ThemedText} from '@/components/ThemedText';
-import {Button} from '@/components/Button';
-import {useColors, useTypography, useBorderRadius, useShadows, useSpacing} from '@/hooks/useThemeColor';
+import {useColors, useShadows, useTypography} from '@/hooks/useThemeColor';
 import {type BirdSpotting, getBirdSpottings} from '@/services/database';
 import {syncDatabase} from '@/services/sync_layer';
 
@@ -107,6 +104,9 @@ function SearchHeader({
                         onSearchChange,
                         sortOrder,
                         onSortChange,
+                        birdTypeFilter,
+                        onBirdTypeFilterChange,
+                        uniqueBirdTypes,
                         onSync,
                         isLoading
                       }: {
@@ -114,6 +114,9 @@ function SearchHeader({
   onSearchChange: (query: string) => void;
   sortOrder: 'newest' | 'oldest' | 'alphabetical';
   onSortChange: (order: 'newest' | 'oldest' | 'alphabetical') => void;
+  birdTypeFilter: string;
+  onBirdTypeFilterChange: (birdType: string) => void;
+  uniqueBirdTypes: string[];
   onSync: () => void;
   isLoading: boolean;
 }) {
@@ -161,6 +164,28 @@ function SearchHeader({
               </Pressable>
           )}
         </Card>
+
+        {/* Bird Type Filter */}
+        {uniqueBirdTypes.length > 1 && (
+          <Card style={styles.filterContainer}>
+            <ThemedIcon name="filter" size={16} color="secondary" />
+            <View style={styles.filterButtons}>
+              {uniqueBirdTypes.slice(0, 4).map((birdType, index) => (
+                <ThemedPressable
+                  key={index}
+                  variant={birdTypeFilter === birdType ? "primary" : "ghost"}
+                  size="sm"
+                  style={styles.filterButton}
+                  onPress={() => onBirdTypeFilterChange(birdType)}
+                >
+                  <ThemedText variant="bodySmall" numberOfLines={1}>
+                    {birdType || 'All Birds'}
+                  </ThemedText>
+                </ThemedPressable>
+              ))}
+            </View>
+          </Card>
+        )}
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
@@ -252,6 +277,7 @@ export default function ArchiveScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'alphabetical'>('newest');
+  const [birdTypeFilter, setBirdTypeFilter] = useState<string>('');
   const [syncing, setSyncing] = useState(false);
 
   // Load spottings from database
@@ -271,9 +297,26 @@ export default function ArchiveScreen() {
     }
   }, [sortOrder, t]);
 
+  // Get unique bird types for filter
+  const uniqueBirdTypes = useMemo(() => {
+    const types = spottings
+      .map(spotting => spotting.birdType)
+      .filter((type): type is string => Boolean(type))
+      .filter((type, index, array) => array.indexOf(type) === index)
+      .sort();
+    return ['', ...types]; // Empty string for "All birds"
+  }, [spottings]);
+
   // Filter and sort spottings
   const filteredSpottings = useMemo(() => {
     let filtered = spottings;
+
+    // Apply bird type filter
+    if (birdTypeFilter.trim()) {
+      filtered = filtered.filter(spotting =>
+          spotting.birdType?.toLowerCase() === birdTypeFilter.toLowerCase()
+      );
+    }
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -297,7 +340,7 @@ export default function ArchiveScreen() {
           return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
       }
     });
-  }, [spottings, searchQuery, sortOrder]);
+  }, [spottings, searchQuery, sortOrder, birdTypeFilter]);
 
   // Sync with cloud
   const handleSync = useCallback(async () => {
@@ -434,8 +477,7 @@ export default function ArchiveScreen() {
               size="sm"
               onPress={() => {
                 Haptics.selectionAsync();
-                // TODO: Implement gallery route
-                console.log('Gallery not implemented yet');
+                router.push('/archive/gallery');
               }}
               style={styles.galleryButton}
             >
@@ -453,6 +495,9 @@ export default function ArchiveScreen() {
             onSearchChange={setSearchQuery}
             sortOrder={sortOrder}
             onSortChange={setSortOrder}
+            birdTypeFilter={birdTypeFilter}
+            onBirdTypeFilterChange={setBirdTypeFilter}
+            uniqueBirdTypes={uniqueBirdTypes}
             onSync={handleSync}
             isLoading={syncing}
         />
@@ -590,6 +635,25 @@ function createSearchStyles() {
       paddingVertical: 16,
       gap: 16,
       minHeight: 44,
+    },
+    filterContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 12,
+      borderWidth: 1,
+      marginBottom: 8,
+      gap: 12,
+    },
+    filterButtons: {
+      flexDirection: 'row',
+      flex: 1,
+      gap: 8,
+    },
+    filterButton: {
+      flex: 1,
+      minHeight: 32,
     },
   });
 }

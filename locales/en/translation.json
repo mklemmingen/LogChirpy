@@ -59,7 +59,21 @@
     "save_failed": "Failed to save image",
     "audio_play_failed": "Failed to play audio",
     "load_detail_failed": "Failed to load spotting details",
-    "location_unknown": "Location not recorded"
+    "location_unknown": "Location not recorded",
+    "share_options": "Share Options",
+    "share_text": "Share Text",
+    "share_text_description": "Share details as text message",
+    "share_with_image": "Share with Image",
+    "share_image_description": "Share image with bird details",
+    "save_image_description": "Save photo to your gallery",
+    "share_failed": "Failed to share content",
+    "share_image_failed": "Failed to share image",
+    "sharing_not_available": "Sharing is not available on this device",
+    "coordinates": "Coordinates",
+    "latin_name": "Latin Name",
+    "sync_status": "Sync Status",
+    "synced": "Synced",
+    "local_only": "Local Only"
   },
   "gallery": {
     "title": "Photo Gallery",
@@ -593,9 +607,6 @@
   "validation": {
     "bird_type_required": "Please specify the bird type",
     "media_or_notes_required": "Please add at least one photo, audio, video, or notes"
-  },
-  "warnings": {
-    "media_permission_required": "Media Library Permission Required"
   },
   "window": "LogChirpy"
 }

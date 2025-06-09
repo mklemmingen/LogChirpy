@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, Alert, BackHandler, StatusBar, StyleSheet, Text, View,} from 'react-native';
-import {Stack, useFocusEffect, useRouter} from 'expo-router';
+import {router, Stack, useFocusEffect, useRouter} from 'expo-router';
 import {Camera, useCameraDevice, useCameraPermission, useMicrophonePermission,} from 'react-native-vision-camera';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {useTranslation} from 'react-i18next';
@@ -110,7 +110,7 @@ function PermissionError({ onRetry }: { onRetry: () => void }) {
             <ThemedPressable
                 variant="secondary"
                 style={styles.errorButton}
-                onPress={() => useRouter().back()}
+                onPress={() => router.back()}
             >
               <ThemedText>{t('common.cancel')}</ThemedText>
             </ThemedPressable>
@@ -312,7 +312,7 @@ export default function VideoScreen() {
   };
 
   // Stop recording
-  const stopRecording = async () => {
+  const stopRecording = useCallback(async () => {
     if (!cameraRef.current) return;
 
     setState('stopping');
@@ -329,7 +329,7 @@ export default function VideoScreen() {
       console.error('Failed to stop recording:', error);
       setState('idle');
     }
-  };
+  }, []);
 
   // Handle recording toggle
   const handleCapture = () => {
@@ -366,10 +366,10 @@ export default function VideoScreen() {
   };
 
   // Force exit during recording
-  const handleForceExit = async () => {
+  const handleForceExit = useCallback(async () => {
     await stopRecording();
     router.back();
-  };
+  }, [stopRecording, router]);
 
   // Permission check
   if (!hasCameraPermission || !hasMicPermission) {

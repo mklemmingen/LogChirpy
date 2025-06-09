@@ -49,7 +49,7 @@ const { width: W, height: H } = Dimensions.get('window');
 
 interface Detection {
     frame: { origin: { x: number; y: number }; size: { x: number; y: number } };
-    labels: Array<{ text: string; confidence: number; index: number }>;
+    labels: { text: string; confidence: number; index: number }[];
 }
 
 interface CropBox {
@@ -381,7 +381,7 @@ function ObjectIdentCameraContent() {
     const detector = useObjectDetection<MyModelsConfig>('efficientNetlite0int8');
     const classifier = useImageLabeling("birdClassifier");
 
-    type ClassificationResult = Array<{ text: string; confidence: number; index: number }>;
+    type ClassificationResult = { text: string; confidence: number; index: number }[];
 
     const classifyImage = async (imageUri: string): Promise<ClassificationResult> => {
         try {

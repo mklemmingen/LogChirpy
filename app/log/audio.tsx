@@ -84,35 +84,41 @@ function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
             paddingVertical: 16 
         }}>
             {[...Array(7)].map((_, index) => {
-                const animatedStyle = useAnimatedStyle(() => {
-                    const delay = index * 0.1;
-                    const height = interpolate(
-                        waveAnim.value,
-                        [0, 1],
-                        [4, 30 + Math.sin(delay * 4) * 15]
-                    );
-                    return {
-                        height: Math.max(4, height),
-                        opacity: interpolate(waveAnim.value, [0, 1], [0.3, 1]),
-                    };
-                });
-
                 return (
-                    <Animated.View
-                        key={index}
-                        style={[
-                            {
-                                width: 4,
-                                backgroundColor: theme.colors.text.primary,
-                                borderRadius: 2,
-                                minHeight: 4,
-                            },
-                            animatedStyle,
-                        ]}
-                    />
+                    <WaveBar key={index} index={index} waveAnim={waveAnim} />
                 );
             })}
         </ThemedView>
+    );
+}
+
+// Separate component for wave bar to use hooks properly
+function WaveBar({ index, waveAnim }: { index: number; waveAnim: any }) {
+    const animatedStyle = useAnimatedStyle(() => {
+        const delay = index * 0.1;
+        const height = interpolate(
+            waveAnim.value,
+            [0, 1],
+            [4, 30 + Math.sin(delay * 4) * 15]
+        );
+        return {
+            height: Math.max(4, height),
+            opacity: interpolate(waveAnim.value, [0, 1], [0.3, 1]),
+        };
+    });
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    width: 4,
+                    backgroundColor: '#007AFF',
+                    borderRadius: 2,
+                    minHeight: 4,
+                },
+                animatedStyle,
+            ]}
+        />
     );
 }
 

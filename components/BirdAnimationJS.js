@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Animated, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import { Audio } from 'expo-av';
+
+// Ensure global timers are available
+/* global setInterval, clearInterval */
 
 const birdSprites = [
     require('@/assets/birds/spritesheet_magpie.png'),
@@ -32,10 +35,27 @@ const BirdAnimation = ({ numberOfBirds = 5 }) => {
             setSounds(loaded);
         };
         loadSounds();
+    }, []);
 
+    // Cleanup sounds when component unmounts
+    useEffect(() => {
         return () => {
             sounds.forEach((s) => s.unloadAsync());
         };
+    }, [sounds]);
+
+    const moveBird = useCallback((bird) => {
+        bird.x.setValue(-64);
+        Animated.timing(bird.x, {
+            toValue: screenWidth + 64,
+            duration: 15000 / bird.speed,
+            useNativeDriver: false,
+        }).start(({ finished }) => {
+            if (finished) {
+                bird.y = Math.random() * (screenHeight - 100); // just update y manually
+                moveBird(bird); // restart
+            }
+        });
     }, []);
 
     useEffect(() => {
@@ -51,21 +71,7 @@ const BirdAnimation = ({ numberOfBirds = 5 }) => {
 
         // start movement immediately
         createdBirds.forEach(moveBird);
-    }, [numberOfBirds]);
-
-    const moveBird = (bird) => {
-        bird.x.setValue(-64);
-        Animated.timing(bird.x, {
-            toValue: screenWidth + 64,
-            duration: 15000 / bird.speed,
-            useNativeDriver: false,
-        }).start(({ finished }) => {
-            if (finished) {
-                bird.y = Math.random() * (screenHeight - 100); // just update y manually
-                moveBird(bird); // restart
-            }
-        });
-    };
+    }, [numberOfBirds, moveBird]);
 
     useEffect(() => {
         const intervals = birds.map((bird) =>
@@ -85,31 +91,28 @@ const BirdAnimation = ({ numberOfBirds = 5 }) => {
     };
 
     return (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-            {birds.map((bird) => {
-                const offsetX = -bird.frameIndex * 64;
-                return (
-                    <TouchableWithoutFeedback key={bird.id} onPress={playRandomSound}>
-                        <Animated.View style={[styles.bird, { top: bird.y, left: bird.x }]}>
-                            <View style={styles.frame}>
-                                <Animated.Image
-                                    source={bird.sprite}
-                                    style={{
-                                        width: 64,   // full sprite sheet width
-                                        height: 64,  // full sprite sheet height
-                                        transform: [
-                                            { translateX: -bird.frameIndex * 16 }, // 16px shift per frame
-                                            { translateY: 0 },
-                                            { scaleX: -1 },
-                                        ],
-                                    }}
-                                    resizeMode="cover"
-                                />
-                            </View>
-                        </Animated.View>
-                    </TouchableWithoutFeedback>
-                );
-            })}
+        <View style={StyleSheet.absoluteFill}>
+            {birds.map((bird) => (
+                <TouchableWithoutFeedback key={bird.id} onPress={playRandomSound}>
+                    <Animated.View style={[styles.bird, { top: bird.y, left: bird.x }]}>
+                        <View style={styles.frame}>
+                            <Animated.Image
+                                source={bird.sprite}
+                                style={{
+                                    width: 64,   // full sprite sheet width
+                                    height: 64,  // full sprite sheet height
+                                    transform: [
+                                        { translateX: -bird.frameIndex * 16 }, // 16px shift per frame
+                                        { translateY: 0 },
+                                        { scaleX: -1 },
+                                    ],
+                                }}
+                                resizeMode="cover"
+                            />
+                        </View>
+                    </Animated.View>
+                </TouchableWithoutFeedback>
+            ))}
         </View>
     );
 };
