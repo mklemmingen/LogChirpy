@@ -134,7 +134,9 @@
     "no_photo_path": "خطأ: لا يوجد مسار للصورة.",
     "save_photo_failed": "فشل في حفظ الصورة: {{message}}",
     "capture_failed": "فشل في التقاط الصورة: {{message}}",
-    "detection_failed": "خطأ في الكشف: {{message}}"
+    "detection_failed": "خطأ في الكشف: {{message}}",
+    "bird_db_load_failed": "فشل تحميل قاعدة بيانات الطيور. تحقق من التخزين والاتصال.",
+    "database_error_title": "خطأ في قاعدة البيانات"
   },
   "account": {
     "title": "تفاصيل الحساب",

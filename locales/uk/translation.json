@@ -133,7 +133,9 @@
     "no_photo_path": "Помилка: шлях до фото відсутній.",
     "save_photo_failed": "Не вдалося зберегти фото: {{message}}",
     "capture_failed": "Не вдалося зробити фото: {{message}}",
-    "detection_failed": "Помилка виявлення: {{message}}"
+    "detection_failed": "Помилка виявлення: {{message}}",
+    "bird_db_load_failed": "Не вдалося завантажити базу даних птахів. Перевірте сховище та з'єднання.",
+    "database_error_title": "Помилка бази даних"
   },
   "account": {
     "title": "Дані облікового запису",

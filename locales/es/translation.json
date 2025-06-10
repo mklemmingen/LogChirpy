@@ -134,7 +134,9 @@
     "no_photo_path": "Error: sin ruta de foto.",
     "save_photo_failed": "Error al guardar foto: {{message}}",
     "capture_failed": "Error al capturar foto: {{message}}",
-    "detection_failed": "Error de detección: {{message}}"
+    "detection_failed": "Error de detección: {{message}}",
+    "bird_db_load_failed": "No se pudo cargar la base de datos de aves. Verifica tu almacenamiento y conexión.",
+    "database_error_title": "Error de base de datos"
   },
   "account": {
     "title": "Detalles de la cuenta",

@@ -250,7 +250,9 @@
     "save_photo_failed": "Échec sauvegarde photo : {{message}}",
     "capture_failed": "Échec capture photo : {{message}}",
     "detection_failed": "Erreur détection : {{message}}",
-    "media_permission_denied": "Accès média refusé. Activez les permissions."
+    "media_permission_denied": "Accès média refusé. Activez les permissions.",
+    "bird_db_load_failed": "Échec du chargement de la base de données des oiseaux. Vérifiez votre stockage et votre connexion.",
+    "database_error_title": "Erreur de base de données"
   },
   "account": {
     "title": "Détails du compte",

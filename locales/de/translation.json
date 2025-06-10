@@ -136,7 +136,9 @@
     "no_photo_path": "Fehler: Kein Bildpfad.",
     "save_photo_failed": "Speichern des Fotos fehlgeschlagen: {{message}}",
     "capture_failed": "Fotoaufnahme fehlgeschlagen: {{message}}",
-    "detection_failed": "Erkennungsfehler: {{message}}"
+    "detection_failed": "Erkennungsfehler: {{message}}",
+    "bird_db_load_failed": "Vogeldatenbank konnte nicht geladen werden. Überprüfe deinen Speicher und deine Verbindung.",
+    "database_error_title": "Datenbankfehler"
   },
   "account": {
     "title": "Kontodetails",

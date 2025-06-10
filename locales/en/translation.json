@@ -293,7 +293,9 @@
     "save_photo_failed": "Failed to save photo: {{message}}",
     "capture_failed": "Photo capture failed: {{message}}",
     "detection_failed": "Detection error: {{message}}",
-    "media_permission_denied": "Media access denied. Please enable camera and microphone permissions in settings."
+    "media_permission_denied": "Media access denied. Please enable camera and microphone permissions in settings.",
+    "bird_db_load_failed": "Failed to load bird database. Check your storage and connection.",
+    "database_error_title": "Database Error"
   },
   "account": {
     "title": "Account Details",
