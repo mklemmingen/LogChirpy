@@ -1,7 +1,7 @@
-import React, {useRef, useState} from 'react';
-import {KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View,} from 'react-native';
-import {router} from 'expo-router';
-import {useTranslation} from 'react-i18next';
+import React, { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, Dimensions } from 'react-native';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Animated, {
     FadeInDown,
@@ -10,23 +10,27 @@ import Animated, {
     useSharedValue,
     withSpring,
     withTiming,
+    interpolate,
 } from 'react-native-reanimated';
 
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedIcon} from '@/components/ThemedIcon';
-import {ModernCard} from '@/components/ModernCard';
-import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {useSnackbar} from '@/components/ThemedSnackbar';
-import {useTheme, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
-import {sendPasswordResetEmail} from 'firebase/auth';
-import {auth} from '@/firebase/config';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import { ModernCard } from '@/components/ModernCard';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { useSnackbar } from '@/components/ThemedSnackbar';
+import { useTheme, useSemanticColors, useColorVariants } from '@/hooks/useThemeColor';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/firebase/config';
 
 // Validation helper
 const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 };
+
+// Get screen dimensions for centering
+const { height: screenHeight } = Dimensions.get('window');
 
 export default function ForgotPasswordScreen() {
     const { t } = useTranslation();
@@ -40,6 +44,7 @@ export default function ForgotPasswordScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
     const [errors, setErrors] = useState<{ email?: string }>({});
+    const [isEmailFocused, setIsEmailFocused] = useState(false);
 
     // Refs
     const emailInputRef = useRef<TextInput>(null);
@@ -48,12 +53,20 @@ export default function ForgotPasswordScreen() {
     const cardScale = useSharedValue(0.95);
     const cardOpacity = useSharedValue(0);
     const formOpacity = useSharedValue(1);
+    const emailFocusAnim = useSharedValue(0);
 
     React.useEffect(() => {
         // Entrance animation
         cardScale.value = withSpring(1, { damping: 20, stiffness: 300 });
         cardOpacity.value = withTiming(1, { duration: theme.motion.duration.normal });
     }, [cardOpacity, cardScale, theme.motion.duration.normal]);
+
+    React.useEffect(() => {
+        emailFocusAnim.value = withSpring(isEmailFocused ? 1 : 0, {
+            damping: 15,
+            stiffness: 300
+        });
+    }, [isEmailFocused]);
 
     // Form validation
     const validateForm = (): boolean => {
@@ -99,20 +112,20 @@ export default function ForgotPasswordScreen() {
             let errorMessage = t('errors.sending_reset_error');
             if (error && typeof error === 'object' && 'code' in error) {
                 switch ((error as { code: string }).code) {
-                case 'auth/user-not-found':
-                    errorMessage = t('errors.user_not_found');
-                    break;
-                case 'auth/invalid-email':
-                    errorMessage = t('errors.invalid_email');
-                    break;
-                case 'auth/too-many-requests':
-                    errorMessage = t('errors.too_many_requests');
-                    break;
-                case 'auth/network-request-failed':
-                    errorMessage = t('errors.network_error');
-                    break;
-                default:
-                    errorMessage = t('errors.sending_reset_error');
+                    case 'auth/user-not-found':
+                        errorMessage = t('errors.user_not_found');
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = t('errors.invalid_email');
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = t('errors.too_many_requests');
+                        break;
+                    case 'auth/network-request-failed':
+                        errorMessage = t('errors.network_error');
+                        break;
+                    default:
+                        errorMessage = t('errors.sending_reset_error');
                 }
             } else {
                 errorMessage = error instanceof Error ? error.message : t('errors.sending_reset_error');
@@ -139,6 +152,11 @@ export default function ForgotPasswordScreen() {
 
     const formAnimatedStyle = useAnimatedStyle(() => ({
         opacity: formOpacity.value,
+    }));
+
+    const emailFocusAnimStyle = useAnimatedStyle(() => ({
+        borderWidth: interpolate(emailFocusAnim.value, [0, 1], [2, 2]),
+        transform: [{ scale: interpolate(emailFocusAnim.value, [0, 1], [1, 1.001]) }],
     }));
 
     // Success screen content
@@ -202,14 +220,17 @@ export default function ForgotPasswordScreen() {
                         {t('auth.email_placeholder')}
                     </ThemedText>
 
-                    <View style={[
+                    <Animated.View style={[
                         styles.inputWrapper,
                         {
                             borderColor: errors.email
                                 ? theme.colors.status.error
-                                : theme.colors.border.primary,
+                                : isEmailFocused
+                                    ? theme.colors.accent.primary
+                                    : theme.colors.border.primary,
                             backgroundColor: theme.colors.background.secondary,
-                        }
+                        },
+                        emailFocusAnimStyle
                     ]}>
                         <ThemedIcon
                             name="mail"
@@ -236,8 +257,10 @@ export default function ForgotPasswordScreen() {
                             returnKeyType="send"
                             onSubmitEditing={handleSubmit}
                             editable={!isLoading}
+                            onFocus={() => setIsEmailFocused(true)}
+                            onBlur={() => setIsEmailFocused(false)}
                         />
-                    </View>
+                    </Animated.View>
 
                     {errors.email && (
                         <Animated.View
@@ -288,6 +311,7 @@ export default function ForgotPasswordScreen() {
                 style={styles.keyboardView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                enabled={true}
             >
                 <ScrollView
                     style={styles.scrollView}
@@ -344,8 +368,9 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         padding: 24,
+        paddingBottom: 60,
         minHeight: '100%',
     },
 
@@ -374,6 +399,7 @@ const styles = StyleSheet.create({
         maxWidth: 400,
         width: '100%',
         alignSelf: 'center',
+        marginTop: Math.max(60, (screenHeight * 0.5) - 300), // Center vertically with minimum top margin
     },
     cardContent: {
         padding: 32,
@@ -407,7 +433,6 @@ const styles = StyleSheet.create({
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 2,
         borderRadius: 16,
         paddingHorizontal: 16,
         paddingVertical: 16,
