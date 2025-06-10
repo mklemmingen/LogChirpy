@@ -24,23 +24,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const { t } = useTranslation();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      
-      // Store auth state for persistence
-      if (firebaseUser) {
-        await AsyncStorage.setItem('auth:hasUser', 'true');
-      } else {
-        await AsyncStorage.removeItem('auth:hasUser');
-      }
-      
+    // Handle case where Firebase auth is not available
+    if (!auth) {
+      console.warn('[Auth] Firebase auth not available - running in offline mode');
       setIsLoading(false);
-    });
+      return;
+    }
 
-    return unsubscribe;
+    try {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        setUser(firebaseUser);
+        
+        // Store auth state for persistence
+        if (firebaseUser) {
+          await AsyncStorage.setItem('auth:hasUser', 'true');
+        } else {
+          await AsyncStorage.removeItem('auth:hasUser');
+        }
+        
+        setIsLoading(false);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('[Auth] Error setting up auth state listener:', error);
+      setIsLoading(false);
+    }
   }, []);
 
   const signOut = async () => {
+    if (!auth) {
+      console.warn('[Auth] Cannot sign out - Firebase auth not available');
+      return;
+    }
+    
     try {
       await firebaseSignOut(auth);
       await AsyncStorage.removeItem('auth:hasUser');
@@ -51,6 +68,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const refreshUser = async () => {
+    if (!auth) {
+      console.warn('[Auth] Cannot refresh user - Firebase auth not available');
+      return;
+    }
+    
     const currentUser = auth.currentUser;
     if (currentUser) {
       await currentUser.reload();
@@ -77,5 +99,4 @@ export function useAuth() {
   return context;
 }
 
-// Add default export for AuthContext
 export default AuthContext;

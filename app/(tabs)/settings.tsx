@@ -16,7 +16,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
 import {languages} from "@/i18n/languages";
-import {Config} from "@/constants/config";
+import {Config, STORAGE_KEYS} from "@/constants/config";
+import Slider from '@react-native-community/slider';
 import {ThemedView, Card} from "@/components/ThemedView";
 import {ThemedText} from "@/components/ThemedText";
 import {ThemedPressable} from "@/components/ThemedPressable";
@@ -25,16 +26,13 @@ import {Button} from "@/components/Button";
 import {useColors, useTheme, useTypography} from "@/hooks/useThemeColor";
 
 /**
- * Enhanced Language Selection Card with responsive design and animations
- * Displays language options with flags, names, and active state indicators
+ * Language selection card with flags and animations
  * 
- * @param {Object} props - Component props
- * @param {string} props.langKey - Language key (e.g., 'en', 'de')
- * @param {string} props.langName - Display name of the language
- * @param {boolean} props.isActive - Whether this language is currently active
- * @param {Function} props.onPress - Callback when language is selected
- * @param {number} props.index - Index for staggered animations
- * @returns {JSX.Element} Animated language selection card
+ * @param props.langKey - Language key (e.g., 'en', 'de')
+ * @param props.langName - Display name of the language
+ * @param props.isActive - Whether this language is currently active
+ * @param props.onPress - Callback when language is selected
+ * @param props.index - Index for staggered animations
  */
 function LanguageCard({
                           langKey,
@@ -87,12 +85,12 @@ function LanguageCard({
     // Language flag emoji mapping
     const getLanguageFlag = (key: string) => {
         const flags: Record<string, string> = {
-            en: '🇬🇧 english',
-            de: '🇩🇪 deutsch',
-            es: '🇪🇸 español',
-            fr: '🇫🇷 français',
-            uk: '🇺🇦 українська',
-            ar: '🇸🇦 العربية',
+            en: 'english',
+            de: 'deutsch',
+            es: 'español',
+            fr: 'français',
+            uk: 'українська',
+            ar: 'العربية',
         };
         return flags[key] || '🌐';
     };
@@ -176,13 +174,10 @@ function LanguageCard({
 }
 
 /**
- * Enhanced GPS Toggle Component with animations and status indicators
- * Allows users to enable/disable GPS location logging for bird sightings
+ * GPS toggle component with status indicators
  * 
- * @param {Object} props - Component props
- * @param {boolean} props.enabled - Whether GPS logging is currently enabled
- * @param {Function} props.onToggle - Callback when GPS setting is toggled
- * @returns {JSX.Element} Animated GPS toggle card
+ * @param props.enabled - Whether GPS logging is currently enabled
+ * @param props.onToggle - Callback when GPS setting is toggled
  */
 function GPSToggleCard({
                            enabled,
@@ -310,16 +305,20 @@ function GPSToggleCard({
 }
 
 /**
- * Modern Settings Screen with responsive design and smooth animations
- * Provides language selection, location settings, and app information
- * 
- * @returns {JSX.Element} Complete settings screen with sections
+ * Settings screen with language selection, location settings, and app information
  */
-export default function ModernSettingsScreen() {
+export default function SettingsScreen() {
     const { i18n, t } = useTranslation();
     const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
     const [gpsEnabled, setGpsEnabled] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    
+    // Camera settings state
+    const [cameraSettings, setCameraSettings] = useState({
+        pipelineDelay: Config.camera.pipelineDelay,
+        confidenceThreshold: Config.camera.confidenceThreshold,
+        showSettings: Config.camera.showSettings,
+    });
 
     const colorScheme = useColorScheme() ?? 'light';
     const colors = useColors();
@@ -332,12 +331,35 @@ export default function ModernSettingsScreen() {
     useEffect(() => {
         const loadSettings = async () => {
             try {
-                const storedGps = await AsyncStorage.getItem('gps-logging');
+                const [storedGps, storedDelay, storedThreshold, storedShowSettings] = await Promise.all([
+                    AsyncStorage.getItem(STORAGE_KEYS.gpsLogging),
+                    AsyncStorage.getItem(STORAGE_KEYS.cameraPipelineDelay),
+                    AsyncStorage.getItem(STORAGE_KEYS.cameraConfidenceThreshold),
+                    AsyncStorage.getItem(STORAGE_KEYS.cameraShowSettings),
+                ]);
+                
+                // GPS setting
                 if (storedGps !== null) {
                     const enabled = storedGps === 'true';
                     setGpsEnabled(enabled);
                     Config.gpsLoggingEnabled = enabled;
                 }
+                
+                // Camera settings
+                const newCameraSettings = { ...cameraSettings };
+                if (storedDelay !== null) {
+                    newCameraSettings.pipelineDelay = parseFloat(storedDelay);
+                    Config.camera.pipelineDelay = newCameraSettings.pipelineDelay;
+                }
+                if (storedThreshold !== null) {
+                    newCameraSettings.confidenceThreshold = parseFloat(storedThreshold);
+                    Config.camera.confidenceThreshold = newCameraSettings.confidenceThreshold;
+                }
+                if (storedShowSettings !== null) {
+                    newCameraSettings.showSettings = storedShowSettings === 'true';
+                    Config.camera.showSettings = newCameraSettings.showSettings;
+                }
+                setCameraSettings(newCameraSettings);
             } catch (error) {
                 console.error('Failed to load settings:', error);
             }
@@ -390,10 +412,62 @@ export default function ModernSettingsScreen() {
         Config.gpsLoggingEnabled = newValue;
 
         try {
-            await AsyncStorage.setItem('gps-logging', newValue.toString());
+            await AsyncStorage.setItem(STORAGE_KEYS.gpsLogging, newValue.toString());
         } catch (error) {
             console.error('Failed to save GPS setting:', error);
         }
+    };
+
+    // Camera settings handlers
+    const updateCameraSetting = async <K extends keyof typeof cameraSettings>(
+        key: K, 
+        value: typeof cameraSettings[K]
+    ) => {
+        const newSettings = { ...cameraSettings, [key]: value };
+        setCameraSettings(newSettings);
+        
+        // Type-safe assignment to global config
+        if (key === 'pipelineDelay') {
+            Config.camera.pipelineDelay = value as number;
+        } else if (key === 'confidenceThreshold') {
+            Config.camera.confidenceThreshold = value as number;
+        } else if (key === 'showSettings') {
+            Config.camera.showSettings = value as boolean;
+        }
+
+        try {
+            let storageKey: string;
+            switch (key) {
+                case 'pipelineDelay':
+                    storageKey = STORAGE_KEYS.cameraPipelineDelay;
+                    break;
+                case 'confidenceThreshold':
+                    storageKey = STORAGE_KEYS.cameraConfidenceThreshold;
+                    break;
+                case 'showSettings':
+                    storageKey = STORAGE_KEYS.cameraShowSettings;
+                    break;
+                default:
+                    console.warn(`Unknown camera setting key: ${key}`);
+                    return;
+            }
+            await AsyncStorage.setItem(storageKey, value.toString());
+        } catch (error) {
+            console.error(`Failed to save camera setting ${key}:`, error);
+        }
+    };
+
+    // Helper functions for camera settings
+    const getDelayPresetLabel = (value: number): string => {
+        if (value <= 0.25) return '>0,25s | Performance might be impacted';
+        if (value <= 0.6) return 'Balanced (0.5s)';
+        return '1s | Better Performance';
+    };
+
+    const getConfidencePresetLabel = (value: number): string => {
+        if (value < 0.4) return 'Lenient (< 40%)';
+        if (value < 0.75) return 'Normal (40–75%)';
+        return 'Strict (≥ 75%)';
     };
 
     return (
@@ -416,7 +490,7 @@ export default function ModernSettingsScreen() {
                         color="secondary"
                         style={styles.headerSubtitle}
                     >
-                        Customize your LogChirpy experience
+                        Configure your LogChirpy app
                     </ThemedText>
                 </Animated.View>
 
@@ -460,13 +534,120 @@ export default function ModernSettingsScreen() {
                         {t("settings.logging") || "Location Settings"}
                     </ThemedText>
                     <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
-                        Configure how LogChirpy handles location data
+                        Location data settings
                     </ThemedText>
                     <GPSToggleCard
                         enabled={gpsEnabled}
                         onToggle={toggleGpsLogging}
                         styles={styles}
                     />
+                </ThemedView>
+
+                {/* Camera AI Settings Section */}
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        Camera AI Settings
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        Adjust bird detection settings
+                    </ThemedText>
+                    
+                    <Animated.View
+                        entering={FadeInDown.delay(250).springify()}
+                        layout={Layout.springify()}
+                    >
+                        <Card style={styles.cameraCard}>
+                            <View style={styles.cameraContent}>
+                                {/* Detection Speed */}
+                                <View style={styles.settingRow}>
+                                    <View style={styles.settingInfo}>
+                                        <ThemedText variant="bodyLarge" style={styles.settingTitle}>
+                                            Detection Speed
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
+                                            How frequently the AI analyzes camera feed
+                                        </ThemedText>
+                                        <ThemedText variant="labelSmall" color="primary" style={styles.settingPreset}>
+                                            {getDelayPresetLabel(cameraSettings.pipelineDelay)}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={styles.sliderContainer}>
+                                        <Slider
+                                            value={cameraSettings.pipelineDelay}
+                                            onValueChange={(value) => updateCameraSetting('pipelineDelay', value)}
+                                            minimumValue={0.1}
+                                            maximumValue={1.0}
+                                            step={0.01}
+                                            style={styles.slider}
+                                            minimumTrackTintColor={colors.primary}
+                                            maximumTrackTintColor={colors.border}
+                                            thumbTintColor={colors.primary}
+                                        />
+                                        <ThemedText variant="labelSmall" color="secondary" style={styles.sliderValue}>
+                                            {cameraSettings.pipelineDelay.toFixed(2)}s
+                                        </ThemedText>
+                                    </View>
+                                </View>
+
+                                {/* Confidence Threshold */}
+                                <View style={styles.settingRow}>
+                                    <View style={styles.settingInfo}>
+                                        <ThemedText variant="bodyLarge" style={styles.settingTitle}>
+                                            Detection Confidence
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
+                                            Minimum confidence required to save bird detections
+                                        </ThemedText>
+                                        <ThemedText variant="labelSmall" color="primary" style={styles.settingPreset}>
+                                            {getConfidencePresetLabel(cameraSettings.confidenceThreshold)}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={styles.sliderContainer}>
+                                        <Slider
+                                            value={cameraSettings.confidenceThreshold}
+                                            onValueChange={(value) => updateCameraSetting('confidenceThreshold', value)}
+                                            minimumValue={0.1}
+                                            maximumValue={1.0}
+                                            step={0.01}
+                                            style={styles.slider}
+                                            minimumTrackTintColor={colors.primary}
+                                            maximumTrackTintColor={colors.border}
+                                            thumbTintColor={colors.primary}
+                                        />
+                                        <ThemedText variant="labelSmall" color="secondary" style={styles.sliderValue}>
+                                            {Math.round(cameraSettings.confidenceThreshold * 100)}%
+                                        </ThemedText>
+                                    </View>
+                                </View>
+
+                                {/* Settings Toggle */}
+                                <View style={styles.settingRow}>
+                                    <View style={styles.settingInfo}>
+                                        <ThemedText variant="bodyLarge" style={styles.settingTitle}>
+                                            Show Camera Controls
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
+                                            Display advanced controls overlay in camera view
+                                        </ThemedText>
+                                    </View>
+                                    <Switch
+                                        value={cameraSettings.showSettings}
+                                        onValueChange={(value) => updateCameraSetting('showSettings', value)}
+                                        trackColor={{
+                                            false: colors.border,
+                                            true: colors.primary
+                                        }}
+                                        thumbColor={
+                                            cameraSettings.showSettings
+                                                ? colors.textInverse
+                                                : colors.textSecondary
+                                        }
+                                        ios_backgroundColor={colors.border}
+                                    />
+                                </View>
+                            </View>
+                        </Card>
+                    </Animated.View>
                 </ThemedView>
 
                 {/* Tutorial Section */}
@@ -731,6 +912,40 @@ const createStyles = () => StyleSheet.create({
     statusText: {
         textTransform: 'uppercase',
         fontWeight: '600',
+    },
+
+    // Camera Settings Section
+    cameraCard: {
+        padding: 0,
+    },
+    cameraContent: {
+        padding: 20,
+        gap: 24,
+    },
+    settingRow: {
+        gap: 12,
+    },
+    settingInfo: {
+        gap: 4,
+    },
+    settingTitle: {
+        fontWeight: '600',
+    },
+    settingDescription: {
+        lineHeight: 18,
+    },
+    settingPreset: {
+        fontWeight: '600',
+        marginTop: 4,
+    },
+    sliderContainer: {
+        gap: 8,
+    },
+    slider: {
+        height: 40,
+    },
+    sliderValue: {
+        textAlign: 'right',
     },
 
     // Info Card

@@ -287,14 +287,51 @@ export class AudioPreprocessingTFLite {
   }
 
   /**
-   * Compute FFT magnitude spectrum (simplified implementation)
+   * Compute FFT magnitude spectrum using proper FFT implementation
    */
   private static computeFFTMagnitude(frameData: Float32Array): Float32Array {
     const n = frameData.length;
-    const spectrum = new Float32Array(n / 2 + 1);
     
-    // Simplified magnitude spectrum calculation
-    // In a real implementation, you'd use a proper FFT library
+    // Ensure input size is power of 2 for optimal FFT performance
+    const fftSize = this.nextPowerOfTwo(n);
+    const paddedData = new Float32Array(fftSize);
+    paddedData.set(frameData);
+    
+    try {
+      // Use fft-js library for efficient FFT computation
+      const { FFT } = require('fft-js');
+      
+      // Convert to complex format expected by fft-js
+      const complexInput: [number, number][] = [];
+      for (let i = 0; i < fftSize; i++) {
+        complexInput.push([paddedData[i] || 0, 0]); // [real, imaginary]
+      }
+      
+      // Perform FFT
+      const complexOutput = FFT(complexInput);
+      
+      // Compute magnitude spectrum (only positive frequencies)
+      const spectrum = new Float32Array(Math.floor(fftSize / 2) + 1);
+      for (let i = 0; i < spectrum.length; i++) {
+        const real = complexOutput[i][0];
+        const imag = complexOutput[i][1];
+        spectrum[i] = Math.sqrt(real * real + imag * imag);
+      }
+      
+      return spectrum;
+    } catch (error) {
+      console.error('FFT computation failed, falling back to naive DFT:', error);
+      return this.computeNaiveDFT(frameData);
+    }
+  }
+
+  /**
+   * Fallback naive DFT implementation (for error cases only)
+   */
+  private static computeNaiveDFT(frameData: Float32Array): Float32Array {
+    const n = frameData.length;
+    const spectrum = new Float32Array(Math.floor(n / 2) + 1);
+    
     for (let k = 0; k < spectrum.length; k++) {
       let real = 0;
       let imag = 0;
@@ -309,6 +346,13 @@ export class AudioPreprocessingTFLite {
     }
     
     return spectrum;
+  }
+
+  /**
+   * Find next power of 2 for optimal FFT performance
+   */
+  private static nextPowerOfTwo(n: number): number {
+    return Math.pow(2, Math.ceil(Math.log2(n)));
   }
 
   /**

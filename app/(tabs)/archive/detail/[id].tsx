@@ -141,7 +141,7 @@ function ShareModal({
     );
 }
 
-// Enhanced Header Component
+// Header Component
 function DetailHeader({
                           entry,
                           onBack,
@@ -213,7 +213,7 @@ function DetailHeader({
     );
 }
 
-// Enhanced Media Section
+// Media Section
 function MediaSection({
                           entry,
                           onImageSave,
@@ -295,7 +295,7 @@ function MediaSection({
     );
 }
 
-// Enhanced Info Section
+// Info Section
 function InfoSection({
                          title,
                          icon,
@@ -383,7 +383,7 @@ function InfoRow({
     );
 }
 
-export default function ModernArchiveDetailScreen() {
+export default function ArchiveDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const { t } = useTranslation();
     const router = useRouter();
@@ -464,7 +464,7 @@ export default function ModernArchiveDetailScreen() {
         }
     }, [entry]);
 
-    // Enhanced sharing functions
+    // Sharing functions
     const shareText = useCallback(async () => {
         if (!entry) return;
 

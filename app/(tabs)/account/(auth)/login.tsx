@@ -50,7 +50,7 @@ interface FormErrors {
     password?: string;
 }
 
-interface ModernTextInputProps {
+interface CustomTextInputProps {
     label: string;
     value: string;
     onChangeText: (text: string) => void;
@@ -64,7 +64,7 @@ interface ModernTextInputProps {
 }
 
 // Helper Components
-function ModernTextInput({
+function CustomTextInput({
     label,
     value,
     onChangeText,
@@ -75,7 +75,7 @@ function ModernTextInput({
     error,
     disabled = false,
     icon,
-}: ModernTextInputProps) {
+}: CustomTextInputProps) {
     const semanticColors = useSemanticColors();
     const typography = useTypography();
     const [isFocused, setIsFocused] = useState(false);
@@ -196,7 +196,7 @@ function ModernTextInput({
 }
 
 // Main Component
-export default function ModernLoginScreen() {
+export default function LoginScreen() {
     const { t } = useTranslation();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
@@ -376,7 +376,7 @@ export default function ModernLoginScreen() {
                             bordered={true}
                         >
                             <View style={styles.formContainer}>
-                                <ModernTextInput
+                                <CustomTextInput
                                     label={t('auth.email_label') || 'Email'}
                                     value={email}
                                     onChangeText={setEmail}
@@ -387,7 +387,7 @@ export default function ModernLoginScreen() {
                                     icon="mail"
                                 />
 
-                                <ModernTextInput
+                                <CustomTextInput
                                     label={t('auth.password_label') || 'Password'}
                                     value={password}
                                     onChangeText={setPassword}

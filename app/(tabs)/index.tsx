@@ -37,7 +37,7 @@ interface FeatureAction {
 }
 
 /**
- * Home Screen Component with responsive design and smooth animations
+ * Home screen component
  * Main landing screen providing quick access to core app features
  * 
  * @returns {JSX.Element} Home screen with hero section and feature cards
@@ -48,7 +48,7 @@ export default function HomeScreen() {
   
   const styles = createStyles();
 
-  // Subtle floating animation
+  // Floating animation
   const floatAnimation = useSharedValue(0);
 
   React.useEffect(() => {
@@ -61,7 +61,6 @@ export default function HomeScreen() {
 
   /**
    * Creates floating animation style for feature cards
-   * Uses a shared animation value for consistent floating effect
    */
   const floatingStyle = useAnimatedStyle(() => {
     'worklet';
@@ -111,7 +110,7 @@ export default function HomeScreen() {
   ];
 
   /**
-   * Handles feature card press with haptic feedback and navigation
+   * Handles feature card press
    * 
    * @param {string} route - Route to navigate to
    */
@@ -121,7 +120,7 @@ export default function HomeScreen() {
   };
 
   /**
-   * Renders individual feature card with responsive design and accessibility
+   * Renders individual feature card
    * 
    * @param {FeatureAction} feature - Feature data for the card
    * @param {number} index - Index for staggered animations

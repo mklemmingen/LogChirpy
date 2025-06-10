@@ -96,6 +96,12 @@ class FastTfliteBirdClassifierService {
         throw new Error('Failed to load model with any delegate');
       }
       
+      // Validate model after loading
+      const isValid = await this.validateModel(this.model);
+      if (!isValid) {
+        throw new Error('Model validation failed - incompatible model format');
+      }
+      
       // Get model size for metrics
       const modelUri = this.config.modelPath;
       if (typeof modelUri === 'string') {
@@ -110,7 +116,7 @@ class FastTfliteBirdClassifierService {
       }
 
       this.modelLoaded = true;
-      console.log('FastTflite model loaded successfully', {
+      console.log('FastTflite model loaded and validated successfully', {
         labelCount: this.labels.length,
         modelSize: this.performanceMetrics.modelSize,
         delegate: this.config.preferredDelegate
@@ -120,6 +126,151 @@ class FastTfliteBirdClassifierService {
     } catch (error) {
       console.error('Failed to initialize FastTflite model:', error);
       this.modelLoaded = false;
+      return false;
+    }
+  }
+
+  /**
+   * Validate model tensor information and compatibility
+   */
+  private async validateModel(model: TensorflowModel): Promise<boolean> {
+    try {
+      console.log('Validating TensorFlow Lite model...');
+      
+      // Check if model has tensor information (available in newer versions)
+      let tensorInfoAvailable = false;
+    try {
+        // Try to access tensor information if available
+        const inputs = (model as any).inputs;
+        const outputs = (model as any).outputs;
+        
+        if (inputs && outputs) {
+          tensorInfoAvailable = true;
+          console.log('Model tensor information:', {
+            inputs: inputs.map((input: any) => ({
+              name: input.name,
+              dataType: input.dataType,
+              shape: input.shape
+            })),
+            outputs: outputs.map((output: any) => ({
+              name: output.name,
+              dataType: output.dataType,
+              shape: output.shape
+            }))
+          });
+          
+          // Validate input tensor requirements for BirdNET model
+          if (inputs.length !== 1) {
+            console.error('Expected exactly 1 input tensor, got', inputs.length);
+            return false;
+          }
+          
+          const inputTensor = inputs[0];
+          
+          // Check input data type (should be float32 for BirdNET)
+          if (inputTensor.dataType !== 'float32') {
+            console.error('Expected input data type to be float32, got', inputTensor.dataType);
+            return false;
+          }
+          
+          // Check input shape (expected: [1, 224, 224, 3] for BirdNET v2.4)
+          const expectedShape = [1, 224, 224, 3];
+          if (inputTensor.shape.length !== expectedShape.length) {
+            console.error('Expected input shape to have', expectedShape.length, 'dimensions, got', inputTensor.shape.length);
+            return false;
+          }
+          
+          // Validate specific dimensions (allowing for dynamic batch size -1)
+          for (let i = 1; i < expectedShape.length; i++) {
+            if (inputTensor.shape[i] !== expectedShape[i]) {
+              console.error(`Expected input shape[${i}] to be ${expectedShape[i]}, got ${inputTensor.shape[i]}`);
+              return false;
+            }
+          }
+          
+          // Validate output tensor
+          if (outputs.length !== 1) {
+            console.error('Expected exactly 1 output tensor, got', outputs.length);
+            return false;
+          }
+          
+          const outputTensor = outputs[0];
+          
+          // Check output data type (should be float32)
+          if (outputTensor.dataType !== 'float32') {
+            console.error('Expected output data type to be float32, got', outputTensor.dataType);
+            return false;
+          }
+          
+          // Validate that we have the right number of classes
+          const outputSize = outputTensor.shape.reduce((acc: number, dim: number) => acc * (dim === -1 ? 1 : dim), 1);
+          if (outputSize !== this.labels.length) {
+            console.warn(`Output tensor size (${outputSize}) doesn't match label count (${this.labels.length})`);
+            // Don't fail validation for this, just warn
+          }
+        }
+      } catch (tensorError) {
+        console.log('Tensor information not available in this version of react-native-fast-tflite');
+      }
+      
+      // Perform a test inference to ensure the model works (this is the most important validation)
+      console.log('Performing test inference to validate model functionality...');
+      const testInput = new Float32Array(224 * 224 * 3); // Create test input
+      testInput.fill(0.5); // Fill with dummy data
+      
+      try {
+        const testOutput = model.runSync([testInput]);
+        if (!testOutput || testOutput.length !== 1) {
+          console.error('Test inference failed - invalid output structure');
+          return false;
+        }
+        
+        const predictions = testOutput[0] as Float32Array;
+        if (!predictions || predictions.length === 0) {
+          console.error('Test inference failed - invalid prediction array');
+          return false;
+        }
+        
+        // Validate that prediction values are reasonable (between 0 and 1 for probabilities)
+        let validPredictions = 0;
+        for (let i = 0; i < Math.min(predictions.length, 100); i++) { // Check first 100
+          if (predictions[i] >= 0 && predictions[i] <= 1 && !isNaN(predictions[i])) {
+            validPredictions++;
+          }
+        }
+        
+        if (validPredictions === 0) {
+          console.error('Test inference failed - predictions contain invalid values');
+          return false;
+        }
+        
+        // Check if we have reasonable number of predictions
+        if (predictions.length < 100 || predictions.length > 50000) {
+          console.warn(`Unusual prediction array size: ${predictions.length}. Expected between 100-50000 classes.`);
+        }
+        
+        // If we have labels loaded, check compatibility
+        if (this.labels.length > 0 && Math.abs(predictions.length - this.labels.length) > 10) {
+          console.warn(`Prediction count (${predictions.length}) differs significantly from label count (${this.labels.length})`);
+        }
+        
+        console.log('Test inference successful - model is working correctly', {
+          tensorInfoAvailable,
+          predictionCount: predictions.length,
+          validPredictionSample: validPredictions,
+          labelCount: this.labels.length
+        });
+        
+      } catch (inferenceError) {
+        console.error('Test inference failed:', inferenceError);
+        return false;
+      }
+      
+      console.log('Model validation completed successfully');
+      return true;
+      
+    } catch (error) {
+      console.error('Model validation error:', error);
       return false;
     }
   }

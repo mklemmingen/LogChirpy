@@ -15,6 +15,7 @@ export default function LogLayout() {
                 <Stack.Screen name="photo" options={{ headerShown: false, title: t('log_screens.photo_title') }} />
                 <Stack.Screen name="video" options={{ headerShown: false, title: t('log_screens.video_title') }} />
                 <Stack.Screen name="audio" options={{ headerShown: false, title: t('log_screens.audio_title') }} />
+                <Stack.Screen name="objectIdentCamera" options={{ headerShown: false, title: t('log_screens.camera_title') }} />
             </Stack>
         </LogDraftProvider>
     );

@@ -257,11 +257,21 @@ export default function VideoScreen() {
     };
   }, []);
 
+  // Memoize permission functions to prevent excessive calls
+  const stableRequestCameraPermission = useRef(requestCameraPermission);
+  const stableRequestMicPermission = useRef(requestMicPermission);
+
+  // Update refs when functions change
+  useEffect(() => {
+    stableRequestCameraPermission.current = requestCameraPermission;
+    stableRequestMicPermission.current = requestMicPermission;
+  }, [requestCameraPermission, requestMicPermission]);
+
   // Request permissions
   const requestPermissions = useCallback(async () => {
     const [cameraResult, micResult] = await Promise.all([
-      requestCameraPermission(),
-      requestMicPermission(),
+      stableRequestCameraPermission.current(),
+      stableRequestMicPermission.current(),
     ]);
 
     if (!cameraResult || !micResult) {
@@ -270,7 +280,7 @@ export default function VideoScreen() {
           t('camera.video_permission_message')
       );
     }
-  }, [requestCameraPermission, requestMicPermission, t]);
+  }, [t]);
 
   // Start recording
   const startRecording = async () => {
