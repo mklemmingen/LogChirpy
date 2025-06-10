@@ -334,6 +334,25 @@ export default function ModernTabLayout() {
                 }}
             />
 
+            {/* Gallery Tab to see local stored (app storage) pictures */}
+            <Tabs.Screen
+                name="gallery"
+                options={{
+                    title: t('tabs.gallery'),
+                    headerTitle: t('tabs.gallery'),
+                    tabBarIcon: ({ color, focused, size }) => (
+                        <EnhancedTabIcon
+                            iconName="image"
+                            color={color}
+                            focused={focused}
+                            size={size}
+                        />
+                    ),
+                    tabBarAccessibilityLabel: t('tabs.gallery'),
+                    headerShown: false,
+                }}
+            />
+
             {/* Account Tab - Enhanced with user profile icon and accessibility */}
             <Tabs.Screen
                 name="account"

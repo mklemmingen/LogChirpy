@@ -459,15 +459,15 @@ export default function SettingsScreen() {
 
     // Helper functions for camera settings
     const getDelayPresetLabel = (value: number): string => {
-        if (value <= 0.25) return '⚡ Fast (0.2s)';
-        if (value <= 0.6) return '⚖️ Balanced (0.5s)';
-        return '🔍 Thorough (1s)';
+        if (value <= 0.25) return '>0,25s | Performance might be impacted';
+        if (value <= 0.6) return 'Balanced (0.5s)';
+        return '1s | Better Performance';
     };
 
     const getConfidencePresetLabel = (value: number): string => {
-        if (value < 0.4) return '🟢 Lenient (< 40%)';
-        if (value < 0.75) return '🟡 Normal (40–75%)';
-        return '🔴 Strict (≥ 75%)';
+        if (value < 0.4) return 'Lenient (< 40%)';
+        if (value < 0.75) return 'Normal (40–75%)';
+        return 'Strict (≥ 75%)';
     };
 
     return (

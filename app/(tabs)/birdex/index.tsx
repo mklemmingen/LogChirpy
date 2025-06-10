@@ -211,7 +211,7 @@ function SearchHeader({
         <ThemedView style={styles.searchHeader}>
             {/* Search Bar */}
             <View style={styles.searchRow}>
-                <Card style={styles.searchContainer}>
+                <View style={[styles.searchContainer, { backgroundColor: colors.backgroundSecondary }]}>
                     <ThemedIcon name="search" size={20} color="secondary" />
                     <TextInput
                         style={[styles.searchInput, { color: colors.text }]}
@@ -227,7 +227,7 @@ function SearchHeader({
                             <ThemedIcon name="x" size={18} color="secondary" />
                         </Pressable>
                     )}
-                </Card>
+                </View>
             </View>
 
             {/* Results Count */}
@@ -759,6 +759,8 @@ function createStyles() {
         paddingHorizontal: 20,
         paddingBottom: 16,
         position: 'relative',
+        zIndex: 1000,
+        elevation: 1000,
     },
     searchRow: {
         marginBottom: 8,
@@ -770,7 +772,7 @@ function createStyles() {
         paddingVertical: 8,
         minHeight: 48,
         borderRadius: 24,
-        borderWidth: 1,
+        borderWidth: 0,
         gap: 8,
     },
     searchInput: {
@@ -798,13 +800,23 @@ function createStyles() {
         top: '100%',
         left: 20,
         right: 20,
-        zIndex: 10,
+        zIndex: 9999,
         marginTop: 8,
+        elevation: 1000,
     },
     menuContent: {
         borderRadius: 12,
         borderWidth: 1,
         overflow: 'hidden',
+        elevation: 1000,
+        zIndex: 9999,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 8,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
     },
     menuOption: {
         flexDirection: 'row',

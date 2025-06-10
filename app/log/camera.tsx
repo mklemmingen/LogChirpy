@@ -36,11 +36,14 @@ export default function CameraScreen() {
         { fps: 30 }
     ]);
 
+    const [permissionRequested, setPermissionRequested] = useState(false);
+
     useEffect(() => {
-        if (!hasPermission) {
+        if (!hasPermission && !permissionRequested) {
+            setPermissionRequested(true);
             requestPermission();
         }
-    }, [hasPermission, requestPermission]);
+    }, [hasPermission, permissionRequested, requestPermission]);
 
     // Proper camera lifecycle management
     useEffect(() => {

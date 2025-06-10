@@ -7,7 +7,8 @@
     "smartSearch": "Identify",
     "archive": "Archive",
     "account": "Account",
-    "settings": "Settings"
+    "settings": "Settings",
+    "gallery": "Gallery"
   },
   "archive": {
     "title": "Bird Sightings",
@@ -127,6 +128,8 @@
     "wikipedia": "Wikipedia",
     "loadingEntries": "Loading entries…",
     "noResults": "No species found.",
+    "noResultsMessage": "No species found matching your search.",
+    "species": "Species",
     "initializingDb": "Initializing BirdDex database…",
     "openWikiFailed": "Failed to open Wikipedia entry.",
     "title": "Bird Encyclopedia",
@@ -161,7 +164,10 @@
     "extant": "Living Species",
     "speciesCode": "Species Code",
     "clements2024": "Clements 2024 Changes",
-    "noChanges": "No changes"
+    "noChanges": "No changes",
+    "categories": {
+      "all": "All Categories"
+    }
   },
   "select": {
     "error": "Error",

@@ -477,7 +477,7 @@ export default function ArchiveScreen() {
               size="sm"
               onPress={() => {
                 Haptics.selectionAsync();
-                router.push('/archive/gallery');
+                router.push('/(tabs)/gallery');
               }}
               style={styles.galleryButton}
             >

@@ -139,7 +139,7 @@ class FastTfliteBirdClassifierService {
       
       // Check if model has tensor information (available in newer versions)
       let tensorInfoAvailable = false;
-      try {
+    try {
         // Try to access tensor information if available
         const inputs = (model as any).inputs;
         const outputs = (model as any).outputs;
