@@ -3,6 +3,7 @@ variables:
 
 stages:
   - deploy
+  - typecheck
 
 deploy-logchirpy:
   stage: deploy
@@ -88,4 +89,35 @@ deploy-logchirpy:
     - echo "Successfully deployed cleaned GitHub history."
   only:
     - main
+  environment: production
+
+typescript-check:
+  stage: typecheck
+  image: node:18  # Use a Node.js image with npm
+  before_script:
+    # Clone the repository from GitHub to check the current state
+    - git clone https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git ./project
+    - cd ./project
+  script:
+    - echo "Installing dependencies..."
+    - npm ci  # Use ci for faster, deterministic installs
+    
+    - echo "Running TypeScript type check..."
+    - echo "========================================"
+    - echo "TypeScript Errors and Warnings:"
+    - echo "========================================"
+    
+    # Run tsc with specific flags to list all errors
+    - npx tsc --noEmit --pretty --listFiles false || echo "TypeScript check completed with errors"
+    
+    # Alternative: if you have a specific tsconfig for checking
+    # - npx tsc --project tsconfig.json --noEmit --pretty || echo "TypeScript check completed with errors"
+    
+    - echo "========================================"
+    - echo "TypeScript check finished"
+  allow_failure: true  # Don't fail the pipeline if there are TS errors
+  only:
+    - main
+  dependencies:
+    - deploy-logchirpy  # Ensure this runs after deploy
   environment: production
