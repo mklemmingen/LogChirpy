@@ -509,6 +509,7 @@
     "photo_title": "Take the photo",
     "video_title": "Take a video",
     "audio_title": "Record an audio",
+    "camera_title": "AI Camera Detection",
     "permission_check_failed": "Unable to check permissions",
     "failed_open_settings": "Unable to open settings",
     "permission_request_failed": "Permission request failed",

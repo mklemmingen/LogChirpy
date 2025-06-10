@@ -77,5 +77,4 @@ export function useAuth() {
   return context;
 }
 
-// Add default export for AuthContext
 export default AuthContext;

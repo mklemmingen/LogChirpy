@@ -69,7 +69,7 @@ interface CategoryOption {
 
 const PAGE_SIZE = 20;
 
-// Enhanced Bird Card Component
+// Bird Card Component
 function BirdCard({
                       bird,
                       index,
@@ -230,6 +230,13 @@ function SearchHeader({
                 </Card>
             </View>
 
+            {/* Results Count */}
+            <View style={styles.statsRow}>
+                <ThemedText variant="body" color="secondary">
+                    {totalCount.toLocaleString()} {t('birddex.species')}
+                </ThemedText>
+            </View>
+
             {/* Filter Controls */}
             <View style={styles.filterRow}>
                 {/* Category Filter */}
@@ -272,11 +279,6 @@ function SearchHeader({
                         {sortOptions.find(opt => opt.key === sortOption)?.label || 'Sort'}
                     </ThemedText>
                 </ThemedPressable>
-
-                {/* Results Count */}
-                <ThemedText variant="labelMedium" color="secondary" style={styles.resultCount}>
-                    {totalCount.toLocaleString()} {t('birddex.species')}
-                </ThemedText>
             </View>
 
             {/* Sort Dropdown */}
@@ -422,7 +424,7 @@ function LoadingState() {
 }
 
 // Main Component
-export default function ModernBirdDexIndex() {
+export default function BirdDexIndex() {
     const { i18n, t } = useTranslation();
     const router = useRouter();
     const colors = useColors();
@@ -776,6 +778,10 @@ function createStyles() {
         fontSize: 16,
         lineHeight: 20,
     },
+    statsRow: {
+        marginBottom: 12,
+        alignItems: 'center',
+    },
     filterRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -784,9 +790,6 @@ function createStyles() {
     filterButton: {
         flexDirection: 'row',
         gap: 4,
-    },
-    resultCount: {
-        marginLeft: 'auto',
     },
 
     // Dropdown Menus

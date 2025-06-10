@@ -15,8 +15,7 @@ import {ThemedView} from '@/components/ThemedView';
 import {ThemedIcon} from '@/components/ThemedIcon';
 
 /**
- * Enhanced Tab Icon Component with responsive design and smooth animations
- * Provides visual feedback for tab navigation with accessibility support
+ * Tab icon component with animations
  * 
  * @param {Object} props - Component props
  * @param {string} props.iconName - Name of the icon to display
@@ -213,12 +212,11 @@ export default function ModernTabLayout() {
     return (
         <Tabs
             screenOptions={{
-                // Modern tab bar styling with responsive semantic colors
                 tabBarStyle: {
                     backgroundColor: colors.backgroundSecondary,
                     borderTopWidth: 1,
                     borderTopColor: colors.border,
-                    height: 80,
+                    height: 60,
                     paddingBottom: Platform.OS === 'ios' ? 20 : 8,
                     paddingTop: 8,
                     paddingHorizontal: 16,

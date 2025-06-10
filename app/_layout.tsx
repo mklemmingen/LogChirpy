@@ -5,7 +5,7 @@ import { Stack } from 'expo-router';
 import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
     Easing,
@@ -79,10 +79,7 @@ const FONTS = {
 
 
 /**
- * Clean loading animation with minimal design and responsive sizing
- * Provides visual feedback during app initialization with smooth animations
- * 
- * @returns {JSX.Element} Animated loading spinner with feather icon
+ * Loading animation with feather icon
  */
 function LoadingAnimation() {
     const colors = useColors();
@@ -150,15 +147,13 @@ function LoadingAnimation() {
 }
 
 /**
- * Enhanced Database Loading Screen Component
- * Displays progress for bird database initialization with error handling
+ * Database loading screen with progress display
  * 
- * @param {Object} props - Component props
- * @param {Function} props.onReady - Callback when database is ready
- * @returns {JSX.Element|null} Loading screen or null when ready
+ * @param props.onReady - Callback when database is ready
+ * @param props.localDbReady - Whether the local database is ready
  */
-function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
-    const { isReady, isLoading, hasError, progress, loadedRecords, error, retry } = useBirdDexDatabase();
+function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void; localDbReady: boolean }) {
+    const { isReady, isLoading, hasError, progress, loadedRecords, error, retry } = useBirdDexDatabase(localDbReady);
     const colors = useColors();
     const typography = useTypography();
     const theme = useTheme();
@@ -335,14 +330,11 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
 }
 
 /**
- * Enhanced App Initialization Loading Screen
- * Shows loading state during app startup with error handling
+ * App initialization loading screen
  * 
- * @param {Object} props - Component props
- * @param {string} props.message - Loading message to display
- * @param {string} [props.error] - Error message if initialization failed
- * @param {Function} [props.onRetry] - Retry callback for error state
- * @returns {JSX.Element} Initialization screen
+ * @param props.message - Loading message to display
+ * @param props.error - Error message if initialization failed
+ * @param props.onRetry - Retry callback for error state
  */
 function AppInitializationScreen({ message, error, onRetry }: {
     message: string;
@@ -418,13 +410,9 @@ function AppInitializationScreen({ message, error, onRetry }: {
 }
 
 /**
- * Enhanced Root Layout Component
- * Main app layout with theme provider, ML model initialization, and progressive loading
- * Handles app initialization, database loading, and provides theming context
- * 
- * @returns {JSX.Element} Complete app layout with providers and navigation
+ * Root layout component with theme provider and ML model initialization
  */
-export default function EnhancedRootLayout() {
+export default function RootLayout() {
     const theme = useTheme();
     const colors = useColors();
     const typography = useTypography();
@@ -500,13 +488,36 @@ export default function EnhancedRootLayout() {
     useEffect(() => {
         const initializeLocalDB = async () => {
             try {
+                console.log('[Database] Starting local database initialization...');
                 await initDB();
+                console.log('[Database] Local database initialized successfully (bird_spottings table created)');
+                
+                // Add a small delay for Android to ensure database is fully ready
+                if (Platform.OS === 'android') {
+                    console.log('[Database] Android detected - adding 100ms delay for database stability');
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
                 setLocalDbReady(true);
                 setLocalDbError(null);
             } catch (error) {
-                console.error('Local DB initialization failed:', error);
+                console.error('[Database] Local DB initialization failed:', error);
+                if (error instanceof Error) {
+                    console.error('[Database] Error details:', {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack,
+                    });
+                }
                 setLocalDbError(error instanceof Error ? error.message : 'Failed to initialize local database');
-                setLocalDbReady(true); // Allow app to continue
+                
+                // On Android, retry once after a delay
+                if (Platform.OS === 'android' && retryCount === 0) {
+                    console.log('[Database] Android: Retrying database initialization in 500ms...');
+                    setTimeout(() => setRetryCount(1), 500);
+                } else {
+                    setLocalDbReady(true); // Allow app to continue even with error
+                }
             }
         };
 
@@ -572,12 +583,15 @@ export default function EnhancedRootLayout() {
         );
     }
 
-    // Show bird database loading screen
+    // Show bird database loading screen (only after local DB is ready)
     if (!birdDexReady) {
         return (
             <ImageLabelingModelProvider>
                 <ObjectDetectionProvider>
-                    <EnhancedDatabaseLoadingScreen onReady={() => setBirdDexReady(true)} />
+                    <DatabaseLoadingScreen 
+                        onReady={() => setBirdDexReady(true)} 
+                        localDbReady={localDbReady}
+                    />
                     <StatusBar style="auto" />
                 </ObjectDetectionProvider>
             </ImageLabelingModelProvider>

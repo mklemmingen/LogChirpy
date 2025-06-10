@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState, useMemo} from 'react';
 import {
     ActivityIndicator,
     Button,
@@ -36,15 +36,11 @@ import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
 
 import * as Haptics from 'expo-haptics';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {theme} from "@/constants/theme";
+import {Config} from "@/constants/config";
 
 
-const STORAGE_KEYS = {
-    pipelineDelay: 'pipelineDelay',
-    confidenceThreshold: 'confidenceThreshold',
-    showSettings: 'showSettings',
-};
+// Note: Storage keys now managed globally in constants/config.ts
 const { width: W, height: H } = Dimensions.get('window');
 
 interface Detection {
@@ -121,15 +117,15 @@ const persistToMediaLibraryAlbum = async (localUri: string, filename: string): P
 };
 
 const getDelayPresetLabel = (value: number): string => {
-    if (value <= 0.25) return '⚡ Fast (0.2s)';
-    if (value <= 0.6) return '⚖️ Balanced (0.5s)';
-    return '🔍 Thorough (1s)';
+    if (value <= 0.25) return '⚡ Fast';
+    if (value <= 0.6) return '⚖️ Balanced';
+    return '🔍 Thorough';
 };
 
 const getConfidencePresetLabel = (value: number): string => {
-    if (value < 0.4) return '🟢 Lenient (< 40%)';
-    if (value < 0.75) return '🟡 Normal (40–75%)';
-    return '🔴 Strict (≥ 75%)';
+    if (value < 0.4) return '🟢 Lenient';
+    if (value < 0.75) return '🟡 Normal';
+    return '🔴 Strict';
 };
 
 function generateFilename(prefix: string, label: string) {
@@ -192,13 +188,20 @@ export default function ObjectIdentCameraWrapper() {
     const colorScheme: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light'
     const currentTheme = theme[colorScheme]
 
+    // Memoize permission request to prevent infinite calls
+    const requestPermissionOnce = useCallback(() => {
+        if (!hasPermission) {
+            requestPermission();
+        }
+    }, [hasPermission, requestPermission]);
+
     // 1) run loading timer and kick off permission request exactly once
     useEffect(() => {
         // 3s splash
         const timer = setTimeout(() => setIsLoading(false), 1000);
-        requestPermission();     // side-effect only here
+        requestPermissionOnce();     // side-effect only here
         return () => clearTimeout(timer);
-    }, [requestPermission]);
+    }, [requestPermissionOnce]);
 
     // 2) if we’re still loading resources, show loader
     if (isLoading || !device || !hasPermission) {
@@ -244,18 +247,14 @@ function ObjectIdentCameraContent() {
 
     // Detection pipeline controls
     const [isDetectionPaused, setIsDetectionPaused] = useState(false);
-    const [pipelineDelay, setPipelineDelay] = useState(1); // seconds between captures
-    const [confidenceThreshold, setConfidenceThreshold] = useState(0.8);
+    const [pipelineDelay, setPipelineDelay] = useState(Config.camera.pipelineDelay);
+    const [confidenceThreshold, setConfidenceThreshold] = useState(Config.camera.confidenceThreshold);
 
     // UI Settings and visibility toggles
-    const [showSettings, setShowSettings] = useState(false);
+    const [showSettings, setShowSettings] = useState(Config.camera.showSettings);
     const [modalVisible, setModalVisible] = useState(false);
 
-    // Tooltip and label display info
-    const [showDelayTooltip, setShowDelayTooltip] = useState(false);
-    const [delayPresetLabel, setDelayPresetLabel] = useState('');
-    const [showConfidenceTooltip, setShowConfidenceTooltip] = useState(false);
-    const [confidencePresetLabel, setConfidencePresetLabel] = useState('');
+    // Note: Tooltip states removed - settings now managed globally
 
     // Focus/app state control
     const isFocused = useIsFocused();
@@ -298,58 +297,60 @@ function ObjectIdentCameraContent() {
     // Debug message shown to user
     const [debugText, setDebugText] = useState(t('camera.initializing'));
 
+    // Load settings from global config on mount and when config changes
     useEffect(() => {
-        (async () => {
-            try {
-                const savedDelay = await AsyncStorage.getItem(STORAGE_KEYS.pipelineDelay);
-                const savedThreshold = await AsyncStorage.getItem(STORAGE_KEYS.confidenceThreshold);
-                const savedShowSettings = await AsyncStorage.getItem(STORAGE_KEYS.showSettings);
-
-                if (savedDelay !== null) setPipelineDelay(parseFloat(savedDelay));
-                if (savedThreshold !== null) setConfidenceThreshold(parseFloat(savedThreshold));
-                if (savedShowSettings !== null) setShowSettings(savedShowSettings === 'true');
-            } catch (e) {
-                console.warn("Failed to load saved settings:", e);
+        setPipelineDelay(Config.camera.pipelineDelay);
+        setConfidenceThreshold(Config.camera.confidenceThreshold);
+        setShowSettings(Config.camera.showSettings);
+    }, []);
+    
+    // Update local state when global config changes (e.g., from settings page)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (Config.camera.pipelineDelay !== pipelineDelay) {
+                setPipelineDelay(Config.camera.pipelineDelay);
             }
-        })();
+            if (Config.camera.confidenceThreshold !== confidenceThreshold) {
+                setConfidenceThreshold(Config.camera.confidenceThreshold);
+            }
+            if (Config.camera.showSettings !== showSettings) {
+                setShowSettings(Config.camera.showSettings);
+            }
+        }, 1000); // Check every second
+        
+        return () => clearInterval(interval);
+    }, [pipelineDelay, confidenceThreshold, showSettings]);
+
+    // Note: Settings handlers removed - values now managed globally via settings page
+
+    const toggleShowSettings = useCallback(() => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setShowSettings(prev => !prev);
+        // Note: showSettings is now managed globally via settings page
     }, []);
 
-    const handleSetPipelineDelay = (value: number) => {
-        setPipelineDelay(value);
-        setDelayPresetLabel(getDelayPresetLabel(value));
-        AsyncStorage.setItem(STORAGE_KEYS.pipelineDelay, value.toString());
-    };
-
-    const handleSetConfidenceThreshold = (value: number) => {
-        setConfidenceThreshold(value);
-        setConfidencePresetLabel(getConfidencePresetLabel(value));
-        AsyncStorage.setItem(STORAGE_KEYS.confidenceThreshold, value.toString());
-    };
-
-    const toggleShowSettings = () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setShowSettings(prev => {
-            const newVal = !prev;
-            AsyncStorage.setItem(STORAGE_KEYS.showSettings, newVal.toString());
-            return newVal;
-        });
-    };
-
-    // Ask for permissions once, also for layout
+    // Initialize component once on mount
     useEffect(() => {
         console.log('[ObjectDetection] Component mounted, initializing...');
-        (async () => {
+        let isMounted = true;
+        
+        const initializeComponent = async () => {
             if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
                 UIManager.setLayoutAnimationEnabledExperimental(true);
             }
 
             const hasPermission = await ensureMediaPermission();
-            setHasMediaPermission(hasPermission);
-        })();
+            if (isMounted) {
+                setHasMediaPermission(hasPermission);
+            }
+        };
+
+        initializeComponent();
         
         // Cleanup function to prevent view conflicts on unmount
         return () => {
             console.log('[ObjectDetection] Component unmounting, cleaning up...');
+            isMounted = false;
             setIsInitialized(false);
             setIsDetectionPaused(true);
             setModalVisible(false);
@@ -380,6 +381,11 @@ function ObjectIdentCameraContent() {
 
     const detector = useObjectDetection<MyModelsConfig>('efficientNetlite0int8');
     const classifier = useImageLabeling("birdClassifier");
+    
+    // Memoize classifier ready check
+    const isClassifierReady = useMemo(() => {
+        return !!(classifier && typeof classifier.classifyImage === 'function');
+    }, [classifier]);
 
     type ClassificationResult = { text: string; confidence: number; index: number }[];
 
@@ -401,20 +407,25 @@ function ObjectIdentCameraContent() {
         }
     };
 
-    // Image manipulator context removed - not needed
+    // Component active state
     const isActive = useRef(true);
+    const captureTimeoutRef = useRef<NodeJS.Timeout>();
 
     // Capture loop: take photo, manipulate, and save to document directory
     useEffect(() => {
+        if (!isInitialized || isDetectionPaused || !cameraRef.current || !detector) {
+            return;
+        }
 
         const captureLoop = async () => {
-            if (!cameraRef.current || !isInitialized || isDetectionPaused) return;
+            if (!cameraRef.current || !isInitialized || isDetectionPaused || !isActive.current) {
+                return;
+            }
 
             try {
                 setIsProcessing(true);
                 setDebugText(t('camera.capturing'));
 
-                if (!cameraRef.current) return
                 const photo = await cameraRef.current.takePhoto({
                     flash: 'off',
                     enableShutterSound: false,
@@ -448,10 +459,7 @@ function ObjectIdentCameraContent() {
                     });
                     
                     console.log('Photo saved to document directory:', destPath);
-                    // Set photoPath to the URI for MLKit
-                    const savedPath = destPath;
-
-                    setPhotoPath(savedPath);
+                    setPhotoPath(destPath);
 
                 } catch (copyError: unknown) {
                     console.error('Error copying photo to document directory:', copyError);
@@ -468,13 +476,21 @@ function ObjectIdentCameraContent() {
             }
 
             // Continue capture loop if still active
-            if (isActive.current) {
-                setTimeout(captureLoop, pipelineDelay*1000);
+            if (isActive.current && !isDetectionPaused) {
+                captureTimeoutRef.current = setTimeout(captureLoop, pipelineDelay * 1000);
             }
         };
 
-        captureLoop();
-    }, [detector, device, isInitialized, isDetectionPaused]);
+        // Start the capture loop
+        const timeoutId = setTimeout(captureLoop, 1000); // Initial delay
+        
+        return () => {
+            clearTimeout(timeoutId);
+            if (captureTimeoutRef.current) {
+                clearTimeout(captureTimeoutRef.current);
+            }
+        };
+    }, [isInitialized, isDetectionPaused, detector, pipelineDelay, t]);
 
     async function cropImage(imageUri: string, box: CropBox) : Promise<string> {
         const cropAction = {
@@ -494,14 +510,15 @@ function ObjectIdentCameraContent() {
         return cropResult.uri;
     }
 
+    // Update classifier ready state
     useEffect(() => {
-        if (classifier?.classifyImage) {
-            setClassifierReady(true);
+        setClassifierReady(isClassifierReady);
+        if (isClassifierReady) {
             console.log("[ObjectDetection] Classifier ready and functional");
         } else if (classifier === null) {
             console.log("[ObjectDetection] Classifier failed to initialize");
         }
-    }, [classifier]);
+    }, [isClassifierReady, classifier]);
 
     useEffect(() => {
         if (detector) {
@@ -514,23 +531,23 @@ function ObjectIdentCameraContent() {
 
     // Process photoPath with MLKit and delete previous photos
     useEffect(() => {
-        if (!photoPath) return;
-
-        if (!detector) {
-            setDebugText(t('errors.detector_unavailable'));
-            console.error('[ObjectDetection] Object detector not loaded. Detector state:', detector);
-            console.error('[ObjectDetection] Available detector methods:', detector ? Object.keys(detector) : 'detector is null/undefined');
-            console.error('[ObjectDetection] Expected model: efficientNetlite0int8');
-            return;
+        if (!photoPath || !detector || !classifierReady) {
+            if (!photoPath) return;
+            if (!detector) {
+                setDebugText(t('errors.detector_unavailable'));
+                console.error('[ObjectDetection] Object detector not loaded. Detector state:', detector);
+                return;
+            }
+            if (!classifierReady) {
+                setDebugText(t('errors.classifier_unavailable'));
+                console.warn('Image classifier not ready yet.');
+                return;
+            }
         }
 
-        if (!classifierReady) {
-            setDebugText(t('errors.classifier_unavailable'));
-            console.warn('Image classifier not ready yet.');
-            return;
-        }
-
-        (async () => {
+        let isMounted = true;
+        
+        const processPhoto = async () => {
             // Delete the last photo file (cleanup) if it exists
             if (lastPhotoUri) {
                 try {
@@ -543,6 +560,8 @@ function ObjectIdentCameraContent() {
                     console.warn('Error deleting previous photo:', deleteError);
                 }
             }
+            
+            if (!isMounted) return;
 
             try {
                 console.log('Processing image...');
@@ -680,12 +699,23 @@ function ObjectIdentCameraContent() {
                 console.error(t('errors.detection_failed', { message }));
                 setDebugText(t('errors.detection_failed', { message }));
             }
-        })();
-    }, [photoPath, classifier]);
+        };
+        
+        processPhoto();
+        
+        return () => {
+            isMounted = false;
+        };
+    }, [photoPath, detector, classifierReady, classifier, lastPhotoUri, confidenceThreshold, showSnackbar, t]);
 
+    // Cleanup effect
     useEffect(() => {
         return () => {
             isActive.current = false;
+            
+            if (captureTimeoutRef.current) {
+                clearTimeout(captureTimeoutRef.current);
+            }
 
             (async () => {
                 try {
@@ -699,14 +729,20 @@ function ObjectIdentCameraContent() {
         };
     }, []);
 
+    // Focus/unfocus effect
     useFocusEffect(
-        React.useCallback(() => {
+        useCallback(() => {
             // Component is focused
             isActive.current = true;
+            setIsDetectionPaused(false);
 
             return () => {
                 // Component lost focus
                 isActive.current = false;
+                setIsDetectionPaused(true);
+                if (captureTimeoutRef.current) {
+                    clearTimeout(captureTimeoutRef.current);
+                }
             };
         }, [])
     );
@@ -807,11 +843,7 @@ function ObjectIdentCameraContent() {
                 )}
 
                 <TouchableOpacity
-                    onPress={() => {
-                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                        setShowSettings(prev => !prev);
-                        AsyncStorage.setItem('showSettings', (!showSettings).toString());
-                    }}
+                    onPress={toggleShowSettings}
                     style={{
                         position: 'absolute',
                         top: 10,
@@ -866,63 +898,27 @@ function ObjectIdentCameraContent() {
                             />
                             <Text style={styles.sliderValue}>{zoom.toFixed(2)}x</Text>
                         </View>
-                        <View style={styles.sliderRow}>
-                            <Text style={styles.sliderLabel}>{t('camera.pipeline_delay_label')}</Text>
-                            <Slider
-                                value={pipelineDelay}
-                                onValueChange={handleSetPipelineDelay}
-                                onSlidingStart={() => setShowDelayTooltip(true)}
-                                onSlidingComplete={() => setShowDelayTooltip(false)}
-                                minimumValue={0.01}
-                                maximumValue={1}
-                                step={0.01}
-                                minimumTrackTintColor="#1EB1FC"
-                                maximumTrackTintColor="#d3d3d3"
-                                thumbTintColor="#1EB1FC"
-                                style={{ width: '100%', height: 40 }}
-                            />
-                            <Text style={styles.sliderValue}>{pipelineDelay.toFixed(2)}s</Text>
-                            {showDelayTooltip && (
-                                <View style={[styles.tooltipBox, { backgroundColor: currentTheme.colors.overlay.dark }]}>
-                                    <Text style={styles.tooltipText}>{delayPresetLabel}</Text>
-                                </View>
-                            )}
-                        </View>
-
-                        <View style={styles.sliderRow}>
-                            <Text style={styles.sliderLabel}>{t('camera.confidence_threshold_label')}</Text>
-                            <Slider
-                                value={confidenceThreshold}
-                                onValueChange={handleSetConfidenceThreshold}
-                                onSlidingStart={() => setShowConfidenceTooltip(true)}
-                                onSlidingComplete={() => setShowConfidenceTooltip(false)}
-                                minimumValue={0}
-                                maximumValue={1}
-                                step={0.01}
-                                minimumTrackTintColor="#1EB1FC"
-                                maximumTrackTintColor="#d3d3d3"
-                                thumbTintColor="#1EB1FC"
-                                style={{ width: '100%', height: 40 }}
-                            />
-                            <Text style={styles.sliderValue}>{Math.round(confidenceThreshold * 100)}%</Text>
-                            {showConfidenceTooltip && (
-                                <View style={[styles.tooltipBox, { backgroundColor: currentTheme.colors.overlay.dark }]}>
-                                    <Text style={styles.tooltipText}>{confidencePresetLabel}</Text>
-                                </View>
-                            )}
+                        
+                        {/* AI Settings Status */}
+                        <View style={styles.settingsStatus}>
+                            <Text style={[styles.statusLabel, { color: currentTheme.colors.text.secondary }]}>AI Settings</Text>
+                            <Text style={[styles.statusValue, { color: currentTheme.colors.text.primary }]}>
+                                Speed: {getDelayPresetLabel(pipelineDelay).split(' ')[1]} | 
+                                Confidence: {getConfidencePresetLabel(confidenceThreshold).split(' ')[1]}
+                            </Text>
+                            <Text style={[styles.statusNote, { color: currentTheme.colors.text.tertiary }]}>
+                                Configure in Settings → Camera AI
+                            </Text>
                         </View>
 
                         <TouchableOpacity
                             onPress={() => setIsDetectionPaused(prev => !prev)}
-                            style={{
-                                marginTop: 10,
-                                backgroundColor: isDetectionPaused ? 'tomato' : '#1EB1FC',
-                                padding: 10,
-                                borderRadius: 6,
-                            }}
+                            style={[styles.pauseResumeButton, {
+                                backgroundColor: isDetectionPaused ? currentTheme.colors.status.error : currentTheme.colors.interactive.primary,
+                            }]}
                         >
-                            <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                                {isDetectionPaused ? t('camera.resume') : t('camera.pause')}
+                            <Text style={[styles.pauseResumeText, { color: currentTheme.colors.text.inverse }]}>
+                                {isDetectionPaused ? t('camera.resume') : t('camera.pause')} Detection
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -934,7 +930,7 @@ function ObjectIdentCameraContent() {
                         onPress={() => {
                             console.log('Manual photo capture requested');
                             // Manual photo capture - saves a single high-quality photo
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(console.warn);
                         }}
                         style={[styles.captureButton, { backgroundColor: currentTheme.colors.interactive.primary }]}
                     >
@@ -945,7 +941,7 @@ function ObjectIdentCameraContent() {
                         onPress={() => {
                             console.log('Video recording requested');
                             // Video recording functionality
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(console.warn);
                         }}
                         style={[styles.captureButton, { backgroundColor: '#FF6B6B' }]}
                     >
@@ -1153,6 +1149,35 @@ const styles = StyleSheet.create({
         textAlign: 'right',
         marginTop: -6,
         marginBottom: 8,
+    },
+    settingsStatus: {
+        padding: 12,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        borderRadius: 8,
+        gap: 4,
+    },
+    statusLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+    },
+    statusValue: {
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    statusNote: {
+        fontSize: 11,
+        fontStyle: 'italic',
+    },
+    pauseResumeButton: {
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    pauseResumeText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     centered: {
         flex: 1,

@@ -34,14 +34,14 @@ import {syncDatabase} from '@/services/sync_layer';
 // These will be calculated in the styles function based on responsive dimensions
 
 /**
- * Enhanced empty state component with responsive design and animations
+ * Empty state component with animations
  * Displayed when no bird sightings are found in the archive
  * 
  * @param {Object} props - Component props
  * @param {Function} props.onStartLogging - Callback to start logging birds
  * @returns {JSX.Element} Animated empty state with call-to-action
  */
-function EnhancedEmptyState({ onStartLogging }: { onStartLogging: () => void }) {
+function EmptyState({ onStartLogging }: { onStartLogging: () => void }) {
   const colors = useColors();
   const typography = useTypography();
   const { t } = useTranslation();
@@ -515,7 +515,7 @@ export default function ArchiveScreen() {
                   </ThemedText>
                 </View>
             ) : (
-                <EnhancedEmptyState onStartLogging={handleStartLogging}/>
+                <EmptyState onStartLogging={handleStartLogging}/>
             )
         ) : (
             <FlatList

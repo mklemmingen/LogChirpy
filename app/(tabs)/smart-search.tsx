@@ -22,7 +22,7 @@ import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 import {type BirdDexRecord, searchBirdsByName} from '@/services/databaseBirDex';
 
 /**
- * Extended bird record type with search match information
+ * Bird record type with search match information
  */
 type SmartSearchResult = BirdDexRecord & {
     matchedField: string;
@@ -31,8 +31,7 @@ type SmartSearchResult = BirdDexRecord & {
 };
 
 /**
- * Enhanced search result card component with animations and confidence indicators
- * Displays bird information with match confidence and multi-language support
+ * Search result card component with animations and confidence indicators
  * 
  * @param {Object} props - Component props
  * @param {SmartSearchResult} props.item - Search result with match information
@@ -206,10 +205,9 @@ function SearchResultCard({
 }
 
 /**
- * Smart Search Component with fuzzy matching and multi-language support
- * Provides intelligent bird search across all language fields with confidence scoring
+ * Smart search component with fuzzy matching and multi-language support
  * 
- * @returns {JSX.Element} Complete smart search interface with results
+ * @returns {JSX.Element} Smart search interface with results
  */
 export default function SmartSearch() {
     const { t } = useTranslation();
@@ -227,7 +225,6 @@ export default function SmartSearch() {
 
     /**
      * Calculates fuzzy matching score between query and target strings
-     * Uses multiple matching strategies for optimal search results
      * 
      * @param {string} query - Search query from user
      * @param {string} target - Target string to match against
@@ -277,8 +274,7 @@ export default function SmartSearch() {
     }, []);
 
     /**
-     * Simple Levenshtein distance implementation for typo tolerance
-     * Calculates edit distance between two strings
+     * Levenshtein distance implementation for typo tolerance
      * 
      * @param {string} str1 - First string
      * @param {string} str2 - Second string
@@ -305,8 +301,7 @@ export default function SmartSearch() {
     };
 
     /**
-     * Performs intelligent search across all bird name fields
-     * Scores results by confidence and returns best matches
+     * Performs search across all bird name fields
      * 
      * @param {string} query - Search query to execute
      */
@@ -540,9 +535,6 @@ export default function SmartSearch() {
 
 /**
  * Creates styles for smart search components
- * 
- * @param {Object} theme - Theme object with spacing and typography
- * @returns {Object} StyleSheet with styles
  */
 function createStyles(theme: any) {
     return StyleSheet.create({
