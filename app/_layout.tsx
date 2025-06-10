@@ -430,14 +430,9 @@ export default function EnhancedRootLayout() {
     const typography = useTypography();
     const shadows = useShadows();
     const [loaded] = useFonts(FONTS);
-    // Remove segments tracking that's causing navigation resets
+    // Remove segments for now cause the cause the navigation resets
     // const segments = useSegments();
     // const router = useRouter();
-
-    // Set up navigation logging - TEMPORARILY DISABLED
-    useEffect(() => {
-        // setupNavigationLogger();
-    }, []);
 
     // Application state
     const [localDbReady, setLocalDbReady] = useState(false);
@@ -445,11 +440,6 @@ export default function EnhancedRootLayout() {
     const [birdDexReady, setBirdDexReady] = useState(false);
     const [offlineModelReady, setOfflineModelReady] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
-
-    // Remove segments logging that's causing navigation resets
-    // useEffect(() => {
-    //     console.log('🔍 Segments changed:', segments);
-    // }, [segments]);
 
     // Static screen options to prevent navigation resets
     const getScreenOptions = useCallback((): NativeStackNavigationOptions => ({
