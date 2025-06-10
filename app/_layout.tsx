@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, useSegments } from 'expo-router';
+import { Stack } from 'expo-router';
+import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
     Easing,
@@ -38,7 +38,6 @@ import {
 // Database imports
 import { initDB } from '@/services/database';
 import { BirdNetService } from '@/services/birdNetService';
-import { fastTfliteBirdClassifier } from '@/services/fastTfliteBirdClassifier';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -77,6 +76,7 @@ const MODELS_CLASS: ImageLabelingConfig = {
 const FONTS = {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
 };
+
 
 /**
  * Clean loading animation with minimal design and responsive sizing
@@ -430,8 +430,14 @@ export default function EnhancedRootLayout() {
     const typography = useTypography();
     const shadows = useShadows();
     const [loaded] = useFonts(FONTS);
-    const segments = useSegments();
-    const current = segments[segments.length - 1];
+    // Remove segments tracking that's causing navigation resets
+    // const segments = useSegments();
+    // const router = useRouter();
+
+    // Set up navigation logging - TEMPORARILY DISABLED
+    useEffect(() => {
+        // setupNavigationLogger();
+    }, []);
 
     // Application state
     const [localDbReady, setLocalDbReady] = useState(false);
@@ -439,6 +445,30 @@ export default function EnhancedRootLayout() {
     const [birdDexReady, setBirdDexReady] = useState(false);
     const [offlineModelReady, setOfflineModelReady] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
+
+    // Remove segments logging that's causing navigation resets
+    // useEffect(() => {
+    //     console.log('🔍 Segments changed:', segments);
+    // }, [segments]);
+
+    // Static screen options to prevent navigation resets
+    const getScreenOptions = useCallback((): NativeStackNavigationOptions => ({
+        headerStyle: {
+            backgroundColor: colors.backgroundSecondary,
+            ...shadows.sm,
+        },
+        headerTransparent: false,
+        headerTintColor: colors.text,
+        headerTitleStyle: {
+            fontSize: typography.h2.fontSize,
+            fontWeight: '600' as const,
+            color: colors.text,
+        },
+        headerBackTitleVisible: false,
+        headerLeft: () => (
+            <ThemedIcon name="arrow-left" size={24} color="primary" />
+        ),
+    }), [colors, shadows, typography]);
 
     // ML Models setup with useMemo to prevent recreation
     const objectDetectionConfig = useMemo(() => ({
@@ -574,27 +604,7 @@ export default function EnhancedRootLayout() {
                     <ImageLabelingModelProvider>
                         <ObjectDetectionProvider>
                             <View style={[styles.container, { backgroundColor: colors.background }]}>
-                                <Stack
-                                    screenOptions={() => ({
-                                        headerStyle: {
-                                            backgroundColor:
-                                                current === 'photo' || current === 'video'
-                                                    ? 'transparent'
-                                                    : colors.backgroundSecondary,
-                                            ...shadows.sm,
-                                        },
-                                        headerTransparent: current === 'photo' || current === 'video',
-                                        headerTintColor: colors.text,
-                                        headerTitleStyle: {
-                                            ...typography.h2,
-                                            fontWeight: '600',
-                                        },
-                                        headerBackTitleVisible: false,
-                                        headerBackImage: () => (
-                                            <ThemedIcon name="arrow-left" size={24} color="primary" />
-                                        ),
-                                    })}
-                                >
+                                <Stack screenOptions={getScreenOptions}>
                                     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                                     <Stack.Screen name="log" options={{ headerShown: false }} />
                                     <Stack.Screen name="+not-found" />

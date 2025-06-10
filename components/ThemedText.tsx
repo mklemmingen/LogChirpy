@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Text, TextProps } from 'react-native';
 import { useTypography, useColors } from '@/hooks/useThemeColor';
 
@@ -9,14 +9,14 @@ export type ThemedTextProps = TextProps & {
   center?: boolean;
 };
 
-export function ThemedText({
+export const ThemedText = forwardRef<Text, ThemedTextProps>(({
   style,
   variant = 'body',
   color = 'primary',
   semiBold = false,
   center = false,
   ...rest
-}: ThemedTextProps) {
+}, ref) => {
   const typography = useTypography();
   const colors = useColors();
 
@@ -47,7 +47,7 @@ export function ThemedText({
       button: typography.button,
       caption: typography.caption,
       label: typography.label,
-      
+
       // New variants mapped to existing styles
       bodyLarge: typography.body,
       labelSmall: typography.caption,
@@ -57,12 +57,13 @@ export function ThemedText({
       displayMedium: typography.h1,
       headlineLarge: typography.h1,
     };
-    
+
     return variantMap[variant] || typography.body;
   };
 
   return (
     <Text
+      ref={ref}
       style={[
         getTypographyStyle(),
         { color: getTextColor() },
@@ -73,4 +74,6 @@ export function ThemedText({
       {...rest}
     />
   );
-}
+});
+
+ThemedText.displayName = 'ThemedText';
