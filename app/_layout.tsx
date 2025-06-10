@@ -18,6 +18,7 @@ import Animated, {
 import 'react-native-reanimated';
 import "@/i18n/i18n";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColors, useTheme, useTypography, useShadows } from '@/hooks/useThemeColor';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -559,63 +560,69 @@ export default function EnhancedRootLayout() {
         }
 
         return (
-            <ImageLabelingModelProvider>
-                <ObjectDetectionProvider>
-                    <AppInitializationScreen
-                        message={message}
-                        error={localDbError || undefined}
-                        onRetry={localDbError ? handleRetry : undefined}
-                    />
-                    <StatusBar style="auto" />
-                </ObjectDetectionProvider>
-            </ImageLabelingModelProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+                <ImageLabelingModelProvider>
+                    <ObjectDetectionProvider>
+                        <AppInitializationScreen
+                            message={message}
+                            error={localDbError || undefined}
+                            onRetry={localDbError ? handleRetry : undefined}
+                        />
+                        <StatusBar style="auto" />
+                    </ObjectDetectionProvider>
+                </ImageLabelingModelProvider>
+            </GestureHandlerRootView>
         );
     }
 
     // Show bird database loading screen
     if (!birdDexReady) {
         return (
-            <ImageLabelingModelProvider>
-                <ObjectDetectionProvider>
-                    <EnhancedDatabaseLoadingScreen onReady={() => setBirdDexReady(true)} />
-                    <StatusBar style="auto" />
-                </ObjectDetectionProvider>
-            </ImageLabelingModelProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+                <ImageLabelingModelProvider>
+                    <ObjectDetectionProvider>
+                        <EnhancedDatabaseLoadingScreen onReady={() => setBirdDexReady(true)} />
+                        <StatusBar style="auto" />
+                    </ObjectDetectionProvider>
+                </ImageLabelingModelProvider>
+            </GestureHandlerRootView>
         );
     }
 
     // Main app with enhanced theming
     return (
-        <SafeAreaProvider>
-            <AuthProvider>
-                <ThemeProvider
-                    value={{
-                        dark: colors.isDark,
-                        colors: {
-                            notification: colors.primary,
-                            background: colors.background,
-                            card: colors.backgroundSecondary,
-                            text: colors.text,
-                            border: colors.border,
-                            primary: colors.primary,
-                        },
-                    }}
-                >
-                    <ImageLabelingModelProvider>
-                        <ObjectDetectionProvider>
-                            <View style={[styles.container, { backgroundColor: colors.background }]}>
-                                <Stack screenOptions={getScreenOptions}>
-                                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                                    <Stack.Screen name="log" options={{ headerShown: false }} />
-                                    <Stack.Screen name="+not-found" />
-                                </Stack>
-                            </View>
-                            <StatusBar style="auto" />
-                        </ObjectDetectionProvider>
-                    </ImageLabelingModelProvider>
-                </ThemeProvider>
-            </AuthProvider>
-        </SafeAreaProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaProvider>
+                <AuthProvider>
+                    <ThemeProvider
+                        value={{
+                            dark: colors.isDark,
+                            colors: {
+                                notification: colors.primary,
+                                background: colors.background,
+                                card: colors.backgroundSecondary,
+                                text: colors.text,
+                                border: colors.border,
+                                primary: colors.primary,
+                            },
+                        }}
+                    >
+                        <ImageLabelingModelProvider>
+                            <ObjectDetectionProvider>
+                                <View style={[styles.container, { backgroundColor: colors.background }]}>
+                                    <Stack screenOptions={getScreenOptions}>
+                                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                        <Stack.Screen name="log" options={{ headerShown: false }} />
+                                        <Stack.Screen name="+not-found" />
+                                    </Stack>
+                                </View>
+                                <StatusBar style="auto" />
+                            </ObjectDetectionProvider>
+                        </ImageLabelingModelProvider>
+                    </ThemeProvider>
+                </AuthProvider>
+            </SafeAreaProvider>
+        </GestureHandlerRootView>
     );
 }
 
