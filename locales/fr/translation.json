@@ -200,7 +200,8 @@
     "save": "Enregistrer",
     "confirm": "Confirmer",
     "grant_permission": "Autoriser",
-    "close": "Fermer"
+    "close": "Fermer",
+    "try_again": "Réessayer"
   },
   "auth": {
     "welcome_back": "Bon retour",
@@ -250,7 +251,12 @@
     "save_photo_failed": "Échec sauvegarde photo : {{message}}",
     "capture_failed": "Échec capture photo : {{message}}",
     "detection_failed": "Erreur détection : {{message}}",
-    "media_permission_denied": "Accès média refusé. Activez les permissions."
+    "media_permission_denied": "Accès média refusé. Activez les permissions.",
+    "bird_db_load_failed": "Échec du chargement de la base de données des oiseaux. Vérifiez votre stockage et votre connexion.",
+    "database_error_title": "Erreur de base de données",
+    "nest_build_failed": "Échec de la construction du nid",
+    "database_setup_problem": "Un problème est survenu lors de la configuration de la base de données des oiseaux",
+    "check_storage_network": "Vérifiez votre espace de stockage et votre connexion réseau"
   },
   "account": {
     "title": "Détails du compte",
@@ -411,7 +417,8 @@
     "cancel": "Annuler",
     "settings": "Paramètres",
     "continue": "Continuer",
-    "close": "Fermer"
+    "close": "Fermer",
+    "retry_loading": "Recharger"
   },
   "warnings": {
     "media_permission_required": "Accès média requis. Activez dans les paramètres."
@@ -465,7 +472,13 @@
     "loading_application": "Chargement de l'application...",
     "loading_fonts_assets": "Chargement des polices...",
     "initializing_local_db": "Initialisation base locale...",
-    "loading_ai_models": "Chargement modèles IA..."
+    "loading_ai_models": "Chargement modèles IA...",
+    "preparing_bird_database": "Préparation de votre base de données d’oiseaux",
+    "loading_species_data": "Chargement des données d'espèces",
+    "species_loaded": "{{count}} espèces chargées",
+    "building_database2": "Création de votre base de données d'oiseaux",
+    "species_loaded_label": "Espèces chargées",
+    "total_species": "Nombre total d'espèces"
   },
   "log_screens": {
     "manual_title": "Saisie manuelle",

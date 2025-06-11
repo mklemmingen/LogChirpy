@@ -41,7 +41,7 @@ interface FormState {
     confirmPassword: FormField;
 }
 
-export default function ModernSignupScreen() {
+export default function SignupScreen() {
     const { t } = useTranslation();
     const router = useRouter();
     const theme = useTheme();

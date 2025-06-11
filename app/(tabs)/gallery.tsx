@@ -31,6 +31,8 @@ interface PhotoItem {
     size: number;
     modificationTime: number;
     classification?: string;
+    confidence?: number;
+    detectionType?: 'bird' | 'full';
 }
 
 export default function GalleryManagementScreen() {
@@ -43,27 +45,29 @@ export default function GalleryManagementScreen() {
     const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
     const [selectionMode, setSelectionMode] = useState(false);
 
-    // Load photos from document storage
+    // Load photos from document storage gallery directory
     const loadPhotos = useCallback(async () => {
         try {
             setLoading(true);
-            const documentDir = FileSystem.documentDirectory;
+            const galleryDir = `${FileSystem.documentDirectory}gallery/`;
             
-            if (!documentDir) {
+            // Check if gallery directory exists
+            const dirInfo = await FileSystem.getInfoAsync(galleryDir);
+            if (!dirInfo.exists) {
                 setPhotos([]);
                 return;
             }
 
-            const files = await FileSystem.readDirectoryAsync(documentDir);
+            const files = await FileSystem.readDirectoryAsync(galleryDir);
             const photoFiles = files.filter(filename => 
-                filename.startsWith('photo_') && filename.endsWith('.jpg')
+                (filename.startsWith('bird_') || filename.startsWith('full_')) && filename.endsWith('.jpg')
             );
 
             const photoItems: PhotoItem[] = await Promise.all(
                 photoFiles.map(async (filename) => {
-                    const filePath = `${documentDir}${filename}`;
+                    const filePath = `${galleryDir}${filename}`;
                     const info = await FileSystem.getInfoAsync(filePath) as FileSystem.FileInfo & { modificationTime?: number };
-                    const classification = extractClassificationFromFilename(filename);
+                    const { classification, confidence, detectionType } = extractDataFromFilename(filename);
                     
                     return {
                         uri: filePath,
@@ -71,6 +75,8 @@ export default function GalleryManagementScreen() {
                         size: info.exists && 'size' in info ? info.size : 0,
                         modificationTime: info.modificationTime || 0,
                         classification,
+                        confidence,
+                        detectionType,
                     };
                 })
             );
@@ -90,20 +96,30 @@ export default function GalleryManagementScreen() {
         loadPhotos();
     }, [loadPhotos]);
 
-    // Extract classification from filename patterns like "bird_BlackBaza_timestamp.jpg"
-    const extractClassificationFromFilename = (filename: string): string | undefined => {
+    // Extract classification data from filename patterns like "bird_house_finch_conf085_timestamp_milliseconds.jpg"
+    const extractDataFromFilename = (filename: string): { 
+        classification?: string; 
+        confidence?: number; 
+        detectionType?: 'bird' | 'full';
+    } => {
         const patterns = [
-            /bird_([^_]+)_\d+\.jpg/,  // bird_SpeciesName_timestamp.jpg
-            /full_([^_]+)_\d+\.jpg/,  // full_SpeciesName_timestamp.jpg
+            /(bird|full)_([^_]+(?:_[^_]+)*)_conf(\d{3})_.*_(\d+)\.jpg/,  // bird_species_name_conf085_timestamp_milliseconds.jpg
         ];
 
         for (const pattern of patterns) {
             const match = filename.match(pattern);
             if (match) {
-                return match[1].replace(/([A-Z])/g, ' $1').trim();
+                const [, prefix, species, confidence] = match;
+                const cleanSpecies = species.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const confidencePercent = parseInt(confidence);
+                return {
+                    classification: `${cleanSpecies} (${confidencePercent}%)`,
+                    confidence: confidencePercent,
+                    detectionType: prefix as 'bird' | 'full',
+                };
             }
         }
-        return undefined;
+        return {};
     };
 
     const toggleSelection = (uri: string) => {

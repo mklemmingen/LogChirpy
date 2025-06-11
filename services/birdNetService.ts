@@ -1,6 +1,3 @@
-// Bird identification service using local ML models only
-// Uses FastTflite for audio classification and MLKit for image classification
-
 import * as FileSystem from 'expo-file-system';
 import { MLKitBirdClassifier, MLKitClassificationResult } from './mlkitBirdClassifier';
 import { fastTfliteBirdClassifier, BirdClassificationResult } from './fastTfliteBirdClassifier';

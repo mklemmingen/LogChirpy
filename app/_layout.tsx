@@ -5,8 +5,9 @@ import { Stack } from 'expo-router';
 import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import { ThemedIcon } from '@/components/ThemedIcon';
+import { useTranslation } from 'react-i18next';
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -80,10 +81,7 @@ const FONTS = {
 
 
 /**
- * Clean loading animation with minimal design and responsive sizing
- * Provides visual feedback during app initialization with smooth animations
- * 
- * @returns {JSX.Element} Animated loading spinner with feather icon
+ * Loading animation with feather icon
  */
 function LoadingAnimation() {
     const colors = useColors();
@@ -151,15 +149,14 @@ function LoadingAnimation() {
 }
 
 /**
- * Enhanced Database Loading Screen Component
- * Displays progress for bird database initialization with error handling
+ * Database loading screen with progress display
  * 
- * @param {Object} props - Component props
- * @param {Function} props.onReady - Callback when database is ready
- * @returns {JSX.Element|null} Loading screen or null when ready
+ * @param props.onReady - Callback when database is ready
+ * @param props.localDbReady - Whether the local database is ready
  */
-function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
-    const { isReady, isLoading, hasError, progress, loadedRecords, error, retry } = useBirdDexDatabase();
+function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void; localDbReady: boolean }) {
+    const { t } = useTranslation();
+    const { isReady, isLoading, hasError, progress, loadedRecords, error, retry } = useBirdDexDatabase(localDbReady);
     const colors = useColors();
     const typography = useTypography();
     const theme = useTheme();
@@ -216,11 +213,11 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     </View>
 
                     <Text style={[typography.h2, { color: colors.text }]}>
-                        Database Error
+                        {t('errors.database_error_title')}
                     </Text>
 
                     <Text style={[typography.body, { color: colors.textSecondary, textAlign: 'center' }]}>
-                        {error || 'Failed to load bird database. Check your storage and connection.'}
+                        {error || t('errors.bird_db_load_failed')}
                     </Text>
 
                     <Pressable
@@ -239,7 +236,7 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     >
                         <ThemedIcon name="refresh-cw" size={16} color="secondary" />
                         <Text style={[typography.label, { color: colors.textInverse }]}>
-                            Retry Loading
+                            {t('common.retry_loading')}
                         </Text>
                     </Pressable>
                 </View>
@@ -264,7 +261,7 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                             LogChirpy
                         </Text>
                         <Text style={[typography.body, { color: colors.textSecondary }]}>
-                            Preparing Your Bird Database
+                            {t('loading_messages.preparing_bird_database')}
                         </Text>
                     </View>
 
@@ -282,7 +279,7 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                         ]}
                     >
                         <Text style={[typography.h3, { color: colors.text }]}>
-                            Loading Species Data
+                            {t('loading_messages.loading_species_data')}
                         </Text>
 
                         {/* Progress Bar */}
@@ -312,20 +309,20 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                                 </Text>
                                 {loadedRecords > 0 && (
                                     <Text style={[typography.label, { color: colors.textSecondary }]}>
-                                        {loadedRecords.toLocaleString()} species loaded
+                                        {t('loading_messages.species_loaded', { count: loadedRecords })}
                                     </Text>
                                 )}
                             </View>
                         </View>
 
                         <Text style={[typography.bodySmall, { color: colors.textTertiary, textAlign: 'center' }]}>
-                            Building comprehensive bird identification database...
+                            {t('loading_messages.building_database')}
                         </Text>
                     </View>
 
                     {/* Loading Hint */}
                     <Text style={[typography.label, { color: colors.textTertiary, textAlign: 'center' }]}>
-                        This may take a moment on first launch
+                        {t('loading_messages.first_launch_hint')}
                     </Text>
                 </View>
             </Animated.View>
@@ -336,20 +333,18 @@ function EnhancedDatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
 }
 
 /**
- * Enhanced App Initialization Loading Screen
- * Shows loading state during app startup with error handling
+ * App initialization loading screen
  * 
- * @param {Object} props - Component props
- * @param {string} props.message - Loading message to display
- * @param {string} [props.error] - Error message if initialization failed
- * @param {Function} [props.onRetry] - Retry callback for error state
- * @returns {JSX.Element} Initialization screen
+ * @param props.message - Loading message to display
+ * @param props.error - Error message if initialization failed
+ * @param props.onRetry - Retry callback for error state
  */
 function AppInitializationScreen({ message, error, onRetry }: {
     message: string;
     error?: string;
     onRetry?: () => void;
 }) {
+    const { t } = useTranslation();
     const colors = useColors();
     const typography = useTypography();
 
@@ -370,7 +365,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
                     </View>
 
                     <Text style={[typography.h2, { color: colors.text }]}>
-                        Initialization Failed
+                        {t('loading_messages.init_failed')}
                     </Text>
 
                     <Text style={[typography.body, { color: colors.textSecondary, textAlign: 'center' }]}>
@@ -394,7 +389,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
                         >
                             <ThemedIcon name="refresh-cw" size={16} color="secondary" />
                             <Text style={[typography.label, { color: colors.textInverse }]}>
-                                Try Again
+                                {t('buttons.try_again')}
                             </Text>
                         </Pressable>
                     )}
@@ -419,26 +414,17 @@ function AppInitializationScreen({ message, error, onRetry }: {
 }
 
 /**
- * Enhanced Root Layout Component
- * Main app layout with theme provider, ML model initialization, and progressive loading
- * Handles app initialization, database loading, and provides theming context
- * 
- * @returns {JSX.Element} Complete app layout with providers and navigation
+ * Root layout component with theme provider and ML model initialization
  */
-export default function EnhancedRootLayout() {
+export default function RootLayout() {
     const theme = useTheme();
     const colors = useColors();
     const typography = useTypography();
     const shadows = useShadows();
     const [loaded] = useFonts(FONTS);
-    // Remove segments tracking that's causing navigation resets
+    // Remove segments for now cause the cause the navigation resets
     // const segments = useSegments();
     // const router = useRouter();
-
-    // Set up navigation logging - TEMPORARILY DISABLED
-    useEffect(() => {
-        // setupNavigationLogger();
-    }, []);
 
     // Application state
     const [localDbReady, setLocalDbReady] = useState(false);
@@ -446,11 +432,6 @@ export default function EnhancedRootLayout() {
     const [birdDexReady, setBirdDexReady] = useState(false);
     const [offlineModelReady, setOfflineModelReady] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
-
-    // Remove segments logging that's causing navigation resets
-    // useEffect(() => {
-    //     console.log('🔍 Segments changed:', segments);
-    // }, [segments]);
 
     // Static screen options to prevent navigation resets
     const getScreenOptions = useCallback((): NativeStackNavigationOptions => ({
@@ -501,13 +482,36 @@ export default function EnhancedRootLayout() {
     useEffect(() => {
         const initializeLocalDB = async () => {
             try {
+                console.log('[Database] Starting local database initialization...');
                 await initDB();
+                console.log('[Database] Local database initialized successfully (bird_spottings table created)');
+
+                // Add a small delay for Android to ensure database is fully ready
+                if (Platform.OS === 'android') {
+                    console.log('[Database] Android detected - adding 100ms delay for database stability');
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
                 setLocalDbReady(true);
                 setLocalDbError(null);
             } catch (error) {
-                console.error('Local DB initialization failed:', error);
+                console.error('[Database] Local DB initialization failed:', error);
+                if (error instanceof Error) {
+                    console.error('[Database] Error details:', {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack,
+                    });
+                }
                 setLocalDbError(error instanceof Error ? error.message : 'Failed to initialize local database');
-                setLocalDbReady(true); // Allow app to continue
+
+                // On Android, retry once after a delay
+                if (Platform.OS === 'android' && retryCount === 0) {
+                    console.log('[Database] Android: Retrying database initialization in 500ms...');
+                    setTimeout(() => setRetryCount(1), 500);
+                } else {
+                    setLocalDbReady(true); // Allow app to continue even with error
+                }
             }
         };
 
@@ -575,17 +579,18 @@ export default function EnhancedRootLayout() {
         );
     }
 
-    // Show bird database loading screen
+    // Show bird database loading screen (only after local DB is ready)
     if (!birdDexReady) {
         return (
-            <GestureHandlerRootView style={{ flex: 1 }}>
-                <ImageLabelingModelProvider>
-                    <ObjectDetectionProvider>
-                        <EnhancedDatabaseLoadingScreen onReady={() => setBirdDexReady(true)} />
-                        <StatusBar style="auto" />
-                    </ObjectDetectionProvider>
-                </ImageLabelingModelProvider>
-            </GestureHandlerRootView>
+            <ImageLabelingModelProvider>
+                <ObjectDetectionProvider>
+                    <DatabaseLoadingScreen
+                        onReady={() => setBirdDexReady(true)}
+                        localDbReady={localDbReady}
+                    />
+                    <StatusBar style="auto" />
+                </ObjectDetectionProvider>
+            </ImageLabelingModelProvider>
         );
     }
 

@@ -15,7 +15,7 @@ import {useColors} from '@/hooks/useThemeColor';
 // Screen dimensions available if needed
 // const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export default function ModernCamera() {
+export default function CameraScreen() {
     const { t } = useTranslation();
     const colorScheme = useColorScheme() ?? 'light';
     const pal = theme[colorScheme];
@@ -36,11 +36,14 @@ export default function ModernCamera() {
         { fps: 30 }
     ]);
 
+    const [permissionRequested, setPermissionRequested] = useState(false);
+
     useEffect(() => {
-        if (!hasPermission) {
+        if (!hasPermission && !permissionRequested) {
+            setPermissionRequested(true);
             requestPermission();
         }
-    }, [hasPermission, requestPermission]);
+    }, [hasPermission, permissionRequested, requestPermission]);
 
     // Proper camera lifecycle management
     useEffect(() => {

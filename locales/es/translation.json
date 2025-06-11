@@ -85,7 +85,8 @@
     "back_to_account": "Volver a la cuenta",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "confirm": "Confirmar"
+    "confirm": "Confirmar",
+    "try_again": "Intentar de nuevo"
   },
   "auth": {
     "welcome_back": "Bienvenido de nuevo",
@@ -134,7 +135,12 @@
     "no_photo_path": "Error: sin ruta de foto.",
     "save_photo_failed": "Error al guardar foto: {{message}}",
     "capture_failed": "Error al capturar foto: {{message}}",
-    "detection_failed": "Error de detección: {{message}}"
+    "detection_failed": "Error de detección: {{message}}",
+    "bird_db_load_failed": "No se pudo cargar la base de datos de aves. Verifica tu almacenamiento y conexión.",
+    "database_error_title": "Error de base de datos",
+    "nest_build_failed": "La construcción del nido falló",
+    "database_setup_problem": "Ocurrió un problema al configurar la base de datos de aves",
+    "check_storage_network": "Verifica tu espacio de almacenamiento y la conexión de red"
   },
   "account": {
     "title": "Detalles de la cuenta",
@@ -255,7 +261,8 @@
     "cancel": "Cancelar",
     "settings": "Configuración",
     "continue": "Continuar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "retry_loading": "Volver a cargar"
   },
   "birdnet": {
     "identify_button": "Identificar ave (IA)",
@@ -315,7 +322,16 @@
     "loading_application": "Cargando aplicación...",
     "loading_fonts_assets": "Cargando fuentes y recursos...",
     "initializing_local_db": "Inicializando base de datos local...",
-    "loading_ai_models": "Cargando modelos de IA..."
+    "loading_ai_models": "Cargando modelos de IA...",
+    "preparing_bird_database": "Preparando tu base de datos de aves",
+    "loading_species_data": "Cargando datos de especies",
+    "species_loaded": "{{count}} especies cargadas",
+    "building_database": "Creando una base de datos completa de identificación...",
+    "first_launch_hint": "Esto puede tardar un momento en el primer inicio",
+    "init_failed": "Inicialización fallida",
+    "building_database2": "Creando tu base de datos de aves",
+    "species_loaded_label": "Especies cargadas",
+    "total_species": "Especies totales"
   },
   "camera_advanced": {
     "media_permission_denied": "Permiso de biblioteca multimedia denegado",

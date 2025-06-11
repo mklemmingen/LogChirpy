@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState, useMemo} from 'react';
 import {
     ActivityIndicator,
     Button,
@@ -25,26 +25,24 @@ import {AppState} from 'react-native';
 import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
 
 import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
+import { Audio } from 'expo-av';
 
 import {useTranslation} from 'react-i18next';
 
 import Slider from '@react-native-community/slider';
+
+import { BirdNetService, BirdNetPrediction } from '@/services/birdNetService';
 
 import {ThemedSnackbar} from "@/components/ThemedSnackbar";
 import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
 
 import * as Haptics from 'expo-haptics';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {theme} from "@/constants/theme";
+import {Config} from "@/constants/config";
 
 
-const STORAGE_KEYS = {
-    pipelineDelay: 'pipelineDelay',
-    confidenceThreshold: 'confidenceThreshold',
-    showSettings: 'showSettings',
-};
+// Note: Storage keys now managed globally in constants/config.ts
 const { width: W, height: H } = Dimensions.get('window');
 
 interface Detection {
@@ -76,66 +74,26 @@ function getBoxStyle(confidence: number) {
     return { color, opacity };
 }
 
-const persistToMediaLibraryAlbum = async (localUri: string, filename: string): Promise<boolean> => {
-    try {
-        // First ensure we have media library permissions
-        let { status } = await MediaLibrary.getPermissionsAsync();
-        
-        if (status !== 'granted') {
-            // Try to request permissions
-            const { status: newStatus, granted } = await MediaLibrary.requestPermissionsAsync();
-            if (!granted || newStatus !== 'granted') {
-                console.error("Media library permission denied. Status:", newStatus);
-                return false;
-            }
-            status = newStatus;
-        }
-
-        // Double-check permissions before proceeding
-        if (status !== 'granted') {
-            console.error("Media library permission not granted:", status);
-            return false;
-        }
-
-        // Create asset directly from the source URI
-        const asset = await MediaLibrary.createAssetAsync(localUri);
-        console.log("Asset created:", asset);
-
-        // Create or get the album
-        let album = await MediaLibrary.getAlbumAsync("LogChirpy");
-
-        if (album) {
-            // Add to existing album
-            await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-        } else {
-            // Create new album with the asset
-            album = await MediaLibrary.createAlbumAsync("LogChirpy", asset, false);
-        }
-
-        console.log("Saved image to LogChirpy album:", asset.uri);
-        return true;
-    } catch (e) {
-        console.error("Failed to save to media library:", e);
-        return false;
-    }
-};
 
 const getDelayPresetLabel = (value: number): string => {
-    if (value <= 0.25) return '⚡ Fast (0.2s)';
-    if (value <= 0.6) return '⚖️ Balanced (0.5s)';
-    return '🔍 Thorough (1s)';
+    if (value <= 0.25) return '⚡ Fast';
+    if (value <= 0.6) return '⚖️ Balanced';
+    return '🔍 Thorough';
 };
 
 const getConfidencePresetLabel = (value: number): string => {
-    if (value < 0.4) return '🟢 Lenient (< 40%)';
-    if (value < 0.75) return '🟡 Normal (40–75%)';
-    return '🔴 Strict (≥ 75%)';
+    if (value < 0.4) return '🟢 Lenient';
+    if (value < 0.75) return '🟡 Normal';
+    return '🔴 Strict';
 };
 
-function generateFilename(prefix: string, label: string) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const safeLabel = label.replace(/\s+/g, '_');
-    return `${prefix}_${safeLabel}_${timestamp}.jpg`;
+function generateFilename(prefix: string, label: string, confidence: number) {
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[:.]/g, '-');
+    const milliseconds = now.getTime();
+    const safeLabel = label.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const confidenceStr = Math.round(confidence * 100).toString().padStart(3, '0');
+    return `${prefix}_${safeLabel}_conf${confidenceStr}_${timestamp}_${milliseconds}.jpg`;
 }
 
 async function handleClassifiedSave(
@@ -148,24 +106,87 @@ async function handleClassifiedSave(
 ): Promise<void> {
     if (label.confidence < threshold) return;
 
-    const filename = generateFilename(prefix, label.text);
+    const filename = generateFilename(prefix, label.text, label.confidence);
     try {
-        // Save directly without intermediate steps
-        const saved = await persistToMediaLibraryAlbum(fileUri, filename);
-
-        if (saved) {
-            console.log(`${prefix} classified image saved successfully`);
-            showSnackbar('camera.bird_detected', {
-                bird: label.text,
-                confidence: Math.round(label.confidence * 100),
-            });
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Create gallery directory in document storage if it doesn't exist
+        const galleryDir = `${FileSystem.documentDirectory}gallery/`;
+        const dirInfo = await FileSystem.getInfoAsync(galleryDir);
+        if (!dirInfo.exists) {
+            await FileSystem.makeDirectoryAsync(galleryDir, { intermediates: true });
+            console.log('Created gallery directory:', galleryDir);
         }
+
+        // Save to document directory for gallery access
+        const destPath = `${galleryDir}${filename}`;
+        await FileSystem.copyAsync({
+            from: fileUri,
+            to: destPath
+        });
+
+        console.log(`${prefix} classified image saved to gallery:`, destPath);
+        showSnackbar('camera.bird_detected', {
+            bird: label.text,
+            confidence: Math.round(label.confidence * 100),
+        });
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     } catch (error) {
-        console.error('Failed to save image to media library:', error);
+        console.error('Failed to save image to gallery directory:', error);
         const message = error instanceof Error ? error.message : String(error);
         setDebugText(`Save failed: ${message}`);
     }
+}
+
+async function waitForFileStability(filePath: string, maxWaitMs: number = 3000): Promise<boolean> {
+    let attempts = 0;
+    const maxAttempts = Math.ceil(maxWaitMs / 100);
+    let lastSize = 0;
+    
+    while (attempts < maxAttempts) {
+        try {
+            const info = await FileSystem.getInfoAsync(filePath);
+            if (!info.exists) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+                continue;
+            }
+            
+            const currentSize = info.size || 0;
+            if (currentSize > 0 && currentSize === lastSize && attempts > 2) {
+                return true;
+            }
+            
+            lastSize = currentSize;
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        } catch (error) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+    }
+    
+    return false;
+}
+
+async function retryFileOperation<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    delayMs: number = 200
+): Promise<T> {
+    let lastError: Error | null = null;
+    
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error as Error;
+            if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, delayMs * (i + 1)));
+            }
+        }
+    }
+    
+    throw lastError;
 }
 
 async function deleteOldFiles(dirUri: string, maxAgeMinutes: number): Promise<void> {
@@ -183,8 +204,182 @@ async function deleteOldFiles(dirUri: string, maxAgeMinutes: number): Promise<vo
     }
 }
 
+// Audio recording configuration for bird detection
+const AUDIO_CONFIG = {
+    android: {
+        extension: '.m4a',
+        outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+        audioEncoder: Audio.AndroidAudioEncoder.AAC,
+        sampleRate: 48000, // BirdNet prefers 48kHz
+        numberOfChannels: 1, // Mono for smaller files
+        bitRate: 128000,
+    },
+    ios: {
+        extension: '.m4a',
+        outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+        audioQuality: Audio.IOSAudioQuality.HIGH,
+        sampleRate: 48000,
+        numberOfChannels: 1,
+        bitRate: 128000,
+        linearPCMBitDepth: 16,
+        linearPCMIsBigEndian: false,
+        linearPCMIsFloat: false,
+    },
+    web: {
+        extension: '.m4a',
+    }
+};
+
+async function initializeAudio(): Promise<boolean> {
+    try {
+        console.log('[Audio] Initializing audio system...');
+        
+        // Step 1: Request audio permissions
+        const { status } = await Audio.requestPermissionsAsync();
+        if (status !== 'granted') {
+            console.warn('[Audio] Microphone permission denied');
+            throw new Error('Microphone permission required for bird detection');
+        }
+        
+        // Step 2: Configure audio mode
+        try {
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                playsInSilentModeIOS: true,
+                shouldDuckAndroid: true,
+                playThroughEarpieceAndroid: false,
+            });
+        } catch (audioModeError) {
+            console.warn('[Audio] Audio mode configuration failed:', audioModeError);
+            // Continue anyway, as this might still work
+        }
+        
+        // Step 3: Initialize BirdNet service for audio processing
+        try {
+            await BirdNetService.initializeOfflineMode();
+            console.log('[Audio] BirdNet service initialized successfully');
+        } catch (birdNetError) {
+            console.error('[Audio] BirdNet initialization failed:', birdNetError);
+            
+            // Try fallback initialization
+            try {
+                await BirdNetService.initializeFastTflite();
+                console.log('[Audio] BirdNet FastTflite fallback initialized');
+            } catch (fallbackError) {
+                console.error('[Audio] All BirdNet initialization methods failed:', fallbackError);
+                throw new Error('Bird detection models unavailable');
+            }
+        }
+        
+        // Step 4: Test recording capability
+        try {
+            const testRecording = new Audio.Recording();
+            await testRecording.prepareToRecordAsync(AUDIO_CONFIG as any);
+            await testRecording.stopAndUnloadAsync();
+            console.log('[Audio] Recording test passed');
+        } catch (recordingTestError) {
+            console.error('[Audio] Recording test failed:', recordingTestError);
+            throw new Error('Audio recording unavailable');
+        }
+        
+        console.log('[Audio] Audio system initialized successfully');
+        return true;
+        
+    } catch (error) {
+        console.error('[Audio] Failed to initialize audio system:', error);
+        
+        // Return specific error information
+        if (error instanceof Error) {
+            console.error('[Audio] Initialization error details:', error.message);
+        }
+        
+        return false;
+    }
+}
+
+async function recordAndProcessAudio(): Promise<BirdNetPrediction[]> {
+    let recording: Audio.Recording | null = null;
+    let audioUri: string | null = null;
+    
+    try {
+        console.log('[Audio] Starting 5-second recording...');
+        
+        recording = new Audio.Recording();
+        await recording.prepareToRecordAsync(AUDIO_CONFIG as any);
+        await recording.startAsync();
+        
+        // Record for exactly 5 seconds
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        await recording.stopAndUnloadAsync();
+        audioUri = recording.getURI();
+        
+        if (!audioUri) {
+            throw new Error('Failed to get recording URI');
+        }
+        
+        console.log('[Audio] Recording complete, processing audio...');
+        
+        // Process audio through BirdNet with enhanced error handling
+        let result;
+        try {
+            result = await BirdNetService.identifyBirdFromAudio(audioUri);
+            
+            if (!result || !result.success) {
+                console.warn('[Audio] BirdNet processing failed, no valid results');
+                return [];
+            }
+            
+        } catch (birdNetError) {
+            console.error('[Audio] BirdNet service failed:', birdNetError);
+            
+            // Fallback: Try to extract basic audio info without ML processing
+            console.log('[Audio] Attempting fallback processing...');
+            return []; // Return empty results rather than crashing
+        }
+        
+        console.log(`[Audio] Found ${result.predictions.length} bird detections`);
+        return result.predictions || [];
+        
+    } catch (error) {
+        console.error('[Audio] Recording and processing failed:', error);
+        
+        // Enhanced error handling with specific error types
+        if (error instanceof Error) {
+            if (error.message.includes('permission')) {
+                throw new Error('Microphone permission required');
+            } else if (error.message.includes('recording')) {
+                throw new Error('Recording failed - check microphone');
+            } else if (error.message.includes('processing')) {
+                throw new Error('Audio processing failed');
+            }
+        }
+        
+        throw new Error('Audio pipeline unavailable');
+        
+    } finally {
+        // Ensure cleanup happens regardless of success/failure
+        if (recording) {
+            try {
+                await recording.stopAndUnloadAsync();
+            } catch (stopError) {
+                console.warn('[Audio] Failed to stop recording:', stopError);
+            }
+        }
+        
+        if (audioUri) {
+            try {
+                await FileSystem.deleteAsync(audioUri);
+            } catch (cleanupError) {
+                console.warn('[Audio] Failed to cleanup recording:', cleanupError);
+            }
+        }
+    }
+}
+
 export default function ObjectIdentCameraWrapper() {
     const [isLoading, setIsLoading] = useState(true);
+    const [permissionRequested, setPermissionRequested] = useState(false);
     const device = useCameraDevice('back');
     const { hasPermission, requestPermission } = useCameraPermission();
     const { t } = useTranslation();
@@ -192,13 +387,19 @@ export default function ObjectIdentCameraWrapper() {
     const colorScheme: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light'
     const currentTheme = theme[colorScheme]
 
-    // 1) run loading timer and kick off permission request exactly once
+    // Request permission only once
     useEffect(() => {
-        // 3s splash
+        if (!hasPermission && !permissionRequested) {
+            setPermissionRequested(true);
+            requestPermission();
+        }
+    }, [hasPermission, permissionRequested, requestPermission]);
+
+    // Loading timer
+    useEffect(() => {
         const timer = setTimeout(() => setIsLoading(false), 1000);
-        requestPermission();     // side-effect only here
         return () => clearTimeout(timer);
-    }, [requestPermission]);
+    }, []);
 
     // 2) if we’re still loading resources, show loader
     if (isLoading || !device || !hasPermission) {
@@ -244,18 +445,21 @@ function ObjectIdentCameraContent() {
 
     // Detection pipeline controls
     const [isDetectionPaused, setIsDetectionPaused] = useState(false);
-    const [pipelineDelay, setPipelineDelay] = useState(1); // seconds between captures
-    const [confidenceThreshold, setConfidenceThreshold] = useState(0.8);
+    const [pipelineDelay, setPipelineDelay] = useState(Config.camera.pipelineDelay);
+    const [confidenceThreshold, setConfidenceThreshold] = useState(Config.camera.confidenceThreshold);
 
     // UI Settings and visibility toggles
-    const [showSettings, setShowSettings] = useState(false);
+    const [showSettings, setShowSettings] = useState(Config.camera.showSettings);
     const [modalVisible, setModalVisible] = useState(false);
 
-    // Tooltip and label display info
-    const [showDelayTooltip, setShowDelayTooltip] = useState(false);
-    const [delayPresetLabel, setDelayPresetLabel] = useState('');
-    const [showConfidenceTooltip, setShowConfidenceTooltip] = useState(false);
-    const [confidencePresetLabel, setConfidencePresetLabel] = useState('');
+    // Audio processing state
+    const [audioResults, setAudioResults] = useState<BirdNetPrediction[]>([]);
+    const [audioProcessing, setAudioProcessing] = useState(false);
+    const [audioError, setAudioError] = useState<string | null>(null);
+    const [audioInitialized, setAudioInitialized] = useState(false);
+    const audioIntervalRef = useRef<NodeJS.Timeout>();
+
+    // Note: Tooltip states removed - settings now managed globally
 
     // Focus/app state control
     const isFocused = useIsFocused();
@@ -278,6 +482,11 @@ function ObjectIdentCameraContent() {
                 setModalVisible(false);
                 setModalPhotoUri(null);
                 setShowOverlays(true);
+                
+                // Stop audio processing
+                if (audioIntervalRef.current) {
+                    clearInterval(audioIntervalRef.current);
+                }
             };
         }, [])
     );
@@ -298,58 +507,78 @@ function ObjectIdentCameraContent() {
     // Debug message shown to user
     const [debugText, setDebugText] = useState(t('camera.initializing'));
 
+    // Load settings from global config on mount and when config changes
     useEffect(() => {
-        (async () => {
-            try {
-                const savedDelay = await AsyncStorage.getItem(STORAGE_KEYS.pipelineDelay);
-                const savedThreshold = await AsyncStorage.getItem(STORAGE_KEYS.confidenceThreshold);
-                const savedShowSettings = await AsyncStorage.getItem(STORAGE_KEYS.showSettings);
-
-                if (savedDelay !== null) setPipelineDelay(parseFloat(savedDelay));
-                if (savedThreshold !== null) setConfidenceThreshold(parseFloat(savedThreshold));
-                if (savedShowSettings !== null) setShowSettings(savedShowSettings === 'true');
-            } catch (e) {
-                console.warn("Failed to load saved settings:", e);
+        setPipelineDelay(Config.camera.pipelineDelay);
+        setConfidenceThreshold(Config.camera.confidenceThreshold);
+        setShowSettings(Config.camera.showSettings);
+    }, []);
+    
+    // Update local state when global config changes (e.g., from settings page)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (Config.camera.pipelineDelay !== pipelineDelay) {
+                setPipelineDelay(Config.camera.pipelineDelay);
             }
-        })();
+            if (Config.camera.confidenceThreshold !== confidenceThreshold) {
+                setConfidenceThreshold(Config.camera.confidenceThreshold);
+            }
+            if (Config.camera.showSettings !== showSettings) {
+                setShowSettings(Config.camera.showSettings);
+            }
+        }, 1000); // Check every second
+        
+        return () => clearInterval(interval);
+    }, [pipelineDelay, confidenceThreshold, showSettings]);
+
+    // Note: Settings handlers removed - values now managed globally via settings page
+
+    const toggleShowSettings = useCallback(() => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setShowSettings(prev => !prev);
+        // Note: showSettings is now managed globally via settings page
     }, []);
 
-    const handleSetPipelineDelay = (value: number) => {
-        setPipelineDelay(value);
-        setDelayPresetLabel(getDelayPresetLabel(value));
-        AsyncStorage.setItem(STORAGE_KEYS.pipelineDelay, value.toString());
-    };
-
-    const handleSetConfidenceThreshold = (value: number) => {
-        setConfidenceThreshold(value);
-        setConfidencePresetLabel(getConfidencePresetLabel(value));
-        AsyncStorage.setItem(STORAGE_KEYS.confidenceThreshold, value.toString());
-    };
-
-    const toggleShowSettings = () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setShowSettings(prev => {
-            const newVal = !prev;
-            AsyncStorage.setItem(STORAGE_KEYS.showSettings, newVal.toString());
-            return newVal;
-        });
-    };
-
-    // Ask for permissions once, also for layout
+    // Initialize component once on mount
     useEffect(() => {
         console.log('[ObjectDetection] Component mounted, initializing...');
-        (async () => {
+        let isMounted = true;
+        
+        const initializeComponent = async () => {
             if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
                 UIManager.setLayoutAnimationEnabledExperimental(true);
             }
 
-            const hasPermission = await ensureMediaPermission();
-            setHasMediaPermission(hasPermission);
-        })();
+            // No media permissions needed for document directory storage
+            if (isMounted) {
+                setHasMediaPermission(true);
+            }
+            
+            // Initialize audio system
+            try {
+                const audioSuccess = await initializeAudio();
+                if (isMounted) {
+                    setAudioInitialized(audioSuccess);
+                    if (audioSuccess) {
+                        console.log('[Audio] Audio system ready for bird detection');
+                    } else {
+                        setAudioError('Audio initialization failed');
+                    }
+                }
+            } catch (error) {
+                console.error('[Audio] Audio initialization error:', error);
+                if (isMounted) {
+                    setAudioError('Audio system unavailable');
+                }
+            }
+        };
+
+        initializeComponent();
         
         // Cleanup function to prevent view conflicts on unmount
         return () => {
             console.log('[ObjectDetection] Component unmounting, cleaning up...');
+            isMounted = false;
             setIsInitialized(false);
             setIsDetectionPaused(true);
             setModalVisible(false);
@@ -357,29 +586,14 @@ function ObjectIdentCameraContent() {
         };
     }, []);
 
-    const ensureMediaPermission = async (): Promise<boolean> => {
-        try {
-            let { status } = await MediaLibrary.getPermissionsAsync();
-            if (status !== 'granted') {
-                console.log("[ObjectDetection] Requesting media library permissions...");
-                const { status: newStatus, granted } = await MediaLibrary.requestPermissionsAsync();
-                if (!granted || newStatus !== 'granted') {
-                    console.error("Media permission denied. Status:", newStatus);
-                    showSnackbar('errors.media_permission_denied');
-                    return false;
-                }
-                status = newStatus;
-            }
-            console.log("[ObjectDetection] Media library permissions granted");
-            return true;
-        } catch (error) {
-            console.error("Error checking media permissions:", error);
-            return false;
-        }
-    };
 
     const detector = useObjectDetection<MyModelsConfig>('efficientNetlite0int8');
     const classifier = useImageLabeling("birdClassifier");
+    
+    // Memoize classifier ready check
+    const isClassifierReady = useMemo(() => {
+        return !!(classifier && typeof classifier.classifyImage === 'function');
+    }, [classifier]);
 
     type ClassificationResult = { text: string; confidence: number; index: number }[];
 
@@ -401,20 +615,25 @@ function ObjectIdentCameraContent() {
         }
     };
 
-    // Image manipulator context removed - not needed
+    // Component active state
     const isActive = useRef(true);
+    const captureTimeoutRef = useRef<NodeJS.Timeout>();
 
     // Capture loop: take photo, manipulate, and save to document directory
     useEffect(() => {
+        if (!isInitialized || isDetectionPaused || !cameraRef.current || !detector) {
+            return;
+        }
 
         const captureLoop = async () => {
-            if (!cameraRef.current || !isInitialized || isDetectionPaused) return;
+            if (!cameraRef.current || !isInitialized || isDetectionPaused || !isActive.current) {
+                return;
+            }
 
             try {
                 setIsProcessing(true);
                 setDebugText(t('camera.capturing'));
 
-                if (!cameraRef.current) return
                 const photo = await cameraRef.current.takePhoto({
                     flash: 'off',
                     enableShutterSound: false,
@@ -448,10 +667,7 @@ function ObjectIdentCameraContent() {
                     });
                     
                     console.log('Photo saved to document directory:', destPath);
-                    // Set photoPath to the URI for MLKit
-                    const savedPath = destPath;
-
-                    setPhotoPath(savedPath);
+                    setPhotoPath(destPath);
 
                 } catch (copyError: unknown) {
                     console.error('Error copying photo to document directory:', copyError);
@@ -468,13 +684,21 @@ function ObjectIdentCameraContent() {
             }
 
             // Continue capture loop if still active
-            if (isActive.current) {
-                setTimeout(captureLoop, pipelineDelay*1000);
+            if (isActive.current && !isDetectionPaused) {
+                captureTimeoutRef.current = setTimeout(captureLoop, pipelineDelay * 1000);
             }
         };
 
-        captureLoop();
-    }, [detector, device, isInitialized, isDetectionPaused]);
+        // Start the capture loop
+        const timeoutId = setTimeout(captureLoop, 1000); // Initial delay
+        
+        return () => {
+            clearTimeout(timeoutId);
+            if (captureTimeoutRef.current) {
+                clearTimeout(captureTimeoutRef.current);
+            }
+        };
+    }, [isInitialized, isDetectionPaused, detector, pipelineDelay, t]);
 
     async function cropImage(imageUri: string, box: CropBox) : Promise<string> {
         const cropAction = {
@@ -494,14 +718,15 @@ function ObjectIdentCameraContent() {
         return cropResult.uri;
     }
 
+    // Update classifier ready state
     useEffect(() => {
-        if (classifier?.classifyImage) {
-            setClassifierReady(true);
+        setClassifierReady(isClassifierReady);
+        if (isClassifierReady) {
             console.log("[ObjectDetection] Classifier ready and functional");
         } else if (classifier === null) {
             console.log("[ObjectDetection] Classifier failed to initialize");
         }
-    }, [classifier]);
+    }, [isClassifierReady, classifier]);
 
     useEffect(() => {
         if (detector) {
@@ -514,57 +739,52 @@ function ObjectIdentCameraContent() {
 
     // Process photoPath with MLKit and delete previous photos
     useEffect(() => {
-        if (!photoPath) return;
-
-        if (!detector) {
-            setDebugText(t('errors.detector_unavailable'));
-            console.error('[ObjectDetection] Object detector not loaded. Detector state:', detector);
-            console.error('[ObjectDetection] Available detector methods:', detector ? Object.keys(detector) : 'detector is null/undefined');
-            console.error('[ObjectDetection] Expected model: efficientNetlite0int8');
-            return;
-        }
-
-        if (!classifierReady) {
-            setDebugText(t('errors.classifier_unavailable'));
-            console.warn('Image classifier not ready yet.');
-            return;
-        }
-
-        (async () => {
-            // Delete the last photo file (cleanup) if it exists
-            if (lastPhotoUri) {
-                try {
-                    const fileInfo = await FileSystem.getInfoAsync(lastPhotoUri);
-                    if (fileInfo.exists) {
-                        await FileSystem.deleteAsync(lastPhotoUri);
-                        console.log('Deleted previous photo:', lastPhotoUri);
-                    }
-                } catch (deleteError) {
-                    console.warn('Error deleting previous photo:', deleteError);
-                }
+        if (!photoPath || !detector || !classifierReady) {
+            if (!photoPath) return;
+            if (!detector) {
+                setDebugText(t('errors.detector_unavailable'));
+                console.error('[ObjectDetection] Object detector not loaded. Detector state:', detector);
+                return;
             }
+            if (!classifierReady) {
+                setDebugText(t('errors.classifier_unavailable'));
+                console.warn('Image classifier not ready yet.');
+                return;
+            }
+        }
+
+        let isMounted = true;
+        
+        const processPhoto = async () => {
+            if (!isMounted) return;
+
+            // Use the photoPath directly since it's already been processed
+            const imagePath = photoPath;
 
             try {
                 console.log('Processing image...');
-                // Use the photoPath directly since it's already been processed
-                const imagePath = photoPath;
 
-                const { exists } = await FileSystem.getInfoAsync(imagePath);
-                if (!exists) {
-                    throw new Error(`File not ready at ${imagePath}`);
+                // Wait for file to be stable before processing
+                console.log('Waiting for file stability:', imagePath);
+                const isStable = await waitForFileStability(imagePath, 3000);
+                if (!isStable) {
+                    throw new Error(`File not stable after waiting: ${imagePath}`);
                 }
 
                 console.log('MLKit Path:', imagePath);
 
-                setLastPhotoUri(imagePath);
                 // Keep existing image dimensions from when photo was first processed
                 setDebugText(t('camera.detection_running'));
 
-                // Run object detection on the image
+                // Run object detection on the image with retry logic
                 console.log('[ObjectDetection] Starting object detection on image:', imagePath);
                 console.log('[ObjectDetection] Detector ready:', !!detector, 'Has detectObjects method:', !!detector?.detectObjects);
                 
-                const objects = await detector.detectObjects(imagePath);
+                const objects = await retryFileOperation(
+                    () => detector.detectObjects(imagePath),
+                    3,
+                    300
+                );
                 console.log('[ObjectDetection] Detection completed successfully. Results:', objects);
                 console.log('[ObjectDetection] Number of objects detected:', objects.length);
 
@@ -591,6 +811,9 @@ function ObjectIdentCameraContent() {
                 //   trackingID?: number;
                 // }
 
+                // Set current photo as last photo for UI display
+                setLastPhotoUri(imagePath);
+
                 // 1) Enrich each detection by cropping + classifying:
                 const enriched: Detection[] = [];
                 for (const obj of objects) {
@@ -598,12 +821,16 @@ function ObjectIdentCameraContent() {
                     const cropUri = await cropImage(imagePath, obj.frame);
 
                     try {
-                        // classify the cropped image
+                        // classify the cropped image with retry logic
                         if (typeof classifier?.classifyImage !== 'function') {
                             console.warn("Classifier method not available");
                             return;
                         }
-                        const labelResult = await classifyImage(cropUri);
+                        const labelResult = await retryFileOperation(
+                            () => classifyImage(cropUri),
+                            3,
+                            200
+                        );
 
                         console.log(labelResult);
 
@@ -656,7 +883,11 @@ function ObjectIdentCameraContent() {
 
                 // Run classification on the full image
                 try {
-                    const fullImageLabels = await classifyImage(imagePath);
+                    const fullImageLabels = await retryFileOperation(
+                        () => classifyImage(imagePath),
+                        3,
+                        200
+                    );
                     console.log('Full image classification:', fullImageLabels);
 
                     const top = fullImageLabels[0];
@@ -675,17 +906,54 @@ function ObjectIdentCameraContent() {
                     console.warn('Failed to classify full image:', e);
                 }
 
+                // Delete the previous photo file only after all processing is complete
+                if (lastPhotoUri && lastPhotoUri !== imagePath) {
+                    try {
+                        const fileInfo = await FileSystem.getInfoAsync(lastPhotoUri);
+                        if (fileInfo.exists) {
+                            await FileSystem.deleteAsync(lastPhotoUri);
+                            console.log('Deleted previous photo:', lastPhotoUri);
+                        }
+                    } catch (deleteError) {
+                        console.warn('Error deleting previous photo:', deleteError);
+                    }
+                }
+
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : String(err);
                 console.error(t('errors.detection_failed', { message }));
                 setDebugText(t('errors.detection_failed', { message }));
+                
+                // Still try to delete previous photo on error to prevent accumulation
+                if (lastPhotoUri && lastPhotoUri !== imagePath) {
+                    try {
+                        const fileInfo = await FileSystem.getInfoAsync(lastPhotoUri);
+                        if (fileInfo.exists) {
+                            await FileSystem.deleteAsync(lastPhotoUri);
+                            console.log('Deleted previous photo after error:', lastPhotoUri);
+                        }
+                    } catch (deleteError) {
+                        console.warn('Error deleting previous photo after error:', deleteError);
+                    }
+                }
             }
-        })();
-    }, [photoPath, classifier]);
+        };
+        
+        processPhoto();
+        
+        return () => {
+            isMounted = false;
+        };
+    }, [photoPath, detector, classifierReady, classifier, lastPhotoUri, confidenceThreshold, showSnackbar, t]);
 
+    // Cleanup effect
     useEffect(() => {
         return () => {
             isActive.current = false;
+            
+            if (captureTimeoutRef.current) {
+                clearTimeout(captureTimeoutRef.current);
+            }
 
             (async () => {
                 try {
@@ -699,14 +967,83 @@ function ObjectIdentCameraContent() {
         };
     }, []);
 
+    // Audio processing interval effect
+    useEffect(() => {
+        if (!audioInitialized || isDetectionPaused || !isActive.current) {
+            return;
+        }
+
+        const startAudioProcessing = () => {
+            console.log('[Audio] Starting 5-second audio processing interval');
+            
+            const processAudioInterval = async () => {
+                if (!audioInitialized || isDetectionPaused || !isActive.current) {
+                    return;
+                }
+                
+                try {
+                    setAudioProcessing(true);
+                    setAudioError(null);
+                    
+                    const predictions = await recordAndProcessAudio();
+                    
+                    // Filter predictions by confidence and take top 3
+                    const filteredPredictions = predictions
+                        .filter(p => p.confidence >= 0.1) // 10% minimum confidence
+                        .slice(0, 3) // Max 3 results
+                        .sort((a, b) => b.confidence - a.confidence);
+                    
+                    setAudioResults(filteredPredictions);
+                    
+                    if (filteredPredictions.length > 0) {
+                        console.log(`[Audio] Detected ${filteredPredictions.length} bird(s):`, 
+                            filteredPredictions.map(p => `${p.common_name} (${Math.round(p.confidence * 100)}%)`));
+                    }
+                    
+                } catch (error) {
+                    console.error('[Audio] Processing error:', error);
+                    setAudioError(error instanceof Error ? error.message : 'Audio processing failed');
+                    setAudioResults([]);
+                } finally {
+                    setAudioProcessing(false);
+                }
+            };
+            
+            // Initial processing
+            processAudioInterval();
+            
+            // Set up 5-second interval
+            audioIntervalRef.current = setInterval(processAudioInterval, 5000);
+        };
+
+        // Small delay to let camera initialize first
+        const audioStartTimeout = setTimeout(startAudioProcessing, 2000);
+        
+        return () => {
+            clearTimeout(audioStartTimeout);
+            if (audioIntervalRef.current) {
+                clearInterval(audioIntervalRef.current);
+            }
+        };
+    }, [audioInitialized, isDetectionPaused]);
+
+    // Focus/unfocus effect
     useFocusEffect(
-        React.useCallback(() => {
+        useCallback(() => {
             // Component is focused
             isActive.current = true;
+            setIsDetectionPaused(false);
 
             return () => {
                 // Component lost focus
                 isActive.current = false;
+                setIsDetectionPaused(true);
+                if (captureTimeoutRef.current) {
+                    clearTimeout(captureTimeoutRef.current);
+                }
+                if (audioIntervalRef.current) {
+                    clearInterval(audioIntervalRef.current);
+                }
             };
         }, [])
     );
@@ -732,8 +1069,6 @@ function ObjectIdentCameraContent() {
         );
     }
 
-    // @ts-ignore
-    // @ts-ignore
     return (
         <ThemedSafeAreaView style={{ flex: 1 }}>
             <View style={styles.container}>
@@ -806,12 +1141,71 @@ function ObjectIdentCameraContent() {
                     </View>
                 )}
 
+                {/* Audio Results Display */}
+                <View style={[styles.audioResultsContainer, { backgroundColor: currentTheme.colors.overlay.heavy }]}>
+                    <View style={styles.audioHeader}>
+                        <View style={styles.audioStatusIndicator}>
+                            {audioProcessing ? (
+                                <ActivityIndicator size="small" color="#00FF00" />
+                            ) : audioInitialized ? (
+                                <View style={[styles.statusDot, { backgroundColor: '#00FF00' }]} />
+                            ) : (
+                                <View style={[styles.statusDot, { backgroundColor: '#FF0000' }]} />
+                            )}
+                            <Text style={styles.audioStatusText}>
+                                {audioProcessing ? 'Listening...' : audioInitialized ? 'Audio Ready' : 'Audio Error'}
+                            </Text>
+                        </View>
+                        {audioResults.length > 0 && (
+                            <Text style={styles.audioResultCount}>
+                                🐦 {audioResults.length}
+                            </Text>
+                        )}
+                    </View>
+                    
+                    {audioError && (
+                        <View style={[styles.audioErrorContainer, { backgroundColor: currentTheme.colors.status.error }]}>
+                            <Text style={styles.audioErrorText}>
+                                ⚠️ {audioError}
+                            </Text>
+                        </View>
+                    )}
+                    
+                    {audioResults.length > 0 && (
+                        <View style={styles.audioBirdList}>
+                            {audioResults.map((bird, index) => (
+                                <View key={`${bird.common_name}-${index}`} style={[
+                                    styles.audioBirdItem,
+                                    { backgroundColor: currentTheme.colors.overlay.medium }
+                                ]}>
+                                    <Text style={styles.audioBirdName} numberOfLines={1}>
+                                        {bird.common_name}
+                                    </Text>
+                                    <View style={[
+                                        styles.audioConfidenceBar,
+                                        { backgroundColor: currentTheme.colors.overlay.light }
+                                    ]}>
+                                        <View 
+                                            style={[
+                                                styles.audioConfidenceFill,
+                                                { 
+                                                    width: `${bird.confidence * 100}%`,
+                                                    backgroundColor: bird.confidence > 0.5 ? '#00FF00' : bird.confidence > 0.2 ? '#FFFF00' : '#FF9900'
+                                                }
+                                            ]} 
+                                        />
+                                        <Text style={styles.audioConfidenceText}>
+                                            {Math.round(bird.confidence * 100)}%
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+                </View>
+
                 <TouchableOpacity
-                    onPress={() => {
-                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                        setShowSettings(prev => !prev);
-                        AsyncStorage.setItem('showSettings', (!showSettings).toString());
-                    }}
+                    onPress={toggleShowSettings}
                     style={{
                         position: 'absolute',
                         top: 10,
@@ -866,63 +1260,27 @@ function ObjectIdentCameraContent() {
                             />
                             <Text style={styles.sliderValue}>{zoom.toFixed(2)}x</Text>
                         </View>
-                        <View style={styles.sliderRow}>
-                            <Text style={styles.sliderLabel}>{t('camera.pipeline_delay_label')}</Text>
-                            <Slider
-                                value={pipelineDelay}
-                                onValueChange={handleSetPipelineDelay}
-                                onSlidingStart={() => setShowDelayTooltip(true)}
-                                onSlidingComplete={() => setShowDelayTooltip(false)}
-                                minimumValue={0.01}
-                                maximumValue={1}
-                                step={0.01}
-                                minimumTrackTintColor="#1EB1FC"
-                                maximumTrackTintColor="#d3d3d3"
-                                thumbTintColor="#1EB1FC"
-                                style={{ width: '100%', height: 40 }}
-                            />
-                            <Text style={styles.sliderValue}>{pipelineDelay.toFixed(2)}s</Text>
-                            {showDelayTooltip && (
-                                <View style={[styles.tooltipBox, { backgroundColor: currentTheme.colors.overlay.dark }]}>
-                                    <Text style={styles.tooltipText}>{delayPresetLabel}</Text>
-                                </View>
-                            )}
-                        </View>
-
-                        <View style={styles.sliderRow}>
-                            <Text style={styles.sliderLabel}>{t('camera.confidence_threshold_label')}</Text>
-                            <Slider
-                                value={confidenceThreshold}
-                                onValueChange={handleSetConfidenceThreshold}
-                                onSlidingStart={() => setShowConfidenceTooltip(true)}
-                                onSlidingComplete={() => setShowConfidenceTooltip(false)}
-                                minimumValue={0}
-                                maximumValue={1}
-                                step={0.01}
-                                minimumTrackTintColor="#1EB1FC"
-                                maximumTrackTintColor="#d3d3d3"
-                                thumbTintColor="#1EB1FC"
-                                style={{ width: '100%', height: 40 }}
-                            />
-                            <Text style={styles.sliderValue}>{Math.round(confidenceThreshold * 100)}%</Text>
-                            {showConfidenceTooltip && (
-                                <View style={[styles.tooltipBox, { backgroundColor: currentTheme.colors.overlay.dark }]}>
-                                    <Text style={styles.tooltipText}>{confidencePresetLabel}</Text>
-                                </View>
-                            )}
+                        
+                        {/* AI Settings Status */}
+                        <View style={styles.settingsStatus}>
+                            <Text style={[styles.statusLabel, { color: currentTheme.colors.text.secondary }]}>AI Settings</Text>
+                            <Text style={[styles.statusValue, { color: currentTheme.colors.text.primary }]}>
+                                Speed: {getDelayPresetLabel(pipelineDelay).split(' ')[1]} | 
+                                Confidence: {getConfidencePresetLabel(confidenceThreshold).split(' ')[1]}
+                            </Text>
+                            <Text style={[styles.statusNote, { color: currentTheme.colors.text.tertiary }]}>
+                                Configure in Settings → Camera AI
+                            </Text>
                         </View>
 
                         <TouchableOpacity
                             onPress={() => setIsDetectionPaused(prev => !prev)}
-                            style={{
-                                marginTop: 10,
-                                backgroundColor: isDetectionPaused ? 'tomato' : '#1EB1FC',
-                                padding: 10,
-                                borderRadius: 6,
-                            }}
+                            style={[styles.pauseResumeButton, {
+                                backgroundColor: isDetectionPaused ? currentTheme.colors.status.error : currentTheme.colors.interactive.primary,
+                            }]}
                         >
-                            <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                                {isDetectionPaused ? t('camera.resume') : t('camera.pause')}
+                            <Text style={[styles.pauseResumeText, { color: currentTheme.colors.text.inverse }]}>
+                                {isDetectionPaused ? t('camera.resume') : t('camera.pause')} Detection
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -934,7 +1292,7 @@ function ObjectIdentCameraContent() {
                         onPress={() => {
                             console.log('Manual photo capture requested');
                             // Manual photo capture - saves a single high-quality photo
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(console.warn);
                         }}
                         style={[styles.captureButton, { backgroundColor: currentTheme.colors.interactive.primary }]}
                     >
@@ -945,7 +1303,7 @@ function ObjectIdentCameraContent() {
                         onPress={() => {
                             console.log('Video recording requested');
                             // Video recording functionality
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(console.warn);
                         }}
                         style={[styles.captureButton, { backgroundColor: '#FF6B6B' }]}
                     >
@@ -991,8 +1349,8 @@ function ObjectIdentCameraContent() {
                     <Button
                         title={t('buttons.grant_permission')}
                         onPress={async () => {
-                            const granted = await ensureMediaPermission();
-                            setHasMediaPermission(granted);
+                            // No media permissions needed for document directory storage
+                            setHasMediaPermission(true);
                         }}
                     />
                 </View>
@@ -1154,6 +1512,35 @@ const styles = StyleSheet.create({
         marginTop: -6,
         marginBottom: 8,
     },
+    settingsStatus: {
+        padding: 12,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        borderRadius: 8,
+        gap: 4,
+    },
+    statusLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+    },
+    statusValue: {
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    statusNote: {
+        fontSize: 11,
+        fontStyle: 'italic',
+    },
+    pauseResumeButton: {
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    pauseResumeText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
     centered: {
         flex: 1,
         justifyContent: 'center',
@@ -1228,6 +1615,89 @@ const styles = StyleSheet.create({
     captureButtonText: {
         fontSize: 24,
         color: 'white',
+    },
+    
+    // Audio Results Styles
+    audioResultsContainer: {
+        position: 'absolute',
+        top: 60,
+        left: 10,
+        right: 10,
+        borderRadius: 12,
+        padding: 12,
+        zIndex: 20,
+        maxHeight: 200,
+    },
+    audioHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    audioStatusIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    audioStatusText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    audioResultCount: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    audioErrorContainer: {
+        padding: 8,
+        borderRadius: 6,
+        marginTop: 4,
+    },
+    audioErrorText: {
+        color: 'white',
+        fontSize: 11,
+        textAlign: 'center',
+    },
+    audioBirdList: {
+        gap: 6,
+        maxHeight: 120,
+    },
+    audioBirdItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 8,
+        borderRadius: 8,
+        gap: 8,
+    },
+    audioBirdName: {
+        color: 'white',
+        fontSize: 13,
+        fontWeight: '600',
+        flex: 1,
+    },
+    audioConfidenceBar: {
+        width: 60,
+        height: 16,
+        borderRadius: 8,
+        position: 'relative',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    audioConfidenceFill: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        height: '100%',
+        borderRadius: 8,
+    },
+    audioConfidenceText: {
+        color: 'black',
+        fontSize: 10,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        zIndex: 1,
     },
 });
 

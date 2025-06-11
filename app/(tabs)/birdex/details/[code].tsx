@@ -34,7 +34,7 @@ type NameField = {
     isPrimary?: boolean;
 };
 
-// Enhanced Header Component
+// Header Component
 function DetailHeader({
                           bird,
                           onBack,
@@ -234,7 +234,7 @@ function ClassificationItem({
     );
 }
 
-export default function ModernBirdDexDetail() {
+export default function BirdDexDetail() {
     const { code } = useLocalSearchParams<{ code: string }>();
     const { t, i18n } = useTranslation();
     const router = useRouter();

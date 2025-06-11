@@ -14,12 +14,12 @@ import { Feather } from '@expo/vector-icons';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
- * Enhanced Account Screen Component with responsive design and smooth animations
+ * Account screen component
  * Provides user account management, sync settings, and sign-out functionality
  * 
  * @returns {JSX.Element} Complete account screen with profile and actions
  */
-export default function ModernAccountScreen() {
+export default function AccountScreen() {
     const { t } = useTranslation();
     const theme = useTheme();
     const typography = useTypography();

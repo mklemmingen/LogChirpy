@@ -85,7 +85,8 @@
     "back_to_account": "Назад до облікового запису",
     "cancel": "Скасувати",
     "save": "Зберегти",
-    "confirm": "Підтвердити"
+    "confirm": "Підтвердити",
+    "try_again": "Спробувати знову"
   },
   "auth": {
     "welcome_back": "Ласкаво просимо",
@@ -133,7 +134,12 @@
     "no_photo_path": "Помилка: шлях до фото відсутній.",
     "save_photo_failed": "Не вдалося зберегти фото: {{message}}",
     "capture_failed": "Не вдалося зробити фото: {{message}}",
-    "detection_failed": "Помилка виявлення: {{message}}"
+    "detection_failed": "Помилка виявлення: {{message}}",
+    "bird_db_load_failed": "Не вдалося завантажити базу даних птахів. Перевірте сховище та з'єднання.",
+    "database_error_title": "Помилка бази даних",
+    "nest_build_failed": "Не вдалося побудувати гніздо",
+    "database_setup_problem": "Сталася помилка під час налаштування бази даних птахів",
+    "check_storage_network": "Перевірте вільне місце на пристрої та підключення до мережі"
   },
   "account": {
     "title": "Дані облікового запису",
@@ -254,7 +260,8 @@
     "cancel": "Скасувати",
     "settings": "Налаштування",
     "continue": "Продовжити",
-    "close": "Закрити"
+    "close": "Закрити",
+    "retry_loading": "Спробувати знову завантажити"
   },
   "birdnet": {
     "identify_button": "Ідентифікувати птаха (ШІ)",
@@ -314,7 +321,16 @@
     "loading_application": "Завантаження додатка...",
     "loading_fonts_assets": "Завантаження шрифтів та ресурсів...",
     "initializing_local_db": "Ініціалізація локальної бази даних...",
-    "loading_ai_models": "Завантаження моделей ШІ..."
+    "loading_ai_models": "Завантаження моделей ШІ...",
+    "preparing_bird_database": "Підготовка вашої бази даних птахів",
+    "loading_species_data": "Завантаження даних про види",
+    "species_loaded": "Завантажено {{count}} видів",
+    "building_database": "Формується база даних розпізнавання птахів...",
+    "first_launch_hint": "Це може зайняти трохи часу під час першого запуску",
+    "init_failed": "Не вдалося ініціалізувати",
+    "building_database2": "Створення вашої бази даних птахів",
+    "species_loaded_label": "Завантажено видів",
+    "total_species": "Загальна кількість видів"
   },
   "camera_advanced": {
     "media_permission_denied": "Дозвіл медіабібліотеки відхилено",
