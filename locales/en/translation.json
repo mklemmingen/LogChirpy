@@ -456,7 +456,8 @@
     "cancel": "Cancel",
     "settings": "Settings",
     "continue": "Continue",
-    "close": "Close"
+    "close": "Close",
+    "retry_loading": "Retry Loading"
   },
   "warnings": {
     "media_permission_required": "Media access is required to save photos and recordings. Please enable access in settings."
@@ -510,7 +511,13 @@
     "loading_application": "Loading application...",
     "loading_fonts_assets": "Loading fonts and assets...",
     "initializing_local_db": "Initializing local database...",
-    "loading_ai_models": "Loading AI models..."
+    "loading_ai_models": "Loading AI models...",
+    "preparing_bird_database": "Preparing Your Bird Database",
+    "loading_species_data": "Loading Species Data",
+    "species_loaded": "{{count}} species loaded",
+    "building_database": "Building comprehensive bird identification database...",
+    "first_launch_hint": "This may take a moment on first launch",
+    "init_failed": "Initialization Failed"
   },
   "log_screens": {
     "manual_title": "Manual input / saving entry",

@@ -257,7 +257,8 @@
     "cancel": "إلغاء",
     "settings": "الإعدادات",
     "continue": "متابعة",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "retry_loading": "إعادة التحميل"
   },
   "birdnet": {
     "identify_button": "تحديد هوية الطائر (ذكاء اصطناعي)",
@@ -317,7 +318,13 @@
     "loading_application": "جارٍ تحميل التطبيق...",
     "loading_fonts_assets": "جارٍ تحميل الخطوط والموارد...",
     "initializing_local_db": "جارٍ تهيئة قاعدة البيانات المحلية...",
-    "loading_ai_models": "جارٍ تحميل نماذج الذكاء الاصطناعي..."
+    "loading_ai_models": "جارٍ تحميل نماذج الذكاء الاصطناعي...",
+    "preparing_bird_database": "جاري تجهيز قاعدة بيانات الطيور الخاصة بك",
+    "loading_species_data": "جارٍ تحميل بيانات الأنواع",
+    "species_loaded": "{{count}} نوع تم تحميلها",
+    "building_database": "يتم إنشاء قاعدة بيانات لتحديد الطيور...",
+    "first_launch_hint": "قد يستغرق الأمر بعض الوقت عند التشغيل الأول",
+    "init_failed": "فشل التهيئة"
   },
   "camera_advanced": {
     "media_permission_denied": "تم رفض إذن مكتبة الوسائط",

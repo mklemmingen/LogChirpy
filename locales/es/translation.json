@@ -257,7 +257,8 @@
     "cancel": "Cancelar",
     "settings": "Configuración",
     "continue": "Continuar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "retry_loading": "Volver a cargar"
   },
   "birdnet": {
     "identify_button": "Identificar ave (IA)",
@@ -317,7 +318,13 @@
     "loading_application": "Cargando aplicación...",
     "loading_fonts_assets": "Cargando fuentes y recursos...",
     "initializing_local_db": "Inicializando base de datos local...",
-    "loading_ai_models": "Cargando modelos de IA..."
+    "loading_ai_models": "Cargando modelos de IA...",
+    "preparing_bird_database": "Preparando tu base de datos de aves",
+    "loading_species_data": "Cargando datos de especies",
+    "species_loaded": "{{count}} especies cargadas",
+    "building_database": "Creando una base de datos completa de identificación...",
+    "first_launch_hint": "Esto puede tardar un momento en el primer inicio",
+    "init_failed": "Inicialización fallida"
   },
   "camera_advanced": {
     "media_permission_denied": "Permiso de biblioteca multimedia denegado",

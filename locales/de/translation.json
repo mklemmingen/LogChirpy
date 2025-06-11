@@ -259,7 +259,8 @@
     "cancel": "Abbrechen",
     "settings": "Einstellungen",
     "continue": "Fortfahren",
-    "close": "Schließen"
+    "close": "Schließen",
+    "retry_loading": "Erneut laden"
   },
   "birdnet": {
     "identify_button": "Vogel identifizieren (KI)",
@@ -319,7 +320,13 @@
     "loading_application": "Lade Anwendung...",
     "loading_fonts_assets": "Lade Schriftarten und Assets...",
     "initializing_local_db": "Initialisiere lokale Datenbank...",
-    "loading_ai_models": "Lade KI-Modelle..."
+    "loading_ai_models": "Lade KI-Modelle...",
+    "preparing_bird_database": "Vogeldatenbank wird vorbereitet",
+    "loading_species_data": "Artendaten werden geladen",
+    "species_loaded": "{{count}} Arten geladen",
+    "building_database": "Vogelerkennungsdatenbank wird aufgebaut...",
+    "first_launch_hint": "Dies kann beim ersten Start einen Moment dauern",
+    "init_failed": "Initialisierung fehlgeschlagen"
   },
   "camera_advanced": {
     "media_permission_denied": "Medienbibliothek-Berechtigung verweigert",

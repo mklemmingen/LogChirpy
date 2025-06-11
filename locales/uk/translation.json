@@ -256,7 +256,8 @@
     "cancel": "Скасувати",
     "settings": "Налаштування",
     "continue": "Продовжити",
-    "close": "Закрити"
+    "close": "Закрити",
+    "retry_loading": "Спробувати знову завантажити"
   },
   "birdnet": {
     "identify_button": "Ідентифікувати птаха (ШІ)",
@@ -316,7 +317,13 @@
     "loading_application": "Завантаження додатка...",
     "loading_fonts_assets": "Завантаження шрифтів та ресурсів...",
     "initializing_local_db": "Ініціалізація локальної бази даних...",
-    "loading_ai_models": "Завантаження моделей ШІ..."
+    "loading_ai_models": "Завантаження моделей ШІ...",
+    "preparing_bird_database": "Підготовка вашої бази даних птахів",
+    "loading_species_data": "Завантаження даних про види",
+    "species_loaded": "Завантажено {{count}} видів",
+    "building_database": "Формується база даних розпізнавання птахів...",
+    "first_launch_hint": "Це може зайняти трохи часу під час першого запуску",
+    "init_failed": "Не вдалося ініціалізувати"
   },
   "camera_advanced": {
     "media_permission_denied": "Дозвіл медіабібліотеки відхилено",
