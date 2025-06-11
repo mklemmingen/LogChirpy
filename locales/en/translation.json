@@ -243,7 +243,8 @@
     "grant_permission": "Grant Permission",
     "close": "Close",
     "delete": "Delete",
-    "share": "Share"
+    "share": "Share",
+    "try_again": "Try Again"
   },
   "auth": {
     "welcome_back": "Welcome Back",
@@ -293,7 +294,12 @@
     "save_photo_failed": "Failed to save photo: {{message}}",
     "capture_failed": "Photo capture failed: {{message}}",
     "detection_failed": "Detection error: {{message}}",
-    "media_permission_denied": "Media access denied. Please enable camera and microphone permissions in settings."
+    "media_permission_denied": "Media access denied. Please enable camera and microphone permissions in settings.",
+    "bird_db_load_failed": "Failed to load bird database. Check your storage and connection.",
+    "database_error_title": "Database Error",
+    "nest_build_failed": "Nest Building Failed",
+    "database_setup_problem": "We encountered a problem setting up your bird database",
+    "check_storage_network": "Check your storage space and network connection"
   },
   "account": {
     "title": "Account Details",
@@ -454,7 +460,8 @@
     "cancel": "Cancel",
     "settings": "Settings",
     "continue": "Continue",
-    "close": "Close"
+    "close": "Close",
+    "retry_loading": "Retry Loading"
   },
   "warnings": {
     "media_permission_required": "Media access is required to save photos and recordings. Please enable access in settings."
@@ -508,7 +515,16 @@
     "loading_application": "Loading application...",
     "loading_fonts_assets": "Loading fonts and assets...",
     "initializing_local_db": "Initializing local database...",
-    "loading_ai_models": "Loading AI models..."
+    "loading_ai_models": "Loading AI models...",
+    "preparing_bird_database": "Preparing Your Bird Database",
+    "loading_species_data": "Loading Species Data",
+    "species_loaded": "{{count}} species loaded",
+    "building_database": "Building comprehensive bird identification database...",
+    "first_launch_hint": "This may take a moment on first launch",
+    "init_failed": "Initialization Failed",
+    "building_database2": "Building your bird database",
+    "species_loaded_label": "Species Loaded",
+    "total_species": "Total Species"
   },
   "log_screens": {
     "manual_title": "Manual input / saving entry",

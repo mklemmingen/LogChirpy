@@ -85,7 +85,8 @@
     "back_to_account": "العودة إلى الحساب",
     "cancel": "إلغاء",
     "save": "حفظ",
-    "confirm": "تأكيد"
+    "confirm": "تأكيد",
+    "try_again": "حاول مرة أخرى"
   },
   "auth": {
     "welcome_back": "مرحباً بعودتك",
@@ -134,7 +135,12 @@
     "no_photo_path": "خطأ: لا يوجد مسار للصورة.",
     "save_photo_failed": "فشل في حفظ الصورة: {{message}}",
     "capture_failed": "فشل في التقاط الصورة: {{message}}",
-    "detection_failed": "خطأ في الكشف: {{message}}"
+    "detection_failed": "خطأ في الكشف: {{message}}",
+    "bird_db_load_failed": "فشل تحميل قاعدة بيانات الطيور. تحقق من التخزين والاتصال.",
+    "database_error_title": "خطأ في قاعدة البيانات",
+    "nest_build_failed": "فشل بناء العش",
+    "database_setup_problem": "حدثت مشكلة أثناء إعداد قاعدة بيانات الطيور",
+    "check_storage_network": "تحقق من مساحة التخزين لديك واتصال الشبكة"
   },
   "account": {
     "title": "تفاصيل الحساب",
@@ -255,7 +261,8 @@
     "cancel": "إلغاء",
     "settings": "الإعدادات",
     "continue": "متابعة",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "retry_loading": "إعادة التحميل"
   },
   "birdnet": {
     "identify_button": "تحديد هوية الطائر (ذكاء اصطناعي)",
@@ -315,7 +322,16 @@
     "loading_application": "جارٍ تحميل التطبيق...",
     "loading_fonts_assets": "جارٍ تحميل الخطوط والموارد...",
     "initializing_local_db": "جارٍ تهيئة قاعدة البيانات المحلية...",
-    "loading_ai_models": "جارٍ تحميل نماذج الذكاء الاصطناعي..."
+    "loading_ai_models": "جارٍ تحميل نماذج الذكاء الاصطناعي...",
+    "preparing_bird_database": "جاري تجهيز قاعدة بيانات الطيور الخاصة بك",
+    "loading_species_data": "جارٍ تحميل بيانات الأنواع",
+    "species_loaded": "{{count}} نوع تم تحميلها",
+    "building_database": "يتم إنشاء قاعدة بيانات لتحديد الطيور...",
+    "first_launch_hint": "قد يستغرق الأمر بعض الوقت عند التشغيل الأول",
+    "init_failed": "فشل التهيئة",
+    "building_database2": "يتم إنشاء قاعدة بيانات الطيور الخاصة بك",
+    "species_loaded_label": "تم تحميل الأنواع",
+    "total_species": "إجمالي الأنواع"
   },
   "camera_advanced": {
     "media_permission_denied": "تم رفض إذن مكتبة الوسائط",

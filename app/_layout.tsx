@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import { ThemedIcon } from '@/components/ThemedIcon';
+import { useTranslation } from 'react-i18next';
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -153,6 +154,7 @@ function LoadingAnimation() {
  * @param props.localDbReady - Whether the local database is ready
  */
 function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void; localDbReady: boolean }) {
+    const { t } = useTranslation();
     const { isReady, isLoading, hasError, progress, loadedRecords, error, retry } = useBirdDexDatabase(localDbReady);
     const colors = useColors();
     const typography = useTypography();
@@ -210,11 +212,11 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                     </View>
 
                     <Text style={[typography.h2, { color: colors.text }]}>
-                        Database Error
+                       {t('errors.database_error_title')}
                     </Text>
 
                     <Text style={[typography.body, { color: colors.textSecondary, textAlign: 'center' }]}>
-                        {error || 'Failed to load bird database. Check your storage and connection.'}
+                        {error || t('errors.bird_db_load_failed')}
                     </Text>
 
                     <Pressable
@@ -233,7 +235,7 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                     >
                         <ThemedIcon name="refresh-cw" size={16} color="secondary" />
                         <Text style={[typography.label, { color: colors.textInverse }]}>
-                            Retry Loading
+                             {t('common.retry_loading')}
                         </Text>
                     </Pressable>
                 </View>
@@ -258,7 +260,7 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                             LogChirpy
                         </Text>
                         <Text style={[typography.body, { color: colors.textSecondary }]}>
-                            Preparing Your Bird Database
+                            {t('loading_messages.preparing_bird_database')}
                         </Text>
                     </View>
 
@@ -276,7 +278,7 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                         ]}
                     >
                         <Text style={[typography.h3, { color: colors.text }]}>
-                            Loading Species Data
+                            {t('loading_messages.loading_species_data')}
                         </Text>
 
                         {/* Progress Bar */}
@@ -306,20 +308,20 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                                 </Text>
                                 {loadedRecords > 0 && (
                                     <Text style={[typography.label, { color: colors.textSecondary }]}>
-                                        {loadedRecords.toLocaleString()} species loaded
+                                        {t('loading_messages.species_loaded', {count: loadedRecords})}
                                     </Text>
                                 )}
                             </View>
                         </View>
 
                         <Text style={[typography.bodySmall, { color: colors.textTertiary, textAlign: 'center' }]}>
-                            Building comprehensive bird identification database...
+                            {t('loading_messages.building_database')}
                         </Text>
                     </View>
 
                     {/* Loading Hint */}
                     <Text style={[typography.label, { color: colors.textTertiary, textAlign: 'center' }]}>
-                        This may take a moment on first launch
+                        {t('loading_messages.first_launch_hint')}
                     </Text>
                 </View>
             </Animated.View>
@@ -341,6 +343,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
     error?: string;
     onRetry?: () => void;
 }) {
+    const { t } = useTranslation();
     const colors = useColors();
     const typography = useTypography();
 
@@ -361,7 +364,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
                     </View>
 
                     <Text style={[typography.h2, { color: colors.text }]}>
-                        Initialization Failed
+                        {t('loading_messages.init_failed')}
                     </Text>
 
                     <Text style={[typography.body, { color: colors.textSecondary, textAlign: 'center' }]}>
@@ -385,7 +388,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
                         >
                             <ThemedIcon name="refresh-cw" size={16} color="secondary" />
                             <Text style={[typography.label, { color: colors.textInverse }]}>
-                                Try Again
+                                {t('buttons.try_again')}
                             </Text>
                         </Pressable>
                     )}

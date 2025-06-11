@@ -17,6 +17,7 @@ import Animated, {
     Easing,
 } from 'react-native-reanimated';
 
+import { useTranslation } from 'react-i18next';
 import { ModernCard } from '@/components/ModernCard';
 import { ThemedPressable } from '@/components/ThemedPressable';
 import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
@@ -103,6 +104,7 @@ function ModernProgressBar({ progress }: { progress: number }) {
 }
 
 export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
+    const { t } = useTranslation();
     const { isReady, isLoading, hasError, progress, loadedRecords, totalRecords, error, retry } = useBirdDexDatabase();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
@@ -182,11 +184,11 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                     </Animated.View>
 
                     <Text style={[typography.h1, styles.title]}>
-                        Nest Building Failed
+                        {t('errors.nest_build_failed')} 
                     </Text>
 
                     <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
-                        We encountered a problem setting up your bird database
+                         {t('errors.database_setup_problem')}
                     </Text>
 
                     <Animated.View style={floatingStyle}>
@@ -195,7 +197,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                         >
                             <View style={styles.errorContent}>
                                 <Text style={[typography.body, { color: semanticColors.secondary }]}>
-                                    {error || 'Check your storage space and network connection'}
+                                    {error || t('errors.check_storage_network')} 
                                 </Text>
 
                                 <ThemedPressable
@@ -206,7 +208,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                                 >
                                     <ThemedIcon name="refresh-cw" size={20} color="primary" />
                                     <Text style={[typography.label, { color: semanticColors.primary }]}>
-                                        Try Again
+                                        {t('buttons.try_again')}
                                     </Text>
                                 </ThemedPressable>
                             </View>
@@ -241,7 +243,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                         </Text>
 
                         <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
-                            Building your bird database
+                            {t('loading_messages.building_database2')}
                         </Text>
                     </View>
 
@@ -267,7 +269,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                                             {loadedRecords.toLocaleString()}
                                         </Text>
                                         <Text style={[typography.label, { color: semanticColors.secondary }]}>
-                                            Species Loaded
+                                            {t('loading_messages.species_loaded_label')}
                                         </Text>
                                     </View>
 
@@ -279,7 +281,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
                                                     {totalRecords.toLocaleString()}
                                                 </Text>
                                                 <Text style={[typography.label, { color: semanticColors.secondary }]}>
-                                                    Total Species
+                                                     {t('loading_messages.total_species')}
                                                 </Text>
                                             </View>
                                         </>
@@ -291,7 +293,7 @@ export function DatabaseLoadingScreen({ onReady }: { onReady: () => void }) {
 
                     {/* Loading Hint */}
                     <Text style={[typography.label, styles.hint, { color: semanticColors.secondary }]}>
-                        This may take a moment on first launch
+                        {t('loading_messages.first_launch_hint')}
                     </Text>
                 </Animated.View>
             </SafeAreaView>

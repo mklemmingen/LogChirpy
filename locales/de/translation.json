@@ -85,7 +85,8 @@
     "back_to_account": "Zurück zum Konto",
     "cancel": "Abbrechen",
     "save": "Speichern",
-    "confirm": "Bestätigen"
+    "confirm": "Bestätigen",
+    "try_again": "Erneut versuchen"
   },
   "auth": {
     "welcome_back": "Willkommen zurück",
@@ -136,7 +137,11 @@
     "no_photo_path": "Fehler: Kein Bildpfad.",
     "save_photo_failed": "Speichern des Fotos fehlgeschlagen: {{message}}",
     "capture_failed": "Fotoaufnahme fehlgeschlagen: {{message}}",
-    "detection_failed": "Erkennungsfehler: {{message}}"
+    "detection_failed": "Erkennungsfehler: {{message}}",
+    "bird_db_load_failed": "Vogeldatenbank konnte nicht geladen werden. Überprüfe deinen Speicher und deine Verbindung.",
+    "database_error_title": "Datenbankfehler",
+    "nest_build_failed": "Nestbau fehlgeschlagen",
+    "database_setup_problem": "Beim Einrichten der Vogeldatenbank ist ein Problem aufgetreten"
   },
   "account": {
     "title": "Kontodetails",
@@ -257,7 +262,8 @@
     "cancel": "Abbrechen",
     "settings": "Einstellungen",
     "continue": "Fortfahren",
-    "close": "Schließen"
+    "close": "Schließen",
+    "retry_loading": "Erneut laden"
   },
   "birdnet": {
     "identify_button": "Vogel identifizieren (KI)",
@@ -317,7 +323,16 @@
     "loading_application": "Lade Anwendung...",
     "loading_fonts_assets": "Lade Schriftarten und Assets...",
     "initializing_local_db": "Initialisiere lokale Datenbank...",
-    "loading_ai_models": "Lade KI-Modelle..."
+    "loading_ai_models": "Lade KI-Modelle...",
+    "preparing_bird_database": "Vogeldatenbank wird vorbereitet",
+    "loading_species_data": "Artendaten werden geladen",
+    "species_loaded": "{{count}} Arten geladen",
+    "building_database": "Vogelerkennungsdatenbank wird aufgebaut...",
+    "first_launch_hint": "Dies kann beim ersten Start einen Moment dauern",
+    "init_failed": "Initialisierung fehlgeschlagen",
+    "building_database2": "Vogeldatenbank wird erstellt",
+    "species_loaded_label": "Arten geladen",
+    "total_species": "Gesamtanzahl Arten"
   },
   "camera_advanced": {
     "media_permission_denied": "Medienbibliothek-Berechtigung verweigert",
