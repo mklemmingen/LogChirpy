@@ -38,7 +38,7 @@ import { useSemanticColors, useTypography, useColorVariants } from '@/hooks/useT
 // import { useAuth } from '@/app/context/AuthContext';
 
 // Constants
-const { width } = Dimensions.get('window');
+const { width, height: screenHeight } = Dimensions.get('window');
 
 // Animated components
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -340,6 +340,7 @@ export default function LoginScreen() {
                 style={styles.keyboardView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                enabled={true}
             >
                 <ScrollView
                     style={styles.scrollView}
@@ -478,8 +479,10 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
+        justifyContent: 'flex-start',
         paddingHorizontal: 24,
-        paddingBottom: 40,
+        paddingBottom: 60,
+        minHeight: '100%',
     },
 
     // Background
@@ -499,8 +502,8 @@ const styles = StyleSheet.create({
     // Header
     header: {
         alignItems: 'center',
-        paddingTop: 60,
-        paddingBottom: 40,
+        paddingTop: 40, // Fixed top spacing to prevent jumping
+        paddingBottom: 24,
     },
     logoContainer: {
         width: 80,
@@ -523,6 +526,8 @@ const styles = StyleSheet.create({
     loginCard: {
         marginHorizontal: 0,
         borderWidth: 1,
+        marginTop: 20, // Fixed top margin for stable positioning
+        marginBottom: 40, // Fixed bottom margin to prevent cutting off
     },
     formContainer: {
         padding: 32,
