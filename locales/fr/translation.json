@@ -200,7 +200,8 @@
     "save": "Enregistrer",
     "confirm": "Confirmer",
     "grant_permission": "Autoriser",
-    "close": "Fermer"
+    "close": "Fermer",
+    "try_again": "Réessayer"
   },
   "auth": {
     "welcome_back": "Bon retour",
@@ -252,7 +253,10 @@
     "detection_failed": "Erreur détection : {{message}}",
     "media_permission_denied": "Accès média refusé. Activez les permissions.",
     "bird_db_load_failed": "Échec du chargement de la base de données des oiseaux. Vérifiez votre stockage et votre connexion.",
-    "database_error_title": "Erreur de base de données"
+    "database_error_title": "Erreur de base de données",
+    "nest_build_failed": "Échec de la construction du nid",
+    "database_setup_problem": "Un problème est survenu lors de la configuration de la base de données des oiseaux",
+    "check_storage_network": "Vérifiez votre espace de stockage et votre connexion réseau"
   },
   "account": {
     "title": "Détails du compte",
@@ -471,7 +475,10 @@
     "loading_ai_models": "Chargement modèles IA...",
     "preparing_bird_database": "Préparation de votre base de données d’oiseaux",
     "loading_species_data": "Chargement des données d'espèces",
-    "species_loaded": "{{count}} espèces chargées"
+    "species_loaded": "{{count}} espèces chargées",
+    "building_database2": "Création de votre base de données d'oiseaux",
+    "species_loaded_label": "Espèces chargées",
+    "total_species": "Nombre total d'espèces"
   },
   "log_screens": {
     "manual_title": "Saisie manuelle",

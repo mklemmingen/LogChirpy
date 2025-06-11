@@ -85,7 +85,8 @@
     "back_to_account": "Zurück zum Konto",
     "cancel": "Abbrechen",
     "save": "Speichern",
-    "confirm": "Bestätigen"
+    "confirm": "Bestätigen",
+    "try_again": "Erneut versuchen"
   },
   "auth": {
     "welcome_back": "Willkommen zurück",
@@ -138,7 +139,9 @@
     "capture_failed": "Fotoaufnahme fehlgeschlagen: {{message}}",
     "detection_failed": "Erkennungsfehler: {{message}}",
     "bird_db_load_failed": "Vogeldatenbank konnte nicht geladen werden. Überprüfe deinen Speicher und deine Verbindung.",
-    "database_error_title": "Datenbankfehler"
+    "database_error_title": "Datenbankfehler",
+    "nest_build_failed": "Nestbau fehlgeschlagen",
+    "database_setup_problem": "Beim Einrichten der Vogeldatenbank ist ein Problem aufgetreten"
   },
   "account": {
     "title": "Kontodetails",
@@ -326,7 +329,10 @@
     "species_loaded": "{{count}} Arten geladen",
     "building_database": "Vogelerkennungsdatenbank wird aufgebaut...",
     "first_launch_hint": "Dies kann beim ersten Start einen Moment dauern",
-    "init_failed": "Initialisierung fehlgeschlagen"
+    "init_failed": "Initialisierung fehlgeschlagen",
+    "building_database2": "Vogeldatenbank wird erstellt",
+    "species_loaded_label": "Arten geladen",
+    "total_species": "Gesamtanzahl Arten"
   },
   "camera_advanced": {
     "media_permission_denied": "Medienbibliothek-Berechtigung verweigert",
