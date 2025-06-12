@@ -3,11 +3,13 @@
  * 
  * High-performance bird audio classification using react-native-fast-tflite.
  * Provides offline-first bird identification with intelligent fallback strategies.
+ * Supports multiple whoBIRD models for different use cases.
  */
 
 import { loadTensorflowModel, TensorflowModel, TensorflowModelDelegate } from 'react-native-fast-tflite';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
+import { ModelType, ModelConfig } from './modelConfig';
 
 export interface BirdClassificationResult {
   species: string;
@@ -18,6 +20,7 @@ export interface BirdClassificationResult {
 
 export interface ClassificationMetadata {
   modelVersion: string;
+  modelType: ModelType;
   processingTime: number;
   modelSource: 'tflite' | 'fallback' | 'cache';
   inputShape: number[];
@@ -55,6 +58,7 @@ class FastTfliteBirdClassifierService {
   private model: TensorflowModel | null = null;
   private labels: any[] = [];
   private modelLoaded = false;
+  private currentModelType: ModelType = ModelType.LEGACY;
   private config: FastTfliteConfig;
   private cache = new Map<string, CachedResult>();
   private performanceMetrics: ModelPerformanceMetrics = {
@@ -128,6 +132,78 @@ class FastTfliteBirdClassifierService {
       this.modelLoaded = false;
       return false;
     }
+  }
+
+  /**
+   * Switch to a different model type
+   */
+  async switchModel(modelType: ModelType): Promise<boolean> {
+    try {
+      // If already using this model, no need to switch
+      if (this.currentModelType === modelType && this.modelLoaded) {
+        console.log(`Already using model: ${ModelConfig.getModelInfo(modelType)}`);
+        return true;
+      }
+
+      console.log(`Switching to model: ${ModelConfig.getModelInfo(modelType)}`);
+      
+      // Dispose current model
+      this.dispose();
+      
+      // Update configuration for new model
+      const modelConfig = ModelConfig.getConfiguration(modelType);
+      this.config.modelPath = modelConfig.path;
+      this.currentModelType = modelType;
+      
+      // Load appropriate labels for the model
+      await this.loadLabelsForModel(modelType);
+      
+      // Initialize with new model
+      const success = await this.initialize();
+      
+      if (success) {
+        console.log(`Successfully switched to ${ModelConfig.getModelInfo(modelType)}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Failed to switch model:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get the currently loaded model type
+   */
+  getCurrentModelType(): ModelType {
+    return this.currentModelType;
+  }
+
+  /**
+   * Load labels appropriate for the model type
+   */
+  private async loadLabelsForModel(modelType: ModelType): Promise<void> {
+    try {
+      if (modelType === ModelType.LEGACY) {
+        // Use existing legacy labels
+        this.config.labelsPath = '../assets/models/birdnet/labels.json';
+      } else {
+        // For whoBIRD models, we'll need to use the existing labels initially
+        // In future, we should get the proper 6,522 species labels
+        this.config.labelsPath = '../assets/models/birdnet/labels.json';
+        console.warn(`Using legacy labels for ${modelType}. For full accuracy, obtain proper 6,522 species labels.`);
+      }
+    } catch (error) {
+      console.error('Failed to configure labels for model:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a specific model is currently loaded
+   */
+  isModelLoaded(modelType: ModelType): boolean {
+    return this.modelLoaded && this.currentModelType === modelType;
   }
 
   /**
@@ -251,7 +327,10 @@ class FastTfliteBirdClassifierService {
         
         // If we have labels loaded, check compatibility
         if (this.labels.length > 0 && Math.abs(predictions.length - this.labels.length) > 10) {
-          console.warn(`Prediction count (${predictions.length}) differs significantly from label count (${this.labels.length})`);
+          console.error(`Model validation failed - incompatible model format. Prediction count (${predictions.length}) differs significantly from label count (${this.labels.length})`);
+          console.error('This indicates the TFLite model is not compatible with the current label set.');
+          console.error('Expected: ~6522 classes for BirdNET v2.4, Got:', predictions.length);
+          return false;
         }
         
         console.log('Test inference successful - model is working correctly', {
@@ -364,9 +443,10 @@ class FastTfliteBirdClassifierService {
       const processingTime = Date.now() - startTime;
       const metadata: ClassificationMetadata = {
         modelVersion: '2.4',
+        modelType: this.currentModelType,
         processingTime,
         modelSource: 'tflite',
-        inputShape: [1, 224, 224, 3], // Typical BirdNET input shape
+        inputShape: [1, 224, 224, 3], // Current model input shape
         timestamp: Date.now()
       };
 
@@ -393,12 +473,61 @@ class FastTfliteBirdClassifierService {
   }
 
   /**
+   * Classify bird audio with a specific model type
+   */
+  async classifyBirdAudioWithModel(
+    spectrogramData: Float32Array,
+    modelType: ModelType,
+    audioUri?: string
+  ): Promise<{
+    results: BirdClassificationResult[];
+    metadata: ClassificationMetadata;
+  }> {
+    // Switch to the requested model if not already loaded
+    if (!this.isModelLoaded(modelType)) {
+      const switched = await this.switchModel(modelType);
+      if (!switched) {
+        throw new Error(`Failed to switch to model: ${ModelConfig.getModelInfo(modelType)}`);
+      }
+    }
+
+    // Use the regular classification method
+    return this.classifyBirdAudio(spectrogramData, audioUri);
+  }
+
+  /**
    * Process raw model output into bird classification results
    */
   private processModelOutput(predictions: Float32Array): BirdClassificationResult[] {
     const results: BirdClassificationResult[] = [];
 
-    // Convert predictions to results with labels
+    // Check if model output matches label count
+    if (predictions.length !== this.labels.length) {
+      console.warn(`Model output size (${predictions.length}) doesn't match label count (${this.labels.length}). Using limited classification.`);
+      
+      // Only process up to the available labels or predictions, whichever is smaller
+      const maxIndex = Math.min(predictions.length, this.labels.length);
+      
+      for (let i = 0; i < maxIndex; i++) {
+        const confidence = predictions[i];
+        
+        if (confidence >= this.config.confidenceThreshold) {
+          const label = this.labels[i];
+          if (label) {
+            results.push({
+              species: label.common_name || label.label || `Unknown Species ${i}`,
+              scientificName: label.scientific_name || '',
+              confidence: confidence,
+              index: i
+            });
+          }
+        }
+      }
+      
+      return results.sort((a, b) => b.confidence - a.confidence).slice(0, this.config.maxResults);
+    }
+
+    // Normal processing when sizes match
     for (let i = 0; i < predictions.length; i++) {
       const confidence = predictions[i];
       
