@@ -4,7 +4,7 @@
 
 # Configuration
 PROJECT_ROOT="/home/mklemmingen/WebstormProjects/moco_sose25_logchirpy"
-ASSETS_PATH="assets"
+ASSETS_PATH="assets/images/birds"
 LOG_FILE="$PROJECT_ROOT/dev/image_getters/auto_commit.log"
 MAX_LOG_SIZE=10485760  # 10MB
 
