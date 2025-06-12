@@ -49,7 +49,7 @@ import {BlurView} from 'expo-blur';
 import {useLogDraft} from '@/contexts/LogDraftContext';
 import {BirdSpotting, insertBirdSpotting} from '@/services/database';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
-import {BirdNetService, BirdNetPrediction} from '@/services/birdNetService';
+import {AudioIdentificationService, AudioPrediction} from '@/services/audioIdentificationService';
 import {ModelType} from '@/services/modelConfig';
 
 // Modern components
@@ -101,7 +101,7 @@ export default function EnhancedManual() {
     
     // Bird identification state
     const [isIdentifyingBird, setIsIdentifyingBird] = useState(false);
-    const [birdPredictions, setBirdPredictions] = useState<BirdNetPrediction[]>([]);
+    const [birdPredictions, setBirdPredictions] = useState<AudioPrediction[]>([]);
     const [showPredictions, setShowPredictions] = useState(false);
 
     // Modal states
@@ -397,7 +397,7 @@ export default function EnhancedManual() {
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             
-            const response = await BirdNetService.identifyBirdFromAudio(
+            const response = await AudioIdentificationService.identifyBirdFromAudio(
                 draft.audioUri,
                 {
                     latitude: draft.gpsLat,
@@ -412,11 +412,11 @@ export default function EnhancedManual() {
                 setShowPredictions(true);
                 
                 // Auto-fill with the best prediction
-                const bestPrediction = BirdNetService.getBestPrediction(response.predictions);
+                const bestPrediction = AudioIdentificationService.getBestPrediction(response.predictions);
                 if (bestPrediction) {
                     update({
                         birdType: bestPrediction.common_name,
-                        audioPrediction: `${bestPrediction.common_name} (${BirdNetService.formatConfidenceScore(bestPrediction.confidence)} confidence)`,
+                        audioPrediction: `${bestPrediction.common_name} (${AudioIdentificationService.formatConfidenceScore(bestPrediction.confidence)} confidence)`,
                     });
                 }
                 
@@ -446,10 +446,10 @@ export default function EnhancedManual() {
         }
     }, [draft.audioUri, draft.gpsLat, draft.gpsLng, update, t, showSuccess, showError]);
 
-    const handleSelectPrediction = useCallback((prediction: BirdNetPrediction) => {
+    const handleSelectPrediction = useCallback((prediction: AudioPrediction) => {
         update({
             birdType: prediction.common_name,
-            audioPrediction: `${prediction.common_name} (${BirdNetService.formatConfidenceScore(prediction.confidence)} confidence)`,
+            audioPrediction: `${prediction.common_name} (${AudioIdentificationService.formatConfidenceScore(prediction.confidence)} confidence)`,
         });
         setShowPredictions(false);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1090,7 +1090,7 @@ export default function EnhancedManual() {
                                             </View>
                                             <View style={styles.predictionConfidence}>
                                                 <ThemedText variant="label" color="primary">
-                                                    {BirdNetService.formatConfidenceScore(prediction.confidence)}
+                                                    {AudioIdentificationService.formatConfidenceScore(prediction.confidence)}
                                                 </ThemedText>
                                                 <ThemedIcon name="chevron-right" size={20} color="secondary" />
                                             </View>

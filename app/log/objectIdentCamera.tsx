@@ -32,7 +32,7 @@ import { filePathToUri, copyFileWithProperUri, ensureGalleryDirectory } from '@/
 
 import Slider from '@react-native-community/slider';
 
-import { BirdNetService, BirdNetPrediction } from '@/services/birdNetService';
+import { AudioIdentificationService, AudioPrediction } from '@/services/audioIdentificationService';
 
 import {ThemedSnackbar} from "@/components/ThemedSnackbar";
 import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
@@ -255,14 +255,14 @@ async function initializeAudio(): Promise<boolean> {
         
         // Step 3: Initialize BirdNet service for audio processing
         try {
-            await BirdNetService.initializeOfflineMode();
+            await AudioIdentificationService.initialize();
             console.log('[Audio] BirdNet service initialized successfully');
         } catch (birdNetError) {
             console.error('[Audio] BirdNet initialization failed:', birdNetError);
             
             // Try fallback initialization
             try {
-                await BirdNetService.initializeFastTflite();
+                await AudioIdentificationService.initializeFastTflite();
                 console.log('[Audio] BirdNet FastTflite fallback initialized');
             } catch (fallbackError) {
                 console.error('[Audio] All BirdNet initialization methods failed:', fallbackError);
@@ -327,7 +327,7 @@ async function initializeAudio(): Promise<boolean> {
     }
 }
 
-async function recordAndProcessAudio(): Promise<BirdNetPrediction[]> {
+async function recordAndProcessAudio(): Promise<AudioPrediction[]> {
     let recording: Audio.Recording | null = null;
     let audioUri: string | null = null;
     
@@ -354,7 +354,7 @@ async function recordAndProcessAudio(): Promise<BirdNetPrediction[]> {
         // Use MData V2 FP16 model for real-time camera processing (has embedded labels)
         let result;
         try {
-            result = await BirdNetService.identifyBirdFromAudio(audioUri, {
+            result = await AudioIdentificationService.identifyBirdFromAudio(audioUri, {
                 modelType: ModelType.MDATA_V2_FP16
             });
             
@@ -486,7 +486,7 @@ function ObjectIdentCameraContent() {
     const [modalVisible, setModalVisible] = useState(false);
 
     // Audio processing state
-    const [audioResults, setAudioResults] = useState<BirdNetPrediction[]>([]);
+    const [audioResults, setAudioResults] = useState<AudioPrediction[]>([]);
     const [audioProcessing, setAudioProcessing] = useState(false);
     const [audioError, setAudioError] = useState<string | null>(null);
     const [audioInitialized, setAudioInitialized] = useState(false);
@@ -1141,7 +1141,7 @@ function ObjectIdentCameraContent() {
                                                         height={18}
                                                         rx={4}
                                                         ry={4}
-                                                        fill="black"
+                                                        fill="rgba(0,0,0,0.8)"
                                                         fillOpacity={0.5}
                                                     />
                                                     <SvgText
@@ -1419,19 +1419,26 @@ function ObjectIdentCameraContent() {
                                 );
                             })}
                         </View>
-                        <View style={styles.modalButtons}>
-                            <Button title={t('buttons.close')} onPress={() => {
-                                // Safe modal close to prevent view conflicts
-                                setModalVisible(false);
-                                setShowOverlays(true);
-                                // Delay clearing the URI to ensure modal is fully unmounted
-                                setTimeout(() => {
-                                    setModalPhotoUri(null);
-                                }, 100);
-                            }} />
+                        <View style={[styles.modalButtons, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
+                            <TouchableOpacity 
+                                style={[styles.modalButton, { backgroundColor: currentTheme.colors.interactive.primary }]}
+                                onPress={() => {
+                                    // Safe modal close to prevent view conflicts
+                                    setModalVisible(false);
+                                    setShowOverlays(true);
+                                    // Delay clearing the URI to ensure modal is fully unmounted
+                                    setTimeout(() => {
+                                        setModalPhotoUri(null);
+                                    }, 100);
+                                }}
+                            >
+                                <Text style={[styles.modalButtonText, { color: currentTheme.colors.text.inverse }]}>
+                                    {t('buttons.close')}
+                                </Text>
+                            </TouchableOpacity>
                             {/* Optional, havent fully fletched out the UX yet */}
-                            {/* <Button title="Delete" onPress={...} /> */}
-                            {/* <Button title="Save" onPress={...} /> */}
+                            {/* <TouchableOpacity title="Delete" onPress={...} /> */}
+                            {/* <TouchableOpacity title="Save" onPress={...} /> */}
                         </View>
                     </View>
                 )}
@@ -1483,7 +1490,21 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         width: '100%',
         paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderRadius: 12,
+        marginHorizontal: 20,
         zIndex: 10, // Ensure modal buttons are above the SVG overlay
+    },
+    modalButton: {
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
+        minWidth: 100,
+        alignItems: 'center',
+    },
+    modalButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
     statusBadge: {
         position: 'absolute',

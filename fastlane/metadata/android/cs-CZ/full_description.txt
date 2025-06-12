@@ -1,0 +1,15 @@
+LogChirpy je dokonalý společník pro pozorování ptáků, který změní vaše mobilní zařízení na mocný ornitologický nástroj! S identifikací poháněnou umělou inteligencí a komplexními funkcemi pro zaznamenávání vám LogChirpy pomůže dokumentovat a objevovat svět ptáků jako nikdy předtím.
+
+Klíčové funkce:
+• Identifikujte ptáky podle jejich zvuků pomocí pokročilé technologie BirdNET
+• Rozpoznávejte ptáky na fotografiích pomocí strojového učení na zařízení
+• Zaznamenávejte pozorování s GPS souřadnicemi, fotografiemi a podrobnými poznámkami
+• Přístup ke komplexní databázi více než 30 000 druhů ptáků po celém světě
+• Synchronizujte svá pozorování napříč zařízeními s cloudovým zálohováním
+• Sdílejte své objevy s komunitou pozorovatelů ptáků
+
+Navrženo pro nadšence ptáků všech úrovní, LogChirpy funguje zcela offline s lokálními modely umělé inteligence, což zajišťuje, že můžete identifikovat a zaznamenávat ptáky kdekoli - od vzdálené divočiny po městské parky. Vaše data jsou bezpečně uložena s volitelnou cloudovou synchronizací.
+
+Dostupné v 6 jazycích: angličtina, němčina, španělština, francouzština, ukrajinština a arabština.
+
+Aplikace vyžaduje systém Android 9+

@@ -39,7 +39,7 @@ import {
 
 // Database imports
 import { initDB } from '@/services/database';
-import { BirdNetService } from '@/services/birdNetService';
+import { AudioIdentificationService } from '@/services/audioIdentificationService';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -524,7 +524,7 @@ export default function RootLayout() {
         const initializeOfflineModel = async () => {
             try {
                 console.log('Initializing offline bird classification model...');
-                await BirdNetService.initializeOfflineMode();
+                await AudioIdentificationService.initialize();
                 setOfflineModelReady(true);
                 console.log('Offline bird classification model initialized successfully');
             } catch (error) {

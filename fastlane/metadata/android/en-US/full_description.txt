@@ -1,0 +1,15 @@
+LogChirpy is the ultimate bird watching companion that transforms your mobile device into a powerful ornithological tool! With AI-powered identification and comprehensive logging features, LogChirpy helps you document and explore the world of birds like never before.
+
+Key Features:
+• Identify birds by their sounds using advanced BirdNET technology
+• Recognize birds through photos with on-device machine learning
+• Log sightings with GPS coordinates, photos, and detailed notes
+• Access a comprehensive database of 30,000+ bird species worldwide
+• Sync your observations across devices with cloud backup
+• Share your discoveries with the birding community
+
+Built for bird enthusiasts of all levels, LogChirpy works entirely offline with local AI models, ensuring you can identify and log birds anywhere - from remote wilderness to urban parks. Your data is stored securely with optional cloud synchronization.
+
+Available in 6 languages: English, German, Spanish, French, Ukrainian, and Arabic.
+
+The app requires Android 9+
