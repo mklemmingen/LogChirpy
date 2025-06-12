@@ -33,7 +33,7 @@ export class AudioPreprocessingTFLite {
     sampleRate: 48000,      // BirdNET v2.4 uses 48kHz
     windowSize: 2048,       // FFT window size (for low-freq channel)
     hopLength: 278,         // Hop length for low-freq (as per BirdNET docs)
-    nMels: 96,             // 96 mel bins per channel (BirdNET v2.4 spec)
+    nMels: 224,            // 224 mel bins to match TFLite model input (224x224x3)
     fMin: 0,               // Minimum frequency for low-freq channel
     fMax: 3000,            // Maximum frequency for low-freq channel (3kHz)
     duration: 3.0,         // 3-second audio clips
@@ -45,7 +45,7 @@ export class AudioPreprocessingTFLite {
     sampleRate: 48000,
     windowSize: 1024,      // Smaller window for high-freq channel
     hopLength: 280,        // Hop length for high-freq
-    nMels: 96,             // 96 mel bins per channel
+    nMels: 224,            // 224 mel bins to match TFLite model input (224x224x3)
     fMin: 500,             // 500 Hz minimum for high-freq channel
     fMax: 15000,           // 15 kHz maximum for high-freq channel
     duration: 3.0,
@@ -588,8 +588,8 @@ export class AudioPreprocessingTFLite {
     // We need to convert our mel-spectrogram to this format
     
     const batchSize = 1;
-    const height = this.config.nMels; // 224
-    const width = 224;
+    const height = 224;  // Fixed to 224 for BirdNET model
+    const width = 224;   // Fixed to 224 for BirdNET model
     const channels = 3;
     
     const totalSize = batchSize * height * width * channels;

@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 type SQLiteDatabase = SQLite.SQLiteDatabase;
 
-const ASSET_CSV = require('../assets/birds_fully_translated.csv');
+const ASSET_CSV = require('../assets/data/birds_fully_translated.csv');
 const BIRDDEX_VERSION = 'Clements-v2024-simplified-v1';
 const EXPECTED_MIN_RECORDS = 25000; // Minimum expected bird records
 const EXPECTED_MAX_RECORDS = 40000; // Maximum expected bird records
@@ -511,7 +511,14 @@ class BirdDexDatabase {
             const requiredNotNullColumns = ['species_code', 'english_name', 'scientific_name'];
             for (const colName of requiredNotNullColumns) {
                 const col = schema.find((c: any) => c.name === colName);
-                if (!col || (col as any).notnull !== 1) {
+                if (!col) {
+                    console.log(`Column ${colName} not found`);
+                    return false;
+                }
+                
+                // Check if column is NOT NULL (either explicitly or via PRIMARY KEY)
+                const isNotNull = (col as any).notnull === 1 || (col as any).pk === 1;
+                if (!isNotNull) {
                     console.log(`Column ${colName} should be NOT NULL`);
                     return false;
                 }
