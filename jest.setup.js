@@ -93,3 +93,22 @@ jest.mock('../assets/models/birdnet/labels.json', () => ({
 
 // Mock CSV files
 jest.mock('../assets/birds_fully_translated.csv', () => 'mock-csv-data', { virtual: true });
+
+// Mock whoBIRD TFLite models and related assets
+jest.mock('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP16.tflite', () => 'mock-whobird-fp16-path', { virtual: true });
+jest.mock('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite', () => 'mock-whobird-fp32-path', { virtual: true });
+jest.mock('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite', () => 'mock-whobird-mdata-fp16-path', { virtual: true });
+jest.mock('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite', () => 'mock-whobird-mdata-v2-fp16-path', { virtual: true });
+
+// Mock react-native-fast-tflite
+jest.mock('react-native-fast-tflite', () => {
+  return require('./__mocks__/react-native-fast-tflite');
+});
+
+// Mock any additional ML Kit dependencies
+jest.mock('@infinitered/react-native-mlkit-object-detection', () => ({
+  ObjectDetection: {
+    initialize: jest.fn().mockResolvedValue(undefined),
+    detect: jest.fn().mockResolvedValue([]),
+  },
+}));

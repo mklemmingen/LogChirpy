@@ -7,7 +7,6 @@
 
 import { BirdNetService } from '../services/birdNetService';
 import { ModelType, ModelConfig } from '../services/modelConfig';
-import { fastTfliteBirdClassifier } from '../services/fastTfliteBirdClassifier';
 
 const FOREST_BIRD_AUDIO_PATH = '/home/mklemmingen/WebstormProjects/moco_sose25_logchirpy/assets/mixkit-forest-birds-singing-1212.mp3';
 
