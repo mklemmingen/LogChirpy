@@ -1,5 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 
+// Extend Performance interface to include memory property for environments that support it
+interface PerformanceWithMemory extends Performance {
+  memory?: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
+}
+
 /**
  * Memory and FPS Monitor Component
  * 
@@ -36,12 +45,13 @@ export function MemoryMonitor() {
       // Calculate FPS
       const fps = frameCountRef.current / (deltaTime / 1000);
       
-      // Get memory info if available
+      // Get memory info if available (cast performance to extended interface)
       let memoryInfo = '';
-      if (performance.memory) {
-        const used = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
-        const total = (performance.memory.totalJSHeapSize / 1024 / 1024).toFixed(1);
-        const limit = (performance.memory.jsHeapSizeLimit / 1024 / 1024).toFixed(1);
+      const performanceWithMemory = performance as PerformanceWithMemory;
+      if (performanceWithMemory.memory) {
+        const used = (performanceWithMemory.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+        const total = (performanceWithMemory.memory.totalJSHeapSize / 1024 / 1024).toFixed(1);
+        const limit = (performanceWithMemory.memory.jsHeapSizeLimit / 1024 / 1024).toFixed(1);
         memoryInfo = `Memory: ${used}MB used / ${total}MB total (limit: ${limit}MB)`;
       } else {
         memoryInfo = 'Memory: Not available on this platform';

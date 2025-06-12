@@ -215,10 +215,13 @@ class FastTfliteBirdClassifierService {
       
       // Check if model has tensor information (available in newer versions)
       let tensorInfoAvailable = false;
+      let inputs: any = null;
+      let outputs: any = null;
+      
     try {
         // Try to access tensor information if available
-        const inputs = (model as any).inputs;
-        const outputs = (model as any).outputs;
+        inputs = (model as any).inputs;
+        outputs = (model as any).outputs;
         
         if (inputs && outputs) {
           tensorInfoAvailable = true;
@@ -260,9 +263,16 @@ class FastTfliteBirdClassifierService {
           
           // For audio models, we expect reasonable dimensions for mel-spectrograms
           // Common shapes: [1, 144, 144], [1, 144, 144, 1], [1, time_steps, freq_bins]
-          const totalInputSize = inputShape.reduce((acc: number, dim: number) => acc * (dim === -1 ? 1 : Math.abs(dim)), 1);
-          if (totalInputSize < 1000 || totalInputSize > 1000000) {
-            console.warn(`Input tensor size ${totalInputSize} seems unusual for audio model. Expected 1K-1M elements.`);
+          const totalInputSize = inputShape.reduce((acc: number, dim: number) => {
+            const actualDim = dim === -1 ? 1 : Math.abs(dim);
+            return acc * actualDim;
+          }, 1);
+          
+          // Audio models should have input size between 10K-1M elements for melspectrograms
+          if (totalInputSize < 10000 || totalInputSize > 1000000) {
+            console.warn(`Input tensor size ${totalInputSize} seems unusual for audio model. Expected 10K-1M elements for melspectrogram.`);
+          } else {
+            console.log(`Audio model input size validation passed: ${totalInputSize} elements`);
           }
           
           console.log('Audio model input shape validation passed:', inputShape);
@@ -296,10 +306,20 @@ class FastTfliteBirdClassifierService {
       console.log('Performing test inference to validate model functionality...');
       
       // Create test input based on actual model input shape
-      let testInputSize = 144 * 144; // Default for audio model
+      let testInputSize = 144 * 144; // Default for audio model (melspectrogram)
       if (tensorInfoAvailable && inputs && inputs.length > 0) {
         const inputShape = inputs[0].shape;
-        testInputSize = inputShape.reduce((acc: number, dim: number) => acc * (dim === -1 ? 1 : Math.abs(dim)), 1);
+        // Calculate total size, handling dynamic dimensions (-1) as 1
+        testInputSize = inputShape.reduce((acc: number, dim: number) => {
+          const actualDim = dim === -1 ? 1 : Math.abs(dim);
+          return acc * actualDim;
+        }, 1);
+        
+        // Ensure minimum size for audio models (should be at least 20K elements for melspectrogram)
+        if (testInputSize < 20000) {
+          console.warn(`Calculated input size ${testInputSize} seems too small for audio model. Using default 144x144 = 20736`);
+          testInputSize = 144 * 144;
+        }
       }
       
       const testInput = new Float32Array(testInputSize);

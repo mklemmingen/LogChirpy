@@ -1168,25 +1168,4 @@ export function getBirdBySpeciesCode(speciesCode: string): BirdDexRecord | null 
     }
 }
 
-// Utility functions
-export function cleanupDatabase(): void {
-    try {
-        if (db) {
-            DB().execSync('PRAGMA optimize;');
-            DB().execSync('PRAGMA wal_checkpoint(TRUNCATE);');
-        }
-    } catch (err) {
-        console.error('Database cleanup error:', err);
-    }
-}
-
-// Legacy function exports for backward compatibility (marked as deprecated)
-/** @deprecated Use birdDexDB.getState().status === 'ready' instead */
-export function isDbReady(): boolean {
-    return birdDexDB.getState().status === 'ready';
-}
-
-/** @deprecated Use birdDexDB.initialize() instead */
-export function initBirdDexDB(): Promise<void> {
-    return birdDexDB.initialize();
-}
+// End of file - all functions above are actively used
