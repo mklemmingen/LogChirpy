@@ -81,10 +81,10 @@ function EmptyState({ onStartLogging }: { onStartLogging: () => void }) {
             variant="primary"
             size="lg"
             onPress={onStartLogging}
-            style={styles.startButton}
+            style={[styles.startButton, { backgroundColor: colors.primary }]}
         >
-          <ThemedIcon name="plus" size={20} color="primary" />
-          <ThemedText variant="label" color="primary">
+          <ThemedIcon name="plus" size={20} color="inverse" />
+          <ThemedText variant="label" style={{ color: colors.textInverse }}>
             {t('archive.start_logging')}
           </ThemedText>
         </ThemedPressable>

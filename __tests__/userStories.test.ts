@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import { BirdNetService } from '../services/birdNetService';
+import { AudioIdentificationService } from '../services/audioIdentificationService';
 import { insertBirdSpotting, getBirdSpottings } from '../services/database';
 import { searchBirdsByName, getBirdBySpeciesCode } from '../services/databaseBirDex';
 
@@ -49,11 +49,11 @@ describe('User Story Tests', () => {
           source: 'tflite' as const,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockIdentificationResult);
+        (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockResolvedValue(mockIdentificationResult);
 
         // Simulate user taking photo and getting identification
         const photoUri = 'file:///path/to/photo.jpg';
-        const result = await BirdNetService.identifyBirdFromAudio(photoUri);
+        const result = await AudioIdentificationService.identifyBirdFromAudio(photoUri);
 
         expect(result.success).toBe(true);
         expect(result.predictions).toHaveLength(1);
@@ -63,13 +63,13 @@ describe('User Story Tests', () => {
 
       it('should handle failed bird identification gracefully', async () => {
         // Mock failed identification
-        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockRejectedValue(
+        (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockRejectedValue(
           new Error('Network connection failed')
         );
 
         const photoUri = 'file:///path/to/photo.jpg';
         
-        await expect(BirdNetService.identifyBirdFromAudio(photoUri))
+        await expect(AudioIdentificationService.identifyBirdFromAudio(photoUri))
           .rejects.toThrow('Network connection failed');
       });
 
@@ -92,10 +92,10 @@ describe('User Story Tests', () => {
           fallback_used: false,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockOfflineResult);
+        (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockResolvedValue(mockOfflineResult);
 
         const photoUri = 'file:///path/to/photo.jpg';
-        const result = await BirdNetService.identifyBirdFromAudio(photoUri);
+        const result = await AudioIdentificationService.identifyBirdFromAudio(photoUri);
 
         expect(result.source).toBe('tflite');
         expect(result.success).toBe(true);
@@ -121,10 +121,10 @@ describe('User Story Tests', () => {
           source: 'tflite' as const,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockAudioResult);
+        (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockResolvedValue(mockAudioResult);
 
         const audioUri = 'file:///path/to/recording.wav';
-        const result = await BirdNetService.identifyBirdFromAudio(audioUri);
+        const result = await AudioIdentificationService.identifyBirdFromAudio(audioUri);
 
         expect(result.success).toBe(true);
         expect(result.predictions[0].common_name).toBe('Wood Thrush');
@@ -156,10 +156,10 @@ describe('User Story Tests', () => {
           source: 'tflite' as const,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockMultiSpeciesResult);
+        (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockResolvedValue(mockMultiSpeciesResult);
 
         const audioUri = 'file:///path/to/multi-bird-recording.wav';
-        const result = await BirdNetService.identifyBirdFromAudio(audioUri);
+        const result = await AudioIdentificationService.identifyBirdFromAudio(audioUri);
 
         expect(result.predictions).toHaveLength(2);
         expect(result.predictions[0].confidence).toBeGreaterThan(result.predictions[1].confidence);
@@ -384,7 +384,7 @@ describe('User Story Tests', () => {
           audio_duration: 3.0,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockIdentification);
+        (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockResolvedValue(mockIdentification);
 
         // Step 2: Save to database
         (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(undefined);
@@ -411,7 +411,7 @@ describe('User Story Tests', () => {
         const photoUri = 'file:///test-photo.jpg';
         
         // Identify
-        const identification = await BirdNetService.identifyBirdFromAudio(photoUri);
+        const identification = await AudioIdentificationService.identifyBirdFromAudio(photoUri);
         expect(identification.success).toBe(true);
 
         // Save
@@ -454,13 +454,13 @@ describe('User Story Tests', () => {
           audio_duration: 3.0,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockOfflineResult);
+        (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockResolvedValue(mockOfflineResult);
 
         // Mock local database operations
         (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(undefined);
 
         // Execute offline workflow
-        const result = await BirdNetService.identifyBirdFromAudio(
+        const result = await AudioIdentificationService.identifyBirdFromAudio(
           'file:///photo.jpg'
         );
 
@@ -495,10 +495,10 @@ describe('User Story Tests', () => {
           source: 'tflite' as const,
         };
 
-        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockResolvedValue(mockFastResult);
+        (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockResolvedValue(mockFastResult);
 
         const startTime = Date.now();
-        const result = await BirdNetService.identifyBirdFromAudio('file:///photo.jpg');
+        const result = await AudioIdentificationService.identifyBirdFromAudio('file:///photo.jpg');
         const endTime = Date.now();
 
         expect(result.processing_time).toBeLessThan(5000);
@@ -533,20 +533,20 @@ describe('User Story Tests', () => {
   describe('🛡️ Error Handling Stories', () => {
     describe('As a user, I want graceful error handling', () => {
       it('should handle network errors gracefully', async () => {
-        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockRejectedValue(
+        (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockRejectedValue(
           new Error('Network request failed')
         );
 
-        await expect(BirdNetService.identifyBirdFromAudio('file:///photo.jpg'))
+        await expect(AudioIdentificationService.identifyBirdFromAudio('file:///photo.jpg'))
           .rejects.toThrow('Network request failed');
       });
 
       it('should handle invalid file errors', async () => {
-        (BirdNetService.identifyBirdFromAudio as jest.MockedFunction<typeof BirdNetService.identifyBirdFromAudio>).mockRejectedValue(
+        (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockRejectedValue(
           new Error('Audio file not found')
         );
 
-        await expect(BirdNetService.identifyBirdFromAudio('invalid://path'))
+        await expect(AudioIdentificationService.identifyBirdFromAudio('invalid://path'))
           .rejects.toThrow('Audio file not found');
       });
 

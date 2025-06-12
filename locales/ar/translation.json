@@ -180,7 +180,13 @@
   "audio": {
     "start": "بدء التسجيل",
     "stop": "إيقاف واستخدام التسجيل",
-    "saving": "جارٍ معالجة الصوت…"
+    "saving": "جارٍ معالجة الصوت…",
+    "audio_initialization_failed": "فشل تهيئة الصوت",
+    "audio_system_unavailable": "نظام الصوت غير متاح",
+    "audio_processing_failed": "فشل معالجة الصوت",
+    "listening": "يستمع...",
+    "audio_ready": "الصوت جاهز",
+    "audio_error": "خطأ في الصوت"
   },
   "log": {
     "add_audio": "إضافة صوت",
@@ -201,7 +207,10 @@
     "audio_prediction": "توقع الصوت",
     "select_date": "اختر التاريخ",
     "stop_audio": "إيقاف الصوت",
-    "play_audio": "تشغيل الصوت"
+    "play_audio": "تشغيل الصوت",
+    "media_section": "الوسائط",
+    "details_section": "التفاصيل",
+    "metadata_section": "البيانات الوصفية"
   },
   "camera": {
     "take_photo": "التقاط صورة",
@@ -214,6 +223,7 @@
     "not_ready": "الكاميرا غير جاهزة",
     "wait_ready": "يرجى الانتظار حتى تصبح الكاميرا جاهزة.",
     "requesting_access": "جارٍ طلب الوصول...",
+    "requesting_permission": "جارٍ طلب إذن الكاميرا...",
     "checking_access": "جارٍ التحقق من الوصول إلى الكاميرا...",
     "need_permission": "نحتاج إلى الوصول إلى الكاميرا الخاصة بك",
     "allow_access": "السماح بالوصول",
@@ -312,6 +322,9 @@
     "signup_error": "تعذر إنشاء الحساب",
     "error_signing_out": "تعذر تسجيل الخروج",
     "confirm_password_required": "يرجى تأكيد كلمة المرور",
+    "welcome_back": "مرحباً بعودتك!",
+    "account_created_successfully": "تم إنشاء الحساب بنجاح!",
+    "signing_in": "جارٍ تسجيل الدخول...",
     "passwords_do_not_match": "كلمات المرور غير متطابقة",
     "confirm_password_placeholder": "تأكيد كلمة المرور"
   },
@@ -363,7 +376,10 @@
     "smart_search_description": "البحث الذكي عن الطيور",
     "archive_description": "أرشيف الطيور الخاص بك",
     "account_description": "إعدادات الحساب",
-    "settings_description": "إعدادات التطبيق"
+    "settings_description": "إعدادات التطبيق",
+    "unsaved_changes": "تغييرات غير محفوظة",
+    "lose_changes_message": "لديك تغييرات غير محفوظة. هل أنت متأكد من أنك تريد المغادرة؟",
+    "discard": "تجاهل"
   },
   "not_found": {
     "page_title": "الصفحة غير موجودة",

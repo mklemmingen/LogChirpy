@@ -1,0 +1,15 @@
+LogChirpy és el company definitiu d'observació d'ocells que transforma el teu dispositiu mòbil en una potent eina ornitològica! Amb identificació alimentada per IA i funcions de registre integrals, LogChirpy t'ajuda a documentar i explorar el món dels ocells com mai abans.
+
+Característiques principals:
+• Identifica ocells pels seus sons utilitzant la tecnologia avançada BirdNET
+• Reconeix ocells a través de fotos amb aprenentatge automàtic al dispositiu
+• Registra avistaments amb coordenades GPS, fotos i notes detallades
+• Accés a una base de dades integral de més de 30.000 espècies d'ocells a tot el món
+• Sincronitza les teves observacions entre dispositius amb còpia de seguretat al núvol
+• Comparteix els teus descobriments amb la comunitat ornitològica
+
+Construït per a entusiastes dels ocells de tots els nivells, LogChirpy funciona completament fora de línia amb models d'IA locals, assegurant que puguis identificar i registrar ocells a qualsevol lloc - des de la natura remota fins als parcs urbans. Les teves dades s'emmagatzemen de forma segura amb sincronització opcional al núvol.
+
+Disponible en 6 idiomes: anglès, alemany, espanyol, francès, ucraïnès i àrab.
+
+L'aplicació requereix Android 9+

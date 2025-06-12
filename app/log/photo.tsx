@@ -11,6 +11,7 @@ import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {theme} from '@/constants/theme';
 import {useLogDraft} from '@/contexts/LogDraftContext';
+import { filePathToUri } from '@/services/uriUtils';
 
 export default function PhotoCapture() {
   const { t } = useTranslation();
@@ -39,7 +40,8 @@ export default function PhotoCapture() {
         if (response.assets && response.assets[0]) {
           const asset = response.assets[0];
           if (asset.uri) {
-            update({ imageUri: asset.uri });
+            // Ensure proper URI formatting for React Native Image component
+            update({ imageUri: filePathToUri(asset.uri) });
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             router.back();
           }
@@ -79,8 +81,8 @@ export default function PhotoCapture() {
                 onPress={handleCameraLaunch}
                 style={styles.actionButton}
             >
-              <ThemedIcon name="camera" size={24} color="primary" />
-              <ThemedText variant="labelLarge" color="primary">
+              <ThemedIcon name="camera" size={24} color="inverse" />
+              <ThemedText variant="labelLarge" color="inverse">
                 {t('photo.take_photos')}
               </ThemedText>
             </ThemedPressable>

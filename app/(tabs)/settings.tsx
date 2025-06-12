@@ -735,7 +735,7 @@ export default function SettingsScreen() {
                             
                             <View style={styles.creatorsSection}>
                                 <ThemedText variant="bodyLarge" style={styles.creatorsTitle}>
-                                    {t("settings.about.created_by")}
+                                    Created by
                                 </ThemedText>
                                 
                                 <ThemedPressable
@@ -749,10 +749,16 @@ export default function SettingsScreen() {
                                     <View style={styles.creatorContent}>
                                         <ThemedIcon name="github" size={20} color="primary" />
                                         <ThemedText variant="body" style={styles.creatorName}>
-                                            Marty "mklemmingen" Lauterbach
+                                            Marty Lauterbach
                                         </ThemedText>
                                     </View>
                                 </ThemedPressable>
+                            </View>
+                            
+                            <View style={styles.creatorsSection}>
+                                <ThemedText variant="bodyLarge" style={styles.creatorsTitle}>
+                                    Online Storage Solution by
+                                </ThemedText>
                                 
                                 <ThemedPressable
                                     variant="ghost"

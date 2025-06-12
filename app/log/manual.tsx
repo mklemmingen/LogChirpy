@@ -49,7 +49,8 @@ import {BlurView} from 'expo-blur';
 import {useLogDraft} from '@/contexts/LogDraftContext';
 import {BirdSpotting, insertBirdSpotting} from '@/services/database';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
-import {BirdNetService, BirdNetPrediction} from '@/services/birdNetService';
+import {AudioIdentificationService, AudioPrediction} from '@/services/audioIdentificationService';
+import {ModelType} from '@/services/modelConfig';
 
 // Modern components
 import {ThemedView, Card} from '@/components/ThemedView';
@@ -59,6 +60,9 @@ import {useSnackbar} from '@/components/ThemedSnackbar';
 
 // Theme hooks
 import {useColors, useTypography, useBorderRadius, useShadows, useSpacing} from '@/hooks/useThemeColor';
+
+// URI utilities
+import { filePathToUri } from '@/services/uriUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -93,10 +97,11 @@ export default function EnhancedManual() {
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+    const [imageLoadError, setImageLoadError] = useState(false);
     
     // Bird identification state
     const [isIdentifyingBird, setIsIdentifyingBird] = useState(false);
-    const [birdPredictions, setBirdPredictions] = useState<BirdNetPrediction[]>([]);
+    const [birdPredictions, setBirdPredictions] = useState<AudioPrediction[]>([]);
     const [showPredictions, setShowPredictions] = useState(false);
 
     // Modal states
@@ -211,17 +216,21 @@ export default function EnhancedManual() {
         const updates: Partial<BirdSpotting> = {};
 
         if (params.audioUri && params.audioUri !== draft.audioUri) {
-            updates.audioUri = params.audioUri as string;
+            updates.audioUri = filePathToUri(params.audioUri as string);
         }
         if (params.imageUri && params.imageUri !== draft.imageUri) {
-            updates.imageUri = params.imageUri as string;
+            updates.imageUri = filePathToUri(params.imageUri as string);
         }
         if (params.videoUri && params.videoUri !== draft.videoUri) {
-            updates.videoUri = params.videoUri as string;
+            updates.videoUri = filePathToUri(params.videoUri as string);
         }
 
         if (Object.keys(updates).length > 0) {
             update(updates);
+            // Reset image load error when new image is set
+            if (updates.imageUri) {
+                setImageLoadError(false);
+            }
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
     }, [params, draft, update]);
@@ -388,12 +397,13 @@ export default function EnhancedManual() {
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             
-            const response = await BirdNetService.identifyBirdFromAudio(
+            const response = await AudioIdentificationService.identifyBirdFromAudio(
                 draft.audioUri,
                 {
                     latitude: draft.gpsLat,
                     longitude: draft.gpsLng,
                     minConfidence: 0.1,
+                    modelType: ModelType.HIGH_ACCURACY_FP32
                 }
             );
 
@@ -402,11 +412,11 @@ export default function EnhancedManual() {
                 setShowPredictions(true);
                 
                 // Auto-fill with the best prediction
-                const bestPrediction = BirdNetService.getBestPrediction(response.predictions);
+                const bestPrediction = AudioIdentificationService.getBestPrediction(response.predictions);
                 if (bestPrediction) {
                     update({
                         birdType: bestPrediction.common_name,
-                        audioPrediction: `${bestPrediction.common_name} (${BirdNetService.formatConfidenceScore(bestPrediction.confidence)} confidence)`,
+                        audioPrediction: `${bestPrediction.common_name} (${AudioIdentificationService.formatConfidenceScore(bestPrediction.confidence)} confidence)`,
                     });
                 }
                 
@@ -436,10 +446,10 @@ export default function EnhancedManual() {
         }
     }, [draft.audioUri, draft.gpsLat, draft.gpsLng, update, t, showSuccess, showError]);
 
-    const handleSelectPrediction = useCallback((prediction: BirdNetPrediction) => {
+    const handleSelectPrediction = useCallback((prediction: AudioPrediction) => {
         update({
             birdType: prediction.common_name,
-            audioPrediction: `${prediction.common_name} (${BirdNetService.formatConfidenceScore(prediction.confidence)} confidence)`,
+            audioPrediction: `${prediction.common_name} (${AudioIdentificationService.formatConfidenceScore(prediction.confidence)} confidence)`,
         });
         setShowPredictions(false);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -590,7 +600,24 @@ export default function EnhancedManual() {
                 >
                     <Card style={styles.mediaCardInner}>
                     {draft.imageUri ? (
-                        <Image source={{ uri: draft.imageUri }} style={styles.mediaPreview} />
+                        imageLoadError ? (
+                            <View style={styles.addMediaContent}>
+                                <ThemedIcon name="image" size={32} color="secondary" />
+                                <ThemedText variant="label" color="secondary">
+                                    Image unavailable
+                                </ThemedText>
+                            </View>
+                        ) : (
+                            <Image 
+                                source={{ uri: draft.imageUri }} 
+                                style={styles.mediaPreview}
+                                onError={() => {
+                                    console.warn('Failed to load image in manual entry:', draft.imageUri);
+                                    setImageLoadError(true);
+                                }}
+                                onLoad={() => setImageLoadError(false)}
+                            />
+                        )
                     ) : (
                         <View style={styles.addMediaContent}>
                             <ThemedIcon name="camera" size={32} color="accent" />
@@ -666,6 +693,7 @@ export default function EnhancedManual() {
                             styles.identifyButton,
                             {
                                 opacity: isIdentifyingBird ? 0.7 : 1,
+                                backgroundColor: colors.primary,
                             }
                         ]}
                         onPress={handleIdentifyBird}
@@ -682,7 +710,7 @@ export default function EnhancedManual() {
                                 <ThemedIcon 
                                     name="search" 
                                     size={20} 
-                                    color="primary"
+                                    color="inverse"
                                     style={styles.identifyIcon}
                                 />
                             )}
@@ -916,14 +944,14 @@ export default function EnhancedManual() {
                     disabled={isSaving}
                     size="lg"
                     fullWidth
-                    style={styles.saveButton}
+                    style={[styles.saveButton, { backgroundColor: colors.primary }]}
                 >
                     {isSaving ? (
                         <ActivityIndicator size="small" color={colors.textInverse} />
                     ) : (
-                        <ThemedIcon name="save" size={20} color="primary" />
+                        <ThemedIcon name="save" size={20} color="inverse" />
                     )}
-                    <ThemedText variant="button" color="primary">
+                    <ThemedText variant="button" style={{ color: colors.textInverse }}>
                         {isSaving ? t('common.saving') : t('common.save')}
                     </ThemedText>
                 </ThemedPressable>
@@ -966,9 +994,9 @@ export default function EnhancedManual() {
                                             handleDateChange({ type: 'set' }, selectedDate);
                                             setIsDatePickerVisible(false);
                                         }}
-                                        style={styles.dateButton}
+                                        style={[styles.dateButton, { backgroundColor: colors.primary }]}
                                     >
-                                        <ThemedText variant="button" color="primary">
+                                        <ThemedText variant="button" style={{ color: colors.textInverse }}>
                                             {t('common.confirm')}
                                         </ThemedText>
                                     </ThemedPressable>
@@ -1012,10 +1040,10 @@ export default function EnhancedManual() {
                                 setIsVideoModalVisible(false);
                                 handleMediaNavigation('/log/video');
                             }}
-                            style={styles.videoButton}
+                            style={[styles.videoButton, { backgroundColor: colors.primary }]}
                         >
-                            <ThemedIcon name="refresh-cw" size={20} color="primary" />
-                            <ThemedText variant="button" color="primary">
+                            <ThemedIcon name="refresh-cw" size={20} color="inverse" />
+                            <ThemedText variant="button" style={{ color: colors.textInverse }}>
                                 {t('camera.retake')}
                             </ThemedText>
                         </ThemedPressable>
@@ -1063,7 +1091,7 @@ export default function EnhancedManual() {
                                             </View>
                                             <View style={styles.predictionConfidence}>
                                                 <ThemedText variant="label" color="primary">
-                                                    {BirdNetService.formatConfidenceScore(prediction.confidence)}
+                                                    {AudioIdentificationService.formatConfidenceScore(prediction.confidence)}
                                                 </ThemedText>
                                                 <ThemedIcon name="chevron-right" size={20} color="secondary" />
                                             </View>

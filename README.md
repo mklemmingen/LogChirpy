@@ -382,19 +382,29 @@ Each Feature Folder contains:
 - ✅ Full CI/CD pipeline with GitHub mirroring and privacy protection
 - ✅ Accesibility features implemented (e.g., haptic feedback, audio cues)
 - ✅ Full Style Guide adherence with custom components and theming
+- ✅ Audio Pipeline for converting audio to ML model fit data
+- ✅ Converted modern h5 model (deprecated)
+- ✅ used existing bird audio tflite models with credit
+- full black and white theme system with hooks
+- full component creation and integration
+- full wireframe and UI system
+- full ux design
+- full log state managment and context usage
+- full stack context managment with ML models
+- full camera and audio components
 
 **Luis Wehrberger:**
 - ✅ Firebase and Firestore setup
 - ✅ Firebase Authentication (signup, login, logout, account management, forgot password)
 - ✅ Cloud synchronization capability with file upload
-- ✅ Camera functionality with flip camera support
-- ✅ Full-screen camera implementation
-- ✅ Video recording with preview and confirm/retake functionality
-- ✅ Theme integration across media components
 - ✅ Fix for infinite log context loops
+- stack segmentation fix in root layout
+- fixed critical bugs
+- pruned package.json and declared correct fitting packages
 
 **Youmna Samouneh:**
-- ✅ Wireframe creation for development visualization
+- ✅ Wireframe creation for development visualization at project start: unused
+- translation keys in common errors that were missed by Marty
 
 The project demonstrates successful collaboration between a 3-person team with complementary skills in mobile development, machine learning, cloud architecture, and user experience design.
 

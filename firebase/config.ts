@@ -17,11 +17,11 @@ const firebaseConfig = {
   appId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Validate Firebase config
-const isValidConfig = firebaseConfig.apiKey && 
-                     firebaseConfig.authDomain && 
-                     firebaseConfig.projectId && 
-                     firebaseConfig.appId;
+// Validate Firebase config - check for actual values, not just undefined
+const isValidConfig = firebaseConfig.apiKey && firebaseConfig.apiKey !== 'undefined' &&
+                     firebaseConfig.authDomain && firebaseConfig.authDomain !== 'undefined' &&
+                     firebaseConfig.projectId && firebaseConfig.projectId !== 'undefined' &&
+                     firebaseConfig.appId && firebaseConfig.appId !== 'undefined';
 
 let app: any = null;
 let auth: any = null;
@@ -49,12 +49,30 @@ if (isValidConfig) {
   }
 } else {
   console.warn('[Firebase] Invalid Firebase configuration - running in offline mode');
-  console.warn('[Firebase] Missing config values:', {
-    apiKey: !!firebaseConfig.apiKey,
-    authDomain: !!firebaseConfig.authDomain,
-    projectId: !!firebaseConfig.projectId,
-    appId: !!firebaseConfig.appId,
-  });
+  console.warn('[Firebase] Missing or invalid config values:');
+  console.warn('[Firebase] - API Key:', firebaseConfig.apiKey ? '✓ Set' : '✗ Missing');
+  console.warn('[Firebase] - Auth Domain:', firebaseConfig.authDomain ? '✓ Set' : '✗ Missing');
+  console.warn('[Firebase] - Project ID:', firebaseConfig.projectId ? '✓ Set' : '✗ Missing');
+  console.warn('[Firebase] - App ID:', firebaseConfig.appId ? '✓ Set' : '✗ Missing');
+  console.warn('[Firebase] To enable Firebase features, add environment variables to .env file');
 }
+
+// Helper function to check if Firebase is properly configured
+export const isFirebaseConfigured = (): boolean => {
+  return isValidConfig && app !== null && auth !== null;
+};
+
+// Helper function to get Firebase status for debugging
+export const getFirebaseStatus = () => {
+  return {
+    configured: isValidConfig,
+    initialized: app !== null,
+    services: {
+      auth: auth !== null,
+      firestore: firestore !== null,
+      storage: storage !== null,
+    }
+  };
+};
 
 export { app, auth, firestore, storage };

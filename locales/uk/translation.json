@@ -179,7 +179,13 @@
   "audio": {
     "start": "Почати запис",
     "stop": "Зупинити і використати запис",
-    "saving": "Обробка аудіо…"
+    "saving": "Обробка аудіо…",
+    "audio_initialization_failed": "Помилка ініціалізації аудіо",
+    "audio_system_unavailable": "Аудіосистема недоступна",
+    "audio_processing_failed": "Помилка обробки аудіо",
+    "listening": "Слухаємо...",
+    "audio_ready": "Аудіо готове",
+    "audio_error": "Помилка аудіо"
   },
   "log": {
     "add_audio": "Додати аудіо",
@@ -200,7 +206,10 @@
     "audio_prediction": "Прогноз за аудіо",
     "select_date": "Виберіть дату",
     "stop_audio": "Зупинити аудіо",
-    "play_audio": "Відтворити аудіо"
+    "play_audio": "Відтворити аудіо",
+    "media_section": "Медіа",
+    "details_section": "Деталі",
+    "metadata_section": "Метадані"
   },
   "camera": {
     "take_photo": "Зробити фото",
@@ -213,6 +222,7 @@
     "not_ready": "Камера не готова",
     "wait_ready": "Зачекайте, поки камера буде готова.",
     "requesting_access": "Запит дозволу...",
+    "requesting_permission": "Запит дозволу на камеру...",
     "checking_access": "Перевірка доступу до камери...",
     "need_permission": "Нам потрібен доступ до вашої камери",
     "allow_access": "Дозволити доступ",
@@ -312,6 +322,9 @@
     "error_signing_out": "Неможливо вийти",
     "confirm_password_required": "Будь ласка, підтвердіть свій пароль",
     "passwords_do_not_match": "Паролі не збігаються",
+    "welcome_back": "З поверненням!",
+    "account_created_successfully": "Обліковий запис успішно створено!",
+    "signing_in": "Вхід...",
     "confirm_password_placeholder": "Підтвердьте пароль"
   },
   "loading_messages": {
@@ -362,7 +375,10 @@
     "smart_search_description": "Розумний пошук птахів",
     "archive_description": "Ваші архіви птахів",
     "account_description": "Налаштування облікового запису",
-    "settings_description": "Налаштування додатка"
+    "settings_description": "Налаштування додатка",
+    "unsaved_changes": "Незбережені зміни",
+    "lose_changes_message": "У вас є незбережені зміни. Ви впевнені, що хочете вийти?",
+    "discard": "Відхилити"
   },
   "not_found": {
     "page_title": "Сторінку не знайдено",

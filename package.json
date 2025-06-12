@@ -100,7 +100,14 @@
     "typescript": "~5.3.3"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "moduleNameMapper": {
+      "\\.(tflite|mp3|png|jpg|jpeg|gif|svg|csv)$": "jest-transform-stub"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(react-native|@react-native|expo|@expo|react-native-reanimated|react-native-vision-camera|react-native-fast-tflite)/)"
+    ]
   },
   "expo": {
     "doctor": {

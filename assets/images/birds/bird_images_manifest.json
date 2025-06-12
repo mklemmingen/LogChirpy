@@ -1,0 +1,707 @@
+{
+  "generated_at": "2025-06-12 18:47:28 UTC",
+  "total_species": 100,
+  "downloaded_images": 22,
+  "images": {
+    "Struthio camelus": {
+      "common_name": "Common Ostrich",
+      "species_code": "ostric2",
+      "family": "Struthionidae (Ostriches)",
+      "image_file": "struthio_camelus.webp",
+      "has_image": true
+    },
+    "Struthio molybdophanes": {
+      "common_name": "Somali Ostrich",
+      "species_code": "ostric3",
+      "family": "Struthionidae (Ostriches)",
+      "image_file": "struthio_molybdophanes.webp",
+      "has_image": true
+    },
+    "Casuarius casuarius": {
+      "common_name": "Southern Cassowary",
+      "species_code": "soucas1",
+      "family": "Casuariidae (Cassowaries and Emu)",
+      "image_file": "casuarius_casuarius.webp",
+      "has_image": true
+    },
+    "Casuarius bennetti": {
+      "common_name": "Dwarf Cassowary",
+      "species_code": "dwacas1",
+      "family": "Casuariidae (Cassowaries and Emu)",
+      "image_file": "casuarius_bennetti.webp",
+      "has_image": true
+    },
+    "Casuarius unappendiculatus": {
+      "common_name": "Northern Cassowary",
+      "species_code": "norcas1",
+      "family": "Casuariidae (Cassowaries and Emu)",
+      "image_file": "casuarius_unappendiculatus.webp",
+      "has_image": true
+    },
+    "Dromaius novaehollandiae": {
+      "common_name": "Emu",
+      "species_code": "emu1",
+      "family": "Casuariidae (Cassowaries and Emu)",
+      "image_file": "dromaius_novaehollandiae.webp",
+      "has_image": true
+    },
+    "Apteryx australis": {
+      "common_name": "Southern Brown Kiwi",
+      "species_code": "sobkiw1",
+      "family": "Apterygidae (Kiwis)",
+      "image_file": "apteryx_australis.webp",
+      "has_image": true
+    },
+    "Apteryx rowi": {
+      "common_name": "Okarito Brown Kiwi",
+      "species_code": "okbkiw1",
+      "family": "Apterygidae (Kiwis)",
+      "image_file": "apteryx_rowi.webp",
+      "has_image": true
+    },
+    "Apteryx mantelli": {
+      "common_name": "North Island Brown Kiwi",
+      "species_code": "nibkiw1",
+      "family": "Apterygidae (Kiwis)",
+      "image_file": "apteryx_mantelli.webp",
+      "has_image": true
+    },
+    "Apteryx owenii": {
+      "common_name": "Little Spotted Kiwi",
+      "species_code": "liskiw1",
+      "family": "Apterygidae (Kiwis)",
+      "image_file": "apteryx_owenii.webp",
+      "has_image": true
+    },
+    "Apteryx maxima": {
+      "common_name": "Great Spotted Kiwi",
+      "species_code": "grskiw1",
+      "family": "Apterygidae (Kiwis)",
+      "image_file": "",
+      "has_image": false
+    },
+    "Rhea americana": {
+      "common_name": "Greater Rhea",
+      "species_code": "grerhe1",
+      "family": "Rheidae (Rheas)",
+      "image_file": "rhea_americana.webp",
+      "has_image": true
+    },
+    "Rhea pennata": {
+      "common_name": "Lesser Rhea",
+      "species_code": "lesrhe2",
+      "family": "Rheidae (Rheas)",
+      "image_file": "rhea_pennata.webp",
+      "has_image": true
+    },
+    "Nothocercus julius": {
+      "common_name": "Tawny-breasted Tinamou",
+      "species_code": "tabtin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "",
+      "has_image": false
+    },
+    "Nothocercus bonapartei": {
+      "common_name": "Highland Tinamou",
+      "species_code": "higtin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "nothocercus_bonapartei.webp",
+      "has_image": true
+    },
+    "Nothocercus nigrocapillus": {
+      "common_name": "Hooded Tinamou",
+      "species_code": "hootin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "nothocercus_nigrocapillus.webp",
+      "has_image": true
+    },
+    "Tinamus tao": {
+      "common_name": "Gray Tinamou",
+      "species_code": "grytin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "tinamus_tao.webp",
+      "has_image": true
+    },
+    "Tinamus solitarius": {
+      "common_name": "Solitary Tinamou",
+      "species_code": "soltin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "tinamus_solitarius.webp",
+      "has_image": true
+    },
+    "Tinamus osgoodi": {
+      "common_name": "Black Tinamou",
+      "species_code": "blatin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "tinamus_osgoodi.webp",
+      "has_image": true
+    },
+    "Tinamus major": {
+      "common_name": "Great Tinamou",
+      "species_code": "gretin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "tinamus_major.webp",
+      "has_image": true
+    },
+    "Tinamus guttatus": {
+      "common_name": "White-throated Tinamou",
+      "species_code": "whttin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "tinamus_guttatus.webp",
+      "has_image": true
+    },
+    "Crypturellus cinereus": {
+      "common_name": "Cinereous Tinamou",
+      "species_code": "cintin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "crypturellus_cinereus.webp",
+      "has_image": true
+    },
+    "Crypturellus berlepschi": {
+      "common_name": "Berlepsch's Tinamou",
+      "species_code": "bertin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "crypturellus_berlepschi.webp",
+      "has_image": true
+    },
+    "Crypturellus soui": {
+      "common_name": "Little Tinamou",
+      "species_code": "littin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": "crypturellus_soui.webp",
+      "has_image": true
+    },
+    "Crypturellus ptaritepui": {
+      "common_name": "Tepui Tinamou",
+      "species_code": "teptin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus obsoletus": {
+      "common_name": "Brown Tinamou",
+      "species_code": "brotin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus undulatus": {
+      "common_name": "Undulated Tinamou",
+      "species_code": "undtin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus transfasciatus": {
+      "common_name": "Pale-browed Tinamou",
+      "species_code": "pabtin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus strigulosus": {
+      "common_name": "Brazilian Tinamou",
+      "species_code": "bratin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus duidae": {
+      "common_name": "Gray-legged Tinamou",
+      "species_code": "gyltin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus erythropus": {
+      "common_name": "Red-legged Tinamou",
+      "species_code": "reltin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus noctivagus": {
+      "common_name": "Yellow-legged Tinamou",
+      "species_code": "yeltin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus atrocapillus": {
+      "common_name": "Black-capped Tinamou",
+      "species_code": "blctin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus boucardi": {
+      "common_name": "Slaty-breasted Tinamou",
+      "species_code": "slbtin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus kerriae": {
+      "common_name": "Choco Tinamou",
+      "species_code": "chotin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus variegatus": {
+      "common_name": "Variegated Tinamou",
+      "species_code": "vartin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus cinnamomeus": {
+      "common_name": "Thicket Tinamou",
+      "species_code": "thitin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus brevirostris": {
+      "common_name": "Rusty Tinamou",
+      "species_code": "rustin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus bartletti": {
+      "common_name": "Bartlett's Tinamou",
+      "species_code": "bartin2",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus parvirostris": {
+      "common_name": "Small-billed Tinamou",
+      "species_code": "smbtin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus casiquiare": {
+      "common_name": "Barred Tinamou",
+      "species_code": "bartin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Crypturellus tataupa": {
+      "common_name": "Tataupa Tinamou",
+      "species_code": "tattin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Rhynchotus rufescens": {
+      "common_name": "Red-winged Tinamou",
+      "species_code": "rewtin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Rhynchotus maculicollis": {
+      "common_name": "Huayco Tinamou",
+      "species_code": "huatin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Nothoprocta taczanowskii": {
+      "common_name": "Taczanowski's Tinamou",
+      "species_code": "tactin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Nothoprocta ornata": {
+      "common_name": "Ornate Tinamou",
+      "species_code": "orntin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Nothoprocta perdicaria": {
+      "common_name": "Chilean Tinamou",
+      "species_code": "chitin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Nothoprocta cinerascens": {
+      "common_name": "Brushland Tinamou",
+      "species_code": "brutin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Nothoprocta pentlandii": {
+      "common_name": "Andean Tinamou",
+      "species_code": "andtin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Nothoprocta curvirostris": {
+      "common_name": "Curve-billed Tinamou",
+      "species_code": "cubtin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Nothura boraquira": {
+      "common_name": "White-bellied Nothura",
+      "species_code": "whbnot1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Nothura minor": {
+      "common_name": "Lesser Nothura",
+      "species_code": "lesnot1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Nothura darwinii": {
+      "common_name": "Darwin's Nothura",
+      "species_code": "darnot1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Nothura maculosa": {
+      "common_name": "Spotted Nothura",
+      "species_code": "sponot1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Taoniscus nanus": {
+      "common_name": "Dwarf Tinamou",
+      "species_code": "dwatin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Eudromia elegans": {
+      "common_name": "Elegant Crested-Tinamou",
+      "species_code": "elctin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Eudromia formosa": {
+      "common_name": "Quebracho Crested-Tinamou",
+      "species_code": "quctin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Tinamotis pentlandii": {
+      "common_name": "Puna Tinamou",
+      "species_code": "puntin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Tinamotis ingoufi": {
+      "common_name": "Patagonian Tinamou",
+      "species_code": "pattin1",
+      "family": "Tinamidae (Tinamous)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anhima cornuta": {
+      "common_name": "Horned Screamer",
+      "species_code": "horscr1",
+      "family": "Anhimidae (Screamers)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Chauna torquata": {
+      "common_name": "Southern Screamer",
+      "species_code": "souscr1",
+      "family": "Anhimidae (Screamers)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Chauna chavaria": {
+      "common_name": "Northern Screamer",
+      "species_code": "norscr1",
+      "family": "Anhimidae (Screamers)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anseranas semipalmata": {
+      "common_name": "Magpie Goose",
+      "species_code": "maggoo1",
+      "family": "Anseranatidae (Magpie Goose)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Dendrocygna guttata": {
+      "common_name": "Spotted Whistling-Duck",
+      "species_code": "spwduc1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Dendrocygna eytoni": {
+      "common_name": "Plumed Whistling-Duck",
+      "species_code": "plwduc1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Dendrocygna viduata": {
+      "common_name": "White-faced Whistling-Duck",
+      "species_code": "wfwduc1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Dendrocygna autumnalis": {
+      "common_name": "Black-bellied Whistling-Duck",
+      "species_code": "bbwduc",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Dendrocygna arborea": {
+      "common_name": "West Indian Whistling-Duck",
+      "species_code": "wiwduc1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Dendrocygna bicolor": {
+      "common_name": "Fulvous Whistling-Duck",
+      "species_code": "fuwduc",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Dendrocygna arcuata": {
+      "common_name": "Wandering Whistling-Duck",
+      "species_code": "wawduc1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Dendrocygna javanica": {
+      "common_name": "Lesser Whistling-Duck",
+      "species_code": "lewduc1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Thalassornis leuconotus": {
+      "common_name": "White-backed Duck",
+      "species_code": "whbduc1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser indicus": {
+      "common_name": "Bar-headed Goose",
+      "species_code": "bahgoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser canagicus": {
+      "common_name": "Emperor Goose",
+      "species_code": "empgoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser caerulescens": {
+      "common_name": "Snow Goose",
+      "species_code": "snogoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser rossii": {
+      "common_name": "Ross's Goose",
+      "species_code": "rosgoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser anser": {
+      "common_name": "Graylag Goose",
+      "species_code": "gragoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser cygnoides": {
+      "common_name": "Swan Goose",
+      "species_code": "swagoo1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser albifrons": {
+      "common_name": "Greater White-fronted Goose",
+      "species_code": "gwfgoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser erythropus": {
+      "common_name": "Lesser White-fronted Goose",
+      "species_code": "lwfgoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser fabalis": {
+      "common_name": "Taiga Bean-Goose",
+      "species_code": "taibeg1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser serrirostris": {
+      "common_name": "Tundra Bean-Goose",
+      "species_code": "tunbeg1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Anser brachyrhynchus": {
+      "common_name": "Pink-footed Goose",
+      "species_code": "pifgoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Branta bernicla": {
+      "common_name": "Brant",
+      "species_code": "brant",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Branta leucopsis": {
+      "common_name": "Barnacle Goose",
+      "species_code": "bargoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Branta hutchinsii": {
+      "common_name": "Cackling Goose",
+      "species_code": "cacgoo1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Branta canadensis": {
+      "common_name": "Canada Goose",
+      "species_code": "cangoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Branta sandvicensis": {
+      "common_name": "Hawaiian Goose",
+      "species_code": "hawgoo",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Branta ruficollis": {
+      "common_name": "Red-breasted Goose",
+      "species_code": "rebgoo1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Cereopsis novaehollandiae": {
+      "common_name": "Cape Barren Goose",
+      "species_code": "cabgoo1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Stictonetta naevosa": {
+      "common_name": "Freckled Duck",
+      "species_code": "freduc1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Cyanochen cyanoptera": {
+      "common_name": "Blue-winged Goose",
+      "species_code": "buwgoo1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Cygnus olor": {
+      "common_name": "Mute Swan",
+      "species_code": "mutswa",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Cygnus atratus": {
+      "common_name": "Black Swan",
+      "species_code": "blkswa",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Cygnus melancoryphus": {
+      "common_name": "Black-necked Swan",
+      "species_code": "blnswa2",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Cygnus buccinator": {
+      "common_name": "Trumpeter Swan",
+      "species_code": "truswa",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Cygnus columbianus": {
+      "common_name": "Tundra Swan",
+      "species_code": "tunswa",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Cygnus cygnus": {
+      "common_name": "Whooper Swan",
+      "species_code": "whoswa",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Coscoroba coscoroba": {
+      "common_name": "Coscoroba Swan",
+      "species_code": "cosswa1",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    },
+    "Sarkidiornis melanotos": {
+      "common_name": "Knob-billed Duck",
+      "species_code": "comduc2",
+      "family": "Anatidae (Ducks, Geese, and Waterfowl)",
+      "image_file": null,
+      "has_image": false
+    }
+  }
+}
