@@ -35,6 +35,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(ThemedPressable);
 
 // Recording Status Indicator Component
 function RecordingStatusIndicator({ isRecording, duration }: { isRecording: boolean; duration: number }) {
+  const { t } = useTranslation();
   const typography = useTypography();
   const theme = useTheme();
   const pulse = useSharedValue(0);
@@ -76,7 +77,7 @@ function RecordingStatusIndicator({ isRecording, duration }: { isRecording: bool
               <View style={[styles.recordingDot, { backgroundColor: theme.colors.text.secondary }]} />
           )}
           <Text style={{ color: 'white', fontWeight: '600' }}>
-            {isRecording ? 'REC' : 'STOPPED'} {formatTime(duration)}
+            {isRecording ? t('video.recording_status_rec') : t('video.recording_status_stopped')} {formatTime(duration)}
           </Text>
         </View>
       </Animated.View>

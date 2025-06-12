@@ -19,6 +19,7 @@ import Animated, {
 import 'react-native-reanimated';
 import "@/i18n/i18n";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColors, useTheme, useTypography, useShadows } from '@/hooks/useThemeColor';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -416,6 +417,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
  * Root layout component with theme provider and ML model initialization
  */
 export default function RootLayout() {
+    const { t } = useTranslation();
     const theme = useTheme();
     const colors = useColors();
     const typography = useTypography();
@@ -502,7 +504,7 @@ export default function RootLayout() {
                         stack: error.stack,
                     });
                 }
-                setLocalDbError(error instanceof Error ? error.message : 'Failed to initialize local database');
+                setLocalDbError(error instanceof Error ? error.message : t('loading_messages.failed_initialize_local_database'));
                 
                 // On Android, retry once after a delay
                 if (Platform.OS === 'android' && retryCount === 0) {
@@ -553,13 +555,13 @@ export default function RootLayout() {
 
     // Show app initialization screen
     if (!loaded || !localDbReady || !offlineModelReady) {
-        let message = "Loading application...";
+        let message = t('loading_messages.loading_application');
         if (!loaded) {
-            message = "Loading fonts and assets...";
+            message = t('loading_messages.loading_fonts_assets');
         } else if (!localDbReady) {
-            message = "Initializing local database...";
+            message = t('loading_messages.initializing_local_db');
         } else if (!offlineModelReady) {
-            message = "Loading AI models...";
+            message = t('loading_messages.loading_ai_models');
         }
 
         return (
@@ -593,36 +595,38 @@ export default function RootLayout() {
 
     // Main app with enhanced theming
     return (
-        <SafeAreaProvider>
-            <AuthProvider>
-                <ThemeProvider
-                    value={{
-                        dark: colors.isDark,
-                        colors: {
-                            notification: colors.primary,
-                            background: colors.background,
-                            card: colors.backgroundSecondary,
-                            text: colors.text,
-                            border: colors.border,
-                            primary: colors.primary,
-                        },
-                    }}
-                >
-                    <ImageLabelingModelProvider>
-                        <ObjectDetectionProvider>
-                            <View style={[styles.container, { backgroundColor: colors.background }]}>
-                                <Stack screenOptions={getScreenOptions}>
-                                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                                    <Stack.Screen name="log" options={{ headerShown: false }} />
-                                    <Stack.Screen name="+not-found" />
-                                </Stack>
-                            </View>
-                            <StatusBar style="auto" />
-                        </ObjectDetectionProvider>
-                    </ImageLabelingModelProvider>
-                </ThemeProvider>
-            </AuthProvider>
-        </SafeAreaProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaProvider>
+                <AuthProvider>
+                    <ThemeProvider
+                        value={{
+                            dark: colors.isDark,
+                            colors: {
+                                notification: colors.primary,
+                                background: colors.background,
+                                card: colors.backgroundSecondary,
+                                text: colors.text,
+                                border: colors.border,
+                                primary: colors.primary,
+                            },
+                        }}
+                    >
+                        <ImageLabelingModelProvider>
+                            <ObjectDetectionProvider>
+                                <View style={[styles.container, { backgroundColor: colors.background }]}>
+                                    <Stack screenOptions={getScreenOptions}>
+                                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                        <Stack.Screen name="log" options={{ headerShown: false }} />
+                                        <Stack.Screen name="+not-found" />
+                                    </Stack>
+                                </View>
+                                <StatusBar style="auto" />
+                            </ObjectDetectionProvider>
+                        </ImageLabelingModelProvider>
+                    </ThemeProvider>
+                </AuthProvider>
+            </SafeAreaProvider>
+        </GestureHandlerRootView>
     );
 }
 

@@ -325,7 +325,13 @@
     "playback_failed": "Échec de lecture",
     "processing": "Traitement audio...",
     "record_audio": "Enregistrer l'audio",
-    "recording": "Enregistrement..."
+    "recording": "Enregistrement...",
+    "audio_initialization_failed": "Échec d'initialisation audio",
+    "audio_system_unavailable": "Système audio indisponible",
+    "audio_processing_failed": "Échec du traitement audio",
+    "listening": "À l'écoute...",
+    "audio_ready": "Audio prêt",
+    "audio_error": "Erreur audio"
   },
   "log": {
     "save_success": "Entrée enregistrée",
@@ -357,7 +363,10 @@
     "manual_entry": "Saisie manuelle",
     "bird_type_placeholder": "Entrez le type d'oiseau",
     "notes_placeholder": "Notes sur l'observation",
-    "complete": "Entrée complète"
+    "complete": "Entrée complète",
+    "media_section": "Médias",
+    "details_section": "Détails",
+    "metadata_section": "Métadonnées"
   },
   "camera": {
     "take_photo": "Prendre photo",
@@ -370,6 +379,7 @@
     "not_ready": "Caméra non prête",
     "wait_ready": "Attendez que la caméra soit prête.",
     "requesting_access": "Demande d'accès...",
+    "requesting_permission": "Demande d'autorisation de caméra...",
     "checking_access": "Vérification de l'accès...",
     "need_permission": "Nous avons besoin de la caméra",
     "allow_access": "Autoriser l'accès",
@@ -429,7 +439,10 @@
     "smart_search_description": "Recherche intelligente",
     "archive_description": "Vos archives d'oiseaux",
     "account_description": "Paramètres du compte",
-    "settings_description": "Paramètres de l'app"
+    "settings_description": "Paramètres de l'app",
+    "unsaved_changes": "Changements non sauvegardés",
+    "lose_changes_message": "Vous avez des changements non sauvegardés. Êtes-vous sûr de vouloir quitter ?",
+    "discard": "Abandonner"
   },
   "home": {
     "camera_description": "Classification temps réel",
@@ -447,6 +460,9 @@
     "confirm_password_required": "Confirmez le mot de passe",
     "passwords_do_not_match": "Les mots de passe ne correspondent pas",
     "confirm_password_placeholder": "Confirmer mot de passe",
+    "welcome_back": "Bon retour !",
+    "account_created_successfully": "Compte créé avec succès !",
+    "signing_in": "Connexion en cours...",
     "audio_playback_error": "Impossible de lire l'audio",
     "share_error": "Impossible de partager",
     "save_image_error": "Impossible d'enregistrer l'image",

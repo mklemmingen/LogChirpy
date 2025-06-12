@@ -177,7 +177,7 @@ export default function SignupScreen() {
             );
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            showSuccess('Account created successfully!');
+            showSuccess(t('app_errors.account_created_successfully'));
 
             // Navigate to account tab instead of tabs root to avoid navigation conflicts
             setTimeout(() => {
