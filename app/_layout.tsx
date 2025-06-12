@@ -24,6 +24,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColors, useTheme, useTypography, useShadows } from '@/hooks/useThemeColor';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
+import { MemoryMonitor } from '@/components/MemoryMonitor';
 
 import {
     ImageLabelingConfig,
@@ -619,6 +620,7 @@ export default function RootLayout() {
                                         <Stack.Screen name="log" options={{ headerShown: false }} />
                                         <Stack.Screen name="+not-found" />
                                     </Stack>
+                                    <MemoryMonitor />
                                 </View>
                                 <StatusBar style="auto" />
                             </ObjectDetectionProvider>

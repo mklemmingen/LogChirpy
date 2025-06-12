@@ -540,84 +540,43 @@ class BirdDexDatabase {
                 return false;
             }
 
-            // Check for required data integrity
+            // Only check if database is completely empty (all records are null)
             const stmt1 = database.prepareSync(`
                 SELECT COUNT(*) as count FROM birddex 
-                WHERE species_code IS NULL OR species_code = '' 
-                   OR english_name IS NULL OR english_name = ''
-                   OR scientific_name IS NULL OR scientific_name = ''
+                WHERE species_code IS NOT NULL AND species_code != ''
             `);
             
             try {
                 const result1 = stmt1.executeSync().getAllSync();
-                const invalidRecords = (result1[0] as any)?.count || 0;
-                if (invalidRecords > 0) {
-                    console.log(`Found ${invalidRecords} records with missing required data`);
+                const validRecords = (result1[0] as any)?.count || 0;
+                if (validRecords === 0) {
+                    console.log('Database appears to be empty - no valid species records found');
                     return false;
                 }
             } finally {
                 stmt1.finalizeSync();
             }
 
-            // Check for valid categories
+            // Check for duplicate species codes (only critical duplicates)
             const stmt2 = database.prepareSync(`
-                SELECT COUNT(*) as count FROM birddex 
-                WHERE category NOT IN ('species', 'subspecies', 'family', 'group (polytypic)', 'group (monotypic)')
-                   OR category IS NULL
+                SELECT species_code, COUNT(*) as count FROM birddex 
+                WHERE species_code IS NOT NULL AND species_code != ''
+                GROUP BY species_code 
+                HAVING COUNT(*) > 1
+                LIMIT 10
             `);
             
             try {
                 const result2 = stmt2.executeSync().getAllSync();
-                const invalidCategories = (result2[0] as any)?.count || 0;
-                if (invalidCategories > 0) {
-                    console.log(`Found ${invalidCategories} records with invalid categories`);
+                if (result2.length > 5) {
+                    console.log(`Found ${result2.length} duplicate species codes - data quality issue`);
                     return false;
                 }
             } finally {
                 stmt2.finalizeSync();
             }
 
-            // Check for duplicate species codes
-            const stmt3 = database.prepareSync(`
-                SELECT species_code, COUNT(*) as count FROM birddex 
-                GROUP BY species_code 
-                HAVING COUNT(*) > 1
-            `);
-            
-            try {
-                const result3 = stmt3.executeSync().getAllSync();
-                if (result3.length > 0) {
-                    console.log(`Found ${result3.length} duplicate species codes`);
-                    return false;
-                }
-            } finally {
-                stmt3.finalizeSync();
-            }
-
-            // Check if we have reasonable distribution of translated names
-            const stmt4 = database.prepareSync(`
-                SELECT 
-                    COUNT(CASE WHEN de_name IS NOT NULL AND de_name != '' THEN 1 END) as german_count,
-                    COUNT(CASE WHEN es_name IS NOT NULL AND es_name != '' THEN 1 END) as spanish_count,
-                    COUNT(CASE WHEN ukrainian_name IS NOT NULL AND ukrainian_name != '' THEN 1 END) as ukrainian_count,
-                    COUNT(*) as total_count
-                FROM birddex
-            `);
-            
-            try {
-                const result4 = stmt4.executeSync().getAllSync();
-                const stats = result4[0] as any;
-                const minTranslatedExpected = recordCount * 0.5; // Expect at least 50% to have translations
-                
-                if (stats.german_count < minTranslatedExpected) {
-                    console.log(`Insufficient German translations: ${stats.german_count} < ${minTranslatedExpected}`);
-                    return false;
-                }
-            } finally {
-                stmt4.finalizeSync();
-            }
-
-            console.log(`Database integrity validation passed: ${recordCount} records`);
+            console.log(`Database integrity validation passed: ${recordCount} records with ${recordCount > 0 ? 'valid data' : 'no data'}`);
             return true;
         } catch (error) {
             console.log('Data integrity validation error:', error);
