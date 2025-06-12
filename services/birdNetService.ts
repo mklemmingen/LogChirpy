@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import { MLKitBirdClassifier, MLKitClassificationResult } from './mlkitBirdClassifier';
 import { fastTfliteBirdClassifier, BirdClassificationResult } from './fastTfliteBirdClassifier';
 import { AudioPreprocessingTFLite } from './audioPreprocessingTFLite';
+import { ModelType, ModelConfig } from './modelConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface BirdNetPrediction {
@@ -138,6 +139,7 @@ export class BirdNetService {
       latitude?: number;
       longitude?: number;
       minConfidence?: number;
+      modelType?: ModelType;
     }
   ): Promise<BirdNetResponse> {
     try {
@@ -161,14 +163,16 @@ export class BirdNetService {
       // Try FastTflite first for audio classification
       if (this.tfliteInitialized) {
         try {
-          console.log('BirdNetService: Using FastTflite classification for audio');
+          const modelType = options?.modelType || ModelType.BALANCED_FP16;
+          console.log(`BirdNetService: Using FastTflite classification for audio with ${ModelConfig.getModelInfo(modelType)}`);
           
           // Preprocess audio to mel-spectrogram
           const processedAudio = await AudioPreprocessingTFLite.processAudioFile(audioUri);
           
-          // Classify using FastTflite
-          const tfliteResult = await fastTfliteBirdClassifier.classifyBirdAudio(
+          // Classify using FastTflite with specified model
+          const tfliteResult = await fastTfliteBirdClassifier.classifyBirdAudioWithModel(
             processedAudio.melSpectrogram,
+            modelType,
             audioUri
           );
           
