@@ -28,6 +28,7 @@ import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
 
 import {useTranslation} from 'react-i18next';
+import { filePathToUri, copyFileWithProperUri, ensureGalleryDirectory } from '@/services/uriUtils';
 
 import Slider from '@react-native-community/slider';
 
@@ -109,22 +110,14 @@ async function handleClassifiedSave(
 
     const filename = generateFilename(prefix, label.text, label.confidence);
     try {
-        // Create gallery directory in document storage if it doesn't exist
-        const galleryDir = `${FileSystem.documentDirectory}gallery/`;
-        const dirInfo = await FileSystem.getInfoAsync(galleryDir);
-        if (!dirInfo.exists) {
-            await FileSystem.makeDirectoryAsync(galleryDir, { intermediates: true });
-            console.log('Created gallery directory:', galleryDir);
-        }
+        // Ensure gallery directory exists
+        const galleryDir = await ensureGalleryDirectory();
 
-        // Save to document directory for gallery access
+        // Save to gallery directory with proper URI handling
         const destPath = `${galleryDir}${filename}`;
-        await FileSystem.copyAsync({
-            from: fileUri,
-            to: destPath
-        });
+        const savedUri = await copyFileWithProperUri(fileUri, destPath);
 
-        console.log(`${prefix} classified image saved to gallery:`, destPath);
+        console.log(`${prefix} classified image saved to gallery:`, savedUri);
         showSnackbar('camera.bird_detected', {
             bird: label.text,
             confidence: Math.round(label.confidence * 100),
@@ -358,11 +351,11 @@ async function recordAndProcessAudio(): Promise<BirdNetPrediction[]> {
         console.log('[Audio] Recording complete, processing audio...');
         
         // Process audio through BirdNet with enhanced error handling
-        // Use balanced FP16 model for real-time camera processing
+        // Use MData V2 FP16 model for real-time camera processing (has embedded labels)
         let result;
         try {
             result = await BirdNetService.identifyBirdFromAudio(audioUri, {
-                modelType: ModelType.BALANCED_FP16
+                modelType: ModelType.MDATA_V2_FP16
             });
             
             if (!result || !result.success) {
@@ -695,19 +688,16 @@ function ObjectIdentCameraContent() {
 
                 setImageDims({ width: manipResult.width, height: manipResult.height });
 
-                // Save manipulated image to the document directory using standard FileSystem
+                // Save manipulated image to the document directory with proper URI handling
                 try {
                     const fileName = `photo_${Date.now()}.jpg`;
                     const destPath = `${FileSystem.documentDirectory}${fileName}`;
 
-                    // Copy the manipulated image to document directory
-                    await FileSystem.copyAsync({
-                        from: manipResult.uri,
-                        to: destPath
-                    });
+                    // Copy the manipulated image to document directory and get proper URI
+                    const savedUri = await copyFileWithProperUri(manipResult.uri, destPath);
                     
-                    console.log('Photo saved to document directory:', destPath);
-                    setPhotoPath(destPath);
+                    console.log('Photo saved to document directory:', savedUri);
+                    setPhotoPath(savedUri);
 
                 } catch (copyError: unknown) {
                     console.error('Error copying photo to document directory:', copyError);
@@ -851,8 +841,8 @@ function ObjectIdentCameraContent() {
                 //   trackingID?: number;
                 // }
 
-                // Set current photo as last photo for UI display
-                setLastPhotoUri(imagePath);
+                // Set current photo as last photo for UI display (ensure proper URI format)
+                setLastPhotoUri(filePathToUri(imagePath));
 
                 // 1) Enrich each detection by cropping + classifying:
                 const enriched: Detection[] = [];

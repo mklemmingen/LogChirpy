@@ -9,6 +9,8 @@
 export enum ModelType {
   BALANCED_FP16 = 'balanced_fp16',
   HIGH_ACCURACY_FP32 = 'high_accuracy_fp32',
+  MDATA_FP16 = 'mdata_fp16', // MData model with embedded labels (recommended)
+  MDATA_V2_FP16 = 'mdata_v2_fp16', // MData V2 model with embedded labels
   LEGACY = 'legacy' // Current 400-species model for backward compatibility
 }
 
@@ -56,6 +58,36 @@ export class ModelConfig {
         speed: 'medium',
         accuracy: 'maximum',
         memoryUsage: 'high'
+      }
+    },
+
+    [ModelType.MDATA_FP16]: {
+      path: require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite'),
+      name: 'BirdNET Global 6K v2.4 MData FP16',
+      description: 'FP16 model with embedded labels - fastest with self-contained labels',
+      fileSize: '27MB',
+      precision: 'FP16',
+      expectedClasses: 6522,
+      recommendedUse: ['real-time detection', 'embedded systems', 'self-contained deployment'],
+      performance: {
+        speed: 'fast',
+        accuracy: 'high',
+        memoryUsage: 'medium'
+      }
+    },
+
+    [ModelType.MDATA_V2_FP16]: {
+      path: require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite'),
+      name: 'BirdNET Global 6K v2.4 MData V2 FP16',
+      description: 'Enhanced MData FP16 model with improved embedded labels',
+      fileSize: '27MB',
+      precision: 'FP16',
+      expectedClasses: 6522,
+      recommendedUse: ['real-time detection', 'production deployment', 'improved accuracy'],
+      performance: {
+        speed: 'fast',
+        accuracy: 'high',
+        memoryUsage: 'medium'
       }
     },
     
@@ -106,12 +138,12 @@ export class ModelConfig {
   static getRecommendedModel(useCase: 'real-time' | 'manual' | 'research'): ModelType {
     switch (useCase) {
       case 'real-time':
-        return ModelType.BALANCED_FP16;
+        return ModelType.MDATA_V2_FP16; // MData models have embedded labels (preferred)
       case 'manual':
       case 'research':
         return ModelType.HIGH_ACCURACY_FP32;
       default:
-        return ModelType.BALANCED_FP16;
+        return ModelType.MDATA_V2_FP16; // Default to MData with embedded labels
     }
   }
 

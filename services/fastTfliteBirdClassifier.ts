@@ -58,7 +58,7 @@ class FastTfliteBirdClassifierService {
   private model: TensorflowModel | null = null;
   private labels: any[] = [];
   private modelLoaded = false;
-  private currentModelType: ModelType = ModelType.LEGACY;
+  private currentModelType: ModelType = ModelType.MDATA_V2_FP16;
   private config: FastTfliteConfig;
   private cache = new Map<string, CachedResult>();
   private performanceMetrics: ModelPerformanceMetrics = {
@@ -71,7 +71,7 @@ class FastTfliteBirdClassifierService {
 
   constructor() {
     this.config = {
-      modelPath: require('../assets/models/birdnet/birdnet_v24.tflite'),
+      modelPath: require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite'),
       labelsPath: '../assets/models/birdnet/labels.json',
       confidenceThreshold: 0.1,
       maxResults: 5,

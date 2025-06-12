@@ -61,6 +61,9 @@ import {useSnackbar} from '@/components/ThemedSnackbar';
 // Theme hooks
 import {useColors, useTypography, useBorderRadius, useShadows, useSpacing} from '@/hooks/useThemeColor';
 
+// URI utilities
+import { filePathToUri } from '@/services/uriUtils';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface ValidationError {
@@ -94,6 +97,7 @@ export default function EnhancedManual() {
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+    const [imageLoadError, setImageLoadError] = useState(false);
     
     // Bird identification state
     const [isIdentifyingBird, setIsIdentifyingBird] = useState(false);
@@ -212,17 +216,21 @@ export default function EnhancedManual() {
         const updates: Partial<BirdSpotting> = {};
 
         if (params.audioUri && params.audioUri !== draft.audioUri) {
-            updates.audioUri = params.audioUri as string;
+            updates.audioUri = filePathToUri(params.audioUri as string);
         }
         if (params.imageUri && params.imageUri !== draft.imageUri) {
-            updates.imageUri = params.imageUri as string;
+            updates.imageUri = filePathToUri(params.imageUri as string);
         }
         if (params.videoUri && params.videoUri !== draft.videoUri) {
-            updates.videoUri = params.videoUri as string;
+            updates.videoUri = filePathToUri(params.videoUri as string);
         }
 
         if (Object.keys(updates).length > 0) {
             update(updates);
+            // Reset image load error when new image is set
+            if (updates.imageUri) {
+                setImageLoadError(false);
+            }
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
     }, [params, draft, update]);
@@ -592,7 +600,24 @@ export default function EnhancedManual() {
                 >
                     <Card style={styles.mediaCardInner}>
                     {draft.imageUri ? (
-                        <Image source={{ uri: draft.imageUri }} style={styles.mediaPreview} />
+                        imageLoadError ? (
+                            <View style={styles.addMediaContent}>
+                                <ThemedIcon name="image" size={32} color="secondary" />
+                                <ThemedText variant="label" color="secondary">
+                                    Image unavailable
+                                </ThemedText>
+                            </View>
+                        ) : (
+                            <Image 
+                                source={{ uri: draft.imageUri }} 
+                                style={styles.mediaPreview}
+                                onError={() => {
+                                    console.warn('Failed to load image in manual entry:', draft.imageUri);
+                                    setImageLoadError(true);
+                                }}
+                                onLoad={() => setImageLoadError(false)}
+                            />
+                        )
                     ) : (
                         <View style={styles.addMediaContent}>
                             <ThemedIcon name="camera" size={32} color="accent" />
