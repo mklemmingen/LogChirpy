@@ -81,8 +81,8 @@ export default function PhotoCapture() {
                 onPress={handleCameraLaunch}
                 style={styles.actionButton}
             >
-              <ThemedIcon name="camera" size={24} color="primary" />
-              <ThemedText variant="labelLarge" color="primary">
+              <ThemedIcon name="camera" size={24} color="inverse" />
+              <ThemedText variant="labelLarge" color="inverse">
                 {t('photo.take_photos')}
               </ThemedText>
             </ThemedPressable>

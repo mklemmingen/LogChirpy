@@ -106,6 +106,7 @@ function BirdCard({
                                     { color: bird.logged ? colors.primary : colors.text }
                                 ]}
                                 numberOfLines={1}
+                                ellipsizeMode="tail"
                             >
                                 {bird.displayName}
                             </ThemedText>
@@ -114,6 +115,7 @@ function BirdCard({
                                 color="secondary"
                                 style={styles.scientificName}
                                 numberOfLines={1}
+                                ellipsizeMode="tail"
                             >
                                 {bird.scientific_name}
                             </ThemedText>
@@ -138,7 +140,7 @@ function BirdCard({
                         {bird.family && (
                             <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
                                 <ThemedIcon name="users" size={12} color="secondary" />
-                                <ThemedText variant="caption" color="secondary">
+                                <ThemedText variant="caption" color="secondary" numberOfLines={1} ellipsizeMode="tail">
                                     {bird.family}
                                 </ThemedText>
                             </View>
@@ -146,7 +148,7 @@ function BirdCard({
 
                         <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
                             <ThemedIcon name="tag" size={12} color="primary" />
-                            <ThemedText variant="caption" color="primary">
+                            <ThemedText variant="caption" color="primary" numberOfLines={1} ellipsizeMode="tail">
                                 {bird.category}
                             </ThemedText>
                         </View>
@@ -687,6 +689,9 @@ function createBirdCardStyles() {
     return StyleSheet.create({
         birdCard: {
             marginBottom: 16,
+            width: '95%',
+            minWidth: "95%",
+            alignSelf: 'center',
         },
         birdCardInner: {
             overflow: 'hidden',
@@ -735,6 +740,7 @@ function createBirdCardStyles() {
             paddingVertical: 3,
             borderRadius: 6,
             gap: 3,
+            maxWidth: '80%',
         },
     });
 }

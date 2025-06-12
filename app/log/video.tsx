@@ -121,7 +121,7 @@ function PermissionError({ onRetry }: { onRetry: () => void }) {
                 style={styles.errorButton}
                 onPress={onRetry}
             >
-              <ThemedText color="primary">{t('camera.grant_permission')}</ThemedText>
+              <ThemedText color="inverse">{t('camera.grant_permission')}</ThemedText>
             </ThemedPressable>
           </View>
         </ModernCard>
@@ -188,7 +188,7 @@ function VideoPreview({
                 style={[styles.previewButton]}
                 onPress={onConfirm}
             >
-              <ThemedIcon name="check" size={20} color="primary" />
+              <ThemedIcon name="check" size={20} color="inverse" />
               <Text style={[styles.buttonText]}>
                 {t('common.confirm')}
               </Text>

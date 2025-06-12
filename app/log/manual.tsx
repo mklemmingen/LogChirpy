@@ -693,6 +693,7 @@ export default function EnhancedManual() {
                             styles.identifyButton,
                             {
                                 opacity: isIdentifyingBird ? 0.7 : 1,
+                                backgroundColor: colors.primary,
                             }
                         ]}
                         onPress={handleIdentifyBird}
@@ -709,7 +710,7 @@ export default function EnhancedManual() {
                                 <ThemedIcon 
                                     name="search" 
                                     size={20} 
-                                    color="primary"
+                                    color="inverse"
                                     style={styles.identifyIcon}
                                 />
                             )}
@@ -943,14 +944,14 @@ export default function EnhancedManual() {
                     disabled={isSaving}
                     size="lg"
                     fullWidth
-                    style={styles.saveButton}
+                    style={[styles.saveButton, { backgroundColor: colors.primary }]}
                 >
                     {isSaving ? (
                         <ActivityIndicator size="small" color={colors.textInverse} />
                     ) : (
-                        <ThemedIcon name="save" size={20} color="primary" />
+                        <ThemedIcon name="save" size={20} color="inverse" />
                     )}
-                    <ThemedText variant="button" color="primary">
+                    <ThemedText variant="button" style={{ color: colors.textInverse }}>
                         {isSaving ? t('common.saving') : t('common.save')}
                     </ThemedText>
                 </ThemedPressable>
@@ -993,9 +994,9 @@ export default function EnhancedManual() {
                                             handleDateChange({ type: 'set' }, selectedDate);
                                             setIsDatePickerVisible(false);
                                         }}
-                                        style={styles.dateButton}
+                                        style={[styles.dateButton, { backgroundColor: colors.primary }]}
                                     >
-                                        <ThemedText variant="button" color="primary">
+                                        <ThemedText variant="button" style={{ color: colors.textInverse }}>
                                             {t('common.confirm')}
                                         </ThemedText>
                                     </ThemedPressable>
@@ -1039,10 +1040,10 @@ export default function EnhancedManual() {
                                 setIsVideoModalVisible(false);
                                 handleMediaNavigation('/log/video');
                             }}
-                            style={styles.videoButton}
+                            style={[styles.videoButton, { backgroundColor: colors.primary }]}
                         >
-                            <ThemedIcon name="refresh-cw" size={20} color="primary" />
-                            <ThemedText variant="button" color="primary">
+                            <ThemedIcon name="refresh-cw" size={20} color="inverse" />
+                            <ThemedText variant="button" style={{ color: colors.textInverse }}>
                                 {t('camera.retake')}
                             </ThemedText>
                         </ThemedPressable>
