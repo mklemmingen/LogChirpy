@@ -50,6 +50,7 @@ import {useLogDraft} from '@/contexts/LogDraftContext';
 import {BirdSpotting, insertBirdSpotting} from '@/services/database';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {BirdNetService, BirdNetPrediction} from '@/services/birdNetService';
+import {ModelType} from '@/services/modelConfig';
 
 // Modern components
 import {ThemedView, Card} from '@/components/ThemedView';
@@ -394,6 +395,7 @@ export default function EnhancedManual() {
                     latitude: draft.gpsLat,
                     longitude: draft.gpsLng,
                     minConfidence: 0.1,
+                    modelType: ModelType.HIGH_ACCURACY_FP32
                 }
             );
 

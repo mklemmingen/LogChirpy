@@ -40,6 +40,7 @@ import * as Haptics from 'expo-haptics';
 
 import {theme} from "@/constants/theme";
 import {Config} from "@/constants/config";
+import {ModelType} from "@/services/modelConfig";
 
 
 // Note: Storage keys now managed globally in constants/config.ts
@@ -321,9 +322,12 @@ async function recordAndProcessAudio(): Promise<BirdNetPrediction[]> {
         console.log('[Audio] Recording complete, processing audio...');
         
         // Process audio through BirdNet with enhanced error handling
+        // Use balanced FP16 model for real-time camera processing
         let result;
         try {
-            result = await BirdNetService.identifyBirdFromAudio(audioUri);
+            result = await BirdNetService.identifyBirdFromAudio(audioUri, {
+                modelType: ModelType.BALANCED_FP16
+            });
             
             if (!result || !result.success) {
                 console.warn('[Audio] BirdNet processing failed, no valid results');
@@ -562,13 +566,13 @@ function ObjectIdentCameraContent() {
                     if (audioSuccess) {
                         console.log('[Audio] Audio system ready for bird detection');
                     } else {
-                        setAudioError('Audio initialization failed');
+                        setAudioError(t('audio.audio_initialization_failed'));
                     }
                 }
             } catch (error) {
                 console.error('[Audio] Audio initialization error:', error);
                 if (isMounted) {
-                    setAudioError('Audio system unavailable');
+                    setAudioError(t('audio.audio_system_unavailable'));
                 }
             }
         };
@@ -1002,7 +1006,7 @@ function ObjectIdentCameraContent() {
                     
                 } catch (error) {
                     console.error('[Audio] Processing error:', error);
-                    setAudioError(error instanceof Error ? error.message : 'Audio processing failed');
+                    setAudioError(error instanceof Error ? error.message : t('audio.audio_processing_failed'));
                     setAudioResults([]);
                 } finally {
                     setAudioProcessing(false);
@@ -1153,7 +1157,7 @@ function ObjectIdentCameraContent() {
                                 <View style={[styles.statusDot, { backgroundColor: '#FF0000' }]} />
                             )}
                             <Text style={styles.audioStatusText}>
-                                {audioProcessing ? 'Listening...' : audioInitialized ? 'Audio Ready' : 'Audio Error'}
+                                {audioProcessing ? t('audio.listening') : audioInitialized ? t('audio.audio_ready') : t('audio.audio_error')}
                             </Text>
                         </View>
                         {audioResults.length > 0 && (
