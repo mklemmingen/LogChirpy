@@ -15,16 +15,16 @@ deploy-logchirpy:
     - chmod +x /usr/local/bin/git-filter-repo
 
     - echo "Git setup..."
-    - git config --global user.email "mklemmingen@users.noreply.github.com"
+    - git config --global user.email "104225647+mklemmingen@users.noreply.github.com"
     - git config --global user.name "mklemmingen"
     - git checkout -B main
 
     - echo "Identifying large files in history..."
-    - git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 50*1024*1024) print $4}' > large_files.txt
+    - git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 100*1024*1024) print $4}' > large_files.txt
     - echo "Large files found:"
     - cat large_files.txt
 
-    - echo "Removing all large files (>50MB) from history..."
+    - echo "Removing all large files (>100MB) from history..."
     - |
       if [ -s large_files.txt ]; then
         while IFS= read -r file; do
@@ -48,27 +48,11 @@ deploy-logchirpy:
       --path-glob '**/.env'
       --invert-paths
 
-    - echo "Removing common large file types from history..."
-    - >
-      git-filter-repo --force
-      --path-glob '*.data-*-of-*'
-      --path-glob '*.bin'
-      --path-glob '*.weights'
-      --path-glob '*.h5'
-      --path-glob '*.pb'
-      --path-glob '*.onnx'
-      --path-glob '*.pth'
-      --path-glob '*.tar.gz'
-      --path-glob '*.zip'
-      --path-glob '*.7z'
-      --path-glob '*.rar'
-      --invert-paths
-
     - echo "Rewriting all mklemmingen-related emails to GitHub address..."
     - >
       git-filter-repo --force --email-callback '
         if email in [b"martin.lauterbach@student.reutlingen-university.de", b"mklemmingen", b"mklemmingen@gmail.com", b"mklemmingen@users.noreply.github.com"]:
-            return b"mklemmingen@users.noreply.github.com"
+            return b"104225647+mklemmingen@users.noreply.github.com"
         return email
       '
 
@@ -79,6 +63,17 @@ deploy-logchirpy:
             return b"Code update"
         return message
       '
+
+    - echo "Final cleanup - removing any remaining files >100MB..."
+    - git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 100*1024*1024) print $4}' > remaining_large_files.txt
+    - |
+      if [ -s remaining_large_files.txt ]; then
+        echo "Removing remaining large files:"
+        cat remaining_large_files.txt
+        while IFS= read -r file; do
+          git-filter-repo --force --path "$file" --invert-paths
+        done < remaining_large_files.txt
+      fi
 
     - echo "Pushing cleaned history to GitHub..."
     - git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
@@ -106,9 +101,6 @@ typescript-check:
     
     # Run tsc with specific flags to list all errors
     - npx tsc --noEmit --pretty --listFiles false || echo "TypeScript check completed with errors"
-    
-    # Alternative: if you have a specific tsconfig for checking
-    # - npx tsc --project tsconfig.json --noEmit --pretty || echo "TypeScript check completed with errors"
     
     - echo "========================================"
     - echo "TypeScript check finished"
