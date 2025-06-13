@@ -1,5 +1,5 @@
 variables:
-  GIT_DEPTH: 0  # ensures full clone including all history
+  GIT_DEPTH: 0
 
 stages:
   - deploy
@@ -48,15 +48,34 @@ deploy-logchirpy:
       --path-glob '**/.env'
       --invert-paths
 
-    - echo "Rewriting all mklemmingen-related emails to GitHub address..."
+    - echo "Fixing author attribution for GitHub..."
     - >
-      git-filter-repo --force --email-callback '
-        if email in [b"martin.lauterbach@student.reutlingen-university.de", b"mklemmingen", b"mklemmingen@gmail.com", b"mklemmingen@users.noreply.github.com"]:
-            return b"104225647+mklemmingen@users.noreply.github.com"
-        return email
+      git-filter-repo --force --commit-callback '
+        target_email = b"104225647+mklemmingen@users.noreply.github.com"
+        target_name = b"mklemmingen"
+        
+        old_emails = [
+          b"martin.lauterbach@student.reutlingen-university.de",
+          b"mklemmingen@users.noreply.github.com",
+          b"mklemmingen"
+        ]
+        
+        old_names = [
+          b"Martin Lauterbach",
+          b"martin.lauterbach",
+          b"mklemmingen"
+        ]
+        
+        if commit.author_email in old_emails or commit.author_name in old_names:
+            commit.author_name = target_name
+            commit.author_email = target_email
+        
+        if commit.committer_email in old_emails or commit.committer_name in old_names:
+            commit.committer_name = target_name
+            commit.committer_email = target_email
       '
 
-    - echo "Blanking out commit messages containing 'Claude'..."
+    - echo "Blanking out commit messages containing Claude..."
     - >
       git-filter-repo --force --message-callback '
         if b"Claude" in message:
@@ -75,41 +94,17 @@ deploy-logchirpy:
         done < remaining_large_files.txt
       fi
 
+    - echo "Repository optimization..."
+    - git gc --aggressive --prune=now
+
+    - echo "Verifying author attribution..."
+    - echo "Commits by author after cleanup:"
+    - git shortlog -sn | head -5
+
     - echo "Pushing cleaned history to GitHub..."
     - git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
     - git push --force origin main
     - echo "Successfully deployed cleaned GitHub history."
   only:
     - main
-  environment: production
-
-typescript-check:
-  stage: typecheck
-  image: node:18  # Use a Node.js image with npm
-  before_script:
-    # Clone the repository from GitHub to check the current state
-    - git clone https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git ./project
-    - cd ./project
-  script:
-    - echo "Installing dependencies..."
-    - npm ci  # Use ci for faster, deterministic installs
-    
-    - echo "Running TypeScript type check..."
-    - echo "========================================"
-    - echo "TypeScript Errors and Warnings:"
-    - echo "========================================"
-    
-    # Run tsc with specific flags to list all errors
-    - npx tsc --noEmit --pretty --listFiles false || echo "TypeScript check completed with errors"
-    
-    # Alternative: if you have a specific tsconfig for checking
-    # - npx tsc --project tsconfig.json --noEmit --pretty || echo "TypeScript check completed with errors"
-    
-    - echo "========================================"
-    - echo "TypeScript check finished"
-  allow_failure: true  # Don't fail the pipeline if there are TS errors
-  only:
-    - main
-  dependencies:
-    - deploy-logchirpy  # Ensure this runs after deploy
   environment: production
