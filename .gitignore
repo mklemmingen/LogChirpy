@@ -132,3 +132,4 @@ yarn-error.*
 /_documentationAndConversionScripts/_model_conversion_scripts/mobilenet_v2_1.0_224_quant_info.txt
 /_REVERT_/
 /dev/external/whobird/
+CLAUDE.md
