@@ -72,6 +72,14 @@ deploy-logchirpy:
         return email
       '
 
+    - echo "Rewriting username from mklemmingen to GitHub email format..."
+    - >
+      git-filter-repo --force --name-callback '
+        if name == b"mklemmingen":
+            return b"mklemmingen@users.noreply.github.com"
+        return name
+      '
+
     - echo "Final cleanup - removing any remaining files >10MB..."
     - git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 10*1024*1024) print $4}' > remaining_large_files.txt
     - |
