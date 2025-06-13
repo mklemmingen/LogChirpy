@@ -80,6 +80,22 @@ deploy-logchirpy:
         return name
       '
 
+    - echo "Ensuring mklemmingen username has correct email..."
+    - >
+      git-filter-repo --force --person-callback '
+        if person.name == b"mklemmingen":
+            person.email = b"mklemmingen@users.noreply.github.com"
+        return person
+      '
+
+    - echo "Blanking out commit messages containing 'Claude'..."
+    - >
+      git-filter-repo --force --message-callback '
+        if b"Claude" in message:
+            return b"Code update"
+        return message
+      '
+
     - echo "Final cleanup - removing any remaining files >10MB..."
     - git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 10*1024*1024) print $4}' > remaining_large_files.txt
     - |
