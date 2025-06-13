@@ -38,12 +38,6 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
-# Check for unstaged changes in assets directory
-if git diff --quiet HEAD -- "$ASSETS_PATH" && git diff --cached --quiet HEAD -- "$ASSETS_PATH"; then
-    log_message "No changes detected in $ASSETS_PATH"
-    exit 0
-fi
-
 # Add all changes in assets directory
 log_message "Adding changes in $ASSETS_PATH..."
 git add "$ASSETS_PATH"
