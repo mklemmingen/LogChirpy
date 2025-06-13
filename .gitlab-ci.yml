@@ -1,138 +1,39 @@
 variables:
   GIT_DEPTH: 0
+  GIT_STRATEGY: clone
 
 stages:
-  - deploy
-  - typecheck
+  - migrate
 
-deploy-logchirpy:
-  stage: deploy
-  image: ruby:2.7
+# Simple clone from GitLab and push to GitHub
+migrate-to-github:
+  stage: migrate
+  image: alpine/git
+  timeout: 1h
   script:
-    - echo "Installing git-filter-repo..."
-    - apt-get update && apt-get install -y python3 wget
-    - wget https://raw.githubusercontent.com/newren/git-filter-repo/main/git-filter-repo -O /usr/local/bin/git-filter-repo
-    - chmod +x /usr/local/bin/git-filter-repo
+    
+    - echo "Repository info:"
+    - echo "Repository size:" 
+    - du -sh .git | cut -f1
+    - echo "Total commits:"
+    - git rev-list --all --count
+    - echo "Current branch:"
+    - git branch --show-current || echo 'detached'
+    
+    - echo "Setting up GitHub remote..."
+    - git remote remove origin 2>/dev/null || true
+    - git remote remove github 2>/dev/null || true
+    - git remote add github https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
+    
+    - echo "Preparing for push..."
+    - git checkout main 2>/dev/null || git checkout -b main
+    
+    - echo "Pushing to GitHub..."
+    - git push --force github main
+    
+    - echo "Successfully migrated to GitHub!"
 
-    - echo "Git setup..."
-    - git config --global user.email "104225647+mklemmingen@users.noreply.github.com"
-    - git config --global user.name "mklemmingen"
-    - git checkout -B main
-
-    - echo "Identifying large files in history..."
-    - git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 100*1024*1024) print $4}' > large_files.txt
-    - echo "Large files found:"
-    - cat large_files.txt
-
-    - echo "Removing all large files (>100MB) from history..."
-    - |
-      if [ -s large_files.txt ]; then
-        while IFS= read -r file; do
-          echo "Removing large file: $file"
-          git-filter-repo --force --path "$file" --invert-paths
-        done < large_files.txt
-      else
-        echo "No large files found"
-      fi
-
-    - echo "Removing specific problematic commit..."
-    - >
-      git-filter-repo --force --commit-callback '
-        if commit.original_id == b"6dc08e153ae7aa2670a085104a1dbb95dd64254c":
-            commit.skip()
-      '
-
-    - echo "Removing all .env files from history..."
-    - >
-      git-filter-repo --force
-      --path-glob '**/.env'
-      --invert-paths
-
-    - echo "Fixing author attribution for GitHub..."
-    - >
-      git-filter-repo --force --commit-callback '
-        target_email = b"104225647+mklemmingen@users.noreply.github.com"
-        target_name = b"mklemmingen"
-        
-        old_emails = [
-          b"martin.lauterbach@student.reutlingen-university.de",
-          b"mklemmingen@users.noreply.github.com",
-          b"mklemmingen",
-          b"LauterbachMK@protonmail,com",
-          b"lauterbachmk@protonmail,com"
-        ]
-        
-        old_names = [
-          b"Martin Lauterbach",
-          b"martin.lauterbach",
-          b"mklemmingen"
-        ]
-        
-        if commit.author_email in old_emails or commit.author_name in old_names:
-            commit.author_name = target_name
-            commit.author_email = target_email
-        
-        if commit.committer_email in old_emails or commit.committer_name in old_names:
-            commit.committer_name = target_name
-            commit.committer_email = target_email
-      '
-
-    - echo "Blanking out commit messages containing Claude..."
-    - >
-      git-filter-repo --force --message-callback '
-        if b"Claude" in message:
-            return b"Code update"
-        return message
-      '
-
-    - echo "Final cleanup - removing any remaining files >100MB..."
-    - git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 100*1024*1024) print $4}' > remaining_large_files.txt
-    - |
-      if [ -s remaining_large_files.txt ]; then
-        echo "Removing remaining large files:"
-        cat remaining_large_files.txt
-        while IFS= read -r file; do
-          git-filter-repo --force --path "$file" --invert-paths
-        done < remaining_large_files.txt
-      fi
-
-    - echo "Repository optimization..."
-    - git gc --aggressive --prune=now
-
-    - echo "Verifying author attribution..."
-    - echo "Commits by author after cleanup:"
-    - git shortlog -sn | head -5
-
-    - echo "Pushing cleaned history to GitHub..."
-    - git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
-    - git push --force origin main
-    - echo "Successfully deployed cleaned GitHub history."
   only:
     - main
-  environment: production
-
-typescript-check:
-  stage: typecheck
-  image: node:18
-  before_script:
-    - git clone https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git ./project
-    - cd ./project
-  script:
-    - echo "Installing dependencies..."
-    - npm ci
-    
-    - echo "Running TypeScript type check..."
-    - echo "========================================"
-    - echo "TypeScript Errors and Warnings:"
-    - echo "========================================"
-    
-    - npx tsc --noEmit --pretty --listFiles false || echo "TypeScript check completed with errors"
-    
-    - echo "========================================"
-    - echo "TypeScript check finished"
-  allow_failure: true
-  only:
-    - main
-  dependencies:
-    - deploy-logchirpy
+  when: manual
   environment: production
