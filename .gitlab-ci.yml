@@ -57,7 +57,9 @@ deploy-logchirpy:
         old_emails = [
           b"martin.lauterbach@student.reutlingen-university.de",
           b"mklemmingen@users.noreply.github.com",
-          b"mklemmingen"
+          b"mklemmingen",
+          b"LauterbachMK@protonmail,com",
+          b"lauterbachmk@protonmail,com"
         ]
         
         old_names = [
@@ -107,4 +109,30 @@ deploy-logchirpy:
     - echo "Successfully deployed cleaned GitHub history."
   only:
     - main
+  environment: production
+
+typescript-check:
+  stage: typecheck
+  image: node:18
+  before_script:
+    - git clone https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git ./project
+    - cd ./project
+  script:
+    - echo "Installing dependencies..."
+    - npm ci
+    
+    - echo "Running TypeScript type check..."
+    - echo "========================================"
+    - echo "TypeScript Errors and Warnings:"
+    - echo "========================================"
+    
+    - npx tsc --noEmit --pretty --listFiles false || echo "TypeScript check completed with errors"
+    
+    - echo "========================================"
+    - echo "TypeScript check finished"
+  allow_failure: true
+  only:
+    - main
+  dependencies:
+    - deploy-logchirpy
   environment: production
