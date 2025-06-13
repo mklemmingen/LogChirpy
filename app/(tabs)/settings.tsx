@@ -1,10 +1,9 @@
-import React, {useEffect, useState} from "react";
-import {I18nManager, Linking, ScrollView, StyleSheet, Switch, Text, useColorScheme, View,} from "react-native";
-import {useTranslation} from "react-i18next";
-import {ThemedIcon} from '@/components/ThemedIcon';
+import { useEffect, useState } from "react";
+import { I18nManager, Linking, ScrollView, StyleSheet, Switch, useColorScheme, View, } from "react-native";
+import { useTranslation } from "react-i18next";
+import { ThemedIcon } from '@/components/ThemedIcon';
 import Animated, {
     FadeInDown,
-    interpolate,
     Layout,
     useAnimatedStyle,
     useSharedValue,
@@ -15,15 +14,14 @@ import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
-import {languages} from "@/i18n/languages";
-import {Config, STORAGE_KEYS} from "@/constants/config";
+import { languages } from "@/i18n/languages";
+import { Config, STORAGE_KEYS } from "@/constants/config";
 import Slider from '@react-native-community/slider';
-import {ThemedView, Card} from "@/components/ThemedView";
-import {ThemedText} from "@/components/ThemedText";
-import {ThemedPressable} from "@/components/ThemedPressable";
-import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
-import {Button} from "@/components/Button";
-import {useColors, useTheme, useTypography} from "@/hooks/useThemeColor";
+import { ThemedView, Card } from "@/components/ThemedView";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedPressable } from "@/components/ThemedPressable";
+import { ThemedSafeAreaView } from "@/components/ThemedSafeAreaView";
+import { useColors, useTheme, useTypography } from "@/hooks/useThemeColor";
 
 /**
  * Language selection card with flags and animations
@@ -35,13 +33,13 @@ import {useColors, useTheme, useTypography} from "@/hooks/useThemeColor";
  * @param props.index - Index for staggered animations
  */
 function LanguageCard({
-                          langKey,
-                          langName,
-                          isActive,
-                          onPress,
-                          index,
-                          styles
-                      }: {
+    langKey,
+    langName,
+    isActive,
+    onPress,
+    index,
+    styles
+}: {
     langKey: string;
     langName: string;
     isActive: boolean;
@@ -54,22 +52,13 @@ function LanguageCard({
     const typography = useTypography();
 
     const scale = useSharedValue(1);
-    const glowOpacity = useSharedValue(0);
+    const borderOpacity = useSharedValue(isActive ? 1 : 0);
 
     const handlePress = () => {
         Haptics.selectionAsync();
-
-        // Micro-animation
-        scale.value = withSpring(0.98, { damping: 15, stiffness: 300 }, () => {
+        scale.value = withSpring(0.97, { damping: 15, stiffness: 300 }, () => {
             scale.value = withSpring(1, { damping: 15, stiffness: 300 });
         });
-
-        if (isActive) {
-            glowOpacity.value = withTiming(1, { duration: 200 }, () => {
-                glowOpacity.value = withTiming(0, { duration: 300 });
-            });
-        }
-
         onPress();
     };
 
@@ -77,101 +66,122 @@ function LanguageCard({
         transform: [{ scale: scale.value }],
     }));
 
-    const glowStyle = useAnimatedStyle(() => ({
-        opacity: glowOpacity.value * 0.3,
-        transform: [{ scale: interpolate(glowOpacity.value, [0, 1], [0.95, 1.05]) }],
+    const borderAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: borderOpacity.value,
     }));
 
-    // Language flag emoji mapping
+    useEffect(() => {
+        borderOpacity.value = withTiming(isActive ? 1 : 0, { duration: 200 });
+    }, [isActive, borderOpacity]);
+
     const getLanguageFlag = (key: string) => {
         const flags: Record<string, string> = {
-            en: 'english',
-            de: 'deutsch',
-            es: 'español',
-            fr: 'français',
-            uk: 'українська',
-            ar: 'العربية',
+            en: '🇬🇧',
+            de: '🇩🇪',
+            es: '🇪🇸',
+            fr: '🇫🇷',
+            uk: '🇺🇦',
+            ar: '🇸🇦',
         };
         return flags[key] || '🌐';
     };
 
+
     return (
         <Animated.View
-            entering={FadeInDown.delay(index * 100).springify()}
+            entering={FadeInDown.delay(index * 80).springify()}
             layout={Layout.springify()}
         >
             <Animated.View style={animatedStyle}>
-            {/* Glow effect for active state */}
-            {isActive && (
-                <Animated.View
+                <ThemedPressable
+                    variant="ghost"
+                    onPress={handlePress}
                     style={[
-                        StyleSheet.absoluteFillObject,
+                        styles.languageCard,
                         {
-                            backgroundColor: colors.backgroundSecondary,
-                            borderRadius: theme.borderRadius.lg,
-                            margin: -2,
-                        },
-                        glowStyle,
+                            backgroundColor: isActive
+                                ? colors.backgroundTertiary
+                                : colors.backgroundSecondary,
+                        }
                     ]}
-                    pointerEvents="none"
-                />
-            )}
+                >
+                    <Animated.View
+                        style={[
+                            styles.activeBorder,
+                            { backgroundColor: colors.primary },
+                            borderAnimatedStyle
+                        ]}
+                    />
 
-            <ThemedPressable
-                variant={isActive ? "primary" : "secondary"}
-                onPress={handlePress}
-                style={styles.languageCard}
-            >
-                <Card style={[styles.languageCardInner, isActive && { borderColor: colors.primary, borderWidth: 2 }]}>
-                <View style={styles.languageContent}>
-                    <Text style={styles.languageFlag}>
-                        {getLanguageFlag(langKey)}
-                    </Text>
+                    <View style={styles.languageContent}>
+                        <View style={styles.languageInfo}>
+                            <View style={[
+                                styles.flagContainer,
+                                { backgroundColor: colors.background }
+                            ]}>
+                                <ThemedText style={styles.languageFlag}>
+                                    {getLanguageFlag(langKey)}
+                                </ThemedText>
+                            </View>
 
-                    <View style={styles.languageText}>
-                        <ThemedText
-                            variant="body"
-                            style={[
-                                styles.languageName,
-                                {
-                                    color: isActive
-                                        ? colors.primary
-                                        : colors.text,
-                                    fontWeight: isActive ? '600' : '400',
-                                }
-                            ]}
-                        >
-                            {langName}
-                        </ThemedText>
+                            <View style={styles.languageText}>
+                                <ThemedText
+                                    variant="body"
+                                    style={[
+                                        styles.languageName,
+                                        {
+                                            color: isActive ? colors.textSecondary : colors.text,
+                                            fontWeight: isActive ? '500' : '600',
+                                            textAlign: 'left',
+                                            width: '100%'
+                                        }
+                                    ]}
+                                >
+                                    {langName}
+                                </ThemedText>
 
-                        <ThemedText
-                            variant="label"
-                            color="secondary"
-                            style={styles.languageCode}
-                        >
-                            {langKey.toUpperCase()}
-                        </ThemedText>
-                    </View>
-
-                    {isActive && (
-                        <View style={[
-                            styles.activeIndicator,
-                            { backgroundColor: colors.primary }
-                        ]}>
-                            <ThemedIcon
-                                name="check"
-                                size={16}
-                                color="primary"
-                            />
+                                <ThemedText
+                                    variant="caption"
+                                    color="tertiary"
+                                    style={[
+                                        styles.languageCode,
+                                        {
+                                            textAlign: 'left',
+                                            width: '100%'
+                                        }
+                                    ]}
+                                >
+                                    {langKey.toUpperCase()}
+                                </ThemedText>
+                            </View>
                         </View>
-                    )}
-                </View>
-                </Card>
-            </ThemedPressable>
+
+                        <View style={styles.languageActions}>
+                            {isActive ? (
+                                <View style={[
+                                    styles.activeIndicator,
+                                    { backgroundColor: colors.primary }
+                                ]}>
+                                    <ThemedIcon
+                                        name="check"
+                                        size={14}
+                                        color="inverse"
+                                    />
+                                </View>
+                            ) : (
+                                <View style={[
+                                    styles.inactiveIndicator,
+                                    { borderColor: colors.border }
+                                ]} />
+                            )}
+                        </View>
+                    </View>
+                </ThemedPressable>
             </Animated.View>
         </Animated.View>
     );
 }
+
 
 /**
  * GPS toggle component with status indicators
@@ -180,10 +190,10 @@ function LanguageCard({
  * @param props.onToggle - Callback when GPS setting is toggled
  */
 function GPSToggleCard({
-                           enabled,
-                           onToggle,
-                           styles
-                       }: {
+    enabled,
+    onToggle,
+    styles
+}: {
     enabled: boolean;
     onToggle: () => void;
     styles: any;
@@ -312,7 +322,7 @@ export default function SettingsScreen() {
     const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
     const [gpsEnabled, setGpsEnabled] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
-    
+
     // Camera settings state
     const [cameraSettings, setCameraSettings] = useState({
         pipelineDelay: Config.camera.pipelineDelay,
@@ -324,7 +334,7 @@ export default function SettingsScreen() {
     const colors = useColors();
     const theme = useTheme();
     const typography = useTypography();
-    
+
     const styles = createStyles();
 
     // Load settings on mount
@@ -337,14 +347,14 @@ export default function SettingsScreen() {
                     AsyncStorage.getItem(STORAGE_KEYS.cameraConfidenceThreshold),
                     AsyncStorage.getItem(STORAGE_KEYS.cameraShowSettings),
                 ]);
-                
+
                 // GPS setting
                 if (storedGps !== null) {
                     const enabled = storedGps === 'true';
                     setGpsEnabled(enabled);
                     Config.gpsLoggingEnabled = enabled;
                 }
-                
+
                 // Camera settings
                 const newCameraSettings = { ...cameraSettings };
                 if (storedDelay !== null) {
@@ -420,12 +430,12 @@ export default function SettingsScreen() {
 
     // Camera settings handlers
     const updateCameraSetting = async <K extends keyof typeof cameraSettings>(
-        key: K, 
+        key: K,
         value: typeof cameraSettings[K]
     ) => {
         const newSettings = { ...cameraSettings, [key]: value };
         setCameraSettings(newSettings);
-        
+
         // Type-safe assignment to global config
         if (key === 'pipelineDelay') {
             Config.camera.pipelineDelay = value as number;
@@ -551,7 +561,7 @@ export default function SettingsScreen() {
                     <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
                         Adjust bird detection settings
                     </ThemedText>
-                    
+
                     <Animated.View
                         entering={FadeInDown.delay(250).springify()}
                         layout={Layout.springify()}
@@ -658,7 +668,7 @@ export default function SettingsScreen() {
                     <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
                         {t("settings.tutorial.subtitle")}
                     </ThemedText>
-                    
+
                     <Animated.View
                         entering={FadeInDown.delay(250).springify()}
                         layout={Layout.springify()}
@@ -671,21 +681,21 @@ export default function SettingsScreen() {
                                 <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
                                     {t("settings.tutorial.how_to_use.description")}
                                 </ThemedText>
-                                
+
                                 <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
                                     {t("settings.tutorial.image_processing.title")}
                                 </ThemedText>
                                 <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
                                     {t("settings.tutorial.image_processing.description")}
                                 </ThemedText>
-                                
+
                                 <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
                                     {t("settings.tutorial.ai_models.title")}
                                 </ThemedText>
                                 <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
                                     {t("settings.tutorial.ai_models.description")}
                                 </ThemedText>
-                                
+
                                 <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
                                     {t("settings.tutorial.data_privacy.title")}
                                 </ThemedText>
@@ -705,7 +715,7 @@ export default function SettingsScreen() {
                     <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
                         {t("settings.about.subtitle")}
                     </ThemedText>
-                    
+
                     <Animated.View
                         entering={FadeInDown.delay(300).springify()}
                         layout={Layout.springify()}
@@ -722,7 +732,7 @@ export default function SettingsScreen() {
                                         color="primary"
                                     />
                                 </View>
-                                
+
                                 <View style={styles.aboutText}>
                                     <ThemedText variant="h3" style={styles.appTitle}>
                                         LogChirpy
@@ -732,12 +742,12 @@ export default function SettingsScreen() {
                                     </ThemedText>
                                 </View>
                             </View>
-                            
+
                             <View style={styles.creatorsSection}>
                                 <ThemedText variant="bodyLarge" style={styles.creatorsTitle}>
                                     Created by
                                 </ThemedText>
-                                
+
                                 <ThemedPressable
                                     variant="ghost"
                                     onPress={() => {
@@ -754,12 +764,12 @@ export default function SettingsScreen() {
                                     </View>
                                 </ThemedPressable>
                             </View>
-                            
+
                             <View style={styles.creatorsSection}>
                                 <ThemedText variant="bodyLarge" style={styles.creatorsTitle}>
                                     Online Storage Solution by
                                 </ThemedText>
-                                
+
                                 <ThemedPressable
                                     variant="ghost"
                                     onPress={() => {
@@ -823,51 +833,94 @@ const createStyles = () => StyleSheet.create({
         marginBottom: 16,
         lineHeight: 20,
     },
-    
+
     // Language Section
     languageGrid: {
-        gap: 8,
+        gap: 12,
     },
     languageCard: {
-        borderRadius: 8,
+        borderRadius: 16,
+        minHeight: 72,
+        position: 'relative',
+        overflow: 'hidden',
     },
-    languageCardInner: {
-        minHeight: 56,
-        padding: 0,
+    activeBorder: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 4,
+        borderTopLeftRadius: 16,
+        borderBottomLeftRadius: 16,
     },
     languageContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 12,
-        gap: 12,
+        justifyContent: 'space-between',
+        padding: 16,
+        paddingLeft: 20,
+    },
+    languageInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        gap: 16,
+    },
+    flagContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     languageFlag: {
-        fontSize: 20,
-        lineHeight: 24,
+        fontSize: 22,
+        lineHeight: 26,
     },
     languageText: {
         flex: 1,
-        gap: 0,
+        gap: 2,
     },
     languageName: {
-        fontSize: 15,
-        lineHeight: 20,
+        fontSize: 16,
+        lineHeight: 22,
     },
     languageCode: {
-        opacity: 0.7,
-        fontSize: 11,
-        lineHeight: 14,
+        fontSize: 12,
+        lineHeight: 16,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
-    activeIndicator: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+    languageActions: {
         justifyContent: 'center',
         alignItems: 'center',
     },
+    activeIndicator: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    inactiveIndicator: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 2,
+    },
     loadingContainer: {
         alignItems: 'center',
-        paddingTop: 16,
+        paddingTop: 20,
     },
 
     // GPS Section
