@@ -64,20 +64,12 @@ deploy-logchirpy:
       --path-glob '*.rar'
       --invert-paths
 
-    - echo "Rewriting student email to GitHub address..."
+    - echo "Rewriting all mklemmingen-related emails to GitHub address..."
     - >
       git-filter-repo --force --email-callback '
-        if email == b"martin.lauterbach@student.reutlingen-university.de":
+        if email in [b"martin.lauterbach@student.reutlingen-university.de", b"mklemmingen", b"mklemmingen@gmail.com", b"mklemmingen@users.noreply.github.com"]:
             return b"mklemmingen@users.noreply.github.com"
         return email
-      '
-
-    - echo "Rewriting username from mklemmingen to GitHub email format..."
-    - >
-      git-filter-repo --force --name-callback '
-        if name == b"mklemmingen":
-            return b"mklemmingen@users.noreply.github.com"
-        return name
       '
 
     - echo "Blanking out commit messages containing 'Claude'..."
@@ -126,6 +118,8 @@ typescript-check:
     # Run tsc with specific flags to list all errors
     - npx tsc --noEmit --pretty --listFiles false || echo "TypeScript check completed with errors"
     
+    # Alternative: if you have a specific tsconfig for checking
+    # - npx tsc --project tsconfig.json --noEmit --pretty || echo "TypeScript check completed with errors"
     
     - echo "========================================"
     - echo "TypeScript check finished"
