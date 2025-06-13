@@ -80,17 +80,6 @@ deploy-logchirpy:
         return message
       '
 
-    - echo "Final cleanup - removing any remaining files >10MB..."
-    - git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 10*1024*1024) print $4}' > remaining_large_files.txt
-    - |
-      if [ -s remaining_large_files.txt ]; then
-        echo "Removing remaining large files:"
-        cat remaining_large_files.txt
-        while IFS= read -r file; do
-          git-filter-repo --force --path "$file" --invert-paths
-        done < remaining_large_files.txt
-      fi
-
     - echo "Pushing cleaned history to GitHub..."
     - git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/mklemmingen/LogChirpy.git
     - git push --force origin main
