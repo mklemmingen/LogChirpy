@@ -80,14 +80,6 @@ deploy-logchirpy:
         return name
       '
 
-    - echo "Ensuring mklemmingen username has correct email..."
-    - >
-      git-filter-repo --force --person-callback '
-        if person.name == b"mklemmingen":
-            person.email = b"mklemmingen@users.noreply.github.com"
-        return person
-      '
-
     - echo "Blanking out commit messages containing 'Claude'..."
     - >
       git-filter-repo --force --message-callback '
