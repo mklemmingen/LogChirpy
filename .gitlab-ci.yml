@@ -102,6 +102,9 @@ typescript-check:
     # Run tsc with specific flags to list all errors
     - npx tsc --noEmit --pretty --listFiles false || echo "TypeScript check completed with errors"
     
+    # Alternative: if you have a specific tsconfig for checking
+    # - npx tsc --project tsconfig.json --noEmit --pretty || echo "TypeScript check completed with errors"
+    
     - echo "========================================"
     - echo "TypeScript check finished"
   allow_failure: true  # Don't fail the pipeline if there are TS errors
