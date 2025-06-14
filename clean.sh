@@ -104,22 +104,48 @@ echo "Step 4: Processing Git history"
 echo "=============================="
 
 # Remove large files
-echo "Step 4.1: Removing large files (>100MB)..."
-git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 100*1024*1024) print $4}' > large_files.txt
+echo "Step 4.1: Removing large files (>50MB for GitHub compatibility)..."
+git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 50*1024*1024) print $4}' > large_files.txt
 
 if [ -s large_files.txt ]; then
     echo "Found $(wc -l < large_files.txt) large files to remove:"
-    head -5 large_files.txt
+    cat large_files.txt
+    echo ""
+    echo "Removing each file from history..."
 
     while IFS= read -r file; do
         echo "Removing: $file"
-        git filter-repo --path "$file" --invert-paths --force --quiet
+        git filter-repo --path "$file" --invert-paths --force
     done < large_files.txt
 
-    echo "Large files removed"
+    echo "Large files removed - checking for any remaining..."
+
+    # Double-check for remaining large files
+    git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 50*1024*1024) print "WARNING: Still exists: " $4 " (" $3/1024/1024 "MB)"}'
+
+    echo "Large files removal completed"
 else
     echo "No large files found"
 fi
+
+# Additional cleanup for specific problematic files mentioned in the error
+echo "Step 4.1b: Removing specific problematic files..."
+problem_patterns=(
+    "**/BirdNET_v2.4_keras/meta-model.h5"
+    "**/variables.data-00000-of-00001"
+    "**/*documentationAndConversionScripts*"
+    "**/*model*conversion*"
+    "**/*.h5"
+    "**/*.data-*-of-*"
+)
+
+for pattern in "${problem_patterns[@]}"; do
+    echo "Checking for pattern: $pattern"
+    if git ls-files | grep -E "${pattern//\*\*/.*}" >/dev/null 2>&1; then
+        echo "Found and removing: $pattern"
+        git filter-repo --path-glob "$pattern" --invert-paths --force
+    fi
+done
 
 # Remove security files and scripts
 echo "Step 4.2: Removing security files and cleanup scripts..."
