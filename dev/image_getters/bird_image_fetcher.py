@@ -454,6 +454,20 @@ def load_progress() -> Dict[str, str]:
     return {}
 
 
+def get_progress_stats(progress: Dict[str, str]) -> Dict[str, int]:
+    """Calculate progress statistics from the progress dictionary."""
+    total_entries = len(progress)
+    successful = len([f for f in progress.values() if f])
+    failed = len([f for f in progress.values() if not f])
+    
+    return {
+        'total_entries': total_entries,
+        'successful': successful,
+        'failed': failed,
+        'completion_rate': (successful / max(total_entries, 1)) * 100
+    }
+
+
 def save_progress(progress: Dict[str, str]):
     """Save download progress to file."""
     try:
@@ -519,6 +533,12 @@ def main():
     
     # Load previous progress (default behavior, unless --no-resume specified)
     progress = load_progress() if not args.no_resume else {}
+    
+    # Show overall progress statistics
+    if progress:
+        stats = get_progress_stats(progress)
+        logger.info(f"Overall progress: {stats['successful']}/{stats['total_entries']} species ({stats['completion_rate']:.1f}% complete)")
+        logger.info(f"Historical stats: {stats['successful']} successful, {stats['failed']} failed")
     
     # Filter birds if specific species requested
     if args.species:
@@ -592,7 +612,9 @@ def main():
                     logger.info(f"Skipping {scientific_name} (previously failed)")
                     continue
             
-            logger.info(f"Progress: {i+1}/{len(birds)} - {scientific_name}")
+            # Calculate current position in overall progress
+            overall_stats = get_progress_stats(progress)
+            logger.info(f"Batch: {i+1}/{len(birds)} | Overall: {overall_stats['successful']}/{overall_stats['total_entries']} ({overall_stats['completion_rate']:.1f}%) - {scientific_name}")
             
             # Fetch image
             filename = fetcher.fetch_bird_image(scientific_name, common_name, args.overwrite)
@@ -618,10 +640,14 @@ def main():
         create_manifest(progress, birds)
         
         logger.info("=== SUMMARY ===")
-        logger.info(f"Total downloads attempted: {fetcher.download_count}")
-        logger.info(f"Successful downloads: {fetcher.success_count}")
-        logger.info(f"Failed downloads: {fetcher.error_count}")
-        logger.info(f"Success rate: {fetcher.success_count/max(fetcher.download_count,1)*100:.1f}%")
+        logger.info(f"Session downloads attempted: {fetcher.download_count}")
+        logger.info(f"Session successful downloads: {fetcher.success_count}")
+        logger.info(f"Session failed downloads: {fetcher.error_count}")
+        logger.info(f"Session success rate: {fetcher.success_count/max(fetcher.download_count,1)*100:.1f}%")
+        
+        # Show overall statistics
+        final_stats = get_progress_stats(progress)
+        logger.info(f"Overall progress: {final_stats['successful']}/{final_stats['total_entries']} species ({final_stats['completion_rate']:.1f}% complete)")
         logger.info(f"Images saved to: {OUTPUT_DIR}")
         logger.info(f"Manifest created: {MANIFEST_PATH}")
     

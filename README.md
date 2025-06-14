@@ -641,5 +641,5 @@ gradle.projectsEvaluated {
 ### Important Notes
 
 - **Java 17 Required:** Download from [Adoptium Temurin Archive](https://adoptium.net/temurin/archive/?version=17)
-- **Repository Mirroring:** Main branch automatically mirrors to GitHub with API key filtering
+- **Repository Mirroring:** Main branch mirrors to GitHub with prune and security filtering while maintaining self-building
 - **Bird Classification Source:** [Bird-Classifier by rprkh](https://github.com/rprkh/Bird-Classifier)

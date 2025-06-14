@@ -6,6 +6,7 @@
  */
 
 import birdManifest from '../assets/images/birds/bird_images_manifest.json';
+import { birdImageMap } from './generated/BirdImageMap';
 
 export interface BirdImageInfo {
   latinName: string;
@@ -38,27 +39,81 @@ class BirdImageService {
       };
     }
 
+    // Normalize for cache key
+    const cacheKey = latinName.toLowerCase().trim();
+    
     // Check cache first
-    const cached = this.imageCache.get(latinName.toLowerCase());
+    const cached = this.imageCache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
-    // Search in manifest
-    const birdData = (birdManifest.images as any)[latinName];
+    // Try multiple lookup strategies
+    let birdData = null;
+    let foundLatinName = latinName;
     
+    // 1. Try exact match
+    birdData = (birdManifest.images as any)[latinName];
+    
+    // 2. Try with proper case (capitalize first letter of each word)
+    if (!birdData) {
+      const properCase = latinName
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+      birdData = (birdManifest.images as any)[properCase];
+      if (birdData) foundLatinName = properCase;
+    }
+    
+    // 3. For subspecies, try base species (first 2 words)
+    if (!birdData && latinName.split(' ').length > 2) {
+      const baseSpecies = latinName.split(' ').slice(0, 2).join(' ');
+      // Try with original case
+      birdData = (birdManifest.images as any)[baseSpecies];
+      if (birdData) {
+        foundLatinName = baseSpecies;
+      } else {
+        // Try with proper case
+        const baseSpeciesProper = baseSpecies
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+        birdData = (birdManifest.images as any)[baseSpeciesProper];
+        if (birdData) foundLatinName = baseSpeciesProper;
+      }
+    }
+    
+    // 4. Try case variations as last resort
+    if (!birdData) {
+      const variations = [
+        latinName.toLowerCase(),
+        latinName.toUpperCase(),
+        latinName.charAt(0).toUpperCase() + latinName.slice(1).toLowerCase()
+      ];
+      
+      for (const variant of variations) {
+        birdData = (birdManifest.images as any)[variant];
+        if (birdData) {
+          foundLatinName = variant;
+          break;
+        }
+      }
+    }
+    
+    // If still not found, return not found result
     if (!birdData) {
       const result: BirdImageResult = {
         imageUri: null,
         info: null,
         found: false
       };
-      this.imageCache.set(latinName.toLowerCase(), result);
+      this.imageCache.set(cacheKey, result);
       return result;
     }
 
+    // Build the result with found data
     const info: BirdImageInfo = {
-      latinName: latinName,
+      latinName: foundLatinName,
       commonName: birdData.common_name,
       imageFile: birdData.image_file,
       hasImage: birdData.has_image,
@@ -79,7 +134,7 @@ class BirdImageService {
       found: true
     };
 
-    this.imageCache.set(latinName.toLowerCase(), result);
+    this.imageCache.set(cacheKey, result);
     return result;
   }
 
@@ -101,38 +156,8 @@ class BirdImageService {
     }
 
     try {
-      // Map common bird image files to their require statements
-      const imageMap: { [key: string]: any } = {
-        'apteryx_australis.webp': require('../assets/images/birds/apteryx_australis.webp'),
-        'apteryx_mantelli.webp': require('../assets/images/birds/apteryx_mantelli.webp'),
-        'apteryx_owenii.webp': require('../assets/images/birds/apteryx_owenii.webp'),
-        'apteryx_rowi.webp': require('../assets/images/birds/apteryx_rowi.webp'),
-        'casuarius_bennetti.webp': require('../assets/images/birds/casuarius_bennetti.webp'),
-        'casuarius_casuarius.webp': require('../assets/images/birds/casuarius_casuarius.webp'),
-        'casuarius_unappendiculatus.webp': require('../assets/images/birds/casuarius_unappendiculatus.webp'),
-        'crypturellus_berlepschi.webp': require('../assets/images/birds/crypturellus_berlepschi.webp'),
-        'crypturellus_cinereus.webp': require('../assets/images/birds/crypturellus_cinereus.webp'),
-        'crypturellus_duidae.webp': require('../assets/images/birds/crypturellus_duidae.webp'),
-        'crypturellus_obsoletus.webp': require('../assets/images/birds/crypturellus_obsoletus.webp'),
-        'crypturellus_soui.webp': require('../assets/images/birds/crypturellus_soui.webp'),
-        'crypturellus_strigulosus.webp': require('../assets/images/birds/crypturellus_strigulosus.webp'),
-        'crypturellus_transfasciatus.webp': require('../assets/images/birds/crypturellus_transfasciatus.webp'),
-        'crypturellus_undulatus.webp': require('../assets/images/birds/crypturellus_undulatus.webp'),
-        'dromaius_novaehollandiae.webp': require('../assets/images/birds/dromaius_novaehollandiae.webp'),
-        'nothocercus_bonapartei.webp': require('../assets/images/birds/nothocercus_bonapartei.webp'),
-        'nothocercus_nigrocapillus.webp': require('../assets/images/birds/nothocercus_nigrocapillus.webp'),
-        'rhea_americana.webp': require('../assets/images/birds/rhea_americana.webp'),
-        'rhea_pennata.webp': require('../assets/images/birds/rhea_pennata.webp'),
-        'struthio_camelus.webp': require('../assets/images/birds/struthio_camelus.webp'),
-        'struthio_molybdophanes.webp': require('../assets/images/birds/struthio_molybdophanes.webp'),
-        'tinamus_guttatus.webp': require('../assets/images/birds/tinamus_guttatus.webp'),
-        'tinamus_major.webp': require('../assets/images/birds/tinamus_major.webp'),
-        'tinamus_osgoodi.webp': require('../assets/images/birds/tinamus_osgoodi.webp'),
-        'tinamus_solitarius.webp': require('../assets/images/birds/tinamus_solitarius.webp'),
-        'tinamus_tao.webp': require('../assets/images/birds/tinamus_tao.webp')
-      };
-
-      return imageMap[filename] || null;
+      // Use the generated bird image map with all 5000+ images
+      return birdImageMap[filename] || null;
     } catch (error) {
       console.warn('Failed to load bird image:', filename, error);
       return null;
