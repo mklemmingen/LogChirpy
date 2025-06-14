@@ -1,76 +1,111 @@
 #!/bin/bash
 
-# Git History Rewrite Script for Local Repository
-# WARNING: This permanently rewrites Git history - there's no going back!
+# Safe Git History Rewrite Script for Manjaro Linux
+# This script commits your current work, clones fresh, processes, and pushes to GitHub
 
-set -e  # Exit on any error
+set -e
 
-echo "Git History Rewrite Script"
-echo "=========================="
-echo "WARNING: This will permanently rewrite Git history!"
-echo "Make sure you have backups before proceeding."
+echo "Safe Git History Rewrite Script"
+echo "==============================="
+echo "This script will:"
+echo "1. Commit and push your current changes to GitLab"
+echo "2. Clone a fresh copy to a temporary directory"
+echo "3. Process the history in the temporary copy"
+echo "4. Push the cleaned history to GitHub"
+echo "5. Leave your current working directory unchanged"
 echo ""
+
+# Configuration
+GITLAB_REPO="https://gitlab.reutlingen-university.de/lauterba/moco_sose25_logchirpy.git"
+GITHUB_REPO="https://github.com/mklemmingen/LogChirpy.git"
+
+# Check if GitHub token is set
+if [ -z "$GITHUB_TOKEN" ]; then
+    echo "GitHub token not found in environment variable."
+    echo "Please enter your GitHub personal access token:"
+    read -s GITHUB_TOKEN
+    echo "Token received"
+
+    if [ -z "$GITHUB_TOKEN" ]; then
+        echo "ERROR: No token provided"
+        exit 1
+    fi
+fi
+
+TEMP_DIR="temp-git-cleanup-$(date +%Y%m%d-%H%M%S)"
 
 # Check if we're in a Git repository
 if [ ! -d ".git" ]; then
     echo "ERROR: Not in a Git repository root directory"
-    echo "Please run this script from your project root"
     exit 1
 fi
-
-# Create backup
-BACKUP_DIR="git-backup-$(date +%Y%m%d-%H%M%S)"
-echo "Creating backup at: $BACKUP_DIR"
-cp -r .git "$BACKUP_DIR"
-echo "Backup created successfully"
 
 # Install git-filter-repo if not available
 if ! command -v git-filter-repo &> /dev/null; then
     echo "Installing git-filter-repo..."
 
-    # Try different installation methods
-    if command -v pip3 &> /dev/null; then
+    if command -v yay &> /dev/null; then
+        echo "Installing via yay..."
+        yay -S git-filter-repo --noconfirm
+    elif command -v pamac &> /dev/null; then
+        echo "Installing via pamac..."
+        pamac install git-filter-repo --no-confirm
+    elif command -v pacman &> /dev/null; then
+        echo "Installing via pacman..."
+        sudo pacman -S git-filter-repo --noconfirm
+    elif command -v pip3 &> /dev/null; then
         pip3 install git-filter-repo
-    elif command -v pip &> /dev/null; then
-        pip install git-filter-repo
-    elif command -v python3 &> /dev/null; then
-        python3 -m pip install git-filter-repo
-    elif command -v python &> /dev/null; then
-        python -m pip install git-filter-repo
-    elif command -v apt-get &> /dev/null; then
-        echo "Trying to install via apt-get..."
-        sudo apt-get update && sudo apt-get install -y git-filter-repo
-    elif command -v brew &> /dev/null; then
-        echo "Trying to install via homebrew..."
-        brew install git-filter-repo
     else
-        echo "ERROR: Cannot install git-filter-repo automatically"
-        echo "Please install it manually:"
-        echo "  Ubuntu/Debian: sudo apt-get install git-filter-repo"
-        echo "  macOS: brew install git-filter-repo"
-        echo "  Or: curl -O https://raw.githubusercontent.com/newren/git-filter-repo/main/git-filter-repo"
-        echo "      chmod +x git-filter-repo"
-        echo "      sudo mv git-filter-repo /usr/local/bin/"
+        echo "Please install git-filter-repo first:"
+        echo "sudo pacman -S git-filter-repo"
         exit 1
     fi
 fi
 
-# Show current repository stats
+echo "Step 1: Saving current work to GitLab"
+echo "======================================"
+
+# Check if there are any changes to commit
+if ! git diff-index --quiet HEAD --; then
+    echo "Found uncommitted changes, creating commit..."
+    git add .
+    git commit -m "WIP: Auto-commit before history cleanup"
+    echo "Changes committed"
+else
+    echo "No uncommitted changes found"
+fi
+
+# Push current state to GitLab
+echo "Pushing current state to GitLab..."
+git push origin main
+echo "Current work saved to GitLab"
+
 echo ""
-echo "Current repository stats:"
+echo "Step 2: Setting up temporary directory"
+echo "====================================="
+
+mkdir "$TEMP_DIR"
+cd "$TEMP_DIR"
+echo "Working in temporary directory: $(pwd)"
+
+echo ""
+echo "Step 3: Cloning fresh copy from GitLab"
+echo "======================================"
+
+git clone "$GITLAB_REPO" repo
+cd repo
+
+echo "Initial repository stats:"
 echo "Repository size: $(du -sh .git | cut -f1)"
 echo "Total commits: $(git rev-list --all --count)"
-echo "Current author emails:"
-git log --format='%ae' | sort | uniq -c | head -5
 
 echo ""
-echo "Starting history rewrite..."
+echo "Step 4: Processing Git history"
+echo "=============================="
 
-# Step 1: Remove large files (>100MB)
-echo "Step 1: Removing large files (>100MB)..."
-git rev-list --objects --all | \
-git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | \
-awk '/^blob/ {if($3 > 100*1024*1024) print $4}' > large_files.txt
+# Remove large files
+echo "Step 4.1: Removing large files (>100MB)..."
+git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 100*1024*1024) print $4}' > large_files.txt
 
 if [ -s large_files.txt ]; then
     echo "Found $(wc -l < large_files.txt) large files to remove:"
@@ -86,29 +121,50 @@ else
     echo "No large files found"
 fi
 
-# Step 2: Remove .env files
-echo "Step 2: Removing .env files..."
-if git ls-files | grep -E '\.env(\.|$)' >/dev/null 2>&1; then
-    git filter-repo --path-glob '**/.env' --path-glob '**/.env.*' --invert-paths --force --quiet
-    echo ".env files removed"
-else
-    echo "No .env files found"
+# Remove security files and scripts
+echo "Step 4.2: Removing security files and cleanup scripts..."
+
+# Remove cleanup scripts
+if git ls-files | grep -E 'clean\.sh$' >/dev/null 2>&1; then
+    git filter-repo --path-glob '**/clean.sh' --invert-paths --force --quiet
+    echo "Cleanup scripts removed"
 fi
 
-# Step 3: Remove specific problematic commit
-echo "Step 3: Removing problematic commit..."
+# Remove .env files
+if git ls-files | grep -E '\.env' >/dev/null 2>&1; then
+    git filter-repo --path-glob '**/.env*' --invert-paths --force --quiet
+    echo ".env files removed"
+fi
+
+# Remove config files
+for pattern in "config.json" "secrets.json" "credentials.json" ".npmrc"; do
+    if git ls-files | grep -E "$pattern" >/dev/null 2>&1; then
+        git filter-repo --path-glob "**/$pattern" --invert-paths --force --quiet
+        echo "Removed $pattern files"
+    fi
+done
+
+# Remove backup files
+for ext in "bak" "backup" "old" "tmp" "log"; do
+    if git ls-files | grep -E "\.$ext$" >/dev/null 2>&1; then
+        git filter-repo --path-glob "**/*.$ext" --invert-paths --force --quiet
+        echo "Removed .$ext files"
+    fi
+done
+
+echo "Security cleanup completed"
+
+# Remove problematic commit
+echo "Step 4.3: Removing problematic commit..."
 if git cat-file -e 6dc08e153ae7aa2670a085104a1dbb95dd64254c 2>/dev/null; then
-    git filter-repo --commit-callback '
-if commit.original_id == b"6dc08e153ae7aa2670a085104a1dbb95dd64254c":
-    commit.skip()
-' --force --quiet
+    git filter-repo --commit-callback 'if commit.original_id == b"6dc08e153ae7aa2670a085104a1dbb95dd64254c": commit.skip()' --force --quiet
     echo "Problematic commit removed"
 else
-    echo "Commit not found (already removed or doesn't exist)"
+    echo "Commit not found"
 fi
 
-# Step 4: Fix author attribution
-echo "Step 4: Fixing author attribution..."
+# Fix author attribution
+echo "Step 4.4: Fixing author attribution..."
 git filter-repo --commit-callback '
 target_email = b"104225647+mklemmingen@users.noreply.github.com"
 target_name = b"mklemmingen"
@@ -124,7 +180,10 @@ old_emails = [
 old_names = [
     b"Martin Lauterbach",
     b"martin.lauterbach",
-    b"mklemmingen"
+    b"mklemmingen",
+    b"Marty",
+    b"Marty Lauterbach",
+    b"Martin"
 ]
 
 if commit.author_email in old_emails or commit.author_name in old_names:
@@ -138,34 +197,43 @@ if commit.committer_email in old_emails or commit.committer_name in old_names:
 
 echo "Author attribution fixed"
 
-# Step 5: Clean commit messages
-echo "Step 5: Cleaning commit messages..."
+# Clean commit messages
+echo "Step 4.5: Cleaning commit messages..."
 claude_commits=$(git log --grep="Claude" --oneline | wc -l)
 if [ "$claude_commits" -gt 0 ]; then
     echo "Found $claude_commits commits mentioning Claude"
-    git filter-repo --message-callback '
-if b"Claude" in message:
-    return b"Code update"
-return message
-' --force --quiet
+    git filter-repo --message-callback 'if b"Claude" in message: return b"Code update"
+return message' --force --quiet
     echo "Claude mentions cleaned"
 else
     echo "No Claude mentions found"
 fi
 
-# Step 6: Repository optimization
-echo "Step 6: Optimizing repository..."
+# Repository optimization
+echo "Step 4.6: Optimizing repository..."
 git reflog expire --expire=now --all 2>/dev/null || true
 git gc --aggressive --prune=now --quiet
 
-# Configure Git user for future commits
+# Configure Git user
 git config user.email "104225647+mklemmingen@users.noreply.github.com"
 git config user.name "mklemmingen"
 
-# Show final stats
 echo ""
-echo "History rewrite complete!"
-echo "========================"
+echo "Step 5: Pushing to GitHub"
+echo "========================="
+
+git remote remove origin 2>/dev/null || true
+git remote add github "https://x-access-token:${GITHUB_TOKEN}@${GITHUB_REPO#https://}"
+
+git checkout main 2>/dev/null || git checkout -b main
+
+echo "Pushing cleaned history to GitHub..."
+git push --force github main
+
+echo ""
+echo "Step 6: Final Results"
+echo "===================="
+
 echo "Final repository stats:"
 echo "Repository size: $(du -sh .git | cut -f1)"
 echo "Total commits: $(git rev-list --all --count)"
@@ -177,17 +245,17 @@ echo "Recent commits:"
 git log --format='%h %an <%ae> %s' -5
 
 echo ""
-echo "SUCCESS: Git history has been permanently rewritten"
-echo "Backup available at: $BACKUP_DIR"
-echo ""
-echo "Next steps:"
-echo "1. Review the changes above"
-echo "2. Push to your remote repository with: git push --force origin main"
-echo "3. All team members will need to re-clone the repository"
+echo "SUCCESS: Git history rewritten and pushed to GitHub!"
+echo "GitHub repository: $GITHUB_REPO"
 
 # Cleanup
-rm -f large_files.txt
+cd ../..
+rm -rf "$TEMP_DIR"
+echo "Temporary directory cleaned up"
 
 echo ""
-echo "IMPORTANT: This rewrite is permanent and affects all branches."
-echo "Anyone with existing clones will need to re-clone after you push."
+echo "IMPORTANT NOTES:"
+echo "- Your current working directory is unchanged"
+echo "- The cleaned repository is now on GitHub"
+echo "- Your GitLab repository still contains the original history"
+echo "- Team members can now clone from GitHub for the clean history"
