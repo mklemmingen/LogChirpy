@@ -180,7 +180,36 @@
   "audio": {
     "start": "Iniciar grabación",
     "stop": "Detener y usar grabación",
-    "saving": "Procesando audio…"
+    "saving": "Procesando audio…",
+    "permission_required": "Micrófono requerido",
+    "permission_explanation": "Acceso al micrófono necesario",
+    "grant_permission": "Conceder permiso",
+    "permission_denied": "Acceso denegado",
+    "permission_denied_message": "Habilitar micrófono en configuración",
+    "permission_message": "Acceso al micrófono requerido",
+    "play": "Reproducir",
+    "pause": "Pausar",
+    "stop_recording_title": "¿Detener?",
+    "stop_recording_message": "¿Detener grabación?",
+    "stop_and_exit": "Detener",
+    "recording_failed": "Falló",
+    "save_failed": "Error al guardar",
+    "playback_failed": "Error de reproducción",
+    "processing": "Procesando...",
+    "record_audio": "Grabar",
+    "recording": "Grabando...",
+    "microphone_permission_required_detection": "Permiso de micrófono requerido para detección de aves",
+    "audio_recording_unavailable": "Grabación de audio no disponible",
+    "failed_get_recording_uri": "No se pudo obtener URI de grabación",
+    "microphone_permission_required": "Permiso de micrófono requerido",
+    "recording_failed_check_microphone": "Grabación falló - verificar micrófono",
+    "audio_processing_failed": "Procesamiento de audio falló",
+    "audio_pipeline_unavailable": "Pipeline de audio no disponible",
+    "audio_initialization_failed": "Inicialización de audio falló",
+    "audio_system_unavailable": "Sistema de audio no disponible",
+    "listening": "Escuchando...",
+    "audio_ready": "Audio listo",
+    "audio_error": "Error de audio"
   },
   "log": {
     "add_audio": "Agregar audio",
@@ -201,7 +230,10 @@
     "audio_prediction": "Predicción de audio",
     "select_date": "Seleccionar fecha",
     "stop_audio": "Detener audio",
-    "play_audio": "Reproducir audio"
+    "play_audio": "Reproducir audio",
+    "media_section": "Medios",
+    "details_section": "Detalles",
+    "metadata_section": "Metadatos"
   },
   "camera": {
     "take_photo": "Tomar foto",
@@ -214,6 +246,7 @@
     "not_ready": "Cámara no lista",
     "wait_ready": "Espera a que la cámara esté lista.",
     "requesting_access": "Solicitando acceso…",
+    "requesting_permission": "Solicitando permisos de cámara…",
     "checking_access": "Verificando acceso…",
     "need_permission": "Necesitamos acceso a tu cámara",
     "allow_access": "Permitir acceso",
@@ -313,7 +346,10 @@
     "error_signing_out": "No se puede cerrar sesión",
     "confirm_password_required": "Por favor confirma tu contraseña",
     "passwords_do_not_match": "Las contraseñas no coinciden",
-    "confirm_password_placeholder": "Confirmar contraseña"
+    "confirm_password_placeholder": "Confirmar contraseña",
+    "welcome_back": "¡Bienvenido de vuelta!",
+    "account_created_successfully": "¡Cuenta creada exitosamente!",
+    "signing_in": "Iniciando sesión..."
   },
   "loading_messages": {
     "initializing_offline_model": "Inicializando modelo de clasificación de aves sin conexión...",
@@ -331,7 +367,8 @@
     "init_failed": "Inicialización fallida",
     "building_database2": "Creando tu base de datos de aves",
     "species_loaded_label": "Especies cargadas",
-    "total_species": "Especies totales"
+    "total_species": "Especies totales",
+    "failed_initialize_local_database": "No se pudo inicializar la base de datos local"
   },
   "camera_advanced": {
     "media_permission_denied": "Permiso de biblioteca multimedia denegado",
@@ -363,7 +400,10 @@
     "smart_search_description": "Búsqueda inteligente de aves",
     "archive_description": "Tus archivos de aves",
     "account_description": "Configuración de cuenta",
-    "settings_description": "Configuración de la aplicación"
+    "settings_description": "Configuración de la aplicación",
+    "unsaved_changes": "Cambios sin guardar",
+    "lose_changes_message": "Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?",
+    "discard": "Descartar"
   },
   "not_found": {
     "page_title": "Página no encontrada",

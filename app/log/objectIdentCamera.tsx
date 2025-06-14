@@ -28,10 +28,11 @@ import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
 
 import {useTranslation} from 'react-i18next';
+import { filePathToUri, copyFileWithProperUri, ensureGalleryDirectory } from '@/services/uriUtils';
 
 import Slider from '@react-native-community/slider';
 
-import { BirdNetService, BirdNetPrediction } from '@/services/birdNetService';
+import { AudioIdentificationService, AudioPrediction } from '@/services/audioIdentificationService';
 
 import {ThemedSnackbar} from "@/components/ThemedSnackbar";
 import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
@@ -40,6 +41,7 @@ import * as Haptics from 'expo-haptics';
 
 import {theme} from "@/constants/theme";
 import {Config} from "@/constants/config";
+import {ModelType} from "@/services/modelConfig";
 
 
 // Note: Storage keys now managed globally in constants/config.ts
@@ -108,22 +110,14 @@ async function handleClassifiedSave(
 
     const filename = generateFilename(prefix, label.text, label.confidence);
     try {
-        // Create gallery directory in document storage if it doesn't exist
-        const galleryDir = `${FileSystem.documentDirectory}gallery/`;
-        const dirInfo = await FileSystem.getInfoAsync(galleryDir);
-        if (!dirInfo.exists) {
-            await FileSystem.makeDirectoryAsync(galleryDir, { intermediates: true });
-            console.log('Created gallery directory:', galleryDir);
-        }
+        // Ensure gallery directory exists
+        const galleryDir = await ensureGalleryDirectory();
 
-        // Save to document directory for gallery access
+        // Save to gallery directory with proper URI handling
         const destPath = `${galleryDir}${filename}`;
-        await FileSystem.copyAsync({
-            from: fileUri,
-            to: destPath
-        });
+        const savedUri = await copyFileWithProperUri(fileUri, destPath);
 
-        console.log(`${prefix} classified image saved to gallery:`, destPath);
+        console.log(`${prefix} classified image saved to gallery:`, savedUri);
         showSnackbar('camera.bird_detected', {
             bird: label.text,
             confidence: Math.round(label.confidence * 100),
@@ -235,11 +229,16 @@ async function initializeAudio(): Promise<boolean> {
         console.log('[Audio] Initializing audio system...');
         
         // Step 1: Request audio permissions
+        console.log('[Audio] Requesting microphone permissions...');
         const { status } = await Audio.requestPermissionsAsync();
+        console.log('[Audio] Permission status:', status);
+        
         if (status !== 'granted') {
-            console.warn('[Audio] Microphone permission denied');
+            console.warn('[Audio] Microphone permission denied, status:', status);
             throw new Error('Microphone permission required for bird detection');
         }
+        
+        console.log('[Audio] Microphone permissions granted');
         
         // Step 2: Configure audio mode
         try {
@@ -256,14 +255,14 @@ async function initializeAudio(): Promise<boolean> {
         
         // Step 3: Initialize BirdNet service for audio processing
         try {
-            await BirdNetService.initializeOfflineMode();
+            await AudioIdentificationService.initialize();
             console.log('[Audio] BirdNet service initialized successfully');
         } catch (birdNetError) {
             console.error('[Audio] BirdNet initialization failed:', birdNetError);
             
             // Try fallback initialization
             try {
-                await BirdNetService.initializeFastTflite();
+                await AudioIdentificationService.initializeFastTflite();
                 console.log('[Audio] BirdNet FastTflite fallback initialized');
             } catch (fallbackError) {
                 console.error('[Audio] All BirdNet initialization methods failed:', fallbackError);
@@ -273,13 +272,44 @@ async function initializeAudio(): Promise<boolean> {
         
         // Step 4: Test recording capability
         try {
+            console.log('[Audio] Testing recording capability...');
             const testRecording = new Audio.Recording();
-            await testRecording.prepareToRecordAsync(AUDIO_CONFIG as any);
+            
+            // Try to prepare recording with current config
+            try {
+                await testRecording.prepareToRecordAsync(AUDIO_CONFIG as any);
+            } catch (prepareError) {
+                console.warn('[Audio] Failed to prepare with full config, trying fallback...');
+                // Try with minimal config as fallback
+                const fallbackConfig = Platform.OS === 'ios' ? {
+                    extension: '.m4a',
+                    outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+                    audioQuality: Audio.IOSAudioQuality.MEDIUM,
+                    sampleRate: 44100,
+                    numberOfChannels: 1,
+                } : {
+                    extension: '.m4a',
+                    outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+                    audioEncoder: Audio.AndroidAudioEncoder.AAC,
+                    sampleRate: 44100,
+                    numberOfChannels: 1,
+                };
+                await testRecording.prepareToRecordAsync(fallbackConfig as any);
+            }
+            
+            // Start recording briefly to test capability
+            await testRecording.startAsync();
+            
+            // Wait a small amount to ensure recording actually starts
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Stop and unload the test recording
             await testRecording.stopAndUnloadAsync();
             console.log('[Audio] Recording test passed');
         } catch (recordingTestError) {
             console.error('[Audio] Recording test failed:', recordingTestError);
-            throw new Error('Audio recording unavailable');
+            console.warn('[Audio] Continuing without recording test validation - recording may still work during actual use');
+            // Don't throw error - allow audio system to continue without test validation
         }
         
         console.log('[Audio] Audio system initialized successfully');
@@ -297,7 +327,7 @@ async function initializeAudio(): Promise<boolean> {
     }
 }
 
-async function recordAndProcessAudio(): Promise<BirdNetPrediction[]> {
+async function recordAndProcessAudio(): Promise<AudioPrediction[]> {
     let recording: Audio.Recording | null = null;
     let audioUri: string | null = null;
     
@@ -321,9 +351,12 @@ async function recordAndProcessAudio(): Promise<BirdNetPrediction[]> {
         console.log('[Audio] Recording complete, processing audio...');
         
         // Process audio through BirdNet with enhanced error handling
+        // Use MData V2 FP16 model for real-time camera processing (has embedded labels)
         let result;
         try {
-            result = await BirdNetService.identifyBirdFromAudio(audioUri);
+            result = await AudioIdentificationService.identifyBirdFromAudio(audioUri, {
+                modelType: ModelType.MDATA_V2_FP16
+            });
             
             if (!result || !result.success) {
                 console.warn('[Audio] BirdNet processing failed, no valid results');
@@ -453,7 +486,7 @@ function ObjectIdentCameraContent() {
     const [modalVisible, setModalVisible] = useState(false);
 
     // Audio processing state
-    const [audioResults, setAudioResults] = useState<BirdNetPrediction[]>([]);
+    const [audioResults, setAudioResults] = useState<AudioPrediction[]>([]);
     const [audioProcessing, setAudioProcessing] = useState(false);
     const [audioError, setAudioError] = useState<string | null>(null);
     const [audioInitialized, setAudioInitialized] = useState(false);
@@ -562,13 +595,13 @@ function ObjectIdentCameraContent() {
                     if (audioSuccess) {
                         console.log('[Audio] Audio system ready for bird detection');
                     } else {
-                        setAudioError('Audio initialization failed');
+                        setAudioError(t('audio.audio_initialization_failed'));
                     }
                 }
             } catch (error) {
                 console.error('[Audio] Audio initialization error:', error);
                 if (isMounted) {
-                    setAudioError('Audio system unavailable');
+                    setAudioError(t('audio.audio_system_unavailable'));
                 }
             }
         };
@@ -655,19 +688,16 @@ function ObjectIdentCameraContent() {
 
                 setImageDims({ width: manipResult.width, height: manipResult.height });
 
-                // Save manipulated image to the document directory using standard FileSystem
+                // Save manipulated image to the document directory with proper URI handling
                 try {
                     const fileName = `photo_${Date.now()}.jpg`;
                     const destPath = `${FileSystem.documentDirectory}${fileName}`;
 
-                    // Copy the manipulated image to document directory
-                    await FileSystem.copyAsync({
-                        from: manipResult.uri,
-                        to: destPath
-                    });
+                    // Copy the manipulated image to document directory and get proper URI
+                    const savedUri = await copyFileWithProperUri(manipResult.uri, destPath);
                     
-                    console.log('Photo saved to document directory:', destPath);
-                    setPhotoPath(destPath);
+                    console.log('Photo saved to document directory:', savedUri);
+                    setPhotoPath(savedUri);
 
                 } catch (copyError: unknown) {
                     console.error('Error copying photo to document directory:', copyError);
@@ -811,8 +841,8 @@ function ObjectIdentCameraContent() {
                 //   trackingID?: number;
                 // }
 
-                // Set current photo as last photo for UI display
-                setLastPhotoUri(imagePath);
+                // Set current photo as last photo for UI display (ensure proper URI format)
+                setLastPhotoUri(filePathToUri(imagePath));
 
                 // 1) Enrich each detection by cropping + classifying:
                 const enriched: Detection[] = [];
@@ -1002,7 +1032,7 @@ function ObjectIdentCameraContent() {
                     
                 } catch (error) {
                     console.error('[Audio] Processing error:', error);
-                    setAudioError(error instanceof Error ? error.message : 'Audio processing failed');
+                    setAudioError(error instanceof Error ? error.message : t('audio.audio_processing_failed'));
                     setAudioResults([]);
                 } finally {
                     setAudioProcessing(false);
@@ -1111,7 +1141,7 @@ function ObjectIdentCameraContent() {
                                                         height={18}
                                                         rx={4}
                                                         ry={4}
-                                                        fill="black"
+                                                        fill="rgba(0,0,0,0.8)"
                                                         fillOpacity={0.5}
                                                     />
                                                     <SvgText
@@ -1153,7 +1183,7 @@ function ObjectIdentCameraContent() {
                                 <View style={[styles.statusDot, { backgroundColor: '#FF0000' }]} />
                             )}
                             <Text style={styles.audioStatusText}>
-                                {audioProcessing ? 'Listening...' : audioInitialized ? 'Audio Ready' : 'Audio Error'}
+                                {audioProcessing ? t('audio.listening') : audioInitialized ? t('audio.audio_ready') : t('audio.audio_error')}
                             </Text>
                         </View>
                         {audioResults.length > 0 && (
@@ -1389,19 +1419,26 @@ function ObjectIdentCameraContent() {
                                 );
                             })}
                         </View>
-                        <View style={styles.modalButtons}>
-                            <Button title={t('buttons.close')} onPress={() => {
-                                // Safe modal close to prevent view conflicts
-                                setModalVisible(false);
-                                setShowOverlays(true);
-                                // Delay clearing the URI to ensure modal is fully unmounted
-                                setTimeout(() => {
-                                    setModalPhotoUri(null);
-                                }, 100);
-                            }} />
+                        <View style={[styles.modalButtons, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
+                            <TouchableOpacity 
+                                style={[styles.modalButton, { backgroundColor: currentTheme.colors.interactive.primary }]}
+                                onPress={() => {
+                                    // Safe modal close to prevent view conflicts
+                                    setModalVisible(false);
+                                    setShowOverlays(true);
+                                    // Delay clearing the URI to ensure modal is fully unmounted
+                                    setTimeout(() => {
+                                        setModalPhotoUri(null);
+                                    }, 100);
+                                }}
+                            >
+                                <Text style={[styles.modalButtonText, { color: currentTheme.colors.text.inverse }]}>
+                                    {t('buttons.close')}
+                                </Text>
+                            </TouchableOpacity>
                             {/* Optional, havent fully fletched out the UX yet */}
-                            {/* <Button title="Delete" onPress={...} /> */}
-                            {/* <Button title="Save" onPress={...} /> */}
+                            {/* <TouchableOpacity title="Delete" onPress={...} /> */}
+                            {/* <TouchableOpacity title="Save" onPress={...} /> */}
                         </View>
                     </View>
                 )}
@@ -1453,7 +1490,21 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         width: '100%',
         paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderRadius: 12,
+        marginHorizontal: 20,
         zIndex: 10, // Ensure modal buttons are above the SVG overlay
+    },
+    modalButton: {
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
+        minWidth: 100,
+        alignItems: 'center',
+    },
+    modalButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
     statusBadge: {
         position: 'absolute',

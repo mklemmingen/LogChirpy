@@ -1,0 +1,15 @@
+LogChirpy ist der ultimative Begleiter für die Vogelbeobachtung, der Ihr Mobilgerät in ein mächtiges ornithologisches Werkzeug verwandelt! Mit KI-gestützter Erkennung und umfassenden Protokollierungsfunktionen hilft Ihnen LogChirpy dabei, die Welt der Vögel wie nie zuvor zu dokumentieren und zu erkunden.
+
+Hauptfunktionen:
+• Vögel anhand ihrer Gesänge mit fortschrittlicher BirdNET-Technologie identifizieren
+• Vögel durch Fotos mit geräteeigener maschineller Lerntechnologie erkennen
+• Sichtungen mit GPS-Koordinaten, Fotos und detaillierten Notizen protokollieren
+• Zugriff auf eine umfassende Datenbank mit über 30.000 Vogelarten weltweit
+• Synchronisierung Ihrer Beobachtungen zwischen Geräten mit Cloud-Backup
+• Teilen Sie Ihre Entdeckungen mit der Vogelbeobachtungsgemeinschaft
+
+LogChirpy wurde für Vogelliebhaber aller Erfahrungsstufen entwickelt und funktioniert vollständig offline mit lokalen KI-Modellen, sodass Sie Vögel überall identifizieren und protokollieren können - von abgelegener Wildnis bis zu Stadtparks. Ihre Daten werden sicher gespeichert mit optionaler Cloud-Synchronisation.
+
+Verfügbar in 6 Sprachen: Englisch, Deutsch, Spanisch, Französisch, Ukrainisch und Arabisch.
+
+Die App benötigt Android 9+

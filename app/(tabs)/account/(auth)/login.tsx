@@ -35,7 +35,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { useSnackbar } from '@/components/ThemedSnackbar';
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 import { useSemanticColors, useTypography, useColorVariants } from '@/hooks/useThemeColor';
-// import { useAuth } from '@/app/context/AuthContext';
 
 // Constants
 const { width, height: screenHeight } = Dimensions.get('window');
@@ -255,7 +254,7 @@ export default function LoginScreen() {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             console.log('Login successful:', userCredential.user);
 
-            showSuccess('Welcome back!');
+            showSuccess(t('app_errors.welcome_back'));
 
             // Navigate to account tab instead of tabs root to avoid navigation conflicts
             setTimeout(() => {
@@ -434,7 +433,7 @@ export default function LoginScreen() {
                                             variant="labelLarge"
                                             style={{ color: semanticColors.background }}
                                         >
-                                            {isLoading ? 'Signing In...' : t('auth.signin')}
+                                            {isLoading ? t('app_errors.signing_in') : t('auth.signin')}
                                         </ThemedText>
                                     </View>
                                 </ThemedPressable>
@@ -469,7 +468,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 40,
+        paddingTop: 20,
     },
     keyboardView: {
         flex: 1,

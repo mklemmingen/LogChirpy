@@ -306,7 +306,7 @@ function PermissionError({
                             {isRequesting ? (
                                 <ActivityIndicator size="small" color={theme.colors.text.inverse} />
                             ) : (
-                                <ThemedText color="primary">{t('audio.grant_permission', 'Grant Permission')}</ThemedText>
+                                <ThemedText color="inverse">{t('audio.grant_permission', 'Grant Permission')}</ThemedText>
                             )}
                         </ThemedPressable>
                     </ThemedView>
@@ -376,8 +376,8 @@ function PlaybackControls({
                     style={{ flex: 1, flexDirection: 'row', gap: 8, justifyContent: 'center' }}
                     onPress={onConfirm}
                 >
-                    <ThemedIcon name="check" size={20} color="primary" />
-                    <ThemedText color="primary">{t('common.confirm', 'Confirm')}</ThemedText>
+                    <ThemedIcon name="check" size={20} color="inverse" />
+                    <ThemedText color="inverse">{t('common.confirm', 'Confirm')}</ThemedText>
                 </ThemedPressable>
             </ThemedView>
         </BlurView>

@@ -25,6 +25,9 @@ import { ModernCard } from '@/components/ModernCard';
 // Hooks
 import { useColors } from '@/hooks/useThemeColor';
 
+// URI utilities
+import { filePathToUri, uriToFilePath, validateImageUri } from '@/services/uriUtils';
+
 interface PhotoItem {
     uri: string;
     filename: string;
@@ -44,6 +47,7 @@ export default function GalleryManagementScreen() {
     const [loading, setLoading] = useState(true);
     const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
     const [selectionMode, setSelectionMode] = useState(false);
+    const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
 
     // Load photos from document storage gallery directory
     const loadPhotos = useCallback(async () => {
@@ -70,7 +74,7 @@ export default function GalleryManagementScreen() {
                     const { classification, confidence, detectionType } = extractDataFromFilename(filename);
                     
                     return {
-                        uri: filePath,
+                        uri: filePathToUri(filePath), // Convert to proper URI for Image component
                         filename: filename,
                         size: info.exists && 'size' in info ? info.size : 0,
                         modificationTime: info.modificationTime || 0,
@@ -148,8 +152,11 @@ export default function GalleryManagementScreen() {
                         return;
                     }
 
+                    // Convert URI to file path for MediaLibrary
+                    const filePath = uriToFilePath(uri);
+                    
                     // Create asset
-                    const asset = await MediaLibrary.createAssetAsync(uri);
+                    const asset = await MediaLibrary.createAssetAsync(filePath);
                     
                     // Add to LogChirpy album
                     let album = await MediaLibrary.getAlbumAsync("LogChirpy");
@@ -192,9 +199,11 @@ export default function GalleryManagementScreen() {
                     onPress: async () => {
                         try {
                             for (const uri of photoUris) {
-                                const fileInfo = await FileSystem.getInfoAsync(uri);
+                                // Convert URI to file path for FileSystem operations
+                                const filePath = uriToFilePath(uri);
+                                const fileInfo = await FileSystem.getInfoAsync(filePath);
                                 if (fileInfo.exists) {
-                                    await FileSystem.deleteAsync(uri);
+                                    await FileSystem.deleteAsync(filePath);
                                 }
                             }
                             setSelectedPhotos(new Set());
@@ -222,8 +231,9 @@ export default function GalleryManagementScreen() {
         }
     };
 
-    const renderPhoto = ({ item, index }: { item: PhotoItem; index: number }) => {
+    const renderPhoto = ({ item }: { item: PhotoItem }) => {
         const isSelected = selectedPhotos.has(item.uri);
+        const isBroken = brokenImages.has(item.uri);
         
         return (
             <View style={styles.photoContainer}>
@@ -245,7 +255,23 @@ export default function GalleryManagementScreen() {
                         isSelected && { borderColor: colors.primary, borderWidth: 3 }
                     ]}
                 >
-                    <Image source={{ uri: item.uri }} style={styles.photo} />
+                    {isBroken ? (
+                        <View style={[styles.photo, styles.brokenImageContainer]}>
+                            <ThemedIcon name="image" size={32} color="secondary" />
+                            <ThemedText variant="caption" color="secondary">
+                                Image unavailable
+                            </ThemedText>
+                        </View>
+                    ) : (
+                        <Image 
+                            source={{ uri: item.uri }} 
+                            style={styles.photo}
+                            onError={() => {
+                                console.warn('Failed to load image:', item.uri);
+                                setBrokenImages(prev => new Set(prev).add(item.uri));
+                            }}
+                        />
+                    )}
                     
                     {/* Selection indicator */}
                     {selectionMode && (
@@ -464,6 +490,12 @@ function createStyles() {
             width: '100%',
             height: 150,
             resizeMode: 'cover',
+        },
+        brokenImageContainer: {
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.05)',
+            gap: 8,
         },
         selectionIndicator: {
             position: 'absolute',

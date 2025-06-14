@@ -181,7 +181,36 @@
   "audio": {
     "start": "Aufnahme starten",
     "stop": "Stopp & verwenden",
-    "saving": "Verarbeite Audio…"
+    "saving": "Verarbeite Audio…",
+    "permission_required": "Mikrofon erforderlich",
+    "permission_explanation": "Mikrofonzugriff erforderlich",
+    "grant_permission": "Berechtigung erteilen",
+    "permission_denied": "Zugriff verweigert",
+    "permission_denied_message": "Mikrofon in Einstellungen aktivieren",
+    "permission_message": "Mikrofonzugriff erforderlich",
+    "play": "Abspielen",
+    "pause": "Pausieren",
+    "stop_recording_title": "Stoppen?",
+    "stop_recording_message": "Aufnahme stoppen?",
+    "stop_and_exit": "Stoppen",
+    "recording_failed": "Fehlgeschlagen",
+    "save_failed": "Speichern fehlgeschlagen",
+    "playback_failed": "Wiedergabe fehlgeschlagen",
+    "processing": "Verarbeitung...",
+    "record_audio": "Aufnehmen",
+    "recording": "Aufnahme läuft...",
+    "microphone_permission_required_detection": "Mikrofonberechtigung für Vogelerkennung erforderlich",
+    "audio_recording_unavailable": "Audioaufnahme nicht verfügbar",
+    "failed_get_recording_uri": "Aufnahme-URI konnte nicht abgerufen werden",
+    "microphone_permission_required": "Mikrofonberechtigung erforderlich",
+    "recording_failed_check_microphone": "Aufnahme fehlgeschlagen - Mikrofon prüfen",
+    "audio_processing_failed": "Audioverarbeitung fehlgeschlagen",
+    "audio_pipeline_unavailable": "Audio-Pipeline nicht verfügbar",
+    "audio_initialization_failed": "Audio-Initialisierung fehlgeschlagen",
+    "audio_system_unavailable": "Audiosystem nicht verfügbar",
+    "listening": "Lauschen...",
+    "audio_ready": "Audio bereit",
+    "audio_error": "Audio-Fehler"
   },
   "log": {
     "add_audio": "Audio hinzufügen",
@@ -202,7 +231,10 @@
     "audio_prediction": "Audio-Vorhersage",
     "select_date": "Datum auswählen",
     "stop_audio": "Audio stoppen",
-    "play_audio": "Audio abspielen"
+    "play_audio": "Audio abspielen",
+    "media_section": "Medien",
+    "details_section": "Details",
+    "metadata_section": "Metadaten"
   },
   "camera": {
     "take_photo": "Foto aufnehmen",
@@ -215,6 +247,7 @@
     "not_ready": "Kamera nicht bereit",
     "wait_ready": "Bitte warten Sie, bis die Kamera bereit ist.",
     "requesting_access": "Fordere Zugriff an…",
+    "requesting_permission": "Fordere Kameraberechtigung an…",
     "checking_access": "Überprüfe Kamerazugriff…",
     "need_permission": "Wir benötigen Zugriff auf Ihre Kamera",
     "allow_access": "Zugriff erlauben",
@@ -314,7 +347,10 @@
     "error_signing_out": "Abmeldung nicht möglich",
     "confirm_password_required": "Bitte bestätigen Sie Ihr Passwort",
     "passwords_do_not_match": "Passwörter stimmen nicht überein",
-    "confirm_password_placeholder": "Passwort bestätigen"
+    "confirm_password_placeholder": "Passwort bestätigen",
+    "welcome_back": "Willkommen zurück!",
+    "account_created_successfully": "Konto erfolgreich erstellt!",
+    "signing_in": "Anmelden..."
   },
   "loading_messages": {
     "initializing_offline_model": "Initialisiere Offline-Vogelklassifikationsmodell...",
@@ -332,7 +368,8 @@
     "init_failed": "Initialisierung fehlgeschlagen",
     "building_database2": "Vogeldatenbank wird erstellt",
     "species_loaded_label": "Arten geladen",
-    "total_species": "Gesamtanzahl Arten"
+    "total_species": "Gesamtanzahl Arten",
+    "failed_initialize_local_database": "Lokale Datenbank konnte nicht initialisiert werden"
   },
   "camera_advanced": {
     "media_permission_denied": "Medienbibliothek-Berechtigung verweigert",
@@ -345,7 +382,8 @@
     "failed_load_settings": "Einstellungen können nicht geladen werden",
     "classifier_ready": "Klassifizierer ist bereit",
     "object_detector_not_loaded": "Erkennungssystem nicht bereit",
-    "image_classifier_not_ready": "Vogelidentifikationssystem lädt..."
+    "image_classifier_not_ready": "Vogelidentifikationssystem lädt...",
+    "camera_initialized": "Kamera initialisiert!"
   },
   "components": {
     "no_camera_found": "Keine Kamera gefunden",
@@ -364,7 +402,10 @@
     "smart_search_description": "Intelligente Vogelsuche",
     "archive_description": "Ihre Vogelarchive",
     "account_description": "Kontoeinstellungen",
-    "settings_description": "App-Einstellungen"
+    "settings_description": "App-Einstellungen",
+    "unsaved_changes": "Ungespeicherte Änderungen",
+    "lose_changes_message": "Sie haben ungespeicherte Änderungen. Sind Sie sicher, dass Sie die Seite verlassen möchten?",
+    "discard": "Verwerfen"
   },
   "not_found": {
     "page_title": "Seite nicht gefunden",
@@ -394,7 +435,9 @@
     "stop_recording_message": "Sie nehmen gerade auf. Möchten Sie stoppen und das Video speichern?",
     "stop_and_exit": "Stoppen & Speichern",
     "processing": "Video wird verarbeitet...",
-    "preview_title": "Videovorschau"
+    "preview_title": "Videovorschau",
+    "recording_status_rec": "AUFN",
+    "recording_status_stopped": "GESTOPPT"
   },
   "location": {
     "success": "Standort aktualisiert",

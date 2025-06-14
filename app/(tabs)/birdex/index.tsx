@@ -7,6 +7,7 @@ import {
     TextInput,
     View,
     Pressable,
+    Image,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
@@ -51,6 +52,7 @@ import {
     queryBirdDexPage,
 } from '@/services/databaseBirDex';
 import { hasSpottingForLatin } from '@/services/database';
+import { getBirdImageSource } from '@/services/birdImageService';
 
 // Types
 type DisplayRecord = BirdDexRecord & {
@@ -96,40 +98,65 @@ function BirdCard({
             >
                 <Card style={[styles.birdCardInner, bird.logged && { borderColor: colors.primary, borderWidth: 2 }]}>
                 <View style={styles.cardContent}>
-                    {/* Header Row */}
-                    <View style={styles.cardHeader}>
-                        <View style={styles.birdInfo}>
-                            <ThemedText
-                                variant="body"
-                                style={[
-                                    styles.birdName,
-                                    { color: bird.logged ? colors.primary : colors.text }
-                                ]}
-                                numberOfLines={1}
-                            >
-                                {bird.displayName}
-                            </ThemedText>
-                            <ThemedText
-                                variant="bodySmall"
-                                color="secondary"
-                                style={styles.scientificName}
-                                numberOfLines={1}
-                            >
-                                {bird.scientific_name}
-                            </ThemedText>
+                    <View style={styles.cardLayout}>
+                        {/* Bird Image */}
+                        <View style={styles.birdImageContainer}>
+                            {(() => {
+                                const imageSource = getBirdImageSource(bird.scientific_name);
+                                return imageSource ? (
+                                    <Image
+                                        source={imageSource}
+                                        style={styles.birdImage}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <View style={[styles.birdImagePlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
+                                        <ThemedIcon name="image" size={24} color="secondary" />
+                                    </View>
+                                );
+                            })()}
                         </View>
 
-                        {/* Status Indicators */}
-                        <View style={styles.cardIndicators}>
-                            {bird.logged && (
-                                <View style={[
-                                    styles.loggedBadge,
-                                    { backgroundColor: colors.primary }
-                                ]}>
-                                    <ThemedIcon name="check" size={12} color="primary" />
+                        {/* Bird Info */}
+                        <View style={styles.birdContentContainer}>
+                            {/* Header Row */}
+                            <View style={styles.cardHeader}>
+                                <View style={styles.birdInfo}>
+                                    <ThemedText
+                                        variant="body"
+                                        style={[
+                                            styles.birdName,
+                                            { color: bird.logged ? colors.primary : colors.text }
+                                        ]}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
+                                        {bird.displayName}
+                                    </ThemedText>
+                                    <ThemedText
+                                        variant="bodySmall"
+                                        color="secondary"
+                                        style={styles.scientificName}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
+                                        {bird.scientific_name}
+                                    </ThemedText>
                                 </View>
-                            )}
-                            <ThemedIcon name="chevron-right" size={16} color="secondary" />
+
+                                {/* Status Indicators */}
+                                <View style={styles.cardIndicators}>
+                                    {bird.logged && (
+                                        <View style={[
+                                            styles.loggedBadge,
+                                            { backgroundColor: colors.primary }
+                                        ]}>
+                                            <ThemedIcon name="check" size={12} color="primary" />
+                                        </View>
+                                    )}
+                                    <ThemedIcon name="chevron-right" size={16} color="secondary" />
+                                </View>
+                            </View>
                         </View>
                     </View>
 
@@ -138,7 +165,7 @@ function BirdCard({
                         {bird.family && (
                             <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
                                 <ThemedIcon name="users" size={12} color="secondary" />
-                                <ThemedText variant="caption" color="secondary">
+                                <ThemedText variant="caption" color="secondary" numberOfLines={1} ellipsizeMode="tail">
                                     {bird.family}
                                 </ThemedText>
                             </View>
@@ -146,7 +173,7 @@ function BirdCard({
 
                         <View style={[styles.metaBadge, { backgroundColor: colors.backgroundSecondary }]}>
                             <ThemedIcon name="tag" size={12} color="primary" />
-                            <ThemedText variant="caption" color="primary">
+                            <ThemedText variant="caption" color="primary" numberOfLines={1} ellipsizeMode="tail">
                                 {bird.category}
                             </ThemedText>
                         </View>
@@ -687,12 +714,42 @@ function createBirdCardStyles() {
     return StyleSheet.create({
         birdCard: {
             marginBottom: 16,
+            width: '95%',
+            minWidth: "95%",
+            alignSelf: 'center',
         },
         birdCardInner: {
             overflow: 'hidden',
         },
         cardContent: {
             padding: 12,
+            gap: 8,
+            width: '100%',
+        },
+        cardLayout: {
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: 12,
+        },
+        birdImageContainer: {
+            width: 60,
+            height: 60,
+            borderRadius: 8,
+            overflow: 'hidden',
+        },
+        birdImage: {
+            width: '100%',
+            height: '100%',
+        },
+        birdImagePlaceholder: {
+            width: '100%',
+            height: '100%',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: 8,
+        },
+        birdContentContainer: {
+            flex: 1,
             gap: 8,
         },
         cardHeader: {
@@ -727,6 +784,7 @@ function createBirdCardStyles() {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 4,
+            width: '100%',
         },
         metaBadge: {
             flexDirection: 'row',
@@ -735,6 +793,8 @@ function createBirdCardStyles() {
             paddingVertical: 3,
             borderRadius: 6,
             gap: 3,
+            flex: 1,
+            minWidth: 0,
         },
     });
 }

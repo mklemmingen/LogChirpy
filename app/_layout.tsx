@@ -24,6 +24,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColors, useTheme, useTypography, useShadows } from '@/hooks/useThemeColor';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
+import { MemoryMonitor } from '@/components/MemoryMonitor';
 
 import {
     ImageLabelingConfig,
@@ -39,7 +40,7 @@ import {
 
 // Database imports
 import { initDB } from '@/services/database';
-import { BirdNetService } from '@/services/birdNetService';
+import { AudioIdentificationService } from '@/services/audioIdentificationService';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -417,6 +418,7 @@ function AppInitializationScreen({ message, error, onRetry }: {
  * Root layout component with theme provider and ML model initialization
  */
 export default function RootLayout() {
+    const { t } = useTranslation();
     const theme = useTheme();
     const colors = useColors();
     const typography = useTypography();
@@ -503,7 +505,7 @@ export default function RootLayout() {
                         stack: error.stack,
                     });
                 }
-                setLocalDbError(error instanceof Error ? error.message : 'Failed to initialize local database');
+                setLocalDbError(error instanceof Error ? error.message : t('loading_messages.failed_initialize_local_database'));
 
                 // On Android, retry once after a delay
                 if (Platform.OS === 'android' && retryCount === 0) {
@@ -523,7 +525,7 @@ export default function RootLayout() {
         const initializeOfflineModel = async () => {
             try {
                 console.log('Initializing offline bird classification model...');
-                await BirdNetService.initializeOfflineMode();
+                await AudioIdentificationService.initialize();
                 setOfflineModelReady(true);
                 console.log('Offline bird classification model initialized successfully');
             } catch (error) {
@@ -554,13 +556,13 @@ export default function RootLayout() {
 
     // Show app initialization screen
     if (!loaded || !localDbReady || !offlineModelReady) {
-        let message = "Loading application...";
+        let message = t('loading_messages.loading_application');
         if (!loaded) {
-            message = "Loading fonts and assets...";
+            message = t('loading_messages.loading_fonts_assets');
         } else if (!localDbReady) {
-            message = "Initializing local database...";
+            message = t('loading_messages.initializing_local_db');
         } else if (!offlineModelReady) {
-            message = "Loading AI models...";
+            message = t('loading_messages.loading_ai_models');
         }
 
         return (
@@ -620,11 +622,12 @@ export default function RootLayout() {
                                         <Stack.Screen name="log" options={{ headerShown: false }} />
                                         <Stack.Screen name="+not-found" />
                                     </Stack>
+                                    <MemoryMonitor />
                                 </View>
                                 <StatusBar style="auto" />
                             </ObjectDetectionProvider>
                         </ImageLabelingModelProvider>
-                    </ThemeProvider>
+                    </ThemeProvider>a
                 </AuthProvider>
             </SafeAreaProvider>
         </GestureHandlerRootView>

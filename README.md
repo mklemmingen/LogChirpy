@@ -9,7 +9,7 @@
 [![GitHub Repo](https://img.shields.io/static/v1?label=mklemmingen&message=LogChirpy&color=brown&logo=github)](https://github.com/mklemmingen/LogChirpy)
 
 ---
-
+F
 ## Table of Contents
 
 1. [Introduction / Motivation](#1-introduction--motivation)
@@ -39,7 +39,7 @@ The integration of OpenStreetMap allows precise real-time geolocation and provid
 
 ### Multilingual & Knowledge Access
 
-The app is built completely bilingual (German/English) and allows quick switching between languages. Additionally, users can directly access the appropriate Wikipedia article for a recognized bird species – for immediate further information.
+The app is built with full multilingual support (6 languages: English, German, Spanish, French, Ukrainian, and Arabic) and allows quick switching between languages. Additionally, users can directly access the appropriate Wikipedia article for a recognized bird species – for immediate further information.
 
 ### Cloud Integration & Data Privacy
 
@@ -67,7 +67,7 @@ Recorded images are automatically compressed and can be shared directly via the 
 - Implement local machine learning models for real-time bird recognition
 - Create a scalable cloud infrastructure using Firebase
 - Ensure GDPR compliance and data privacy
-- Provide multilingual support (German/English)
+- Provide multilingual support (6 languages: English, German, Spanish, French, Ukrainian, Arabic)
 
 ### User Experience Goals
 - Deliver an accessible interface for users with varying technical expertise
@@ -358,13 +358,13 @@ Each Feature Folder contains:
 - ✅ Bird-themed icons and visual design system
 - ✅ Tab structure with haptic and audio feedback
 - ✅ Local SQLite database with archive functionality and sync
-- ✅ Localization system (German/English) with dynamic switching
+- ✅ Localization system (6 languages: English, German, Spanish, French, Ukrainian, Arabic) with dynamic switching
 - ✅ Settings implementation with categorized sections
 - ✅ ML model training, conversion, and integration pipeline
 - ✅ Custom camera component with real-time MLKit object detection
 - ✅ Two-model pipeline: SSD object detection + bird classification
 - ✅ Image classification with confidence-based visualization
-- ✅ BirdyDex database with 15,000+ global bird species, fully translated locally to spanish, arabic, ukranian, german
+- ✅ BirdyDex database with 30,000+ global bird species, fully translated locally to spanish, arabic, ukrainian, german, french
 - ✅ Mass translation system using multiple APIs and fallbacks
 - ✅ Pagination system for bird database with search functionality
 - ✅ Wikipedia integration and external links
@@ -373,8 +373,8 @@ Each Feature Folder contains:
 - ✅ Performance optimization for Android devices (2020+)
 - ✅ Media logging components (photo, video, audio)
 - ✅ BirdyDex database of all 30k earth bird species is loaded in different stages with user feedback
-- ✅ Full localization of the app with 5 languages (English, German, Spanish, Ukrainian, Arabic) 
-- ✅ Full localization of the BirdyDex database with 15,000+ species names in 5 languages
+- ✅ Full localization of the app with 6 languages (English, German, Spanish, French, Ukrainian, Arabic) 
+- ✅ Full localization of the BirdyDex database with 30,000+ species names in 6 languages
 - ✅ Full test coverage and pipeline tests with mocks
 - ✅ .h5 birdnet model to tflite conversion and integration
 - ✅ full frontend implementation with custom components and theming
@@ -382,19 +382,47 @@ Each Feature Folder contains:
 - ✅ Full CI/CD pipeline with GitHub mirroring and privacy protection
 - ✅ Accesibility features implemented (e.g., haptic feedback, audio cues)
 - ✅ Full Style Guide adherence with custom components and theming
+- ✅ Audio Pipeline for converting audio to ML model fit data
+- ✅ Converted modern h5 model (deprecated)
+- ✅ used existing bird audio tflite models with credit
+- full black and white theme system with hooks
+- full component creation and integration
+- full wireframe and UI system
+- full ux design
+- full log state managment and context usage
+- full stack context managment with ML models
+- full camera and audio components
+- ✅ Context restructuring: moved context files from `/app/context/` to `/contexts/` directory
+- ✅ Updated all imports throughout codebase to use new context paths
+- ✅ Fixed AuthContext and LogDraftContext path references
+- ✅ Resolved all TypeScript errors in the codebase
+- ✅ Added TypeScript type checking command (`npm run typecheck`)
+- ✅ Fixed BirdexLayout component naming issue
+- ✅ Extended BirDex database from 15,000+ to full 30,000+ global bird species
+- ✅ Implemented full translations for all 30,000+ species in 6 languages (added French)
+- ✅ Expanded language support from 5 to 6 languages: English, German, Spanish, French, Ukrainian, and Arabic
+- ✅ Complete localization of the extended 30,000+ species BirDex database
+- ✅ Implemented offline-first operation with local SQLite
+- ✅ Set up Firebase Firestore for cloud synchronization
+- ✅ Converted BirdNet model from .h5 to .tflite format for on-device processing
+- ✅ Fully local ML models implementation (no external API dependencies)
+- ✅ Integrated MLKit for object detection (SSD MobileNet)
+- ✅ Complete on-device ML processing for privacy and offline capability
+- ✅ Added Android device testing command (`npm run android:device`)
+- ✅ Improved project structure with clear separation of contexts, services, and components
 
 **Luis Wehrberger:**
 - ✅ Firebase and Firestore setup
 - ✅ Firebase Authentication (signup, login, logout, account management, forgot password)
 - ✅ Cloud synchronization capability with file upload
-- ✅ Camera functionality with flip camera support
-- ✅ Full-screen camera implementation
-- ✅ Video recording with preview and confirm/retake functionality
-- ✅ Theme integration across media components
 - ✅ Fix for infinite log context loops
+- stack segmentation fix in root layout
+- fixed critical bugs
+- pruned package.json and declared correct fitting packages
 
 **Youmna Samouneh:**
-- ✅ Wireframe creation for development visualization
+- ✅ Wireframe creation for development visualization at project start: unused
+- translation keys in common errors that were missed by Marty
 
 The project demonstrates successful collaboration between a 3-person team with complementary skills in mobile development, machine learning, cloud architecture, and user experience design.
 
@@ -418,7 +446,7 @@ Based on the development history, testing has been conducted through:
 - **Local SQLite Performance:** Optimized with PRAGMA tweaks and proper indexing
 - **Cloud Synchronization:** Firebase Firestore integration with offline-first approach
 - **Data Integrity:** Proper error handling and rollback safety throughout database operations
-- **Translation System:** Mass translation of 15,000+ bird species using multiple API fallbacks
+- **Translation System:** Mass translation of 30,000+ bird species using multiple API fallbacks
 
 ### Degree of Requirements Completion
 
@@ -452,8 +480,8 @@ Based on the development history, testing has been conducted through:
 - **Network Efficiency:** Compressed image uploads (30%+ size reduction)
 
 #### User Experience Metrics
-- **Multi-language Support:** 5 languages (English, German, Spanish, Ukrainian, Arabic)
-- **Bird Database Coverage:** 15,000+ species with localized names
+- **Multi-language Support:** 6 languages (English, German, Spanish, French, Ukrainian, Arabic)
+- **Bird Database Coverage:** 30,000+ species with localized names
 - **Offline Capability:** Full local functionality with optional cloud sync
 - **Theme System:** Seamless dark/light mode switching with user persistence
 
@@ -476,7 +504,7 @@ LogChirpy successfully demonstrates the integration of modern mobile development
 #### Technical Innovation
 - **Successful ML Integration:** Implemented a sophisticated two-model pipeline combining SSD object detection with custom bird classification, all running locally on mobile devices
 - **Advanced Data Management:** Created a robust offline-first architecture with seamless cloud synchronization capabilities
-- **Multilingual Excellence:** Developed an automated translation system that enriched a global bird database with localized names across 5 languages
+- **Multilingual Excellence:** Developed an automated translation system that enriched a global bird database with localized names across 6 languages
 - **Performance Optimization:** Achieved real-time camera processing with configurable performance settings for diverse device capabilities
 
 #### Development Excellence

@@ -1,0 +1,15 @@
+LogChirpy, mobil cihazınızı güçlü bir ornitoloji aracına dönüştüren mükemmel kuş gözlem arkadaşıdır! AI destekli tanımlama ve kapsamlı kayıt özellikleri ile LogChirpy, kuş dünyasını daha önce hiç olmadığı gibi belgelemenize ve keşfetmenize yardımcı olur.
+
+Temel Özellikler:
+• Gelişmiş BirdNET teknolojisi kullanarak kuşları seslerinden tanıyın
+• Cihaz üzerinde makine öğrenimi ile kuşları fotoğraflardan tanıyın
+• GPS koordinatları, fotoğraflar ve ayrıntılı notlarla gözlemleri kaydedin
+• Dünya çapında 30.000'den fazla kuş türü içeren kapsamlı veritabanına erişin
+• Gözlemlerinizi bulut yedekleme ile cihazlar arasında senkronize edin
+• Keşiflerinizi kuş gözlem topluluğu ile paylaşın
+
+Her seviyeden kuş meraklısı için tasarlanan LogChirpy, yerel AI modelleri ile tamamen çevrimdışı çalışır ve uzak vahşi doğadan şehir parklarına kadar her yerde kuşları tanımlayıp kaydedebilmenizi sağlar. Verileriniz isteğe bağlı bulut senkronizasyonu ile güvenli bir şekilde saklanır.
+
+6 dilde mevcuttur: İngilizce, Almanca, İspanyolca, Fransızca, Ukraynaca ve Arapça.
+
+Uygulama Android 9+ gerektirir

@@ -1,0 +1,15 @@
+LogChirpy on täydellinen lintubongauksen apuväline, joka muuttaa mobiililaitteesi tehokkaaksi ornitologiseksi työkaluksi! Tekoälyn avulla toimivan tunnistuksen ja kattavien tallennusominaisuuksien ansiosta LogChirpy auttaa sinua dokumentoimaan ja tutkimaan lintujen maailmaa kuten ei koskaan ennen.
+
+Keskeiset ominaisuudet:
+• Tunnista linnut niiden äänistä kehittyneen BirdNET-teknologian avulla
+• Tunnista linnut valokuvista laitteen koneoppimisen avulla
+• Tallenna havainnot GPS-koordinaateilla, valokuvilla ja yksityiskohtaisilla muistiinpanoilla
+• Käytä kattavaa tietokantaa, jossa on yli 30 000 lintulajia maailmanlaajuisesti
+• Synkronoi havaintosi laitteiden välillä pilvivarmuuskopioinnin avulla
+• Jaa löytösi lintubongausyhteisön kanssa
+
+LogChirpy on suunniteltu kaikentasoisten lintuharrastajien käyttöön ja toimii täysin offline-tilassa paikallisilla tekoälymalleilla, mikä takaa että voit tunnistaa ja tallentaa lintuja missä tahansa - syrjäisestä erämaasta kaupunkipuistoihin. Tietosi tallennetaan turvallisesti valinnaisella pilvisiikronoimisella.
+
+Saatavilla 6 kielellä: englanti, saksa, espanja, ranska, ukraina ja arabia.
+
+Sovellus vaatii Android 9+ -käyttöjärjestelmän
