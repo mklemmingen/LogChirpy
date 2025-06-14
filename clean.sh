@@ -105,47 +105,71 @@ echo "=============================="
 
 # Remove large files
 echo "Step 4.1: Removing large files (>50MB for GitHub compatibility)..."
-git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 50*1024*1024) print $4}' > large_files.txt
 
-if [ -s large_files.txt ]; then
-    echo "Found $(wc -l < large_files.txt) large files to remove:"
-    cat large_files.txt
-    echo ""
-    echo "Removing each file from history..."
-
-    while IFS= read -r file; do
-        echo "Removing: $file"
-        git filter-repo --path "$file" --invert-paths --force
-    done < large_files.txt
-
-    echo "Large files removed - checking for any remaining..."
-
-    # Double-check for remaining large files
-    git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 50*1024*1024) print "WARNING: Still exists: " $4 " (" $3/1024/1024 "MB)"}'
-
-    echo "Large files removal completed"
-else
-    echo "No large files found"
-fi
-
-# Additional cleanup for specific problematic files mentioned in the error
-echo "Step 4.1b: Removing specific problematic files..."
-problem_patterns=(
-    "**/BirdNET_v2.4_keras/meta-model.h5"
-    "**/variables.data-00000-of-00001"
-    "**/*documentationAndConversionScripts*"
-    "**/*model*conversion*"
-    "**/*.h5"
-    "**/*.data-*-of-*"
+# First, remove specific problematic files by exact pattern
+echo "Removing known problematic files..."
+problematic_files=(
+    "*documentationAndConversionScripts*"
+    "*model*conversion*scripts*"
+    "*BirdNET*"
+    "*faster-rcnn*"
+    "*.h5"
+    "*.data-*-of-*"
+    "*.pb"
+    "*.bin"
+    "*.weights"
+    "*.onnx"
+    "*.pth"
 )
 
-for pattern in "${problem_patterns[@]}"; do
-    echo "Checking for pattern: $pattern"
-    if git ls-files | grep -E "${pattern//\*\*/.*}" >/dev/null 2>&1; then
-        echo "Found and removing: $pattern"
+for pattern in "${problematic_files[@]}"; do
+    if git ls-files | grep -i "$pattern" >/dev/null 2>&1; then
+        echo "Removing files matching: $pattern"
         git filter-repo --path-glob "$pattern" --invert-paths --force
     fi
 done
+
+# Now find and remove any remaining large files
+git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 50*1024*1024) print $4}' > large_files.txt
+
+if [ -s large_files.txt ]; then
+    echo "Found $(wc -l < large_files.txt) additional large files to remove:"
+    cat large_files.txt
+    echo ""
+    echo "Removing each file by exact path..."
+
+    while IFS= read -r file; do
+        if [ -n "$file" ]; then
+            echo "Removing: $file"
+            git filter-repo --path "$file" --invert-paths --force
+        fi
+    done < large_files.txt
+
+    echo "Large files removed"
+else
+    echo "No additional large files found"
+fi
+
+# Final verification
+echo "Verifying no large files remain..."
+remaining_large=$(git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 50*1024*1024) print $4 " (" $3/1024/1024 "MB)"}')
+
+if [ -n "$remaining_large" ]; then
+    echo "WARNING: Large files still detected:"
+    echo "$remaining_large"
+    echo "Removing these as well..."
+
+    git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '/^blob/ {if($3 > 50*1024*1024) print $4}' | while IFS= read -r file; do
+        if [ -n "$file" ]; then
+            echo "Force removing: $file"
+            git filter-repo --path "$file" --invert-paths --force
+        fi
+    done
+else
+    echo "SUCCESS: No large files detected"
+fi
+
+rm -f large_files.txt
 
 # Remove security files and scripts
 echo "Step 4.2: Removing security files and cleanup scripts..."
