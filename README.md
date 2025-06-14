@@ -565,7 +565,7 @@ The development process showcased effective team collaboration, technical proble
 
 ### Prerequisites
 
-- **Node.js & npm** (latest LTS)
+- **Node.js & npm** (Node.js v20 LTS required - newer versions like v23 may cause module resolution issues)
 - **Expo CLI**: `npm install -g expo-cli`
 - **Android SDK & Platform Tools**
 - **PowerShell** (Windows)
