@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
+    "@expo/webpack-config": "~18.0.1",
     "@infinitered/react-native-mlkit-image-labeling": "^3.1.0",
     "@infinitered/react-native-mlkit-object-detection": "^3.1.0",
     "@react-native-async-storage/async-storage": "1.23.1",
@@ -94,7 +95,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "@expo/metro-config": "~0.18.11",
+    "@expo/metro-config": "^0.18.11",
     "@types/papaparse": "^5.3.16",
     "@types/react": "~18.2.79",
     "depcheck": "^1.4.7",
@@ -102,38 +103,10 @@
     "eslint-config-expo": "~7.1.2",
     "jest": "^29.7.0",
     "jest-expo": "~51.0.4",
-    "ts-jest": "^29.4.0",
     "typescript": "~5.3.3"
   },
   "jest": {
-    "preset": "jest-expo",
-    "setupFilesAfterEnv": [
-      "<rootDir>/jest.setup.minimal.js"
-    ],
-    "testEnvironment": "node",
-    "moduleNameMapper": {
-      "\\.(tflite|mp3|png|jpg|jpeg|gif|svg|csv)$": "jest-transform-stub"
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!(react-native|@react-native|expo|@expo|react-native-reanimated|react-native-vision-camera|react-native-fast-tflite|expo-modules-core)/)"
-    ],
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx",
-      "json"
-    ],
-    "transform": {
-      "^.+\\.(ts|tsx)$": [
-        "ts-jest",
-        {
-          "tsconfig": {
-            "jsx": "react-native"
-          }
-        }
-      ]
-    }
+    "preset": "jest-expo"
   },
   "expo": {
     "doctor": {

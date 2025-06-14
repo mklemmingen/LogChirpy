@@ -604,9 +604,9 @@ Debug Info: ${debugInfo}
                 `.trim());
 
                 // Report to crash service with full diagnostics
-                if (typeof global.crashReporter !== 'undefined') {
+                if (typeof (global as any).crashReporter !== 'undefined') {
                     try {
-                        global.crashReporter.recordError(error, fullErrorReport);
+                        (global as any).crashReporter.recordError(error, fullErrorReport);
                     } catch (reportError) {
                         console.warn('[Manual] Failed to report error to crash service:', reportError);
                     }

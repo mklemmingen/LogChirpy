@@ -138,15 +138,15 @@ async function collectDiagnosticInfo(): Promise<any> {
 
     // Memory information (if available)
     try {
-        if (global.performance && global.performance.memory) {
+        if ((global as any).performance && (global as any).performance.memory) {
             diagnostics.memory = {
-                usedJSHeapSize: global.performance.memory.usedJSHeapSize,
-                totalJSHeapSize: global.performance.memory.totalJSHeapSize,
-                jsHeapSizeLimit: global.performance.memory.jsHeapSizeLimit
+                usedJSHeapSize: (global as any).performance.memory.usedJSHeapSize,
+                totalJSHeapSize: (global as any).performance.memory.totalJSHeapSize,
+                jsHeapSizeLimit: (global as any).performance.memory.jsHeapSizeLimit
             };
         }
     } catch (e) {
-        diagnostics.memory.error = 'not_available';
+        diagnostics.memory = { error: 'not_available' };
     }
 
     return diagnostics;
@@ -181,9 +181,9 @@ Stack: ${error.stack}
         `.trim());
 
         // Report to external service if available
-        if (typeof global.crashReporter !== 'undefined') {
+        if (typeof (global as any).crashReporter !== 'undefined') {
             try {
-                global.crashReporter.recordError(error, fullErrorReport);
+                (global as any).crashReporter.recordError(error, fullErrorReport);
             } catch (reportError) {
                 console.warn(`[${pipeline}] Failed to report error to external service:`, reportError);
             }
@@ -1216,12 +1216,14 @@ function ObjectIdentCameraContent() {
                     return;
                 }
                 
+                // Performance monitoring
+                let processingStartTime: number | undefined;
+                
                 try {
                     setAudioProcessing(true);
                     setAudioError(null);
                     
-                    // Performance monitoring
-                    const processingStartTime = Date.now();
+                    processingStartTime = Date.now();
                     
                     const predictions = await recordAndProcessAudio();
                     
@@ -1305,9 +1307,9 @@ Debug Info: ${debugInfo}
                         `.trim());
 
                         // Report to crash service if available
-                        if (typeof global.crashReporter !== 'undefined') {
+                        if (typeof (global as any).crashReporter !== 'undefined') {
                             try {
-                                global.crashReporter.recordError(error, {
+                                (global as any).crashReporter.recordError(error, {
                                     context: processingErrorContext,
                                     errorType,
                                     pipeline: 'camera_audio_loop'

@@ -5,8 +5,8 @@
  * Run with: npx ts-node __tests__/research_model_config.ts
  */
 
-import { fastTfliteBirdClassifier } from '../services/fastTfliteBirdClassifier.ts';
-import { ModelType, ModelConfig } from '../services/modelConfig.ts';
+import { fastTfliteBirdClassifier } from '../services/fastTfliteBirdClassifier';
+import { ModelType, ModelConfig } from '../services/modelConfig';
 
 interface ModelResearchResult {
   modelType: ModelType;
