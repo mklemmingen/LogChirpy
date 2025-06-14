@@ -133,3 +133,8 @@ yarn-error.*
 /_REVERT_/
 /dev/external/whobird/
 CLAUDE.md
+/git-backup-20250613-230600/
+/git-backup-20250613-230827/
+/git-backup-20250613-231245/
+/dev/docs/_old/
+/dev/image_getters/venv/
