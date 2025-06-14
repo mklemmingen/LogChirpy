@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, FlatList, StyleSheet, TextInput} from 'react-native';
+import {ActivityIndicator, FlatList, StyleSheet, TextInput, Image, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
 import {ThemedIcon} from '@/components/ThemedIcon';
@@ -20,6 +20,7 @@ import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {ThemedView} from '@/components/ThemedView';
 import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 import {type BirdDexRecord, searchBirdsByName} from '@/services/databaseBirDex';
+import {getBirdImageSource} from '@/services/birdImageService';
 
 /**
  * Bird record type with search match information
@@ -99,46 +100,68 @@ function SearchResultCard({
                     // animateOnPress={false}
                     style={styles.resultCard}
                 >
-                {/* Header with matched name and confidence */}
-                <ThemedView style={styles.resultHeader}>
-                    <ThemedView style={styles.matchInfo}>
-                        <ThemedText
-                            variant="h3"
-                            style={[
-                                styles.matchedName, 
-                                { color: getConfidenceColor(item.confidence) }
-                            ]}
-                            numberOfLines={1}
-                        >
-                            {item.matchedValue}
-                        </ThemedText>
-                        <ThemedText variant="bodySmall" color="secondary">
-                            {item.matchedField} • {getConfidenceText(item.confidence)}
-                        </ThemedText>
-                    </ThemedView>
+                <ThemedView style={styles.cardContent}>
+                    <ThemedView style={styles.cardLayout}>
+                        {/* Bird Image */}
+                        <View style={styles.birdImageContainer}>
+                            {(() => {
+                                const imageSource = getBirdImageSource(item.scientific_name);
+                                return imageSource ? (
+                                    <Image
+                                        source={imageSource}
+                                        style={styles.birdImage}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <View style={[styles.birdImagePlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
+                                        <ThemedIcon name="image" size={24} color="secondary" />
+                                    </View>
+                                );
+                            })()}
+                        </View>
 
-                    <ThemedView style={[
-                        styles.confidenceBadge,
-                        { 
-                            backgroundColor: colors.backgroundSecondary,
-                            borderWidth: 1,
-                            borderColor: colors.border
-                        }
-                    ]}>
-                        <ThemedText
-                            variant="labelSmall"
-                            style={[
-                                styles.confidenceText, 
-                                { color: colors.text }
-                            ]}
-                        >
-                            {Math.round(item.confidence)}%
-                        </ThemedText>
-                    </ThemedView>
-                </ThemedView>
+                        {/* Bird Info Container */}
+                        <ThemedView style={styles.birdContentContainer}>
+                            {/* Header with matched name and confidence */}
+                            <ThemedView style={styles.resultHeader}>
+                                <ThemedView style={styles.matchInfo}>
+                                    <ThemedText
+                                        variant="h3"
+                                        style={[
+                                            styles.matchedName, 
+                                            { color: getConfidenceColor(item.confidence) }
+                                        ]}
+                                        numberOfLines={1}
+                                    >
+                                        {item.matchedValue}
+                                    </ThemedText>
+                                    <ThemedText variant="bodySmall" color="secondary">
+                                        {item.matchedField} • {getConfidenceText(item.confidence)}
+                                    </ThemedText>
+                                </ThemedView>
 
-                {/* All available names */}
-                <ThemedView style={styles.allNames}>
+                                <ThemedView style={[
+                                    styles.confidenceBadge,
+                                    { 
+                                        backgroundColor: colors.backgroundSecondary,
+                                        borderWidth: 1,
+                                        borderColor: colors.border
+                                    }
+                                ]}>
+                                    <ThemedText
+                                        variant="labelSmall"
+                                        style={[
+                                            styles.confidenceText, 
+                                            { color: colors.text }
+                                        ]}
+                                    >
+                                        {Math.round(item.confidence)}%
+                                    </ThemedText>
+                                </ThemedView>
+                            </ThemedView>
+
+                            {/* All available names */}
+                            <ThemedView style={styles.allNames}>
                     {item.english_name && (
                         <ThemedView style={styles.nameRow}>
                             <ThemedText variant="labelSmall" style={styles.nameLabel}>🇬🇧</ThemedText>
@@ -192,11 +215,14 @@ function SearchResultCard({
                             </ThemedText>
                         </ThemedView>
                     )}
-                </ThemedView>
+                            </ThemedView>
+                        </ThemedView>
+                    </ThemedView>
 
-                {/* Chevron indicator */}
-                <ThemedView style={styles.chevronContainer}>
-                    <ThemedIcon name="chevron-right" size={20} color="secondary" />
+                    {/* Chevron indicator */}
+                    <ThemedView style={styles.chevronContainer}>
+                        <ThemedIcon name="chevron-right" size={20} color="secondary" />
+                    </ThemedView>
                 </ThemedView>
             </ModernCard>
             </Animated.View>
@@ -461,17 +487,7 @@ export default function SmartSearch() {
                     style={styles.tipsContainer}
                 >
                     <ModernCard elevated={false} bordered={true} style={styles.tipsCard}>
-                        <ThemedView style={styles.tipsHeader}>
-                            <ThemedView style={[
-                                styles.tipsIconContainer, 
-                                { backgroundColor: colors.backgroundSecondary }
-                            ]}>
-                                <ThemedIcon name="help-circle" size={16} color="primary" />
-                            </ThemedView>
-                            <ThemedText variant="label" style={{ color: colors.text }}>
-                                Search Tips
-                            </ThemedText>
-                        </ThemedView>
+
                         
                         <ThemedView style={styles.tipsGrid}>
                             <ThemedView style={styles.tipItem}>
@@ -630,36 +646,66 @@ function createStyles(theme: any) {
         resultCard: {
             position: 'relative',
         },
+        cardContent: {
+            padding: 12,
+            gap: 8,
+        },
+        cardLayout: {
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: 12,
+        },
+        birdImageContainer: {
+            width: 60,
+            height: 60,
+            borderRadius: 8,
+            overflow: 'hidden',
+        },
+        birdImage: {
+            width: '100%',
+            height: '100%',
+        },
+        birdImagePlaceholder: {
+            width: '100%',
+            height: '100%',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: 8,
+        },
+        birdContentContainer: {
+            flex: 1,
+            gap: 8,
+        },
         resultHeader: {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            marginBottom: 16,
+            marginBottom: 8,
         },
         matchInfo: {
             flex: 1,
-            marginRight: 16,
+            marginRight: 12,
             gap: 4,
         },
         matchedName: {
             fontWeight: '700',
-            fontSize: 18,
+            fontSize: 16,
         },
         confidenceBadge: {
-            paddingHorizontal: 16,
+            paddingHorizontal: 12,
             paddingVertical: 4,
             borderRadius: 12,
-            minWidth: 50,
+            minWidth: 45,
             alignItems: 'center',
         },
         confidenceText: {
             fontWeight: '700',
             textTransform: 'uppercase',
-            fontSize: 11,
+            fontSize: 10,
         },
         allNames: {
-            gap: 8,
-            marginBottom: 8,
+            gap: 6,
+            marginBottom: 4,
         },
         nameRow: {
             flexDirection: 'row',
@@ -675,7 +721,7 @@ function createStyles(theme: any) {
         },
         chevronContainer: {
             position: 'absolute',
-            right: 20,
+            right: 16,
             top: '50%',
             marginTop: -10,
         },

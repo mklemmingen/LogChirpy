@@ -461,22 +461,44 @@ Debug Info: ${debugInfo}
     }
 }
 
+// Global recording state to prevent conflicts
+let currentRecording: Audio.Recording | null = null;
+let isRecordingInProgress = false;
+
 async function recordAndProcessAudio(): Promise<AudioPrediction[]> {
-    let recording: Audio.Recording | null = null;
     let audioUri: string | null = null;
     
+    // Prevent multiple simultaneous recordings
+    if (isRecordingInProgress) {
+        console.warn('[Audio] Recording already in progress, skipping...');
+        return [];
+    }
+    
     try {
+        isRecordingInProgress = true;
+        
+        // Clean up any existing recording first
+        if (currentRecording) {
+            try {
+                await currentRecording.stopAndUnloadAsync();
+            } catch (cleanupError) {
+                console.warn('[Audio] Error cleaning up previous recording:', cleanupError);
+            }
+            currentRecording = null;
+        }
+        
         console.log('[Audio] Starting 5-second recording...');
         
-        recording = new Audio.Recording();
-        await recording.prepareToRecordAsync(AUDIO_CONFIG as any);
-        await recording.startAsync();
+        currentRecording = new Audio.Recording();
+        await currentRecording.prepareToRecordAsync(AUDIO_CONFIG as any);
+        await currentRecording.startAsync();
         
         // Record for exactly 5 seconds
         await new Promise(resolve => setTimeout(resolve, 5000));
         
-        await recording.stopAndUnloadAsync();
-        audioUri = recording.getURI();
+        await currentRecording.stopAndUnloadAsync();
+        audioUri = currentRecording.getURI();
+        currentRecording = null;
         
         if (!audioUri) {
             throw new Error('Failed to get recording URI');
@@ -542,6 +564,15 @@ Error Details: ${birdNetError instanceof Error ? birdNetError.stack : birdNetErr
         return result.predictions || [];
         
     } catch (error) {
+        // Clean up recording on error
+        if (currentRecording) {
+            try {
+                await currentRecording.stopAndUnloadAsync();
+            } catch (stopError) {
+                console.warn('[Audio] Failed to stop recording:', stopError);
+            }
+            currentRecording = null;
+        }
         // Comprehensive error logging for recording and processing
         const recordingErrorContext = {
             timestamp: new Date().toISOString(),
@@ -596,13 +627,17 @@ Debug Info: ${debugInfo}
         throw new Error(userFriendlyMessage);
         
     } finally {
-        // Ensure cleanup happens regardless of success/failure
-        if (recording) {
+        // Ensure recording state is reset regardless of success/failure
+        isRecordingInProgress = false;
+        
+        // Cleanup any remaining recording instance
+        if (currentRecording) {
             try {
-                await recording.stopAndUnloadAsync();
+                await currentRecording.stopAndUnloadAsync();
             } catch (stopError) {
-                console.warn('[Audio] Failed to stop recording:', stopError);
+                console.warn('[Audio] Failed to stop recording in finally block:', stopError);
             }
+            currentRecording = null;
         }
         
         if (audioUri) {

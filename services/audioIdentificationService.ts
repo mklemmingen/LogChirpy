@@ -151,12 +151,19 @@ export class AudioIdentificationService {
           const modelType = options?.modelType || ModelType.HIGH_ACCURACY_FP32;
           console.log(`AudioIdentificationService: Using FastTflite classification for audio with ${ModelConfig.getModelInfo(modelType)}`);
           
-          // Preprocess audio to mel-spectrogram
-          const processedAudio = await AudioPreprocessingTFLite.processAudioFile(audioUri);
+          // Get model input shape for correct preprocessing
+          const modelInputShape = fastTfliteBirdClassifier.isReady() 
+            ? (fastTfliteBirdClassifier as any).getModelInputShape?.() 
+            : undefined;
+          
+          // Preprocess audio with dynamic format based on model requirements
+          const processedAudio = await AudioPreprocessingTFLite.processAudioFile(audioUri, modelInputShape);
+          
+          console.log(`Preprocessed audio shape: [${processedAudio.shape.join(', ')}], type: ${processedAudio.metadata.processingType}`);
           
           // Classify using FastTflite with specified model
           const tfliteResult = await fastTfliteBirdClassifier.classifyBirdAudioWithModel(
-            processedAudio.melSpectrogram,
+            processedAudio.processedData,
             modelType,
             audioUri
           );

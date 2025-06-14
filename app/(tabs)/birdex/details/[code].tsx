@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, View} from 'react-native';
+import {ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
@@ -22,6 +22,7 @@ import {ModernCard} from '@/components/ModernCard';
 import {useColorVariants, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 import {type BirdDexRecord, getBirdBySpeciesCode} from '@/services/databaseBirDex';
 import {hasSpottingForLatin} from '@/services/database';
+import { getBirdImageSource } from '@/services/birdImageService';
 
 type DetailRecord = BirdDexRecord & {
     hasBeenLogged: 0 | 1;
@@ -234,6 +235,60 @@ function ClassificationItem({
     );
 }
 
+// Bird Image Component
+function BirdImage({ bird }: { bird: DetailRecord }) {
+    const semanticColors = useSemanticColors();
+    const variants = useColorVariants();
+    const [imageLoading, setImageLoading] = useState(true);
+    const [imageError, setImageError] = useState(false);
+
+    const imageSource = getBirdImageSource(bird.scientific_name);
+
+    const handleImageLoad = () => {
+        setImageLoading(false);
+    };
+
+    const handleImageError = () => {
+        setImageLoading(false);
+        setImageError(true);
+    };
+
+    return (
+        <Animated.View 
+            entering={FadeInDown.delay(150).springify()}
+            style={styles.imageSection}
+        >
+            <ModernCard elevated={false} bordered={true} style={styles.imageCard}>
+                <View style={styles.imageContainer}>
+                    {imageSource && !imageError ? (
+                        <>
+                            <Image
+                                source={imageSource}
+                                style={styles.birdImage}
+                                resizeMode="cover"
+                                onLoad={handleImageLoad}
+                                onError={handleImageError}
+                            />
+                            {imageLoading && (
+                                <View style={[styles.imageLoader, { backgroundColor: variants.neutral.light }]}>
+                                    <ActivityIndicator size="large" color={semanticColors.primary} />
+                                </View>
+                            )}
+                        </>
+                    ) : (
+                        <View style={[styles.imagePlaceholder, { backgroundColor: variants.neutral.light }]}>
+                            <ThemedIcon name="image" size={48} color="secondary" />
+                            <ThemedText variant="body" color="secondary" style={styles.placeholderText}>
+                                No image available
+                            </ThemedText>
+                        </View>
+                    )}
+                </View>
+            </ModernCard>
+        </Animated.View>
+    );
+}
+
 export default function BirdDexDetail() {
     const { code } = useLocalSearchParams<{ code: string }>();
     const { t, i18n } = useTranslation();
@@ -392,6 +447,9 @@ export default function BirdDexDetail() {
                         delay={100}
                     />
                 </Animated.View>
+
+                {/* Bird Image */}
+                <BirdImage bird={rec} />
 
                 {/* Names Section */}
                 <Animated.View entering={FadeInDown.delay(200).springify()}>
@@ -726,5 +784,46 @@ const styles = StyleSheet.create({
     metadataValue: {
         fontFamily: 'monospace',
         opacity: 0.8,
+    },
+
+    // Bird Image Section
+    imageSection: {
+        marginBottom: 24,
+    },
+    imageCard: {
+        overflow: 'hidden',
+        padding: 0,
+    },
+    imageContainer: {
+        position: 'relative',
+        width: '100%',
+        height: 240,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    birdImage: {
+        width: '100%',
+        height: '100%',
+    },
+    imageLoader: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 12,
+    },
+    imagePlaceholder: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 12,
+        borderRadius: 12,
+    },
+    placeholderText: {
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
 });
