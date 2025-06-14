@@ -9,7 +9,7 @@
 [![GitHub Repo](https://img.shields.io/static/v1?label=mklemmingen&message=LogChirpy&color=brown&logo=github)](https://github.com/mklemmingen/LogChirpy)
 
 ---
-
+F
 ## Table of Contents
 
 1. [Introduction / Motivation](#1-introduction--motivation)
@@ -39,7 +39,7 @@ The integration of OpenStreetMap allows precise real-time geolocation and provid
 
 ### Multilingual & Knowledge Access
 
-The app is built completely bilingual (German/English) and allows quick switching between languages. Additionally, users can directly access the appropriate Wikipedia article for a recognized bird species – for immediate further information.
+The app is built with full multilingual support (6 languages: English, German, Spanish, French, Ukrainian, and Arabic) and allows quick switching between languages. Additionally, users can directly access the appropriate Wikipedia article for a recognized bird species – for immediate further information.
 
 ### Cloud Integration & Data Privacy
 
@@ -67,7 +67,7 @@ Recorded images are automatically compressed and can be shared directly via the 
 - Implement local machine learning models for real-time bird recognition
 - Create a scalable cloud infrastructure using Firebase
 - Ensure GDPR compliance and data privacy
-- Provide multilingual support (German/English)
+- Provide multilingual support (6 languages: English, German, Spanish, French, Ukrainian, Arabic)
 
 ### User Experience Goals
 - Deliver an accessible interface for users with varying technical expertise
@@ -358,7 +358,7 @@ Each Feature Folder contains:
 - ✅ Bird-themed icons and visual design system
 - ✅ Tab structure with haptic and audio feedback
 - ✅ Local SQLite database with archive functionality and sync
-- ✅ Localization system (German/English) with dynamic switching
+- ✅ Localization system (6 languages: English, German, Spanish, French, Ukrainian, Arabic) with dynamic switching
 - ✅ Settings implementation with categorized sections
 - ✅ ML model training, conversion, and integration pipeline
 - ✅ Custom camera component with real-time MLKit object detection
