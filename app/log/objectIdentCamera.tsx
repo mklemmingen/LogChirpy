@@ -98,6 +98,104 @@ function generateFilename(prefix: string, label: string, confidence: number) {
     return `${prefix}_${safeLabel}_conf${confidenceStr}_${timestamp}_${milliseconds}.jpg`;
 }
 
+// Comprehensive diagnostic information collection
+async function collectDiagnosticInfo(): Promise<any> {
+    const diagnostics: any = {
+        timestamp: new Date().toISOString(),
+        device: {
+            platform: Platform.OS,
+            version: Platform.Version,
+        },
+        app: {
+            isDevelopment: __DEV__,
+        },
+        permissions: {},
+        storage: {},
+        memory: {}
+    };
+
+    // Check permissions
+    try {
+        const audioPermission = await Audio.getPermissionsAsync();
+        diagnostics.permissions.audio = audioPermission.status;
+    } catch (e) {
+        diagnostics.permissions.audio = 'check_failed';
+    }
+
+    // Check storage
+    try {
+        if (FileSystem.documentDirectory) {
+            const docInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory);
+            diagnostics.storage.documentDirectory = docInfo.exists;
+        }
+        if (FileSystem.cacheDirectory) {
+            const cacheInfo = await FileSystem.getInfoAsync(FileSystem.cacheDirectory);
+            diagnostics.storage.cacheDirectory = cacheInfo.exists;
+        }
+    } catch (e) {
+        diagnostics.storage.error = 'check_failed';
+    }
+
+    // Memory information (if available)
+    try {
+        if (global.performance && global.performance.memory) {
+            diagnostics.memory = {
+                usedJSHeapSize: global.performance.memory.usedJSHeapSize,
+                totalJSHeapSize: global.performance.memory.totalJSHeapSize,
+                jsHeapSizeLimit: global.performance.memory.jsHeapSizeLimit
+            };
+        }
+    } catch (e) {
+        diagnostics.memory.error = 'not_available';
+    }
+
+    return diagnostics;
+}
+
+// Enhanced error reporting with diagnostics
+async function reportErrorWithDiagnostics(error: Error, context: any, pipeline: string) {
+    try {
+        const diagnostics = await collectDiagnosticInfo();
+        
+        const fullErrorReport = {
+            error: {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            },
+            context,
+            diagnostics,
+            pipeline
+        };
+
+        console.error(`
+================================================================================
+🔍 COMPREHENSIVE ERROR REPORT
+================================================================================
+Pipeline: ${pipeline}
+Error: ${error.message}
+Context: ${JSON.stringify(context, null, 2)}
+Diagnostics: ${JSON.stringify(diagnostics, null, 2)}
+Stack: ${error.stack}
+================================================================================
+        `.trim());
+
+        // Report to external service if available
+        if (typeof global.crashReporter !== 'undefined') {
+            try {
+                global.crashReporter.recordError(error, fullErrorReport);
+            } catch (reportError) {
+                console.warn(`[${pipeline}] Failed to report error to external service:`, reportError);
+            }
+        }
+
+        return fullErrorReport;
+    } catch (diagError) {
+        console.warn(`[${pipeline}] Failed to collect diagnostic information:`, diagError);
+        return { error: error.message, context, diagnostics: 'failed' };
+    }
+}
+
 async function handleClassifiedSave(
     fileUri: string,
     label: { text: string; confidence: number },
@@ -253,17 +351,21 @@ async function initializeAudio(): Promise<boolean> {
             // Continue anyway, as this might still work
         }
         
-        // Step 3: Initialize BirdNet service for audio processing
+        // Step 3: Initialize BirdNet service with optimal model for real-time processing
         try {
-            await AudioIdentificationService.initialize();
-            console.log('[Audio] BirdNet service initialized successfully');
-        } catch (birdNetError) {
-            console.error('[Audio] BirdNet initialization failed:', birdNetError);
+            console.log('[Audio] Initializing BirdNet with GPU acceleration for real-time processing...');
             
-            // Try fallback initialization
+            // Initialize with MData V2 FP16 model (optimal for camera pipeline)
+            await AudioIdentificationService.initialize(ModelType.MDATA_V2_FP16);
+            console.log('[Audio] BirdNet service initialized with GPU acceleration and MData V2 FP16 model');
+        } catch (birdNetError) {
+            console.error('[Audio] BirdNet GPU initialization failed:', birdNetError);
+            
+            // Try fallback initialization without GPU
             try {
+                console.warn('[Audio] Falling back to CPU-only initialization...');
                 await AudioIdentificationService.initializeFastTflite();
-                console.log('[Audio] BirdNet FastTflite fallback initialized');
+                console.log('[Audio] BirdNet CPU fallback initialized');
             } catch (fallbackError) {
                 console.error('[Audio] All BirdNet initialization methods failed:', fallbackError);
                 throw new Error('Bird detection models unavailable');
@@ -316,13 +418,45 @@ async function initializeAudio(): Promise<boolean> {
         return true;
         
     } catch (error) {
-        console.error('[Audio] Failed to initialize audio system:', error);
+        // Comprehensive error logging for audio initialization
+        const initErrorContext = {
+            timestamp: new Date().toISOString(),
+            pipeline: 'camera_audio',
+            operation: 'initialization',
+            step: 'audio_system_init',
+            deviceInfo: {
+                platform: Platform.OS,
+                version: Platform.Version
+            }
+        };
+
+        let errorType = 'unknown';
+        let debugInfo = '';
         
-        // Return specific error information
         if (error instanceof Error) {
-            console.error('[Audio] Initialization error details:', error.message);
+            debugInfo = error.stack || error.toString();
+            
+            if (error.message.includes('permission')) {
+                errorType = 'permission_denied';
+            } else if (error.message.includes('model') || error.message.includes('birdnet')) {
+                errorType = 'model_initialization';
+            } else if (error.message.includes('audio') || error.message.includes('recording')) {
+                errorType = 'audio_system';
+            } else {
+                errorType = 'general_init';
+            }
         }
-        
+
+        console.error(`
+================================================================================
+🚨 CAMERA AUDIO INITIALIZATION ERROR
+================================================================================
+Error Type: ${errorType}
+Context: ${JSON.stringify(initErrorContext, null, 2)}
+Debug Info: ${debugInfo}
+================================================================================
+        `.trim());
+
         return false;
     }
 }
@@ -364,7 +498,40 @@ async function recordAndProcessAudio(): Promise<AudioPrediction[]> {
             }
             
         } catch (birdNetError) {
-            console.error('[Audio] BirdNet service failed:', birdNetError);
+            // Comprehensive BirdNet error logging
+            const birdNetErrorContext = {
+                timestamp: new Date().toISOString(),
+                pipeline: 'camera_audio',
+                operation: 'bird_identification',
+                modelType: 'MDATA_V2_FP16',
+                audioUri: audioUri || 'N/A',
+                stage: 'birdnet_processing'
+            };
+
+            let birdNetErrorType = 'unknown';
+            if (birdNetError instanceof Error) {
+                if (birdNetError.message.includes('model')) {
+                    birdNetErrorType = 'model_loading';
+                } else if (birdNetError.message.includes('memory')) {
+                    birdNetErrorType = 'memory_error';
+                } else if (birdNetError.message.includes('delegate') || birdNetError.message.includes('GPU')) {
+                    birdNetErrorType = 'gpu_delegate';
+                } else if (birdNetError.message.includes('input') || birdNetError.message.includes('tensor')) {
+                    birdNetErrorType = 'input_processing';
+                } else {
+                    birdNetErrorType = 'inference_error';
+                }
+            }
+
+            console.error(`
+================================================================================
+🚨 CAMERA BIRDNET PROCESSING ERROR
+================================================================================
+Error Type: ${birdNetErrorType}
+Context: ${JSON.stringify(birdNetErrorContext, null, 2)}
+Error Details: ${birdNetError instanceof Error ? birdNetError.stack : birdNetError}
+================================================================================
+            `.trim());
             
             // Fallback: Try to extract basic audio info without ML processing
             console.log('[Audio] Attempting fallback processing...');
@@ -375,20 +542,58 @@ async function recordAndProcessAudio(): Promise<AudioPrediction[]> {
         return result.predictions || [];
         
     } catch (error) {
-        console.error('[Audio] Recording and processing failed:', error);
-        
-        // Enhanced error handling with specific error types
-        if (error instanceof Error) {
-            if (error.message.includes('permission')) {
-                throw new Error('Microphone permission required');
-            } else if (error.message.includes('recording')) {
-                throw new Error('Recording failed - check microphone');
-            } else if (error.message.includes('processing')) {
-                throw new Error('Audio processing failed');
+        // Comprehensive error logging for recording and processing
+        const recordingErrorContext = {
+            timestamp: new Date().toISOString(),
+            pipeline: 'camera_audio',
+            operation: 'recording_and_processing',
+            recordingUri: audioUri || 'N/A',
+            recordingDuration: '5000ms',
+            stage: audioUri ? 'processing' : 'recording',
+            deviceInfo: {
+                platform: Platform.OS,
+                version: Platform.Version
             }
+        };
+
+        let errorType = 'unknown';
+        let userFriendlyMessage = 'Audio pipeline unavailable';
+        
+        if (error instanceof Error) {
+            const debugInfo = error.stack || error.toString();
+            
+            if (error.message.includes('permission')) {
+                errorType = 'permission_denied';
+                userFriendlyMessage = 'Microphone permission required';
+            } else if (error.message.includes('recording') || error.message.includes('prepare')) {
+                errorType = 'recording_failed';
+                userFriendlyMessage = 'Recording failed - check microphone';
+            } else if (error.message.includes('processing') || error.message.includes('audio')) {
+                errorType = 'processing_failed';
+                userFriendlyMessage = 'Audio processing failed';
+            } else if (error.message.includes('timeout')) {
+                errorType = 'timeout';
+                userFriendlyMessage = 'Audio processing timeout';
+            } else if (error.message.includes('memory')) {
+                errorType = 'memory_error';
+                userFriendlyMessage = 'Insufficient memory for audio processing';
+            } else {
+                errorType = 'general_error';
+                userFriendlyMessage = 'Audio pipeline unavailable';
+            }
+
+            console.error(`
+================================================================================
+🚨 CAMERA AUDIO RECORDING ERROR
+================================================================================
+Error Type: ${errorType}
+Context: ${JSON.stringify(recordingErrorContext, null, 2)}
+Debug Info: ${debugInfo}
+================================================================================
+            `.trim());
         }
         
-        throw new Error('Audio pipeline unavailable');
+        throw new Error(userFriendlyMessage);
         
     } finally {
         // Ensure cleanup happens regardless of success/failure
@@ -1015,7 +1220,13 @@ function ObjectIdentCameraContent() {
                     setAudioProcessing(true);
                     setAudioError(null);
                     
+                    // Performance monitoring
+                    const processingStartTime = Date.now();
+                    
                     const predictions = await recordAndProcessAudio();
+                    
+                    const processingDuration = Date.now() - processingStartTime;
+                    console.log(`[Audio] Processing completed in ${processingDuration}ms`);
                     
                     // Filter predictions by confidence and take top 3
                     const filteredPredictions = predictions
@@ -1026,14 +1237,93 @@ function ObjectIdentCameraContent() {
                     setAudioResults(filteredPredictions);
                     
                     if (filteredPredictions.length > 0) {
-                        console.log(`[Audio] Detected ${filteredPredictions.length} bird(s):`, 
+                        console.log(`[Audio] Detected ${filteredPredictions.length} bird(s) in ${processingDuration}ms:`, 
                             filteredPredictions.map(p => `${p.common_name} (${Math.round(p.confidence * 100)}%)`));
+                        
+                        // Haptic feedback for successful detection
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }
+                    
+                    // Performance warning for slow processing
+                    if (processingDuration > 8000) { // 8 seconds threshold
+                        console.warn(`[Audio] Slow processing detected: ${processingDuration}ms - consider CPU fallback`);
                     }
                     
                 } catch (error) {
-                    console.error('[Audio] Processing error:', error);
-                    setAudioError(error instanceof Error ? error.message : t('audio.audio_processing_failed'));
+                    // Comprehensive error logging for camera audio processing loop
+                    const processingErrorContext = {
+                        timestamp: new Date().toISOString(),
+                        pipeline: 'camera_audio',
+                        operation: 'interval_processing',
+                        intervalCount: 'N/A', // Could track this with a counter
+                        audioInitialized: audioInitialized,
+                        isDetectionPaused: isDetectionPaused,
+                        isActive: isActive.current,
+                        currentAudioResults: audioResults.length,
+                        processingStartTime: processingStartTime,
+                        deviceInfo: {
+                            platform: Platform.OS,
+                            version: Platform.Version
+                        }
+                    };
+
+                    let errorType = 'unknown';
+                    let userMessage = t('audio.audio_processing_failed');
+                    
+                    if (error instanceof Error) {
+                        const debugInfo = error.stack || error.toString();
+                        
+                        if (error.message.includes('permission')) {
+                            errorType = 'permission_lost';
+                            userMessage = 'Microphone permission lost';
+                        } else if (error.message.includes('recording')) {
+                            errorType = 'recording_failure';
+                            userMessage = 'Audio recording failed';
+                        } else if (error.message.includes('model') || error.message.includes('tflite')) {
+                            errorType = 'model_error';
+                            userMessage = 'AI model error during processing';
+                        } else if (error.message.includes('memory')) {
+                            errorType = 'memory_pressure';
+                            userMessage = 'Memory pressure detected';
+                        } else if (error.message.includes('timeout')) {
+                            errorType = 'processing_timeout';
+                            userMessage = 'Audio processing timeout';
+                        } else {
+                            errorType = 'processing_error';
+                            userMessage = 'Audio processing error';
+                        }
+
+                        console.error(`
+================================================================================
+🚨 CAMERA AUDIO PROCESSING LOOP ERROR
+================================================================================
+Error Type: ${errorType}
+Processing Duration: ${processingStartTime ? Date.now() - processingStartTime : 'N/A'}ms
+Context: ${JSON.stringify(processingErrorContext, null, 2)}
+Debug Info: ${debugInfo}
+================================================================================
+                        `.trim());
+
+                        // Report to crash service if available
+                        if (typeof global.crashReporter !== 'undefined') {
+                            try {
+                                global.crashReporter.recordError(error, {
+                                    context: processingErrorContext,
+                                    errorType,
+                                    pipeline: 'camera_audio_loop'
+                                });
+                            } catch (reportError) {
+                                console.warn('[Camera] Failed to report processing error:', reportError);
+                            }
+                        }
+                    }
+
+                    setAudioError(userMessage);
                     setAudioResults([]);
+                    
+                    // Add haptic feedback for errors
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                    
                 } finally {
                     setAudioProcessing(false);
                 }
@@ -1042,8 +1332,34 @@ function ObjectIdentCameraContent() {
             // Initial processing
             processAudioInterval();
             
-            // Set up 5-second interval
-            audioIntervalRef.current = setInterval(processAudioInterval, 5000);
+            // Set up adaptive interval based on detection success
+            const scheduleNextInterval = () => {
+                if (audioIntervalRef.current) {
+                    clearInterval(audioIntervalRef.current);
+                }
+                
+                // Adaptive interval: faster when detecting birds, slower when quiet
+                const getAdaptiveInterval = () => {
+                    if (audioResults.length > 0) {
+                        return 3000; // 3 seconds when birds detected - more frequent sampling
+                    } else {
+                        return 6000; // 6 seconds when no birds - conserve battery
+                    }
+                };
+                
+                const nextInterval = getAdaptiveInterval();
+                console.log(`[Audio] Setting adaptive interval: ${nextInterval}ms (birds detected: ${audioResults.length > 0})`);
+                
+                audioIntervalRef.current = setInterval(() => {
+                    processAudioInterval().then(() => {
+                        // Reschedule with updated adaptive interval
+                        scheduleNextInterval();
+                    });
+                }, nextInterval);
+            };
+            
+            // Start adaptive scheduling
+            scheduleNextInterval();
         };
 
         // Small delay to let camera initialize first

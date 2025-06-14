@@ -51,6 +51,7 @@ import {BirdSpotting, insertBirdSpotting} from '@/services/database';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {AudioIdentificationService, AudioPrediction} from '@/services/audioIdentificationService';
 import {ModelType} from '@/services/modelConfig';
+import * as FileSystem from 'expo-file-system';
 
 // Modern components
 import {ThemedView, Card} from '@/components/ThemedView';
@@ -69,6 +70,60 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 interface ValidationError {
     field: string;
     message: string;
+}
+
+// Enhanced diagnostic collection for manual pipeline
+async function collectManualPipelineDiagnostics(): Promise<any> {
+    const diagnostics: any = {
+        timestamp: new Date().toISOString(),
+        device: {
+            platform: Platform.OS,
+            version: Platform.Version,
+            screenWidth: SCREEN_WIDTH
+        },
+        app: {
+            isDevelopment: __DEV__,
+        },
+        permissions: {},
+        storage: {},
+        audio: {}
+    };
+
+    // Check audio permissions
+    try {
+        const audioPermission = await Audio.getPermissionsAsync();
+        diagnostics.permissions.audio = audioPermission.status;
+    } catch (e) {
+        diagnostics.permissions.audio = 'check_failed';
+    }
+
+    // Check location permissions
+    try {
+        const locationPermission = await Location.getForegroundPermissionsAsync();
+        diagnostics.permissions.location = locationPermission.status;
+    } catch (e) {
+        diagnostics.permissions.location = 'check_failed';
+    }
+
+    // Check storage capabilities
+    try {
+        if (FileSystem.documentDirectory) {
+            const docInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory);
+            diagnostics.storage.documentDirectory = docInfo.exists;
+        }
+    } catch (e) {
+        diagnostics.storage.error = 'check_failed';
+    }
+
+    // Check audio capabilities
+    try {
+        diagnostics.audio.soundSupported = !!Audio.Sound;
+        diagnostics.audio.recordingSupported = !!Audio.Recording;
+    } catch (e) {
+        diagnostics.audio.error = 'check_failed';
+    }
+
+    return diagnostics;
 }
 
 /**
@@ -103,6 +158,8 @@ export default function EnhancedManual() {
     const [isIdentifyingBird, setIsIdentifyingBird] = useState(false);
     const [birdPredictions, setBirdPredictions] = useState<AudioPrediction[]>([]);
     const [showPredictions, setShowPredictions] = useState(false);
+    const [processingTimer, setProcessingTimer] = useState(0);
+    const [processingStage, setProcessingStage] = useState<string>('');
 
     // Modal states
     const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
@@ -393,9 +450,35 @@ export default function EnhancedManual() {
         }
 
         setIsIdentifyingBird(true);
+        setProcessingTimer(0);
+        setProcessingStage('');
+        
+        // Set up processing timer
+        const startTime = Date.now();
+        const timerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            setProcessingTimer(elapsed);
+        }, 100); // Update every 100ms for smooth timer
         
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            
+            // Stage 1: Initialize ML model with GPU acceleration
+            setProcessingStage(t('birdnet.stage_initializing', 'Initializing high-accuracy model with GPU...'));
+            
+            // Initialize with GPU acceleration if not already done
+            try {
+                await AudioIdentificationService.initialize(ModelType.HIGH_ACCURACY_FP32);
+                console.log('[Manual] AudioIdentificationService initialized with GPU acceleration');
+            } catch (initError) {
+                console.warn('[Manual] GPU initialization failed, using CPU fallback:', initError);
+            }
+            
+            // Add small delay to show stage
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Stage 2: Processing audio
+            setProcessingStage(t('birdnet.stage_processing', 'Analyzing audio with FP32 precision...'));
             
             const response = await AudioIdentificationService.identifyBirdFromAudio(
                 draft.audioUri,
@@ -403,9 +486,13 @@ export default function EnhancedManual() {
                     latitude: draft.gpsLat,
                     longitude: draft.gpsLng,
                     minConfidence: 0.1,
-                    modelType: ModelType.HIGH_ACCURACY_FP32
+                    modelType: ModelType.HIGH_ACCURACY_FP32 // Keep high-accuracy for manual processing
                 }
             );
+
+            // Stage 3: Processing results
+            setProcessingStage(t('birdnet.stage_results', 'Processing identification results...'));
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             if (response.success && response.predictions.length > 0) {
                 setBirdPredictions(response.predictions);
@@ -416,35 +503,162 @@ export default function EnhancedManual() {
                 if (bestPrediction) {
                     update({
                         birdType: bestPrediction.common_name,
-                        audioPrediction: `${bestPrediction.common_name} (${AudioIdentificationService.formatConfidenceScore(bestPrediction.confidence)} confidence)`,
+                        audioPrediction: `${bestPrediction.common_name} (${AudioIdentificationService.formatConfidenceScore(bestPrediction.confidence)} confidence - ${processingTimer}s)`,
                     });
                 }
                 
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                showSuccess(t('birdnet.identification_success', 'Bird identification completed!'));
+                showSuccess(t('birdnet.identification_success', `Bird identification completed in ${processingTimer}s!`));
             } else {
                 showError(response.error || t('birdnet.no_birds_detected', 'No bird sounds detected with sufficient confidence'));
             }
         } catch (error) {
-            console.error('Bird identification error:', error);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            
+            // Comprehensive error logging for manual audio pipeline
+            const errorContext = {
+                timestamp: new Date().toISOString(),
+                pipeline: 'manual_audio',
+                operation: 'bird_identification',
+                modelType: 'HIGH_ACCURACY_FP32',
+                audioUri: draft.audioUri,
+                audioFileSize: draft.audioUri ? 'checking...' : 'N/A',
+                gpsLocation: draft.gpsLat && draft.gpsLng ? `${draft.gpsLat}, ${draft.gpsLng}` : 'none',
+                processingTime: `${processingTimer}s`,
+                stage: processingStage,
+                deviceInfo: {
+                    platform: Platform.OS,
+                    version: Platform.Version
+                }
+            };
+
+            // Check audio file size if available
+            if (draft.audioUri) {
+                try {
+                    const fileInfo = await FileSystem.getInfoAsync(draft.audioUri);
+                    errorContext.audioFileSize = fileInfo.exists && 'size' in fileInfo 
+                        ? `${Math.round(fileInfo.size / 1024)}KB` 
+                        : 'unknown';
+                } catch (fileCheckError) {
+                    errorContext.audioFileSize = 'check_failed';
+                }
+            }
+
+            // Detailed error analysis
+            let errorType = 'unknown';
             let errorMessage = t('birdnet.identification_failed', 'Bird identification failed');
+            let debugInfo = '';
+
             if (error instanceof Error) {
-                if (error.message.includes('internet') || error.message.includes('network')) {
+                debugInfo = error.stack || error.toString();
+                
+                // Categorize error types for better handling
+                if (error.message.includes('permission') || error.message.includes('microphone')) {
+                    errorType = 'permission';
+                    errorMessage = t('birdnet.permission_error', 'Microphone permission required');
+                } else if (error.message.includes('internet') || error.message.includes('network')) {
+                    errorType = 'network';
                     errorMessage = t('birdnet.network_error', 'Network error. Please check your internet connection.');
-                } else if (error.message.includes('not found')) {
+                } else if (error.message.includes('not found') || error.message.includes('file')) {
+                    errorType = 'file_not_found';
                     errorMessage = t('birdnet.audio_not_found', 'Audio file not found');
+                } else if (error.message.includes('model') || error.message.includes('tflite')) {
+                    errorType = 'model_error';
+                    errorMessage = t('birdnet.model_error', 'AI model error - please try again');
+                } else if (error.message.includes('memory') || error.message.includes('out of memory')) {
+                    errorType = 'memory_error';
+                    errorMessage = t('birdnet.memory_error', 'Insufficient memory - try closing other apps');
+                } else if (error.message.includes('timeout')) {
+                    errorType = 'timeout';
+                    errorMessage = t('birdnet.timeout_error', 'Processing timeout - audio may be too long');
+                } else if (error.message.includes('GPU') || error.message.includes('delegate')) {
+                    errorType = 'gpu_error';
+                    errorMessage = t('birdnet.gpu_error', 'GPU processing failed - using CPU fallback');
                 } else {
+                    errorType = 'general';
                     errorMessage = error.message;
                 }
             }
-            
+
+            // Collect comprehensive diagnostics for the error
+            try {
+                const diagnostics = await collectManualPipelineDiagnostics();
+                
+                const fullErrorReport = {
+                    errorType,
+                    errorMessage,
+                    context: errorContext,
+                    diagnostics,
+                    debugInfo,
+                    pipeline: 'manual_audio'
+                };
+
+                console.error(`
+================================================================================
+🚨 COMPREHENSIVE MANUAL AUDIO PIPELINE ERROR
+================================================================================
+Error Type: ${errorType}
+Error Message: ${errorMessage}
+Context: ${JSON.stringify(errorContext, null, 2)}
+Diagnostics: ${JSON.stringify(diagnostics, null, 2)}
+Debug Info: ${debugInfo}
+================================================================================
+                `.trim());
+
+                // Report to crash service with full diagnostics
+                if (typeof global.crashReporter !== 'undefined') {
+                    try {
+                        global.crashReporter.recordError(error, fullErrorReport);
+                    } catch (reportError) {
+                        console.warn('[Manual] Failed to report error to crash service:', reportError);
+                    }
+                }
+                
+                // Store error for potential user reporting
+                try {
+                    const errorLogPath = `${FileSystem.documentDirectory}manual_audio_errors.json`;
+                    const existingErrors = [];
+                    
+                    try {
+                        const existingData = await FileSystem.readAsStringAsync(errorLogPath);
+                        const parsed = JSON.parse(existingData);
+                        existingErrors.push(...(Array.isArray(parsed) ? parsed : []));
+                    } catch (readError) {
+                        // File doesn't exist or is corrupted, start fresh
+                    }
+                    
+                    // Keep only last 10 errors to prevent storage bloat
+                    existingErrors.push(fullErrorReport);
+                    const recentErrors = existingErrors.slice(-10);
+                    
+                    await FileSystem.writeAsStringAsync(errorLogPath, JSON.stringify(recentErrors, null, 2));
+                    console.log('[Manual] Error logged to local storage for debugging');
+                } catch (logError) {
+                    console.warn('[Manual] Failed to log error locally:', logError);
+                }
+                
+            } catch (diagError) {
+                console.warn('[Manual] Failed to collect diagnostics:', diagError);
+                
+                // Fallback to basic error logging
+                console.error(`
+================================================================================
+🚨 MANUAL AUDIO PIPELINE ERROR (BASIC)
+================================================================================
+Error Type: ${errorType}
+Error Message: ${errorMessage}
+Context: ${JSON.stringify(errorContext, null, 2)}
+Debug Info: ${debugInfo}
+================================================================================
+                `.trim());
+            }
+
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             showError(errorMessage);
         } finally {
+            clearInterval(timerInterval);
             setIsIdentifyingBird(false);
+            setProcessingStage('');
         }
-    }, [draft.audioUri, draft.gpsLat, draft.gpsLng, update, t, showSuccess, showError]);
+    }, [draft.audioUri, draft.gpsLat, draft.gpsLng, update, t, showSuccess, showError, processingTimer]);
 
     const handleSelectPrediction = useCallback((prediction: AudioPrediction) => {
         update({
@@ -714,15 +928,26 @@ export default function EnhancedManual() {
                                     style={styles.identifyIcon}
                                 />
                             )}
-                            <ThemedText 
-                                variant="button" 
-                                style={[styles.identifyButtonText, { color: colors.textInverse }]}
-                            >
-                                {isIdentifyingBird 
-                                    ? t('birdnet.identifying', 'Identifying Bird...') 
-                                    : t('birdnet.identify_button_offline', 'Identify Bird (AI)')
-                                }
-                            </ThemedText>
+                            <View style={styles.identifyButtonTextContainer}>
+                                <ThemedText 
+                                    variant="button" 
+                                    style={[styles.identifyButtonText, { color: colors.textInverse }]}
+                                >
+                                    {isIdentifyingBird 
+                                        ? t('birdnet.identifying_timer', `Analyzing... ${processingTimer}s`) 
+                                        : t('birdnet.identify_button_offline', 'Identify Bird (High Accuracy)')
+                                    }
+                                </ThemedText>
+                                {isIdentifyingBird && processingStage && (
+                                    <ThemedText 
+                                        variant="bodySmall" 
+                                        style={[styles.identifyStageText, { color: colors.textInverse + 'CC' }]}
+                                        numberOfLines={1}
+                                    >
+                                        {processingStage}
+                                    </ThemedText>
+                                )}
+                            </View>
                         </View>
                     </ThemedPressable>
 
@@ -1328,14 +1553,26 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        minHeight: 60, // Increased height for timer display
     },
     identifyButtonContent: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
     },
+    identifyButtonTextContainer: {
+        flex: 1,
+        alignItems: 'center',
+    },
     identifyButtonText: {
         fontWeight: '600',
+        textAlign: 'center',
+    },
+    identifyStageText: {
+        fontSize: 12,
+        marginTop: 2,
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
     identifyLoader: {
         marginRight: 4,

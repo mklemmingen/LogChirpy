@@ -148,7 +148,7 @@ export class AudioIdentificationService {
       // Try FastTflite first for audio classification
       if (this.tfliteInitialized) {
         try {
-          const modelType = options?.modelType || ModelType.BALANCED_FP16;
+          const modelType = options?.modelType || ModelType.HIGH_ACCURACY_FP32;
           console.log(`AudioIdentificationService: Using FastTflite classification for audio with ${ModelConfig.getModelInfo(modelType)}`);
           
           // Preprocess audio to mel-spectrogram

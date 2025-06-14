@@ -187,11 +187,20 @@ class FastTfliteBirdClassifierService {
       if (modelType === ModelType.LEGACY) {
         // Use existing legacy labels
         this.config.labelsPath = '../assets/models/birdnet/labels.json';
+      } else if (modelType === ModelType.HIGH_ACCURACY_FP32) {
+        // FP32 model has embedded labels - create dummy labels array for compatibility
+        console.log(`Using embedded labels for ${modelType} - no external label file needed`);
+        this.labels = Array.from({ length: 6522 }, (_, i) => ({
+          index: i,
+          common_name: `Species_${i}`,
+          scientific_name: `Species_${i}`,
+          label: `Species_${i}`
+        }));
+        return; // Skip the regular label loading
       } else {
-        // For whoBIRD models, we'll need to use the existing labels initially
-        // In future, we should get the proper 6,522 species labels
+        // For other whoBIRD models, use existing labels initially
         this.config.labelsPath = '../assets/models/birdnet/labels.json';
-        console.warn(`Using legacy labels for ${modelType}. For full accuracy, obtain proper 6,522 species labels.`);
+        console.warn(`Using legacy labels for ${modelType}. For full accuracy, obtain proper labels for this model.`);
       }
     } catch (error) {
       console.error('Failed to configure labels for model:', error);
@@ -262,7 +271,7 @@ class FastTfliteBirdClassifierService {
           }
           
           // For audio models, we expect reasonable dimensions for mel-spectrograms
-          // Common shapes: [1, 144, 144], [1, 144, 144, 1], [1, time_steps, freq_bins]
+          // Common shapes: [1, 224, 224, 3], [1, 144, 144], [1, time_steps, freq_bins]
           const totalInputSize = inputShape.reduce((acc: number, dim: number) => {
             const actualDim = dim === -1 ? 1 : Math.abs(dim);
             return acc * actualDim;
@@ -306,7 +315,7 @@ class FastTfliteBirdClassifierService {
       console.log('Performing test inference to validate model functionality...');
       
       // Create test input based on actual model input shape
-      let testInputSize = 144 * 144; // Default for audio model (melspectrogram)
+      let testInputSize = 224 * 224 * 3; // Default for FP32 model (melspectrogram)
       if (tensorInfoAvailable && inputs && inputs.length > 0) {
         const inputShape = inputs[0].shape;
         // Calculate total size, handling dynamic dimensions (-1) as 1
@@ -315,10 +324,10 @@ class FastTfliteBirdClassifierService {
           return acc * actualDim;
         }, 1);
         
-        // Ensure minimum size for audio models (should be at least 20K elements for melspectrogram)
-        if (testInputSize < 20000) {
-          console.warn(`Calculated input size ${testInputSize} seems too small for audio model. Using default 144x144 = 20736`);
-          testInputSize = 144 * 144;
+        // Ensure minimum size for audio models (should be at least 150K elements for 224x224x3 melspectrogram)
+        if (testInputSize < 150000) {
+          console.warn(`Calculated input size ${testInputSize} seems too small for FP32 model. Using default 224x224x3 = 150528`);
+          testInputSize = 224 * 224 * 3;
         }
       }
       
@@ -742,13 +751,13 @@ class FastTfliteBirdClassifierService {
   private getModelInputShape(): number[] {
     try {
       if (this.model && (this.model as any).inputs) {
-        return (this.model as any).inputs[0]?.shape || [1, 144, 144];
+        return (this.model as any).inputs[0]?.shape || [1, 224, 224, 3];
       }
     } catch (error) {
       console.warn('Could not get model input shape:', error);
     }
-    // Default audio model input shape
-    return [1, 144, 144];
+    // Default FP32 model input shape (mel-spectrogram with 3 channels)
+    return [1, 224, 224, 3];
   }
 }
 
