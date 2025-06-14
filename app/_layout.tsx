@@ -627,7 +627,7 @@ export default function RootLayout() {
                                 <StatusBar style="auto" />
                             </ObjectDetectionProvider>
                         </ImageLabelingModelProvider>
-                    </ThemeProvider>a
+                    </ThemeProvider>
                 </AuthProvider>
             </SafeAreaProvider>
         </GestureHandlerRootView>
