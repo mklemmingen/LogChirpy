@@ -12,6 +12,7 @@ export interface BirdSpotting {
   birdType?: string;
   audioPrediction?: string;
   imagePrediction?: string;
+  latinBirDex?: string | null;
 }
 
 type LogAction =
@@ -73,7 +74,16 @@ export function LogDraftProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     };
+
     loadDraft();
+
+    // Failsafe timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      console.warn('LogDraftContext: Loading timeout reached, forcing isLoading to false');
+      setIsLoading(false);
+    }, 5000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const update = useCallback((partialDraft: Partial<BirdSpotting>) => {
