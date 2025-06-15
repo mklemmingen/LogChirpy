@@ -226,8 +226,8 @@ LogChirpy is built with a modular and maintainable software stack that enables m
 #### Tech Stack
 - **Frontend:** React Native with Expo for iOS & Android
 - **Machine Learning:**
-    - BirdNET API (cloud-based for audio recognition)
-    - TensorFlow.js (local for image or audio analysis)
+    - fast TensorFlow.js (audio analysis)
+    - MLKit (object detect and image classifyication)
 - **Backend/Cloud:**
     - Firebase Authentication (user management & login)
     - Firebase Firestore (cloud database for user and observation data)
@@ -385,13 +385,13 @@ Each Feature Folder contains:
 - ✅ Audio Pipeline for converting audio to ML model fit data
 - ✅ Converted modern h5 model (deprecated)
 - ✅ used existing bird audio tflite models with credit
-- full black and white theme system with hooks
-- full component creation and integration
-- full wireframe and UI system
-- full ux design
-- full log state managment and context usage
-- full stack context managment with ML models
-- full camera and audio components
+- ✅ full black and white theme system with hooks
+- ✅ full component creation and integration
+- ✅ full wireframe and UI system
+- ✅ full ux design
+- ✅ full log state managment and context usage
+- ✅ full stack context managment with ML models
+- ✅ full camera and audio components
 - ✅ Context restructuring: moved context files from `/app/context/` to `/contexts/` directory
 - ✅ Updated all imports throughout codebase to use new context paths
 - ✅ Fixed AuthContext and LogDraftContext path references
@@ -410,19 +410,21 @@ Each Feature Folder contains:
 - ✅ Complete on-device ML processing for privacy and offline capability
 - ✅ Added Android device testing command (`npm run android:device`)
 - ✅ Improved project structure with clear separation of contexts, services, and components
+- ✅ Implemented robust species mapping system with advanced edge case handling: case sensitivity, subspecies fallback, consistent caching, and multiple lookup strategies - achieving near 100% effective coverage for all 30,000+ bird species and subspecies in BirDex database
+- ✅ Developed comprehensive Wikipedia image scraping system to automatically fetch and map images for all 30,000+ worldwide bird species, creating a complete visual database for the BirDex integration
 
 **Luis Wehrberger:**
 - ✅ Firebase and Firestore setup
 - ✅ Firebase Authentication (signup, login, logout, account management, forgot password)
 - ✅ Cloud synchronization capability with file upload
 - ✅ Fix for infinite log context loops
-- stack segmentation fix in root layout
-- fixed critical bugs
-- pruned package.json and declared correct fitting packages
+- ✅ stack segmentation fix in root layout
+- ✅ fixed critical bugs
+- ✅ pruned package.json and declared correct fitting packages
 
 **Youmna Samouneh:**
 - ✅ Wireframe creation for development visualization at project start: unused
-- translation keys in common errors that were missed by Marty
+- ✅ translation keys in common errors that were missed by Marty, 5/390 lines translated
 
 The project demonstrates successful collaboration between a 3-person team with complementary skills in mobile development, machine learning, cloud architecture, and user experience design.
 
@@ -563,7 +565,7 @@ The development process showcased effective team collaboration, technical proble
 
 ### Prerequisites
 
-- **Node.js & npm** (latest LTS)
+- **Node.js & npm** (Node.js v20 LTS required - newer versions like v23 may cause module resolution issues)
 - **Expo CLI**: `npm install -g expo-cli`
 - **Android SDK & Platform Tools**
 - **PowerShell** (Windows)

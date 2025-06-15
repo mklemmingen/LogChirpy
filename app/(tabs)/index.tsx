@@ -134,7 +134,7 @@ export default function HomeScreen() {
         <ModernCard
           onPress={() => handleFeaturePress(feature.route)}
           elevated={isPrimary}
-          bordered={!isPrimary}
+          bordered={!isPrimary || colors.isDark}
         >
           <View style={styles.cardContent}>
             {/* Icon */}

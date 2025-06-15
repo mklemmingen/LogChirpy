@@ -89,7 +89,10 @@ function generateRequireStatement(filename) {
 function generateTypeScriptContent(imageMap) {
     const entries = Object.entries(imageMap)
         .sort(([a], [b]) => a.localeCompare(b)) // Sort alphabetically
-        .map(([filename, requireStatement]) => `  '${filename}': ${requireStatement}`)
+        .map(([filename, requireStatement]) => {
+            const value = requireStatement === null ? 'null' : requireStatement;
+            return `  '${filename}': ${value}`;
+        })
         .join(',\n');
 
     return `/**
@@ -146,17 +149,26 @@ async function generateBirdImageMap() {
         for (const [latinName, filename] of Object.entries(downloadProgress)) {
             if (!filename) {
                 stats.notFound++;
-                continue; // Skip entries with empty filenames
+                // Add null entry for missing filename
+                imageMap[`${latinName}.webp`] = null;
+                continue;
             }
             
             try {
                 const bestFormat = findBestImageFormat(latinName, filename);
                 if (bestFormat) {
                     imageMap[bestFormat] = generateRequireStatement(bestFormat);
+                } else {
+                    // Add null entry for missing image files
+                    const baseFilename = getBaseFilename(filename);
+                    imageMap[`${baseFilename}.webp`] = null;
                 }
             } catch (error) {
                 stats.errors++;
                 console.error(`Error processing ${latinName}:`, error.message);
+                // Add null entry for errors
+                const baseFilename = filename ? getBaseFilename(filename) : latinName;
+                imageMap[`${baseFilename}.webp`] = null;
             }
         }
         

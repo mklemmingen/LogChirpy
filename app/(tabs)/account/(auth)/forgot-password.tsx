@@ -344,9 +344,8 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        justifyContent: 'center',
         padding: 24,
-        minHeight: '100%',
+        justifyContent: 'center',
     },
 
     // Background
@@ -376,12 +375,12 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
     },
     cardContent: {
-        padding: 32,
+        padding: 20,
     },
 
     // Header
     header: {
-        marginBottom: 32,
+        marginBottom: 16,
         alignItems: 'center',
     },
     title: {
@@ -396,7 +395,7 @@ const styles = StyleSheet.create({
 
     // Form
     form: {
-        gap: 24,
+        gap: 16,
     },
     inputContainer: {
         gap: 8,
@@ -410,7 +409,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderRadius: 16,
         paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingVertical: 12,
         gap: 12,
     },
     textInput: {

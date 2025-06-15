@@ -3,7 +3,16 @@
 // Setup React Native Testing Library (built-in matchers included in v12.4+)
 
 // Mock AsyncStorage
-import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
+const mockAsyncStorage = {
+  getItem: jest.fn().mockResolvedValue(null),
+  setItem: jest.fn().mockResolvedValue(undefined),
+  removeItem: jest.fn().mockResolvedValue(undefined),
+  getAllKeys: jest.fn().mockResolvedValue([]),
+  multiGet: jest.fn().mockResolvedValue([]),
+  multiSet: jest.fn().mockResolvedValue(undefined),
+  multiRemove: jest.fn().mockResolvedValue(undefined),
+  clear: jest.fn().mockResolvedValue(undefined)
+};
 
 jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
@@ -39,6 +48,13 @@ jest.mock('expo-file-system', () => ({
   writeAsStringAsync: jest.fn().mockResolvedValue(undefined),
   deleteAsync: jest.fn().mockResolvedValue(undefined),
   makeDirectoryAsync: jest.fn().mockResolvedValue(undefined),
+  readDirectoryAsync: jest.fn().mockResolvedValue([]),
+  documentDirectory: '/mock/documents/',
+  cacheDirectory: '/mock/cache/',
+  EncodingType: {
+    UTF8: 'utf8',
+    Base64: 'base64'
+  }
 }));
 
 jest.mock('@react-native-community/netinfo', () => ({
@@ -58,7 +74,8 @@ jest.mock('expo-av', () => ({
     Recording: class MockRecording {
       prepareToRecordAsync = jest.fn().mockResolvedValue(undefined);
       startAsync = jest.fn().mockResolvedValue(undefined);
-      stopAndUnloadAsync = jest.fn().mockResolvedValue({ uri: 'mock://audio.mp3' });
+      stopAndUnloadAsync = jest.fn().mockResolvedValue(undefined);
+      getURI = jest.fn().mockReturnValue('/mock/audio/recording.m4a');
       getStatusAsync = jest.fn().mockResolvedValue({ isDoneRecording: true });
     },
     Sound: class MockSound {
@@ -77,6 +94,20 @@ jest.mock('expo-av', () => ({
       unloadAsync = jest.fn().mockResolvedValue(undefined);
     },
     setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+    requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+    AndroidOutputFormat: {
+      MPEG_4: 'mp4',
+    },
+    AndroidAudioEncoder: {
+      AAC: 'aac',
+    },
+    IOSOutputFormat: {
+      MPEG4AAC: 'mp4',
+    },
+    IOSAudioQuality: {
+      HIGH: 'high',
+      MEDIUM: 'medium',
+    }
   },
 }));
 

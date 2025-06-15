@@ -148,17 +148,48 @@ export class AudioIdentificationService {
       // Try FastTflite first for audio classification
       if (this.tfliteInitialized) {
         try {
-          const modelType = options?.modelType || ModelType.BALANCED_FP16;
+          const modelType = options?.modelType || ModelType.HIGH_ACCURACY_FP32;
           console.log(`AudioIdentificationService: Using FastTflite classification for audio with ${ModelConfig.getModelInfo(modelType)}`);
           
-          // Preprocess audio to mel-spectrogram
-          const processedAudio = await AudioPreprocessingTFLite.processAudioFile(audioUri);
+          // Get model input shape for correct preprocessing
+          const modelInputShape = fastTfliteBirdClassifier.isReady() 
+            ? (fastTfliteBirdClassifier as any).getModelInputShape?.() 
+            : undefined;
           
-          // Classify using FastTflite with specified model
-          const tfliteResult = await fastTfliteBirdClassifier.classifyBirdAudioWithModel(
-            processedAudio.melSpectrogram,
-            modelType,
-            audioUri
+          // Preprocess audio with dynamic format based on model requirements
+          const processedAudio = await AudioPreprocessingTFLite.processAudioFile(audioUri, modelInputShape);
+          
+          console.log(`Preprocessed audio shape: [${processedAudio.shape.join(', ')}], type: ${processedAudio.metadata.processingType}`);
+          
+          // CORRECTED: Classify using FastTflite with two-model architecture
+          const location = (options?.latitude !== undefined && options?.longitude !== undefined) 
+            ? { latitude: options.latitude, longitude: options.longitude }
+            : undefined;
+          
+          console.log(`DEBUG: Requested model type: ${modelType}`);
+          console.log(`DEBUG: Current model ready: ${fastTfliteBirdClassifier.isReady()}`);
+          
+          // Initialize if not ready
+          if (!fastTfliteBirdClassifier.isReady()) {
+            console.log('Initializing FastTflite with constructor defaults (FP32 + MData V2)');
+            await fastTfliteBirdClassifier.initialize();
+          }
+          
+          // Switch to specified model if needed (with better error handling)
+          if (!fastTfliteBirdClassifier.isModelLoaded(modelType)) {
+            console.log(`Switching to requested model: ${modelType}`);
+            const switched = await fastTfliteBirdClassifier.switchModel(modelType);
+            if (!switched) {
+              console.warn(`Failed to switch to model: ${modelType}, continuing with current model`);
+              // Don't throw error, continue with current model
+            }
+          }
+          
+          // Run classification with location data for meta model
+          const tfliteResult = await fastTfliteBirdClassifier.classifyBirdAudio(
+            processedAudio.processedData,
+            audioUri,
+            location
           );
           
           // Convert FastTflite result to Audio response format

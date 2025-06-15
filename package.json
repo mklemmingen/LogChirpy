@@ -8,6 +8,12 @@
     "prebuild": "npx expo prebuild",
     "prebuild:clean": "npx expo prebuild --clean",
     "test": "jest --watchAll",
+    "test:whobird": "ts-node __tests__/run_whobird_fp32_tests.ts",
+    "test:whobird:quick": "ts-node __tests__/run_whobird_fp32_tests.ts --skip-low --quiet",
+    "test:research": "ts-node __tests__/research_model_config.ts",
+    "test:model": "jest __tests__/whobird_fp32_model_validation.test.ts",
+    "test:audio": "jest __tests__/audio_preprocessing_pipeline.test.ts",
+    "test:integration": "jest __tests__/real_audio_integration.test.ts",
     "typecheck": "npx tsc --noEmit",
     "android": "npx expo run:android",
     "android:device": "npx expo run:android --device",
@@ -19,6 +25,7 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@expo/cli": "^0.24.14",
     "@expo/vector-icons": "^14.0.2",
     "@expo/webpack-config": "~19.0.1",
     "@infinitered/react-native-mlkit-image-labeling": "^3.1.0",
@@ -100,14 +107,7 @@
     "typescript": "~5.3.3"
   },
   "jest": {
-    "preset": "jest-expo",
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
-    "moduleNameMapper": {
-      "\\.(tflite|mp3|png|jpg|jpeg|gif|svg|csv)$": "jest-transform-stub"
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!(react-native|@react-native|expo|@expo|react-native-reanimated|react-native-vision-camera|react-native-fast-tflite)/)"
-    ]
+    "preset": "jest-expo"
   },
   "expo": {
     "doctor": {

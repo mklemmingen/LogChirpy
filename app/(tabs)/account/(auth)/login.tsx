@@ -348,9 +348,6 @@ export default function LoginScreen() {
                 >
                     {/* Header Section */}
                     <Animated.View style={[styles.header, headerStyle]}>
-                        <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
-                            <ThemedIcon name="feather" size={40} color="accent" />
-                        </View>
 
                         <ThemedText
                             variant="displayMedium"
@@ -478,7 +475,8 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         paddingHorizontal: 24,
-        paddingBottom: 10,
+        paddingVertical: 10,
+        justifyContent: 'center',
     },
 
     // Background
@@ -498,16 +496,7 @@ const styles = StyleSheet.create({
     // Header
     header: {
         alignItems: 'center',
-        paddingTop: 30,
-        paddingBottom: 40,
-    },
-    logoContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 24,
+        paddingVertical: 16,
     },
     welcomeTitle: {
         textAlign: 'center',
@@ -524,8 +513,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     formContainer: {
-        padding: 32,
-        gap: 24,
+        padding: 20,
+        gap: 16,
     },
 
     // Input styling
@@ -538,13 +527,13 @@ const styles = StyleSheet.create({
     inputWrapper: {
         borderRadius: 16,
         overflow: 'hidden',
-        minHeight: 56,
+        minHeight: 48,
     },
     inputContent: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
-        minHeight: 56,
+        minHeight: 48,
     },
     inputIcon: {
         marginRight: 12,

@@ -159,9 +159,9 @@ const createColorSystem = (isDark: boolean) => {
   return {
     // Backgrounds
     background: {
-      primary: isDark ? colors.pure.black : colors.pure.white,
-      secondary: isDark ? colors.gray[900] : colors.gray[50],
-      tertiary: isDark ? colors.gray[800] : colors.gray[100],
+      primary: isDark ? colors.gray[900] : colors.pure.white,
+      secondary: isDark ? colors.gray[800] : colors.gray[50],
+      tertiary: isDark ? colors.gray[700] : colors.gray[100],
       overlay: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.6)',
       elevated: isDark ? colors.gray[800] : colors.pure.white,
     },
