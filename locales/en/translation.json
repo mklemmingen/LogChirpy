@@ -167,6 +167,13 @@
     "noChanges": "No changes",
     "categories": {
       "all": "All Categories"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page",
+      "of": "of",
+      "showing": "Showing {{start}}-{{end}} of {{total}}"
     }
   },
   "select": {
@@ -230,7 +237,7 @@
     "not_found": "Not found"
   },
   "buttons": {
-    "objectCamera": "AI Camera",
+    "objectCamera": "Automatic Identification Camera",
     "video": "Video",
     "photo": "Photo",
     "audio": "Audio",
@@ -495,9 +502,9 @@
   },
   "home": {
     "camera_description": "Real-time AI",
-    "photo_description": "Photo identification",
-    "audio_description": "Audio recording",
-    "manual_description": "Manual entry"
+    "photo_description": "Log via a Photo",
+    "audio_description": "or Log via Audio!",
+    "manual_description": "Start a Bird-Spotting by changing all its Entry-Forms"
   },
   "app_errors": {
     "password_reset_error": "Reset failed",

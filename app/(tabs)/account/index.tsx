@@ -9,7 +9,6 @@ import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 import {ModernCard} from '@/components/ModernCard';
 import {useTheme, useTypography, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
-import { Feather } from '@expo/vector-icons';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -114,11 +113,7 @@ export default function AccountScreen() {
                 </Text>
             </View>
 
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
+            <View style={styles.content}>
                 <Animated.View style={fadeInStyle}>
                     <Animated.View style={slideInStyle}>
                         {/* Profile Section */}
@@ -130,7 +125,7 @@ export default function AccountScreen() {
                         <View style={styles.profileContent}>
                             {/* Avatar */}
                             <View style={[styles.avatarContainer, { backgroundColor: variants.primary.light }]}>
-                                <Feather name="user" size={32} color={semanticColors.primary} />
+                                <ThemedIcon name="user" size={32} color="primary" />
                             </View>
 
                             {/* User Info */}
@@ -162,7 +157,7 @@ export default function AccountScreen() {
                             >
                                 <View style={styles.actionLeft}>
                                     <View style={[styles.actionIcon, { backgroundColor: variants.secondary.light }]}>
-                                        <Feather name="refresh-cw" size={18} color={semanticColors.secondary} />
+                                        <ThemedIcon name="refresh-cw" size={18} color="secondary" />
                                     </View>
                                     <View style={styles.actionText}>
                                         <Text style={[typography.body, { color: semanticColors.primary }]}>
@@ -173,7 +168,7 @@ export default function AccountScreen() {
                                         </Text>
                                     </View>
                                 </View>
-                                <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
+                                <ThemedIcon name="chevron-right" size={18} color="secondary" />
                             </Pressable>
 
                             {/* Privacy Settings */}
@@ -186,7 +181,7 @@ export default function AccountScreen() {
                             >
                                 <View style={styles.actionLeft}>
                                     <View style={[styles.actionIcon, { backgroundColor: variants.primary.light }]}>
-                                        <Feather name="shield" size={18} color={semanticColors.primary} />
+                                        <ThemedIcon name="shield" size={18} color="primary" />
                                     </View>
                                     <View style={styles.actionText}>
                                         <Text style={[typography.body, { color: semanticColors.primary }]}>
@@ -197,7 +192,7 @@ export default function AccountScreen() {
                                         </Text>
                                     </View>
                                 </View>
-                                <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
+                                <ThemedIcon name="chevron-right" size={18} color="secondary" />
                             </Pressable>
 
                             {/* Export Data */}
@@ -210,7 +205,7 @@ export default function AccountScreen() {
                             >
                                 <View style={styles.actionLeft}>
                                     <View style={[styles.actionIcon, { backgroundColor: variants.secondary.light }]}>
-                                        <Feather name="download" size={18} color={semanticColors.secondary} />
+                                        <ThemedIcon name="download" size={18} color="secondary" />
                                     </View>
                                     <View style={styles.actionText}>
                                         <Text style={[typography.body, { color: semanticColors.primary }]}>
@@ -221,7 +216,7 @@ export default function AccountScreen() {
                                         </Text>
                                     </View>
                                 </View>
-                                <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
+                                <ThemedIcon name="chevron-right" size={18} color="secondary" />
                             </Pressable>
                         </View>
                     </ModernCard>
@@ -252,7 +247,7 @@ export default function AccountScreen() {
                         </View>
                     </Animated.View>
                 </Animated.View>
-            </ScrollView>
+            </View>
         </ThemedSafeAreaView>
     );
 }
@@ -275,18 +270,16 @@ const styles = StyleSheet.create({
     },
 
     // Scroll View
-    scrollView: {
+    content: {
         flex: 1,
-    },
-    scrollContent: {
         padding: 24,
-        paddingBottom: 100,
-        gap: 24,
+        gap: 16,
+        justifyContent: 'center',
     },
 
     // Profile Card
     profileCard: {
-        marginBottom: 8,
+        marginBottom: 4,
     },
     statusBadge: {
         flexDirection: 'row',
@@ -315,7 +308,7 @@ const styles = StyleSheet.create({
 
     // Actions Card
     actionsCard: {
-        marginBottom: 8,
+        marginBottom: 4,
     },
     actionsList: {
         gap: 4,
@@ -348,8 +341,8 @@ const styles = StyleSheet.create({
 
     // Sign Out Section
     signOutSection: {
-        marginTop: 16,
-        gap: 12,
+        marginTop: 8,
+        gap: 8,
     },
     signOutButton: {
         flexDirection: 'row',

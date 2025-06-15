@@ -279,9 +279,6 @@ export default function SignupScreen() {
                     <Animated.View style={[styles.content, containerStyle]}>
                         {/* Header Section */}
                         <Animated.View style={[styles.header, headerStyle]}>
-                            <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
-                                <ThemedIcon name="feather" size={32} color="accent" />
-                            </View>
 
                             <ThemedText variant="displayMedium" style={styles.title}>
                                 {t('auth.signup_title')}
@@ -486,9 +483,9 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        justifyContent: 'center',
         paddingHorizontal: 24,
-        paddingVertical: 40,
+        paddingVertical: 20,
+        justifyContent: 'center',
     },
     content: {
         alignItems: 'center',
@@ -500,15 +497,8 @@ const styles = StyleSheet.create({
     // Header
     header: {
         alignItems: 'center',
-        marginBottom: 32,
-        gap: 16,
-    },
-    logoContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
+        marginBottom: 16,
+        gap: 8,
     },
     title: {
         textAlign: 'center',
@@ -521,11 +511,11 @@ const styles = StyleSheet.create({
     // Form
     formCard: {
         width: '100%',
-        marginBottom: 24,
+        marginBottom: 12,
     },
     form: {
-        padding: 24,
-        gap: 20,
+        padding: 16,
+        gap: 12,
     },
     inputGroup: {
         gap: 8,
@@ -539,7 +529,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderRadius: 12,
         paddingHorizontal: 16,
-        height: 56,
+        height: 48,
         gap: 12,
     },
     textInput: {

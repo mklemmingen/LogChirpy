@@ -280,11 +280,11 @@ function SearchHeader({
                     <ThemedIcon
                         name={getCategoryIcon(categoryFilter)}
                         size={16}
-                        color={categoryFilter !== 'all' ? 'primary' : 'secondary'}
+                        color={categoryFilter !== 'all' ? 'inverse' : 'secondary'}
                     />
                     <ThemedText
                         variant="label"
-                        color={categoryFilter !== 'all' ? 'primary' : 'secondary'}
+                        color={categoryFilter !== 'all' ? 'inverse' : 'secondary'}
                     >
                         {categoryFilter === 'all' ? t('birddex.categories.all') : categoryFilter}
                     </ThemedText>
@@ -450,6 +450,109 @@ function LoadingState() {
     );
 }
 
+// Pagination Controls Component
+function PaginationControls({
+                                 currentPage,
+                                 totalPages,
+                                 totalCount,
+                                 pageSize,
+                                 onPreviousPage,
+                                 onNextPage,
+                                 onPageChange,
+                                 isLoading = false
+                             }: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    pageSize: number;
+    onPreviousPage: () => void;
+    onNextPage: () => void;
+    onPageChange: (page: number) => void;
+    isLoading?: boolean;
+}) {
+    const { t } = useTranslation();
+    const colors = useColors();
+    const styles = createStyles();
+
+    // Calculate showing range
+    const startItem = Math.min((currentPage - 1) * pageSize + 1, totalCount);
+    const endItem = Math.min(currentPage * pageSize, totalCount);
+
+    const canGoPrevious = currentPage > 1 && !isLoading;
+    const canGoNext = currentPage < totalPages && !isLoading;
+
+    return (
+        <ThemedView style={styles.paginationContainer}>
+            {/* Results info */}
+            <ThemedText variant="caption" color="secondary" style={styles.paginationInfo}>
+                {t('birddex.pagination.showing', { 
+                    start: startItem.toLocaleString(), 
+                    end: endItem.toLocaleString(), 
+                    total: totalCount.toLocaleString() 
+                })}
+            </ThemedText>
+
+            {/* Pagination controls */}
+            <View style={styles.paginationControls}>
+                {/* Previous button */}
+                <ThemedPressable
+                    variant={canGoPrevious ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onPress={onPreviousPage}
+                    disabled={!canGoPrevious}
+                    style={[
+                        styles.paginationButton,
+                        ...(canGoPrevious ? [] : [styles.paginationButtonDisabled])
+                    ]}
+                >
+                    <ThemedIcon 
+                        name="chevron-left" 
+                        size={16} 
+                        color={canGoPrevious ? 'primary' : 'secondary'} 
+                    />
+                    <ThemedText 
+                        variant="label" 
+                        color={canGoPrevious ? 'primary' : 'secondary'}
+                    >
+                        {t('birddex.pagination.previous')}
+                    </ThemedText>
+                </ThemedPressable>
+
+                {/* Page info */}
+                <View style={styles.pageInfo}>
+                    <ThemedText variant="body" style={styles.pageText}>
+                        {t('birddex.pagination.page')} {currentPage.toLocaleString()} {t('birddex.pagination.of')} {totalPages.toLocaleString()}
+                    </ThemedText>
+                </View>
+
+                {/* Next button */}
+                <ThemedPressable
+                    variant={canGoNext ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onPress={onNextPage}
+                    disabled={!canGoNext}
+                    style={[
+                        styles.paginationButton,  
+                        ...(canGoNext ? [] : [styles.paginationButtonDisabled])
+                    ]}
+                >
+                    <ThemedText 
+                        variant="label" 
+                        color={canGoNext ? 'primary' : 'secondary'}
+                    >
+                        {t('birddex.pagination.next')}
+                    </ThemedText>
+                    <ThemedIcon 
+                        name="chevron-right" 
+                        size={16} 
+                        color={canGoNext ? 'primary' : 'secondary'} 
+                    />
+                </ThemedPressable>
+            </View>
+        </ThemedView>
+    );
+}
+
 // Main Component
 export default function BirdDexIndex() {
     const { i18n, t } = useTranslation();
@@ -471,7 +574,7 @@ export default function BirdDexIndex() {
     const [refreshing, setRefreshing] = useState(false);
     const [page, setPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
+    const [totalPages, setTotalPages] = useState(0);
     const [categories, setCategories] = useState<CategoryOption[]>([]);
 
     // Helper function for category icons
@@ -514,11 +617,11 @@ export default function BirdDexIndex() {
     }, [categories, totalCount, t]);
 
     // Load data function
-    const loadData = useCallback(async (pageNum: number = 1, append: boolean = false) => {
+    const loadData = useCallback(async (pageNum: number = 1) => {
         if (!isReady) return;
 
         try {
-            if (!append) setRefreshing(true);
+            setRefreshing(true);
 
             // Get language-specific name field
             const lang = i18n.language.split('-')[0];
@@ -566,16 +669,12 @@ export default function BirdDexIndex() {
             }
 
             // Update state
-            if (append) {
-                setBirds(prev => [...prev, ...processedBirds]);
-            } else {
-                setBirds(processedBirds);
-            }
+            setBirds(processedBirds);
 
             // Update pagination
             const total = getBirdDexRowCount(searchQuery.trim(), categoryFilter);
             setTotalCount(total);
-            setHasMore(pageNum * PAGE_SIZE < total);
+            setTotalPages(Math.ceil(total / PAGE_SIZE));
             setPage(pageNum);
 
         } catch (error) {
@@ -589,7 +688,10 @@ export default function BirdDexIndex() {
     // Load data when dependencies change
     useEffect(() => {
         if (isReady) {
-            const timeoutId = setTimeout(() => loadData(1, false), 300);
+            const timeoutId = setTimeout(() => {
+                loadData(1);
+                setPage(1); // Reset page when filters change
+            }, 300);
             return () => {
                 clearTimeout(timeoutId);
                 // Cleanup to prevent memory leaks
@@ -601,7 +703,7 @@ export default function BirdDexIndex() {
         return () => {
             setRefreshing(false);
         };
-    }, [loadData]);
+    }, [searchQuery, sortOption, categoryFilter, isReady, i18n.language, loadData]);
 
     // Handlers
     const handleBirdPress = useCallback((bird: DisplayRecord) => {
@@ -609,14 +711,22 @@ export default function BirdDexIndex() {
         router.push(`/birdex/details/${bird.species_code}`);
     }, [router]);
 
-    const handleLoadMore = useCallback(() => {
-        if (!refreshing && hasMore) {
-            loadData(page + 1, true);
+    const handlePageChange = useCallback((newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages && !refreshing) {
+            loadData(newPage);
         }
-    }, [refreshing, hasMore, page, loadData]);
+    }, [totalPages, refreshing, loadData]);
+
+    const handlePreviousPage = useCallback(() => {
+        handlePageChange(page - 1);
+    }, [page, handlePageChange]);
+
+    const handleNextPage = useCallback(() => {
+        handlePageChange(page + 1);
+    }, [page, handlePageChange]);
 
     const handleRefresh = useCallback(() => {
-        loadData(1, false);
+        loadData(1);
     }, [loadData]);
 
     // Render item
@@ -680,15 +790,6 @@ export default function BirdDexIndex() {
                 showsVerticalScrollIndicator={false}
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.3}
-                ListFooterComponent={
-                    hasMore ? (
-                        <View style={styles.loadingFooter}>
-                            <ActivityIndicator size="small" color={colors.primary} />
-                        </View>
-                    ) : null
-                }
                 ListEmptyComponent={
                     <ThemedView style={styles.emptyContainer}>
                         <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
@@ -703,6 +804,20 @@ export default function BirdDexIndex() {
                     </ThemedView>
                 }
             />
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <PaginationControls
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalCount={totalCount}
+                    pageSize={PAGE_SIZE}
+                    onPreviousPage={handlePreviousPage}
+                    onNextPage={handleNextPage}
+                    onPageChange={handlePageChange}
+                    isLoading={refreshing}
+                />
+            )}
         </ThemedSafeAreaView>
     );
 }
@@ -956,9 +1071,39 @@ function createStyles() {
     loadingText: {
         textAlign: 'center',
     },
-    loadingFooter: {
-        paddingVertical: 20,
+
+    // Pagination
+    paginationContainer: {
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+        gap: 12,
+    },
+    paginationInfo: {
+        textAlign: 'center',
+    },
+    paginationControls: {
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    paginationButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        minWidth: 80,
+    },
+    paginationButtonDisabled: {
+        opacity: 0.5,
+    },
+    pageInfo: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    pageText: {
+        fontWeight: '500',
     },
 
     // Error State

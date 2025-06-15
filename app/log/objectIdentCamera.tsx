@@ -355,9 +355,9 @@ async function initializeAudio(): Promise<boolean> {
         try {
             console.log('[Audio] Initializing BirdNet with GPU acceleration for real-time processing...');
             
-            // Initialize with MData V2 FP16 model (optimal for camera pipeline)
-            await AudioIdentificationService.initialize(ModelType.MDATA_V2_FP16);
-            console.log('[Audio] BirdNet service initialized with GPU acceleration and MData V2 FP16 model');
+            // CORRECTED: Initialize with proper audio model (FP32 for accuracy, FP16 for speed)
+            await AudioIdentificationService.initialize(ModelType.HIGH_ACCURACY_FP32);
+            console.log('[Audio] BirdNet service initialized with GPU acceleration and FP32 audio model');
         } catch (birdNetError) {
             console.error('[Audio] BirdNet GPU initialization failed:', birdNetError);
             
@@ -511,7 +511,7 @@ async function recordAndProcessAudio(): Promise<AudioPrediction[]> {
         let result;
         try {
             result = await AudioIdentificationService.identifyBirdFromAudio(audioUri, {
-                modelType: ModelType.MDATA_V2_FP16
+                modelType: ModelType.HIGH_ACCURACY_FP32  // CORRECTED: Use proper audio model
             });
             
             if (!result || !result.success) {
@@ -525,7 +525,7 @@ async function recordAndProcessAudio(): Promise<AudioPrediction[]> {
                 timestamp: new Date().toISOString(),
                 pipeline: 'camera_audio',
                 operation: 'bird_identification',
-                modelType: 'MDATA_V2_FP16',
+                modelType: 'HIGH_ACCURACY_FP32',  // CORRECTED: Use proper audio model
                 audioUri: audioUri || 'N/A',
                 stage: 'birdnet_processing'
             };

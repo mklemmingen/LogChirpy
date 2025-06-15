@@ -161,11 +161,35 @@ export class AudioIdentificationService {
           
           console.log(`Preprocessed audio shape: [${processedAudio.shape.join(', ')}], type: ${processedAudio.metadata.processingType}`);
           
-          // Classify using FastTflite with specified model
-          const tfliteResult = await fastTfliteBirdClassifier.classifyBirdAudioWithModel(
+          // CORRECTED: Classify using FastTflite with two-model architecture
+          const location = (options?.latitude !== undefined && options?.longitude !== undefined) 
+            ? { latitude: options.latitude, longitude: options.longitude }
+            : undefined;
+          
+          console.log(`DEBUG: Requested model type: ${modelType}`);
+          console.log(`DEBUG: Current model ready: ${fastTfliteBirdClassifier.isReady()}`);
+          
+          // Initialize if not ready
+          if (!fastTfliteBirdClassifier.isReady()) {
+            console.log('Initializing FastTflite with constructor defaults (FP32 + MData V2)');
+            await fastTfliteBirdClassifier.initialize();
+          }
+          
+          // Switch to specified model if needed (with better error handling)
+          if (!fastTfliteBirdClassifier.isModelLoaded(modelType)) {
+            console.log(`Switching to requested model: ${modelType}`);
+            const switched = await fastTfliteBirdClassifier.switchModel(modelType);
+            if (!switched) {
+              console.warn(`Failed to switch to model: ${modelType}, continuing with current model`);
+              // Don't throw error, continue with current model
+            }
+          }
+          
+          // Run classification with location data for meta model
+          const tfliteResult = await fastTfliteBirdClassifier.classifyBirdAudio(
             processedAudio.processedData,
-            modelType,
-            audioUri
+            audioUri,
+            location
           );
           
           // Convert FastTflite result to Audio response format

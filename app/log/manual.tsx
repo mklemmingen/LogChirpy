@@ -1,23 +1,8 @@
 /**
- * Manual Bird Spotting Entry Screen
+ * Manual Bird Spotting Entry Screen - Redesigned
  * 
- * A clean, minimal interface for manually logging bird sightings with the new design system.
- * Supports multiple media types, AI identification, and comprehensive data entry.
- * 
- * Key Features:
- * - Multi-media capture (photo, video, audio)
- * - BirdNet AI identification for audio
- * - GPS location with privacy controls
- * - Real-time validation and progress tracking
- * - Draft auto-save functionality
- * - Accessibility-first design
- * - Haptic feedback integration
- * 
- * Design System:
- * - Uses minimal black/white theme
- * - Clean typography and spacing
- * - Subtle animations and interactions
- * - Consistent component patterns
+ * Compact, visual interface for manually logging bird sightings.
+ * Features: inline editing, horizontal media cards, visual connections, minimal scrolling.
  */
 
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
@@ -42,6 +27,7 @@ import {useTranslation} from 'react-i18next';
 import {Audio} from 'expo-av';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import {BlurView} from 'expo-blur';
@@ -50,13 +36,15 @@ import {useLogDraft} from '@/contexts/LogDraftContext';
 import {BirdSpotting, insertBirdSpotting} from '@/services/database';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {AudioIdentificationService, AudioPrediction} from '@/services/audioIdentificationService';
+import { ConfidenceIndicator } from '@/components/audio/ConfidenceIndicator';
 import {ModelType} from '@/services/modelConfig';
 import * as FileSystem from 'expo-file-system';
 
 // Modern components
-import {ThemedView, Card} from '@/components/ThemedView';
+import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
+import {ModernCard} from '@/components/ModernCard';
 import {useSnackbar} from '@/components/ThemedSnackbar';
 
 // Theme hooks
@@ -72,72 +60,15 @@ interface ValidationError {
     message: string;
 }
 
-// Enhanced diagnostic collection for manual pipeline
-async function collectManualPipelineDiagnostics(): Promise<any> {
-    const diagnostics: any = {
-        timestamp: new Date().toISOString(),
-        device: {
-            platform: Platform.OS,
-            version: Platform.Version,
-            screenWidth: SCREEN_WIDTH
-        },
-        app: {
-            isDevelopment: __DEV__,
-        },
-        permissions: {},
-        storage: {},
-        audio: {}
-    };
-
-    // Check audio permissions
-    try {
-        const audioPermission = await Audio.getPermissionsAsync();
-        diagnostics.permissions.audio = audioPermission.status;
-    } catch (e) {
-        diagnostics.permissions.audio = 'check_failed';
-    }
-
-    // Check location permissions
-    try {
-        const locationPermission = await Location.getForegroundPermissionsAsync();
-        diagnostics.permissions.location = locationPermission.status;
-    } catch (e) {
-        diagnostics.permissions.location = 'check_failed';
-    }
-
-    // Check storage capabilities
-    try {
-        if (FileSystem.documentDirectory) {
-            const docInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory);
-            diagnostics.storage.documentDirectory = docInfo.exists;
-        }
-    } catch (e) {
-        diagnostics.storage.error = 'check_failed';
-    }
-
-    // Check audio capabilities
-    try {
-        diagnostics.audio.soundSupported = !!Audio.Sound;
-        diagnostics.audio.recordingSupported = !!Audio.Recording;
-    } catch (e) {
-        diagnostics.audio.error = 'check_failed';
-    }
-
-    return diagnostics;
-}
-
 /**
- * Enhanced Manual Bird Spotting Entry Component
- * 
- * Main component for manually creating comprehensive bird sighting entries.
- * Integrates with the draft context system for auto-save functionality.
- * Supports multiple media types and AI-powered identification.
+ * Compact Manual Bird Spotting Entry Component
  */
-export default function EnhancedManual() {
+export default function CompactManual() {
     const params = useLocalSearchParams();
     const { t } = useTranslation();
     const { draft, update, clear } = useLogDraft();
     const colorScheme = useColorScheme() ?? 'light';
+    const insets = useSafeAreaInsets();
 
     // Theme system
     const colors = useColors();
@@ -159,7 +90,6 @@ export default function EnhancedManual() {
     const [birdPredictions, setBirdPredictions] = useState<AudioPrediction[]>([]);
     const [showPredictions, setShowPredictions] = useState(false);
     const [processingTimer, setProcessingTimer] = useState(0);
-    const [processingStage, setProcessingStage] = useState<string>('');
 
     // Modal states
     const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
@@ -187,87 +117,6 @@ export default function EnhancedManual() {
         }
     });
 
-    // Dynamic styles that need access to colors hook
-    const dynamicStyles = useMemo(() => StyleSheet.create({
-        videoOverlay: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: colors.background + '4D',
-        },
-        textInput: {
-            fontSize: 16,
-            minHeight: 44,
-            padding: 12,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: 'transparent',
-            backgroundColor: colors.backgroundSecondary + '1A',
-        },
-        videoModalControls: {
-            flexDirection: 'row',
-            justifyContent: 'space-around',
-            padding: 20,
-            backgroundColor: colors.background + 'CC',
-        },
-        predictionInfo: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 8,
-            backgroundColor: colors.backgroundSecondary + '1A',
-        },
-        modalOverlay: {
-            flex: 1,
-            backgroundColor: colors.background + '80',
-        },
-        predictionsModalContainer: {
-            backgroundColor: colors.surface + 'F2',
-            borderRadius: 16,
-            maxHeight: '80%',
-            width: '100%',
-            maxWidth: 400,
-            overflow: 'hidden',
-        },
-        predictionsHeader: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: 20,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border + '1A',
-        },
-        predictionItem: {
-            paddingHorizontal: 20,
-            paddingVertical: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border + '0D',
-        },
-        predictionsFooter: {
-            padding: 20,
-            borderTopWidth: 1,
-            borderTopColor: colors.border + '1A',
-        },
-        progressBar: {
-            flex: 1,
-            height: 6,
-            borderRadius: 3,
-            overflow: 'hidden',
-            backgroundColor: colors.backgroundSecondary,
-        },
-        progressFill: {
-            height: '100%',
-            borderRadius: 3,
-            backgroundColor: colors.primary,
-        },
-    }), [colors]);
-
     // Handle incoming media from navigation params
     useEffect(() => {
         const updates: Partial<BirdSpotting> = {};
@@ -284,24 +133,12 @@ export default function EnhancedManual() {
 
         if (Object.keys(updates).length > 0) {
             update(updates);
-            // Reset image load error when new image is set
             if (updates.imageUri) {
                 setImageLoadError(false);
             }
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
     }, [params, draft, update]);
-
-    // Video modal management
-    useEffect(() => {
-        if (isVideoModalVisible && draft.videoUri) {
-            previewPlayer.pause();
-            fullscreenPlayer.play();
-        } else if (draft.videoUri) {
-            fullscreenPlayer.pause();
-            previewPlayer.play();
-        }
-    }, [isVideoModalVisible, draft.videoUri, previewPlayer, fullscreenPlayer]);
 
     // Navigation guard for unsaved changes
     useFocusEffect(
@@ -336,44 +173,14 @@ export default function EnhancedManual() {
         }, [draft, clear, t])
     );
 
-    // Cleanup audio and video resources on unmount and navigation
+    // Cleanup resources
     useEffect(() => {
         return () => {
-            // Cleanup audio
-            if (sound) {
-                sound.unloadAsync();
-            }
+            if (sound) sound.unloadAsync();
+            if (previewPlayer) previewPlayer.release();
+            if (fullscreenPlayer) fullscreenPlayer.release();
         };
-    }, [sound]);
-    
-    // Cleanup video players on unmount
-    useEffect(() => {
-        return () => {
-            // Cleanup video players to prevent memory leaks
-            if (previewPlayer) {
-                previewPlayer.release();
-            }
-            if (fullscreenPlayer) {
-                fullscreenPlayer.release();
-            }
-        };
-    }, [previewPlayer, fullscreenPlayer]);
-    
-    // Focus effect cleanup for navigation
-    useFocusEffect(
-        useCallback(() => {
-            return () => {
-                // Cleanup resources when navigating away
-                if (sound) {
-                    sound.unloadAsync();
-                }
-                // Close any open modals
-                setIsVideoModalVisible(false);
-                setIsDatePickerVisible(false);
-                setShowPredictions(false);
-            };
-        }, [sound])
-    );
+    }, [sound, previewPlayer, fullscreenPlayer]);
 
     // Validation logic
     const validateEntry = useCallback((): ValidationError[] => {
@@ -409,12 +216,7 @@ export default function EnhancedManual() {
         return Math.round((completedFields.length / totalFields.length) * 100);
     }, [draft]);
 
-    /**
-     * Media Handling Functions
-     * 
-     * These functions manage audio playback, bird identification,
-     * and location services with proper error handling and user feedback.
-     */
+    // Media handlers
     const handlePlayAudio = useCallback(async () => {
         if (!draft.audioUri) return;
 
@@ -451,34 +253,17 @@ export default function EnhancedManual() {
 
         setIsIdentifyingBird(true);
         setProcessingTimer(0);
-        setProcessingStage('');
         
-        // Set up processing timer
         const startTime = Date.now();
         const timerInterval = setInterval(() => {
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             setProcessingTimer(elapsed);
-        }, 100); // Update every 100ms for smooth timer
+        }, 100);
         
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             
-            // Stage 1: Initialize ML model with GPU acceleration
-            setProcessingStage(t('birdnet.stage_initializing', 'Initializing high-accuracy model with GPU...'));
-            
-            // Initialize with GPU acceleration if not already done
-            try {
-                await AudioIdentificationService.initialize(ModelType.HIGH_ACCURACY_FP32);
-                console.log('[Manual] AudioIdentificationService initialized with GPU acceleration');
-            } catch (initError) {
-                console.warn('[Manual] GPU initialization failed, using CPU fallback:', initError);
-            }
-            
-            // Add small delay to show stage
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            // Stage 2: Processing audio
-            setProcessingStage(t('birdnet.stage_processing', 'Analyzing audio with FP32 precision...'));
+            await AudioIdentificationService.initialize(ModelType.HIGH_ACCURACY_FP32);
             
             const response = await AudioIdentificationService.identifyBirdFromAudio(
                 draft.audioUri,
@@ -486,179 +271,36 @@ export default function EnhancedManual() {
                     latitude: draft.gpsLat,
                     longitude: draft.gpsLng,
                     minConfidence: 0.1,
-                    modelType: ModelType.HIGH_ACCURACY_FP32 // Keep high-accuracy for manual processing
+                    modelType: ModelType.HIGH_ACCURACY_FP32
                 }
             );
-
-            // Stage 3: Processing results
-            setProcessingStage(t('birdnet.stage_results', 'Processing identification results...'));
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             if (response.success && response.predictions.length > 0) {
                 setBirdPredictions(response.predictions);
                 setShowPredictions(true);
                 
-                // Auto-fill with the best prediction
                 const bestPrediction = AudioIdentificationService.getBestPrediction(response.predictions);
                 if (bestPrediction) {
                     update({
                         birdType: bestPrediction.common_name,
-                        audioPrediction: `${bestPrediction.common_name} (${AudioIdentificationService.formatConfidenceScore(bestPrediction.confidence)} confidence - ${processingTimer}s)`,
+                        audioPrediction: `${bestPrediction.common_name} (${AudioIdentificationService.formatConfidenceScore(bestPrediction.confidence)} confidence)`,
                     });
                 }
                 
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                showSuccess(t('birdnet.identification_success', `Bird identification completed in ${processingTimer}s!`));
+                showSuccess(t('birdnet.identification_success', `Bird identification completed!`));
             } else {
-                showError(response.error || t('birdnet.no_birds_detected', 'No bird sounds detected with sufficient confidence'));
+                showError(response.error || t('birdnet.no_birds_detected', 'No bird sounds detected'));
             }
         } catch (error) {
-            // Comprehensive error logging for manual audio pipeline
-            const errorContext = {
-                timestamp: new Date().toISOString(),
-                pipeline: 'manual_audio',
-                operation: 'bird_identification',
-                modelType: 'HIGH_ACCURACY_FP32',
-                audioUri: draft.audioUri,
-                audioFileSize: draft.audioUri ? 'checking...' : 'N/A',
-                gpsLocation: draft.gpsLat && draft.gpsLng ? `${draft.gpsLat}, ${draft.gpsLng}` : 'none',
-                processingTime: `${processingTimer}s`,
-                stage: processingStage,
-                deviceInfo: {
-                    platform: Platform.OS,
-                    version: Platform.Version
-                }
-            };
-
-            // Check audio file size if available
-            if (draft.audioUri) {
-                try {
-                    const fileInfo = await FileSystem.getInfoAsync(draft.audioUri);
-                    errorContext.audioFileSize = fileInfo.exists && 'size' in fileInfo 
-                        ? `${Math.round(fileInfo.size / 1024)}KB` 
-                        : 'unknown';
-                } catch (fileCheckError) {
-                    errorContext.audioFileSize = 'check_failed';
-                }
-            }
-
-            // Detailed error analysis
-            let errorType = 'unknown';
-            let errorMessage = t('birdnet.identification_failed', 'Bird identification failed');
-            let debugInfo = '';
-
-            if (error instanceof Error) {
-                debugInfo = error.stack || error.toString();
-                
-                // Categorize error types for better handling
-                if (error.message.includes('permission') || error.message.includes('microphone')) {
-                    errorType = 'permission';
-                    errorMessage = t('birdnet.permission_error', 'Microphone permission required');
-                } else if (error.message.includes('internet') || error.message.includes('network')) {
-                    errorType = 'network';
-                    errorMessage = t('birdnet.network_error', 'Network error. Please check your internet connection.');
-                } else if (error.message.includes('not found') || error.message.includes('file')) {
-                    errorType = 'file_not_found';
-                    errorMessage = t('birdnet.audio_not_found', 'Audio file not found');
-                } else if (error.message.includes('model') || error.message.includes('tflite')) {
-                    errorType = 'model_error';
-                    errorMessage = t('birdnet.model_error', 'AI model error - please try again');
-                } else if (error.message.includes('memory') || error.message.includes('out of memory')) {
-                    errorType = 'memory_error';
-                    errorMessage = t('birdnet.memory_error', 'Insufficient memory - try closing other apps');
-                } else if (error.message.includes('timeout')) {
-                    errorType = 'timeout';
-                    errorMessage = t('birdnet.timeout_error', 'Processing timeout - audio may be too long');
-                } else if (error.message.includes('GPU') || error.message.includes('delegate')) {
-                    errorType = 'gpu_error';
-                    errorMessage = t('birdnet.gpu_error', 'GPU processing failed - using CPU fallback');
-                } else {
-                    errorType = 'general';
-                    errorMessage = error.message;
-                }
-            }
-
-            // Collect comprehensive diagnostics for the error
-            try {
-                const diagnostics = await collectManualPipelineDiagnostics();
-                
-                const fullErrorReport = {
-                    errorType,
-                    errorMessage,
-                    context: errorContext,
-                    diagnostics,
-                    debugInfo,
-                    pipeline: 'manual_audio'
-                };
-
-                console.error(`
-================================================================================
-🚨 COMPREHENSIVE MANUAL AUDIO PIPELINE ERROR
-================================================================================
-Error Type: ${errorType}
-Error Message: ${errorMessage}
-Context: ${JSON.stringify(errorContext, null, 2)}
-Diagnostics: ${JSON.stringify(diagnostics, null, 2)}
-Debug Info: ${debugInfo}
-================================================================================
-                `.trim());
-
-                // Report to crash service with full diagnostics
-                if (typeof (global as any).crashReporter !== 'undefined') {
-                    try {
-                        (global as any).crashReporter.recordError(error, fullErrorReport);
-                    } catch (reportError) {
-                        console.warn('[Manual] Failed to report error to crash service:', reportError);
-                    }
-                }
-                
-                // Store error for potential user reporting
-                try {
-                    const errorLogPath = `${FileSystem.documentDirectory}manual_audio_errors.json`;
-                    const existingErrors = [];
-                    
-                    try {
-                        const existingData = await FileSystem.readAsStringAsync(errorLogPath);
-                        const parsed = JSON.parse(existingData);
-                        existingErrors.push(...(Array.isArray(parsed) ? parsed : []));
-                    } catch (readError) {
-                        // File doesn't exist or is corrupted, start fresh
-                    }
-                    
-                    // Keep only last 10 errors to prevent storage bloat
-                    existingErrors.push(fullErrorReport);
-                    const recentErrors = existingErrors.slice(-10);
-                    
-                    await FileSystem.writeAsStringAsync(errorLogPath, JSON.stringify(recentErrors, null, 2));
-                    console.log('[Manual] Error logged to local storage for debugging');
-                } catch (logError) {
-                    console.warn('[Manual] Failed to log error locally:', logError);
-                }
-                
-            } catch (diagError) {
-                console.warn('[Manual] Failed to collect diagnostics:', diagError);
-                
-                // Fallback to basic error logging
-                console.error(`
-================================================================================
-🚨 MANUAL AUDIO PIPELINE ERROR (BASIC)
-================================================================================
-Error Type: ${errorType}
-Error Message: ${errorMessage}
-Context: ${JSON.stringify(errorContext, null, 2)}
-Debug Info: ${debugInfo}
-================================================================================
-                `.trim());
-            }
-
+            console.error('Bird identification error:', error);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            showError(errorMessage);
+            showError(t('birdnet.identification_failed', 'Bird identification failed'));
         } finally {
             clearInterval(timerInterval);
             setIsIdentifyingBird(false);
-            setProcessingStage('');
         }
-    }, [draft.audioUri, draft.gpsLat, draft.gpsLng, update, t, showSuccess, showError, processingTimer]);
+    }, [draft.audioUri, draft.gpsLat, draft.gpsLng, update, t, showSuccess, showError]);
 
     const handleSelectPrediction = useCallback((prediction: AudioPrediction) => {
         update({
@@ -708,6 +350,7 @@ Debug Info: ${debugInfo}
     }, [update, t, showSuccess, showError]);
 
     const handleTextChange = useCallback((key: string, value: string) => {
+        console.log('Text change:', key, value);
         update({ [key]: value });
         setValidationErrors(prev => prev.filter(error => error.field !== key));
     }, [update]);
@@ -725,6 +368,7 @@ Debug Info: ${debugInfo}
 
     // Navigation handlers
     const handleMediaNavigation = useCallback((route: string) => {
+        console.log('Navigating to:', route);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         router.push(route as any);
     }, []);
@@ -773,415 +417,355 @@ Debug Info: ${debugInfo}
             return;
         }
 
-        const completion = completionPercentage;
-        const confirmMessage = completion < 60
-            ? t('log.save_confirmation_low_completion', { percentage: completion })
-            : t('log.save_confirmation_message');
-
         Alert.alert(
             t('log.confirm_save'),
-            confirmMessage,
+            t('log.save_confirmation_message'),
             [
                 { text: t('common.cancel'), style: 'cancel' },
                 { text: t('common.save'), onPress: performSave },
             ]
         );
-    }, [validateEntry, completionPercentage, performSave, t, showError]);
+    }, [validateEntry, performSave, t, showError]);
 
     /**
-     * Component Sections
-     * 
-     * These section components are built with the new minimal design system.
-     * They use Card components for consistent styling and spacing.
+     * COMPACT UI COMPONENTS
      */
-    /**
-     * Media Section Component
-     * 
-     * Displays interactive cards for photo, video, and audio capture.
-     * Includes AI bird identification for audio recordings.
-     */
-    const MediaSection = () => (
-        <Card style={styles.sectionCard}>
-            <ThemedText variant="h3" style={styles.sectionTitle}>
-                {t('log.media_section')}
-            </ThemedText>
-            <View style={styles.mediaGrid}>
-                {/* Image Card */}
+
+    // Compact Header with back button and inline progress
+    const CompactHeader = () => (
+        <ThemedView style={[styles.compactHeader, { paddingTop: insets.top + 8 }]}>
+            <View style={styles.headerRow}>
                 <ThemedPressable
                     variant="ghost"
-                    onPress={() => handleMediaNavigation('/log/photo')}
-                    style={styles.mediaCard}
+                    onPress={() => {
+                        console.log('Back button pressed');
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        router.back();
+                    }}
+                    style={styles.backButton}
                 >
-                    <Card style={styles.mediaCardInner}>
-                    {draft.imageUri ? (
-                        imageLoadError ? (
-                            <View style={styles.addMediaContent}>
-                                <ThemedIcon name="image" size={32} color="secondary" />
-                                <ThemedText variant="label" color="secondary">
-                                    Image unavailable
-                                </ThemedText>
-                            </View>
-                        ) : (
+                    <ThemedIcon name="arrow-left" size={24} color="primary" />
+                </ThemedPressable>
+                
+                <ThemedText variant="h2" style={styles.headerTitle}>
+                    {t('log.manual_entry')}
+                </ThemedText>
+                
+                <View style={styles.progressIndicator}>
+                    <ThemedText variant="bodySmall" color="secondary">
+                        {completionPercentage}%
+                    </ThemedText>
+                    <View style={[styles.progressCircle, { borderColor: colors.border }]}>
+                        <View 
+                            style={[
+                                styles.progressFill, 
+                                { 
+                                    backgroundColor: colors.primary,
+                                    height: `${completionPercentage}%`
+                                }
+                            ]} 
+                        />
+                    </View>
+                </View>
+            </View>
+        </ThemedView>
+    );
+
+    // Horizontal Media Strip
+    const MediaStrip = () => (
+        <View style={styles.mediaStrip}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaScrollView}>
+                {/* Photo Card */}
+                <ThemedPressable
+                    variant="ghost"
+                    onPress={() => handleMediaNavigation('/log/photo-selection')}
+                    style={styles.mediaItem}
+                >
+                    <ModernCard style={styles.mediaCard}>
+                        {draft.imageUri && !imageLoadError ? (
                             <Image 
                                 source={{ uri: draft.imageUri }} 
-                                style={styles.mediaPreview}
-                                onError={() => {
-                                    console.warn('Failed to load image in manual entry:', draft.imageUri);
-                                    setImageLoadError(true);
-                                }}
+                                style={styles.mediaThumbnail}
+                                onError={() => setImageLoadError(true)}
                                 onLoad={() => setImageLoadError(false)}
                             />
-                        )
-                    ) : (
-                        <View style={styles.addMediaContent}>
-                            <ThemedIcon name="camera" size={32} color="accent" />
-                            <ThemedText variant="label" color="primary">
-                                {t('log.add_image')}
-                            </ThemedText>
+                        ) : (
+                            <View style={styles.mediaPlaceholder}>
+                                <ThemedIcon name="camera" size={20} color="accent" />
+                            </View>
+                        )}
+                        <View style={styles.mediaLabel}>
+                            <ThemedIcon name="camera" size={10} color="secondary" />
+                            <ThemedText variant="caption" color="secondary">Photo</ThemedText>
                         </View>
-                    )}
-                    </Card>
+                        {draft.imageUri && (
+                            <View style={styles.mediaStatus}>
+                                <ThemedIcon name="check" size={10} color="success" />
+                            </View>
+                        )}
+                    </ModernCard>
                 </ThemedPressable>
 
                 {/* Video Card */}
                 <ThemedPressable
                     variant="ghost"
                     onPress={() => draft.videoUri ? setIsVideoModalVisible(true) : handleMediaNavigation('/log/video')}
-                    style={styles.mediaCard}
+                    style={styles.mediaItem}
                 >
-                    <Card style={styles.mediaCardInner}>
-                    {draft.videoUri ? (
-                        <>
-                            {previewPlayer && (
-                                <VideoView
-                                    player={previewPlayer}
-                                    style={styles.mediaPreview}
-                                    contentFit="cover"
-                                />
-                            )}
-                            <View style={dynamicStyles.videoOverlay}>
-                                <ThemedIcon name="play" size={24} color="primary" />
+                    <ModernCard style={styles.mediaCard}>
+                        {draft.videoUri ? (
+                            <>
+                                {previewPlayer && (
+                                    <VideoView
+                                        player={previewPlayer}
+                                        style={styles.mediaThumbnail}
+                                        contentFit="cover"
+                                    />
+                                )}
+                                <View style={styles.videoOverlay}>
+                                    <ThemedIcon name="play" size={12} color="primary" />
+                                </View>
+                            </>
+                        ) : (
+                            <View style={styles.mediaPlaceholder}>
+                                <ThemedIcon name="video" size={20} color="accent" />
                             </View>
-                        </>
-                    ) : (
-                        <View style={styles.addMediaContent}>
-                            <ThemedIcon name="video" size={32} color="accent" />
-                            <ThemedText variant="label" color="primary">
-                                {t('log.add_video')}
-                            </ThemedText>
+                        )}
+                        <View style={styles.mediaLabel}>
+                            <ThemedIcon name="video" size={10} color="secondary" />
+                            <ThemedText variant="caption" color="secondary">Video</ThemedText>
                         </View>
-                    )}
-                    </Card>
+                        {draft.videoUri && (
+                            <View style={styles.mediaStatus}>
+                                <ThemedIcon name="check" size={10} color="success" />
+                            </View>
+                        )}
+                    </ModernCard>
                 </ThemedPressable>
 
                 {/* Audio Card */}
                 <ThemedPressable
                     variant="ghost"
                     onPress={() => draft.audioUri ? handlePlayAudio() : handleMediaNavigation('/log/audio')}
-                    style={styles.mediaCard}
+                    style={styles.mediaItem}
                 >
-                    <Card style={styles.mediaCardInner}>
-                    <View style={styles.addMediaContent}>
-                        <ThemedIcon
-                            name={draft.audioUri ? (sound ? "pause" : "play") : "mic"}
-                            size={32}
-                            color="accent"
-                        />
-                        <ThemedText variant="label" color="primary">
-                            {draft.audioUri
-                                ? (sound ? t('log.playing') : t('log.tap_to_play'))
-                                : t('log.add_audio')
-                            }
-                        </ThemedText>
-                    </View>
-                    </Card>
+                    <ModernCard style={styles.mediaCard}>
+                        <View style={styles.mediaPlaceholder}>
+                            <ThemedIcon
+                                name={draft.audioUri ? (sound ? "pause" : "play") : "mic"}
+                                size={20}
+                                color="accent"
+                            />
+                        </View>
+                        <View style={styles.mediaLabel}>
+                            <ThemedIcon name="mic" size={10} color="secondary" />
+                            <ThemedText variant="caption" color="secondary">Audio</ThemedText>
+                        </View>
+                        {draft.audioUri && (
+                            <View style={styles.mediaStatus}>
+                                <ThemedIcon name="check" size={10} color="success" />
+                            </View>
+                        )}
+                    </ModernCard>
                 </ThemedPressable>
-            </View>
 
-            {/* Bird Identification Section */}
-            {draft.audioUri && (
-                <View style={styles.identificationSection}>
+                {/* AI Identification Card */}
+                {draft.audioUri && (
                     <ThemedPressable
-                        variant="primary"
-                        style={[
-                            styles.identifyButton,
-                            {
-                                opacity: isIdentifyingBird ? 0.7 : 1,
-                                backgroundColor: colors.primary,
-                            }
-                        ]}
+                        variant="ghost"
                         onPress={handleIdentifyBird}
                         disabled={isIdentifyingBird}
+                        style={styles.mediaItem}
                     >
-                        <View style={styles.identifyButtonContent}>
-                            {isIdentifyingBird ? (
-                                <ActivityIndicator 
-                                    size="small" 
-                                    color={colors.textInverse}
-                                    style={styles.identifyLoader}
-                                />
-                            ) : (
-                                <ThemedIcon 
-                                    name="search" 
-                                    size={20} 
-                                    color="inverse"
-                                    style={styles.identifyIcon}
-                                />
-                            )}
-                            <View style={styles.identifyButtonTextContainer}>
-                                <ThemedText 
-                                    variant="button" 
-                                    style={[styles.identifyButtonText, { color: colors.textInverse }]}
-                                >
-                                    {isIdentifyingBird 
-                                        ? t('birdnet.identifying_timer', `Analyzing... ${processingTimer}s`) 
-                                        : t('birdnet.identify_button_offline', 'Identify Bird (High Accuracy)')
-                                    }
-                                </ThemedText>
-                                {isIdentifyingBird && processingStage && (
-                                    <ThemedText 
-                                        variant="bodySmall" 
-                                        style={[styles.identifyStageText, { color: colors.textInverse + 'CC' }]}
-                                        numberOfLines={1}
-                                    >
-                                        {processingStage}
-                                    </ThemedText>
+                        <ModernCard style={[styles.mediaCard, styles.aiCard]}>
+                            <View style={styles.mediaPlaceholder}>
+                                {isIdentifyingBird ? (
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                ) : (
+                                    <ThemedIcon name="search" size={20} color="primary" />
                                 )}
                             </View>
-                        </View>
+                            <View style={styles.mediaLabel}>
+                                <ThemedIcon name="zap" size={10} color="primary" />
+                                <ThemedText variant="caption" color="primary">
+                                    {isIdentifyingBird ? `${processingTimer}s` : 'AI ID'}
+                                </ThemedText>
+                            </View>
+                            {draft.audioPrediction && (
+                                <View style={[styles.mediaStatus, { backgroundColor: colors.success }]}>
+                                    <ThemedIcon name="check" size={10} color="inverse" />
+                                </View>
+                            )}
+                        </ModernCard>
                     </ThemedPressable>
-
-                    {/* Show prediction confidence if available */}
-                    {draft.audioPrediction && (
-                        <View style={dynamicStyles.predictionInfo}>
-                            <ThemedIcon name="check-circle" size={16} color="success" />
-                            <ThemedText variant="bodySmall" color="secondary" style={styles.predictionInfoText}>
-                                {draft.audioPrediction}
-                            </ThemedText>
-                        </View>
-                    )}
-                </View>
-            )}
-        </Card>
+                )}
+            </ScrollView>
+        </View>
     );
 
-    /**
-     * Details Section Component
-     * 
-     * Form inputs for bird type (required) and optional notes.
-     * Includes real-time validation and user feedback.
-     */
-    const DetailsSection = () => (
-        <Card style={styles.sectionCard}>
-            <ThemedText variant="h3" style={styles.sectionTitle}>
-                {t('log.details_section')}
-            </ThemedText>
-            <View style={styles.detailsGrid}>
-                {/* Bird Type - Required */}
-                <Card>
-                    <View style={styles.inputContainer}>
-                        <ThemedText variant="label" style={styles.inputLabel}>
+    // Inline Form
+    const InlineForm = () => (
+        <View style={styles.formContainer}>
+            {/* Bird Type Input */}
+            <ModernCard style={styles.formCard}>
+                <View style={styles.inlineField}>
+                    <View style={styles.fieldIcon}>
+                        <ThemedIcon name="feather" size={18} color="accent" />
+                    </View>
+                    <View style={styles.fieldContent}>
+                        <ThemedText variant="label" color="secondary" style={styles.fieldLabel}>
                             {t('log.bird_type')} *
                         </ThemedText>
                         <TextInput
-                            style={[dynamicStyles.textInput, { color: colors.text }]}
+                            style={[styles.inlineInput, { color: colors.text }]}
                             value={draft.birdType || ''}
                             onChangeText={(text) => handleTextChange('birdType', text)}
                             placeholder={t('log.bird_type_placeholder')}
                             placeholderTextColor={colors.textSecondary}
                         />
                     </View>
-                </Card>
+                    {draft.audioPrediction && (
+                        <View style={styles.predictionBadge}>
+                            <ThemedIcon name="zap" size={12} color="success" />
+                        </View>
+                    )}
+                </View>
+            </ModernCard>
 
-                {/* Notes */}
-                <Card style={styles.notesCard}>
-                    <View style={styles.inputContainer}>
-                        <ThemedText variant="label" style={styles.inputLabel}>
+            {/* Notes Input */}
+            <ModernCard style={styles.formCard}>
+                <View style={styles.inlineField}>
+                    <View style={styles.fieldIcon}>
+                        <ThemedIcon name="edit-3" size={18} color="accent" />
+                    </View>
+                    <View style={styles.fieldContent}>
+                        <ThemedText variant="label" color="secondary" style={styles.fieldLabel}>
                             {t('log.notes')}
                         </ThemedText>
                         <TextInput
-                            style={[dynamicStyles.textInput, styles.notesInput, { color: colors.text }]}
+                            style={[styles.inlineInput, styles.notesInput, { color: colors.text }]}
                             value={draft.textNote || ''}
                             onChangeText={(text) => handleTextChange('textNote', text)}
                             placeholder={t('log.notes_placeholder')}
                             placeholderTextColor={colors.textSecondary}
                             multiline
-                            textAlignVertical="top"
+                            numberOfLines={2}
                         />
                     </View>
-                </Card>
-            </View>
-        </Card>
-    );
+                </View>
+            </ModernCard>
 
-    /**
-     * Metadata Section Component
-     * 
-     * Date and location selection with GPS integration.
-     * Shows AI prediction results when available.
-     */
-    const MetadataSection = () => (
-        <Card style={styles.sectionCard}>
-            <ThemedText variant="h3" style={styles.sectionTitle}>
-                {t('log.metadata_section')}
-            </ThemedText>
-            <View style={styles.metadataGrid}>
-                {/* Date Card */}
+            {/* Metadata Row */}
+            <View style={styles.metadataRow}>
+                {/* Date */}
                 <ThemedPressable
                     variant="ghost"
                     onPress={() => {
+                        console.log('Date picker button pressed');
                         setSelectedDate(draft.date ? new Date(draft.date) : new Date());
                         setIsDatePickerVisible(true);
                     }}
-                    style={styles.metadataCard}
+                    style={styles.metadataButton}
                 >
-                    <Card style={styles.metadataCardInner}>
-                    <View style={styles.metadataContent}>
-                        <ThemedIcon name="calendar" size={20} color="accent" />
-                        <View style={styles.metadataText}>
-                            <ThemedText variant="label" color="secondary">
-                                {t('log.date')}
-                            </ThemedText>
-                            <ThemedText variant="body">
-                                {draft.date ? new Date(draft.date).toLocaleDateString() : new Date().toLocaleDateString()}
-                            </ThemedText>
+                    <ModernCard style={styles.metadataCard}>
+                        <View style={styles.metadataContent}>
+                            <ThemedIcon name="calendar" size={16} color="accent" />
+                            <View style={styles.metadataText}>
+                                <ThemedText variant="caption" color="secondary">Date</ThemedText>
+                                <ThemedText variant="bodySmall">
+                                    {draft.date ? new Date(draft.date).toLocaleDateString() : new Date().toLocaleDateString()}
+                                </ThemedText>
+                            </View>
                         </View>
-                    </View>
-                    </Card>
+                    </ModernCard>
                 </ThemedPressable>
 
-                {/* Location Card */}
+                {/* Location */}
                 <ThemedPressable
                     variant="ghost"
-                    onPress={handleGetLocation}
+                    onPress={() => {
+                        console.log('Location button pressed');
+                        handleGetLocation();
+                    }}
                     disabled={isLoadingLocation}
-                    style={styles.metadataCard}
+                    style={styles.metadataButton}
                 >
-                    <Card style={styles.metadataCardInner}>
-                    <View style={styles.metadataContent}>
-                        {isLoadingLocation ? (
-                            <ActivityIndicator size="small" color={colors.primary} />
-                        ) : (
-                            <ThemedIcon name="map-pin" size={20} color="accent" />
-                        )}
-                        <View style={styles.metadataText}>
-                            <ThemedText variant="label" color="secondary">
-                                {t('log.location')}
-                            </ThemedText>
-                            <ThemedText variant="bodySmall" numberOfLines={2}>
-                                {draft.gpsLat && draft.gpsLng
-                                    ? `${draft.gpsLat.toFixed(6)}, ${draft.gpsLng.toFixed(6)}`
-                                    : t('log.no_location')
-                                }
-                            </ThemedText>
+                    <ModernCard style={styles.metadataCard}>
+                        <View style={styles.metadataContent}>
+                            {isLoadingLocation ? (
+                                <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                                <ThemedIcon name="map-pin" size={16} color="accent" />
+                            )}
+                            <View style={styles.metadataText}>
+                                <ThemedText variant="caption" color="secondary">Location</ThemedText>
+                                <ThemedText variant="bodySmall" numberOfLines={1}>
+                                    {draft.gpsLat && draft.gpsLng
+                                        ? `${draft.gpsLat.toFixed(3)}, ${draft.gpsLng.toFixed(3)}`
+                                        : t('log.no_location')
+                                    }
+                                </ThemedText>
+                            </View>
                         </View>
-                    </View>
-                    </Card>
+                        {draft.gpsLat && draft.gpsLng && (
+                            <View style={styles.locationStatus}>
+                                <ThemedIcon name="check" size={10} color="success" />
+                            </View>
+                        )}
+                    </ModernCard>
                 </ThemedPressable>
             </View>
+        </View>
+    );
 
-            {/* Predictions */}
-            {(draft.imagePrediction || draft.audioPrediction) && (
-                <View style={styles.predictionsContainer}>
-                    <ThemedText variant="label" style={styles.sectionSubtitle}>
-                        {t('log.ai_predictions')}
-                    </ThemedText>
-
-                    {draft.imagePrediction && (
-                        <Card style={styles.predictionCard}>
-                            <View style={styles.predictionContent}>
-                                <ThemedIcon name="camera" size={16} color="accent" />
-                                <ThemedText variant="bodySmall" style={styles.predictionText}>
-                                    {draft.imagePrediction}
-                                </ThemedText>
-                            </View>
-                        </Card>
-                    )}
-
-                    {draft.audioPrediction && (
-                        <Card style={styles.predictionCard}>
-                            <View style={styles.predictionContent}>
-                                <ThemedIcon name="mic" size={16} color="accent" />
-                                <ThemedText variant="bodySmall" style={styles.predictionText}>
-                                    {draft.audioPrediction}
-                                </ThemedText>
-                            </View>
-                        </Card>
-                    )}
-                </View>
-            )}
-        </Card>
+    // Save Button
+    const SaveButton = () => (
+        <ThemedView style={styles.saveContainer}>
+            <ThemedPressable
+                variant="primary"
+                onPress={() => {
+                    console.log('Save button pressed');
+                    handleSave();
+                }}
+                disabled={isSaving}
+                size="lg"
+                fullWidth
+                style={[styles.saveButton, { backgroundColor: colors.primary }]}
+            >
+                {isSaving ? (
+                    <ActivityIndicator size="small" color={colors.textInverse} />
+                ) : (
+                    <ThemedIcon name="save" size={20} color="inverse" />
+                )}
+                <ThemedText variant="button" style={{ color: colors.textInverse }}>
+                    {isSaving ? t('common.saving') : t('common.save')}
+                </ThemedText>
+            </ThemedPressable>
+        </ThemedView>
     );
 
     /**
      * Main Render
-     * 
-     * Structured layout with progress tracking, scrollable content sections,
-     * and modal dialogs. Uses the new minimal design system throughout.
      */
     return (
         <ThemedView style={styles.container}>
             <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
             <Stack.Screen options={{ headerShown: false }} />
 
-            {/* Progress Header */}
-            <ThemedView background="surface" elevated style={styles.header}>
-                <ThemedText variant="h2" style={styles.headerTitle}>
-                    {t('log.manual_entry')}
-                </ThemedText>
-
-                <View style={styles.progressContainer}>
-                    <ThemedText variant="label" color="secondary">
-                        {completionPercentage}% {t('log.complete')}
-                    </ThemedText>
-                    <View style={dynamicStyles.progressBar}>
-                        <View
-                            style={[
-                                dynamicStyles.progressFill,
-                                {
-                                    width: `${completionPercentage}%`
-                                }
-                            ]}
-                        />
-                    </View>
-                </View>
-            </ThemedView>
-
-            {/* Scrollable Content */}
-            <ScrollView
+            <CompactHeader />
+            
+            <ScrollView 
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <MediaSection />
-                <DetailsSection />
-                <MetadataSection />
-
-                {/* Bottom spacing for save button */}
-                <View style={styles.bottomSpacer} />
+                <MediaStrip />
+                <InlineForm />
             </ScrollView>
 
-            {/* Save Button */}
-            <ThemedView background="surface" elevated style={styles.saveButtonContainer}>
-                <ThemedPressable
-                    variant="primary"
-                    onPress={handleSave}
-                    disabled={isSaving}
-                    size="lg"
-                    fullWidth
-                    style={[styles.saveButton, { backgroundColor: colors.primary }]}
-                >
-                    {isSaving ? (
-                        <ActivityIndicator size="small" color={colors.textInverse} />
-                    ) : (
-                        <ThemedIcon name="save" size={20} color="inverse" />
-                    )}
-                    <ThemedText variant="button" style={{ color: colors.textInverse }}>
-                        {isSaving ? t('common.saving') : t('common.save')}
-                    </ThemedText>
-                </ThemedPressable>
-            </ThemedView>
+            <SaveButton />
 
+            {/* Modals */}
             {/* Date Picker Modal */}
             {isDatePickerVisible && (
                 <Modal
@@ -1191,7 +775,7 @@ Debug Info: ${debugInfo}
                     onRequestClose={() => setIsDatePickerVisible(false)}
                 >
                     <BlurView intensity={80} style={styles.modalContainer}>
-                        <Card style={styles.datePickerCard}>
+                        <ModernCard style={styles.datePickerCard}>
                             <ThemedText variant="h3" style={styles.modalTitle}>
                                 {t('log.select_date')}
                             </ThemedText>
@@ -1209,9 +793,7 @@ Debug Info: ${debugInfo}
                                         onPress={() => setIsDatePickerVisible(false)}
                                         style={styles.dateButton}
                                     >
-                                        <ThemedText variant="button">
-                                            {t('common.cancel')}
-                                        </ThemedText>
+                                        <ThemedText variant="button">{t('common.cancel')}</ThemedText>
                                     </ThemedPressable>
                                     <ThemedPressable
                                         variant="primary"
@@ -1227,7 +809,7 @@ Debug Info: ${debugInfo}
                                     </ThemedPressable>
                                 </View>
                             )}
-                        </Card>
+                        </ModernCard>
                     </BlurView>
                 </Modal>
             )}
@@ -1248,16 +830,14 @@ Debug Info: ${debugInfo}
                             nativeControls
                         />
                     )}
-                    <View style={dynamicStyles.videoModalControls}>
+                    <View style={styles.videoModalControls}>
                         <ThemedPressable
                             variant="secondary"
                             onPress={() => setIsVideoModalVisible(false)}
                             style={styles.videoButton}
                         >
                             <ThemedIcon name="x" size={20} color="primary" />
-                            <ThemedText variant="button">
-                                {t('common.close')}
-                            </ThemedText>
+                            <ThemedText variant="button">{t('common.close')}</ThemedText>
                         </ThemedPressable>
                         <ThemedPressable
                             variant="primary"
@@ -1283,56 +863,51 @@ Debug Info: ${debugInfo}
                 animationType="slide"
                 onRequestClose={() => setShowPredictions(false)}
             >
-                <View style={dynamicStyles.modalOverlay}>
-                    <BlurView intensity={80} style={styles.modalBlur}>
-                        <View style={dynamicStyles.predictionsModalContainer}>
-                            <View style={dynamicStyles.predictionsHeader}>
-                                <ThemedText variant="h3">
-                                    {t('birdnet.predictions_title', 'Bird Identification Results')}
-                                </ThemedText>
-                                <ThemedPressable
-                                    style={styles.modalCloseButton}
-                                    onPress={() => setShowPredictions(false)}
-                                >
-                                    <ThemedIcon name="x" size={24} color="primary" />
-                                </ThemedPressable>
-                            </View>
-                            
-                            <ScrollView style={styles.predictionsScrollView}>
-                                {birdPredictions.map((prediction, index) => (
-                                    <ThemedPressable
-                                        key={index}
-                                        style={[dynamicStyles.predictionItem, { backgroundColor: colors.surface }]}
-                                        onPress={() => handleSelectPrediction(prediction)}
-                                    >
-                                        <View style={styles.predictionItemContent}>
-                                            <View style={dynamicStyles.predictionInfo}>
-                                                <ThemedText variant="body" style={styles.predictionCommonName}>
-                                                    {prediction.common_name}
-                                                </ThemedText>
-                                                <ThemedText variant="bodySmall" color="secondary" style={styles.predictionScientificName}>
-                                                    {prediction.scientific_name}
-                                                </ThemedText>
-                                            </View>
-                                            <View style={styles.predictionConfidence}>
-                                                <ThemedText variant="label" color="primary">
-                                                    {AudioIdentificationService.formatConfidenceScore(prediction.confidence)}
-                                                </ThemedText>
-                                                <ThemedIcon name="chevron-right" size={20} color="secondary" />
-                                            </View>
-                                        </View>
-                                    </ThemedPressable>
-                                ))}
-                            </ScrollView>
-                            
-                            <View style={dynamicStyles.predictionsFooter}>
-                                <ThemedText variant="bodySmall" color="secondary" style={styles.predictionsDisclaimer}>
-                                    {t('birdnet.disclaimer', 'Tap a prediction to select it. Results are AI-generated and may not be 100% accurate.')}
-                                </ThemedText>
-                            </View>
+                <BlurView intensity={80} style={styles.modalContainer}>
+                    <ModernCard style={styles.predictionsModalContainer}>
+                        <View style={styles.predictionsHeader}>
+                            <ThemedText variant="h3">
+                                {t('birdnet.predictions_title', 'Bird Identification Results')}
+                            </ThemedText>
+                            <ThemedPressable
+                                style={styles.modalCloseButton}
+                                onPress={() => setShowPredictions(false)}
+                            >
+                                <ThemedIcon name="x" size={24} color="primary" />
+                            </ThemedPressable>
                         </View>
-                    </BlurView>
-                </View>
+                        
+                        <ScrollView style={styles.predictionsScrollView}>
+                            {birdPredictions.map((prediction, index) => (
+                                <ThemedPressable
+                                    key={index}
+                                    style={styles.predictionItem}
+                                    onPress={() => handleSelectPrediction(prediction)}
+                                >
+                                    <View style={styles.predictionItemContent}>
+                                        <View style={styles.predictionInfo}>
+                                            <ThemedText variant="body" style={styles.predictionCommonName}>
+                                                {prediction.common_name}
+                                            </ThemedText>
+                                            <ThemedText variant="bodySmall" color="secondary" style={styles.predictionScientificName}>
+                                                {prediction.scientific_name}
+                                            </ThemedText>
+                                        </View>
+                                        <View style={styles.predictionConfidence}>
+                                            <ConfidenceIndicator 
+                                                confidence={prediction.confidence}
+                                                variant="compact"
+                                                showIcon={true}
+                                                showPercentage={true}
+                                            />
+                                            <ThemedIcon name="chevron-right" size={20} color="secondary" />
+                                        </View>
+                                    </View>
+                                </ThemedPressable>
+                            ))}
+                        </ScrollView>
+                    </ModernCard>
+                </BlurView>
             </Modal>
 
             <SnackbarComponent />
@@ -1341,162 +916,215 @@ Debug Info: ${debugInfo}
 }
 
 /**
- * Styles
- * 
- * Minimal, clean styling using the new design system principles.
- * Focuses on consistency, accessibility, and visual hierarchy.
+ * Compact Styles
  */
 const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    header: {
+    
+    // Compact Header
+    compactHeader: {
         paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingBottom: 16,
         borderBottomWidth: 1,
-        borderBottomColor: 'transparent',
+        borderBottomColor: 'rgba(0,0,0,0.05)',
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    backButton: {
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 22,
     },
     headerTitle: {
         fontWeight: '700',
-        marginBottom: 12,
-    },
-    progressContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    progressBar: {
         flex: 1,
-        height: 6,
-        borderRadius: 3,
-        overflow: 'hidden',
+        textAlign: 'center',
+        marginHorizontal: 16,
     },
-    progressFill: {
-        height: '100%',
-        borderRadius: 3,
-    },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContent: {
-        padding: 20,
-        gap: 24,
-    },
-    sectionCard: {
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        marginBottom: 16,
-        fontWeight: '600',
-    },
-    bottomSpacer: {
-        height: 100,
-    },
-
-    // Media Section
-    mediaGrid: {
-        gap: 16,
-    },
-    mediaCard: {
-        borderRadius: 12,
-        overflow: 'hidden',
-    },
-    mediaCardInner: {
-        height: 120,
-        justifyContent: 'center',
-        alignItems: 'center',
-        margin: 0,
-        padding: 0,
-    },
-    mediaPreview: {
-        width: '100%',
-        height: '100%',
-    },
-    addMediaContent: {
-        alignItems: 'center',
-        gap: 12,
-        padding: 20,
-    },
-
-    // Details Section
-    detailsGrid: {
-        gap: 16,
-    },
-    inputCard: {
-        padding: 0,
-        overflow: 'hidden',
-    },
-    notesCard: {
-        padding: 0,
-        overflow: 'hidden',
-    },
-    errorCard: {
-        borderColor: 'red',
-        borderWidth: 2,
-    },
-    inputContainer: {
-        padding: 16,
-    },
-    inputLabel: {
-        marginBottom: 8,
-        fontWeight: '600',
-    },
-    notesInput: {
-        height: 88,
-        textAlignVertical: 'top',
-    },
-
-    // Metadata Section
-    metadataGrid: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    metadataCard: {
-        flex: 1,
-        borderRadius: 12,
-        overflow: 'hidden',
-    },
-    metadataCardInner: {
-        padding: 0,
-        margin: 0,
-    },
-    metadataContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    metadataText: {
-        flex: 1,
-        gap: 4,
-    },
-    sectionSubtitle: {
-        marginTop: 16,
-        marginBottom: 12,
-        fontWeight: '600',
-    },
-    predictionsContainer: {
-        marginTop: 16,
-    },
-    predictionCard: {
-        marginBottom: 8,
-        padding: 12,
-    },
-    predictionContent: {
+    progressIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
     },
-    predictionText: {
+    progressCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        borderWidth: 2,
+        justifyContent: 'flex-end',
+        overflow: 'hidden',
+    },
+    progressFill: {
+        width: '100%',
+        borderRadius: 14,
+    },
+
+    // Media Strip
+    mediaStrip: {
+        paddingVertical: 16,
+    },
+    mediaScrollView: {
+        paddingHorizontal: 20,
+    },
+    mediaItem: {
+        marginRight: 12,
+    },
+    mediaCard: {
+        width: 80,
+        height: 80,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    mediaThumbnail: {
+        width: '100%',
+        height: 56,
+        borderRadius: 8,
+    },
+    mediaPlaceholder: {
+        width: '100%',
+        height: 56,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 8,
+        backgroundColor: 'rgba(0,0,0,0.03)',
+    },
+    mediaLabel: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        justifyContent: 'center',
+    },
+    mediaStatus: {
+        position: 'absolute',
+        top: 4,
+        right: 4,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: '#22C55E',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    videoOverlay: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 8,
+    },
+    aiCard: {
+        borderWidth: 1,
+        borderColor: 'rgba(37, 99, 235, 0.2)',
+    },
+
+    // Inline Form
+    formContainer: {
+        paddingHorizontal: 20,
+        gap: 16,
+    },
+    formCard: {
+        padding: 16,
+    },
+    inlineField: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+    },
+    fieldIcon: {
+        width: 24,
+        height: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 2,
+    },
+    fieldContent: {
         flex: 1,
-        fontStyle: 'italic',
+        gap: 4,
+    },
+    fieldLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    inlineInput: {
+        fontSize: 16,
+        padding: 0,
+        minHeight: 24,
+    },
+    notesInput: {
+        minHeight: 48,
+        textAlignVertical: 'top',
+    },
+    predictionBadge: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: '#22C55E',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    // Metadata Row
+    metadataRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    metadataButton: {
+        flex: 1,
+    },
+    metadataCard: {
+        padding: 12,
+        position: 'relative',
+    },
+    metadataContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    metadataText: {
+        flex: 1,
+        gap: 2,
+    },
+    locationStatus: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#22C55E',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    // Scroll View
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: 16,
     },
 
     // Save Button
-    saveButtonContainer: {
+    saveContainer: {
         padding: 20,
         paddingBottom: 32,
         borderTopWidth: 1,
-        borderTopColor: 'transparent',
+        borderTopColor: 'rgba(0,0,0,0.05)',
     },
     saveButton: {
         flexDirection: 'row',
@@ -1535,61 +1163,30 @@ const styles = StyleSheet.create({
     fullscreenVideo: {
         flex: 1,
     },
+    videoModalControls: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        padding: 20,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+    },
     videoButton: {
         flexDirection: 'row',
         gap: 8,
         paddingHorizontal: 20,
     },
-
-    // Bird Identification Styles
-    identificationSection: {
-        marginTop: 16,
-        gap: 12,
+    predictionsModalContainer: {
+        maxHeight: '80%',
+        width: '100%',
+        maxWidth: 400,
+        overflow: 'hidden',
     },
-    identifyButton: {
-        paddingVertical: 16,
-        paddingHorizontal: 20,
-        borderRadius: 12,
+    predictionsHeader: {
         flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 60, // Increased height for timer display
-    },
-    identifyButtonContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    identifyButtonTextContainer: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    identifyButtonText: {
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-    identifyStageText: {
-        fontSize: 12,
-        marginTop: 2,
-        textAlign: 'center',
-        fontStyle: 'italic',
-    },
-    identifyLoader: {
-        marginRight: 4,
-    },
-    identifyIcon: {
-        marginRight: 4,
-    },
-    predictionInfoText: {
-        flex: 1,
-    },
-
-    // Predictions Modal Styles
-    modalBlur: {
-        flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         alignItems: 'center',
         padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.1)',
     },
     modalCloseButton: {
         padding: 8,
@@ -1598,10 +1195,19 @@ const styles = StyleSheet.create({
     predictionsScrollView: {
         maxHeight: 300,
     },
+    predictionItem: {
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.05)',
+    },
     predictionItemContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    predictionInfo: {
+        flex: 1,
     },
     predictionCommonName: {
         fontWeight: '600',
@@ -1614,9 +1220,5 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-    },
-    predictionsDisclaimer: {
-        textAlign: 'center',
-        lineHeight: 20,
     },
 });

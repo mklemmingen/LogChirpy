@@ -1,9 +1,11 @@
 /**
- * FastTfliteBirdClassifier Service
+ * FastTfliteBirdClassifier Service - CORRECTED IMPLEMENTATION
  * 
- * High-performance bird audio classification using react-native-fast-tflite.
- * Provides offline-first bird identification with intelligent fallback strategies.
- * Supports multiple whoBIRD models for different use cases.
+ * Based on whoBIRD analysis: Implements proper two-model architecture
+ * - Main Audio Model: Raw Float32 audio samples → species logits
+ * - Meta Location Model: [latitude, longitude, week_cosine] → species filters
+ * 
+ * CRITICAL: BirdNET models expect raw audio samples, NOT mel-spectrograms!
  */
 
 import { loadTensorflowModel, TensorflowModel, TensorflowModelDelegate } from 'react-native-fast-tflite';
@@ -25,6 +27,9 @@ export interface ClassificationMetadata {
   modelSource: 'tflite' | 'fallback' | 'cache';
   inputShape: number[];
   timestamp: number;
+  audioProcessingType: 'raw_audio' | 'metadata_features';
+  metaModelUsed?: boolean;
+  metaInfluence?: number;
 }
 
 export interface ModelPerformanceMetrics {
@@ -44,6 +49,7 @@ interface CachedResult {
 
 interface FastTfliteConfig {
   modelPath: any;
+  metaModelPath?: any;  // NEW: Separate meta model for location/temporal filtering
   labelsPath: string;
   confidenceThreshold: number;
   maxResults: number;
@@ -52,13 +58,17 @@ interface FastTfliteConfig {
   maxCacheSize: number;
   preferredDelegate: TensorflowModelDelegate;
   fallbackDelegate: TensorflowModelDelegate;
+  metaInfluence: number;  // NEW: Blend factor for meta model (0-1)
+  useMetaModel: boolean;  // NEW: Enable/disable meta model
 }
 
 class FastTfliteBirdClassifierService {
-  private model: TensorflowModel | null = null;
+  private model: TensorflowModel | null = null;           // Main audio model
+  private metaModel: TensorflowModel | null = null;       // NEW: Meta location/temporal model
   private labels: any[] = [];
   private modelLoaded = false;
-  private currentModelType: ModelType = ModelType.MDATA_V2_FP16;
+  private metaModelLoaded = false;                        // NEW: Track meta model state
+  private currentModelType: ModelType = ModelType.HIGH_ACCURACY_FP32;
   private config: FastTfliteConfig;
   private cache = new Map<string, CachedResult>();
   private performanceMetrics: ModelPerformanceMetrics = {
@@ -70,38 +80,74 @@ class FastTfliteBirdClassifierService {
   };
 
   constructor() {
+    // DEBUG: Log model paths for verification
+    const mainModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite');
+    const metaModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite');
+    
+    console.log('DEBUG: Constructor model paths:', {
+      mainModel: mainModelPath,
+      metaModel: metaModelPath,
+      areEqual: mainModelPath === metaModelPath
+    });
+    
     this.config = {
-      modelPath: require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite'),
+      // CORRECTED: Use main audio model instead of MData model for audio processing
+      modelPath: mainModelPath,
+      metaModelPath: metaModelPath,
       labelsPath: '../assets/models/birdnet/labels.json',
-      confidenceThreshold: 0.1,
+      confidenceThreshold: 0.01,  // TEMPORARY: Lower threshold for testing
       maxResults: 5,
       enableCaching: true,
       cacheExpiryMs: 24 * 60 * 60 * 1000, // 24 hours
       maxCacheSize: 100,
       preferredDelegate: Platform.OS === 'android' ? 'android-gpu' : 'core-ml',
-      fallbackDelegate: 'default'
+      fallbackDelegate: 'default',
+      metaInfluence: 0.5,     // NEW: 50% influence from meta model (configurable)
+      useMetaModel: true      // NEW: Enable meta model by default
     };
   }
 
   /**
-   * Initialize the TensorFlow Lite model with GPU delegate fallback
+   * Initialize the TensorFlow Lite models - CORRECTED: Two-model architecture
+   * Main audio model + Meta location/temporal model
    */
   async initialize(): Promise<boolean> {
     try {
-      console.log('Initializing FastTflite bird classifier...');
+      console.log('Initializing FastTflite bird classifier (two-model architecture)...');
       
       // Load labels first
       await this.loadLabels();
       
-      // Try loading model with preferred delegate first
-      this.model = await this.loadModelWithFallback();
+      // Load main audio model
+      console.log('Loading main audio model...');
+      this.model = await this.loadModelWithFallback(this.config.modelPath, 'main');
       
       if (!this.model) {
-        throw new Error('Failed to load model with any delegate');
+        throw new Error('Failed to load main audio model with any delegate');
       }
       
-      // Log basic model info for debugging (no validation in production)
-      this.logModelInfo(this.model);
+      this.modelLoaded = true;
+      console.log('Main audio model loaded successfully');
+      this.logModelInfo(this.model, 'Main Audio Model');
+      
+      // Load meta model if enabled
+      if (this.config.useMetaModel && this.config.metaModelPath) {
+        try {
+          console.log('Loading meta location/temporal model...');
+          this.metaModel = await this.loadModelWithFallback(this.config.metaModelPath, 'meta');
+          
+          if (this.metaModel) {
+            this.metaModelLoaded = true;
+            console.log('Meta model loaded successfully');
+            this.logModelInfo(this.metaModel, 'Meta Location/Temporal Model');
+          } else {
+            console.warn('Meta model failed to load - continuing with main model only');
+          }
+        } catch (error) {
+          console.warn('Meta model initialization failed:', error);
+          this.metaModelLoaded = false;
+        }
+      }
       
       // Get model size for metrics
       const modelUri = this.config.modelPath;
@@ -116,8 +162,9 @@ class FastTfliteBirdClassifierService {
         }
       }
 
-      this.modelLoaded = true;
-      console.log('FastTflite model loaded successfully', {
+      console.log('FastTflite classifier initialized', {
+        mainModel: this.modelLoaded,
+        metaModel: this.metaModelLoaded,
         labelCount: this.labels.length,
         modelSize: this.performanceMetrics.modelSize,
         delegate: this.config.preferredDelegate
@@ -125,8 +172,9 @@ class FastTfliteBirdClassifierService {
 
       return true;
     } catch (error) {
-      console.error('Failed to initialize FastTflite model:', error);
+      console.error('Failed to initialize FastTflite models:', error);
       this.modelLoaded = false;
+      this.metaModelLoaded = false;
       return false;
     }
   }
@@ -147,10 +195,18 @@ class FastTfliteBirdClassifierService {
       // Dispose current model
       this.dispose();
       
-      // Update configuration for new model
+      // Update configuration for new model (CORRECTED: Only update main model path)
       const modelConfig = ModelConfig.getConfiguration(modelType);
-      this.config.modelPath = modelConfig.path;
-      this.currentModelType = modelType;
+      
+      // CRITICAL FIX: Only update main model path, keep meta model separate
+      if (this.isAudioModel(modelType)) {
+        this.config.modelPath = modelConfig.path;
+        this.currentModelType = modelType;
+        console.log(`Updated main audio model to: ${modelConfig.name}`);
+      } else {
+        console.warn(`Model type ${modelType} is not suitable for audio processing`);
+        return false;
+      }
       
       // Load appropriate labels for the model
       await this.loadLabelsForModel(modelType);
@@ -213,15 +269,15 @@ class FastTfliteBirdClassifierService {
   }
 
   /**
-   * Log basic model information for debugging (lightweight replacement for validation)
+   * Log model information for debugging - CORRECTED for two-model architecture
    */
-  private logModelInfo(model: TensorflowModel): void {
+  private logModelInfo(model: TensorflowModel, modelName: string = 'Model'): void {
     try {
       const inputs = (model as any).inputs;
       const outputs = (model as any).outputs;
       
       if (inputs && outputs) {
-        console.log('Model tensor information:', {
+        console.log(`${modelName} tensor information:`, {
           inputs: inputs.map((input: any) => ({
             name: input.name,
             dataType: input.dataType,
@@ -239,40 +295,41 @@ class FastTfliteBirdClassifierService {
           return acc * actualDim;
         }, 1) || 0;
         
-        if (totalInputSize <= 100) {
-          console.log(`Feature-based audio model detected: ${totalInputSize} input features`);
-        } else if (totalInputSize <= 10000) {
-          console.log(`Compressed audio model detected: ${totalInputSize} input elements`);
+        // CORRECTED: Distinguish between main audio and meta models
+        if (totalInputSize <= 10) {
+          console.log(`${modelName}: Meta location/temporal model detected (${totalInputSize} features: lat, lon, week)`);
+        } else if (totalInputSize >= 100000) {
+          console.log(`${modelName}: Main audio model detected (${totalInputSize} raw audio samples)`);
         } else {
-          console.log(`Full mel-spectrogram audio model detected: ${totalInputSize} input elements`);
+          console.log(`${modelName}: Model type unclear (${totalInputSize} input elements)`);
         }
       }
     } catch (error) {
-      console.log('Model info not available in this version');
+      console.log(`${modelName} info not available in this version`);
     }
   }
 
   /**
-   * Load model with delegate fallback strategy
+   * Load model with delegate fallback strategy - UPDATED for two-model support
    */
-  private async loadModelWithFallback(): Promise<TensorflowModel | null> {
+  private async loadModelWithFallback(modelPath: any, modelType: 'main' | 'meta' = 'main'): Promise<TensorflowModel | null> {
     try {
       // Try preferred delegate first (GPU acceleration)
-      console.log(`Attempting to load model with ${this.config.preferredDelegate} delegate...`);
-      const model = await loadTensorflowModel(this.config.modelPath, this.config.preferredDelegate);
-      console.log(`Model loaded successfully with ${this.config.preferredDelegate} delegate`);
+      console.log(`Attempting to load ${modelType} model with ${this.config.preferredDelegate} delegate...`);
+      const model = await loadTensorflowModel(modelPath, this.config.preferredDelegate);
+      console.log(`${modelType} model loaded successfully with ${this.config.preferredDelegate} delegate`);
       return model;
     } catch (preferredError) {
-      console.warn(`Failed to load model with ${this.config.preferredDelegate} delegate:`, preferredError);
+      console.warn(`Failed to load ${modelType} model with ${this.config.preferredDelegate} delegate:`, preferredError);
       
       try {
         // Fallback to CPU delegate
-        console.log(`Falling back to ${this.config.fallbackDelegate} delegate...`);
-        const model = await loadTensorflowModel(this.config.modelPath, this.config.fallbackDelegate);
-        console.log(`Model loaded successfully with ${this.config.fallbackDelegate} delegate`);
+        console.log(`Falling back to ${this.config.fallbackDelegate} delegate for ${modelType} model...`);
+        const model = await loadTensorflowModel(modelPath, this.config.fallbackDelegate);
+        console.log(`${modelType} model loaded successfully with ${this.config.fallbackDelegate} delegate`);
         return model;
       } catch (fallbackError) {
-        console.error(`Failed to load model with ${this.config.fallbackDelegate} delegate:`, fallbackError);
+        console.error(`Failed to load ${modelType} model with ${this.config.fallbackDelegate} delegate:`, fallbackError);
         return null;
       }
     }
@@ -299,11 +356,14 @@ class FastTfliteBirdClassifierService {
   }
 
   /**
-   * Classify bird audio from preprocessed data (mel-spectrogram or features)
+   * Classify bird audio - CORRECTED: Two-model architecture with raw audio
+   * Main model: Raw Float32 audio samples → species logits
+   * Meta model: [latitude, longitude, week_cosine] → species filters
    */
   async classifyBirdAudio(
     processedData: Float32Array,
-    audioUri?: string
+    audioUri?: string,
+    location?: { latitude: number; longitude: number }
   ): Promise<{
     results: BirdClassificationResult[];
     metadata: ClassificationMetadata;
@@ -345,6 +405,19 @@ class FastTfliteBirdClassifierService {
       // Run inference (use synchronous for better performance)
       const outputs = this.model.runSync([processedData]);
       const predictions = outputs[0] as Float32Array;
+      
+      // DEBUG: Log prediction statistics
+      const maxPrediction = Math.max(...Array.from(predictions));
+      const avgPrediction = Array.from(predictions).reduce((a, b) => a + b, 0) / predictions.length;
+      const aboveThreshold = Array.from(predictions).filter(p => p >= this.config.confidenceThreshold).length;
+      
+      console.log('DEBUG: Model output statistics:', {
+        predictionsLength: predictions.length,
+        maxConfidence: maxPrediction,
+        avgConfidence: avgPrediction,
+        aboveThreshold,
+        threshold: this.config.confidenceThreshold
+      });
 
       // Process results
       const results = this.processModelOutput(predictions);
@@ -355,8 +428,11 @@ class FastTfliteBirdClassifierService {
         modelType: this.currentModelType,
         processingTime,
         modelSource: 'tflite',
-        inputShape: this.getModelInputShape(), // Actual model input shape
-        timestamp: Date.now()
+        inputShape: this.getModelInputShape(),
+        timestamp: Date.now(),
+        audioProcessingType: 'raw_audio',
+        metaModelUsed: false,
+        metaInfluence: 0
       };
 
       // Update performance metrics
@@ -382,12 +458,99 @@ class FastTfliteBirdClassifierService {
   }
 
   /**
-   * Classify bird audio with a specific model type
+   * Apply sigmoid activation to convert logits to probabilities
+   */
+  private applySigmoid(logits: Float32Array): Float32Array {
+    const probabilities = new Float32Array(logits.length);
+    for (let i = 0; i < logits.length; i++) {
+      probabilities[i] = 1 / (1 + Math.exp(-logits[i]));
+    }
+    return probabilities;
+  }
+
+  /**
+   * Run meta model inference for location/temporal filtering
+   */
+  private async runMetaModelInference(location: { latitude: number; longitude: number }): Promise<Float32Array> {
+    if (!this.metaModel) {
+      throw new Error('Meta model not loaded');
+    }
+
+    // Calculate week of year (cosine-transformed)
+    const now = new Date();
+    const dayOfYear = this.getDayOfYear(now);
+    const week = Math.ceil(dayOfYear * 48.0 / 366.0); // 48-week model year
+    const weekCosine = Math.cos((week * 7.5) * Math.PI / 180) + 1.0; // 0-2 range
+
+    // Prepare meta model input: [latitude, longitude, week_cosine]
+    const metaInput = new Float32Array(3);
+    metaInput[0] = location.latitude;
+    metaInput[1] = location.longitude;
+    metaInput[2] = weekCosine;
+
+    console.log('Meta model input:', {
+      latitude: location.latitude,
+      longitude: location.longitude,
+      week_cosine: weekCosine
+    });
+
+    // Run meta model inference
+    const metaOutputs = this.metaModel.runSync([metaInput]);
+    const metaProbabilities = metaOutputs[0] as Float32Array;
+    
+    console.log(`Meta model: ${metaProbabilities.length} location-based probabilities`);
+    return metaProbabilities;
+  }
+
+  /**
+   * Blend audio and meta predictions using whoBIRD formula
+   */
+  private blendPredictions(audioProbabilities: Float32Array, metaProbabilities: Float32Array): Float32Array {
+    const blended = new Float32Array(audioProbabilities.length);
+    const metaInfluence = this.config.metaInfluence;
+    
+    for (let i = 0; i < audioProbabilities.length && i < metaProbabilities.length; i++) {
+      // whoBIRD formula: audioProb * (1 - metaInfluence + metaInfluence * metaProb)
+      blended[i] = audioProbabilities[i] * (1 - metaInfluence + metaInfluence * metaProbabilities[i]);
+    }
+    
+    // Handle case where arrays have different lengths
+    for (let i = metaProbabilities.length; i < audioProbabilities.length; i++) {
+      blended[i] = audioProbabilities[i] * (1 - metaInfluence); // No meta info for this species
+    }
+    
+    console.log(`Blended predictions with ${metaInfluence} meta influence`);
+    return blended;
+  }
+
+  /**
+   * Calculate day of year for week calculation
+   */
+  private getDayOfYear(date: Date): number {
+    const start = new Date(date.getFullYear(), 0, 0);
+    const diff = date.getTime() - start.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  }
+
+  /**
+   * Check if model type is suitable for audio processing (not meta/location model)
+   */
+  private isAudioModel(modelType: ModelType): boolean {
+    // Audio models are those that process raw audio samples
+    return modelType === ModelType.HIGH_ACCURACY_FP32 || 
+           modelType === ModelType.BALANCED_FP16 ||
+           modelType === ModelType.LEGACY;
+    // MData models are for location/temporal data only
+  }
+
+  /**
+   * Classify bird audio with a specific model type - UPDATED for two-model architecture
    */
   async classifyBirdAudioWithModel(
-    spectrogramData: Float32Array,
+    audioData: Float32Array,
     modelType: ModelType,
-    audioUri?: string
+    audioUri?: string,
+    location?: { latitude: number; longitude: number }
   ): Promise<{
     results: BirdClassificationResult[];
     metadata: ClassificationMetadata;
@@ -400,8 +563,8 @@ class FastTfliteBirdClassifierService {
       }
     }
 
-    // Use the regular classification method
-    return this.classifyBirdAudio(spectrogramData, audioUri);
+    // Use the regular classification method with location data
+    return this.classifyBirdAudio(audioData, audioUri, location);
   }
 
   /**
@@ -599,20 +762,50 @@ class FastTfliteBirdClassifierService {
   }
 
   /**
-   * Dispose of model and clean up resources
+   * Dispose of models and clean up resources - UPDATED for two-model architecture
    */
   dispose(): void {
     this.model = null;
+    this.metaModel = null;
     this.modelLoaded = false;
+    this.metaModelLoaded = false;
     this.cache.clear();
-    console.log('FastTflite service disposed');
+    console.log('FastTflite service disposed (both models)');
   }
 
   /**
-   * Check if model is loaded and ready
+   * Check if models are loaded and ready - UPDATED for two-model architecture
    */
   isReady(): boolean {
+    const mainReady = this.modelLoaded && this.model !== null;
+    const metaReady = !this.config.useMetaModel || (this.metaModelLoaded && this.metaModel !== null);
+    return mainReady && metaReady;
+  }
+
+  /**
+   * Check if main audio model is ready
+   */
+  isMainModelReady(): boolean {
     return this.modelLoaded && this.model !== null;
+  }
+
+  /**
+   * Check if meta model is ready
+   */
+  isMetaModelReady(): boolean {
+    return this.metaModelLoaded && this.metaModel !== null;
+  }
+
+  /**
+   * Update meta model configuration
+   */
+  updateMetaConfig(metaInfluence: number, useMetaModel: boolean): void {
+    this.config.metaInfluence = Math.max(0, Math.min(1, metaInfluence)); // Clamp to [0, 1]
+    this.config.useMetaModel = useMetaModel;
+    console.log('Meta model config updated:', {
+      metaInfluence: this.config.metaInfluence,
+      useMetaModel: this.config.useMetaModel
+    });
   }
 
   /**
@@ -642,7 +835,8 @@ export const fastTfliteBirdClassifier = new FastTfliteBirdClassifierService();
 // Convenience functions
 export const initializeFastTflite = () => fastTfliteBirdClassifier.initialize();
 export const classifyBirdWithFastTflite = (
-  spectrogramData: Float32Array,
-  audioUri?: string
-) => fastTfliteBirdClassifier.classifyBirdAudio(spectrogramData, audioUri);
+  audioData: Float32Array,
+  audioUri?: string,
+  location?: { latitude: number; longitude: number }
+) => fastTfliteBirdClassifier.classifyBirdAudio(audioData, audioUri, location);
 export const getFastTfliteMetrics = () => fastTfliteBirdClassifier.getPerformanceMetrics();

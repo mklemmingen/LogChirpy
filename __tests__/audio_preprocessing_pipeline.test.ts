@@ -113,7 +113,8 @@ describe('Audio Preprocessing Pipeline', () => {
       const config = AudioPreprocessingTFLite.getConfig();
       expect(config.sampleRate).toBe(48000);
       expect(config.duration).toBe(3.0);
-      expect(config.nMels).toBe(224);
+      expect(config.bitDepth).toBe(16);
+      expect(config.channels).toBe(1);
 
       console.log('✅ Audio preprocessing config validated for 48kHz input');
     });
@@ -332,15 +333,15 @@ describe('Audio Preprocessing Pipeline', () => {
       // Test configuration update
       const newConfig = {
         ...originalConfig,
-        nMels: 128, // Test different mel bin count
-        duration: 5.0 // Test different duration
+        duration: 5.0, // Test different duration
+        highPassFilter: true // Test high-pass filter
       };
       
-      AudioPreprocessingTFLite.updateConfig({ nMels: 128, duration: 5.0 });
+      AudioPreprocessingTFLite.updateConfig({ duration: 5.0, highPassFilter: true });
       const updatedConfig = AudioPreprocessingTFLite.getConfig();
       
-      expect(updatedConfig.nMels).toBe(128);
       expect(updatedConfig.duration).toBe(5.0);
+      expect(updatedConfig.highPassFilter).toBe(true);
       expect(updatedConfig.sampleRate).toBe(originalConfig.sampleRate); // Should preserve other settings
       
       // Restore original config
@@ -352,15 +353,17 @@ describe('Audio Preprocessing Pipeline', () => {
     test('should validate required BirdNet configuration parameters', () => {
       const config = AudioPreprocessingTFLite.getConfig();
       
-      // Validate BirdNet-specific requirements
-      expect(config.sampleRate).toBe(48000); // BirdNet prefers 48kHz
-      expect(config.nMels).toBe(224); // To match model input requirements
+      // Validate BirdNet-specific requirements (corrected for raw audio)
+      expect(config.sampleRate).toBe(48000); // BirdNet uses 48kHz
+      expect(config.bitDepth).toBe(16); // 16-bit PCM
+      expect(config.channels).toBe(1); // Mono audio
       expect(config.duration).toBe(3.0); // Standard 3-second clips
-      expect(config.normalize).toBe(true); // Normalization should be enabled
+      expect(config.normalize).toBe(false); // No normalization for raw audio (preserves signal)
       
-      console.log('✅ BirdNet configuration requirements validated');
+      console.log('✅ BirdNet configuration requirements validated (raw audio mode)');
       console.log(`   Sample rate: ${config.sampleRate}Hz`);
-      console.log(`   Mel bins: ${config.nMels}`);
+      console.log(`   Bit depth: ${config.bitDepth}-bit`);
+      console.log(`   Channels: ${config.channels} (mono)`);
       console.log(`   Duration: ${config.duration}s`);
     });
   });

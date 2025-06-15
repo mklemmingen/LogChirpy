@@ -132,7 +132,7 @@ function DetailHeader({
                     onPress={onAddToSpottings}
                     style={styles.addButton}
                 >
-                    <ThemedIcon name="plus" size={18} color="primary" />
+                    <ThemedIcon name="plus" size={18} color="inverse" />
                 </ThemedPressable>
             )}
         </Animated.View>

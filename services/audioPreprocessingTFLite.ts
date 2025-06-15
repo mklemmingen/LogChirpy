@@ -1,83 +1,77 @@
 /**
  * Audio Preprocessing Service for TensorFlow Lite BirdNET Model
  * 
- * Converts audio files to mel-spectrograms suitable for BirdNET v2.4 TensorFlow Lite model.
- * This implementation processes audio to match the exact input requirements of the BirdNET model.
+ * CORRECTED IMPLEMENTATION: Processes audio to raw Float32 samples for BirdNET v2.4 TensorFlow Lite models.
+ * Based on whoBIRD analysis - BirdNET models expect raw audio samples, NOT mel-spectrograms!
+ * Mel-spectrograms are only used for visualization purposes.
  */
 
 import { AudioDecoder } from './audioDecoder';
 
 export interface AudioPreprocessingConfig {
   sampleRate: number;        // Target sample rate (48kHz for BirdNET)
-  windowSize: number;        // FFT window size
-  hopLength: number;         // Hop length for STFT
-  nMels: number;            // Number of mel filter banks
-  fMin: number;             // Minimum frequency
-  fMax: number;             // Maximum frequency
-  duration: number;         // Target duration in seconds
-  normalize: boolean;       // Whether to normalize audio
+  duration: number;         // Target duration in seconds (3 seconds for BirdNET)
+  bitDepth: number;         // Audio bit depth (16-bit PCM)
+  channels: number;         // Number of channels (1 for mono)
+  highPassFilter: boolean;  // Optional high-pass filtering
+  normalize: boolean;       // Whether to normalize audio to prevent clipping
 }
 
 export interface ProcessedAudioData {
-  processedData: Float32Array;  // Processed audio data (format depends on model)
-  shape: number[]; // Dynamic shape based on model requirements
+  processedData: Float32Array;  // Raw Float32 audio samples for main model
+  shape: number[]; // Audio sample shape [1, num_samples]
   metadata: {
     originalSampleRate: number;
     duration: number;
     processingTime: number;
-    processingType: 'mel_spectrogram' | 'audio_features' | 'raw_audio';
+    processingType: 'raw_audio' | 'metadata_features'; // Simplified to only raw audio or metadata
     modelInputShape: number[];
+    sampleCount: number;
   };
 }
 
 export class AudioPreprocessingTFLite {
+  // CORRECTED: whoBIRD-based configuration for raw audio processing
   private static config: AudioPreprocessingConfig = {
-    sampleRate: 48000,      // BirdNET v2.4 uses 48kHz
-    windowSize: 2048,       // FFT window size (for low-freq channel)
-    hopLength: 278,         // Hop length for low-freq (as per BirdNET docs)
-    nMels: 224,            // 224 mel bins to match TFLite model input (224x224x3)
-    fMin: 0,               // Minimum frequency for low-freq channel
-    fMax: 3000,            // Maximum frequency for low-freq channel (3kHz)
-    duration: 3.0,         // 3-second audio clips
-    normalize: true,       // Normalize audio to [-1, 1]
+    sampleRate: 48000,      // BirdNET v2.4 uses 48kHz (industry standard)
+    duration: 3.0,         // 3-second audio clips (144,000 samples at 48kHz)
+    bitDepth: 16,          // 16-bit PCM
+    channels: 1,           // Mono audio
+    highPassFilter: false, // Optional Butterworth high-pass filter
+    normalize: false,      // Avoid normalization for raw audio (preserve original signal)
   };
 
-  // BirdNET v2.4 uses dual-channel spectrograms
-  private static configHighFreq: AudioPreprocessingConfig = {
-    sampleRate: 48000,
-    windowSize: 1024,      // Smaller window for high-freq channel
-    hopLength: 280,        // Hop length for high-freq
-    nMels: 224,            // 224 mel bins to match TFLite model input (224x224x3)
-    fMin: 500,             // 500 Hz minimum for high-freq channel
-    fMax: 15000,           // 15 kHz maximum for high-freq channel
-    duration: 3.0,
-    normalize: true,
-  };
+  // CORRECTED: Circular buffer for continuous recording (whoBIRD pattern)
+  private static circularBuffer: Int16Array | null = null;
+  private static writeIndex: number = 0;
+  private static isRecording: boolean = false;
 
   /**
-   * Process audio file for BirdNET TFLite model with dynamic format detection
+   * Process audio file for BirdNET TFLite model - CORRECTED: Raw audio approach
+   * Based on whoBIRD analysis: BirdNET models expect raw Float32 audio samples
    */
   static async processAudioFile(audioUri: string, modelInputShape?: number[]): Promise<ProcessedAudioData> {
     const startTime = Date.now();
     
     try {
-      console.log('Processing audio for TensorFlow Lite...');
+      console.log('Processing audio for TensorFlow Lite (raw audio approach)...');
       
       // Step 1: Load and decode audio file
       const audioData = await this.loadAudioFile(audioUri);
       
-      // Step 2: Resample to target sample rate if needed
+      // Step 2: Resample to target sample rate if needed (48kHz for BirdNET)
       const resampledData = await this.resampleAudio(audioData);
       
-      // Step 3: Trim or pad to target duration
+      // Step 3: Trim or pad to target duration (3 seconds)
       const trimmedData = this.trimOrPadAudio(resampledData);
       
-      // Step 4: Process audio based on model requirements
-      const { processedData, shape, processingType } = await this.processForModelShape(trimmedData, modelInputShape);
+      // Step 4: CORRECTED - Process based on model type
+      const { processedData, shape, processingType } = await this.processForModelType(trimmedData, modelInputShape);
       
       const processingTime = Date.now() - startTime;
       
       console.log(`Audio processing completed in ${processingTime}ms using ${processingType}`);
+      console.log(`Output shape: [${shape.join(', ')}], samples: ${processedData.length}`);
       
       return {
         processedData,
@@ -87,7 +81,8 @@ export class AudioPreprocessingTFLite {
           duration: trimmedData.length / this.config.sampleRate,
           processingTime,
           processingType,
-          modelInputShape: modelInputShape || [1, 3],
+          modelInputShape: modelInputShape || [1, 144000], // Default to 3 seconds at 48kHz
+          sampleCount: processedData.length,
         },
       };
       
@@ -182,614 +177,169 @@ export class AudioPreprocessingTFLite {
   }
 
   /**
-   * Process audio data based on model input shape requirements
+   * CORRECTED: Process audio data based on model type - Raw audio for main models, metadata for location models
    */
-  private static async processForModelShape(audioData: Float32Array, modelInputShape?: number[]): Promise<{
+  private static async processForModelType(audioData: Float32Array, modelInputShape?: number[]): Promise<{
     processedData: Float32Array;
     shape: number[];
-    processingType: 'mel_spectrogram' | 'audio_features' | 'raw_audio';
+    processingType: 'raw_audio' | 'metadata_features';
   }> {
     if (!modelInputShape || modelInputShape.length === 0) {
-      console.warn('No model input shape provided, using default feature extraction');
-      return this.generateAudioFeatures(audioData);
+      console.warn('No model input shape provided, using raw audio processing');
+      return this.processRawAudio(audioData);
     }
     
     const totalElements = modelInputShape.reduce((acc, dim) => acc * (dim === -1 ? 1 : Math.abs(dim)), 1);
     
     console.log(`Processing audio for model shape: [${modelInputShape.join(', ')}], total elements: ${totalElements}`);
     
-    // Determine processing type based on input size
-    if (totalElements <= 100) {
-      // Feature-based model (1-100 elements)
-      console.log('Using audio feature extraction for compact model');
-      return this.generateAudioFeatures(audioData, totalElements);
-    } else if (totalElements <= 10000) {
-      // Compressed audio model (100-10K elements)
-      console.log('Using compressed audio representation');
-      return this.generateCompressedAudio(audioData, modelInputShape);
+    // CORRECTED: Determine processing type based on whoBIRD patterns
+    if (totalElements <= 10) {
+      // Meta/location model (1-10 elements) - expects [latitude, longitude, week_of_year]
+      console.log('Detected metadata model - generating location/temporal features');
+      return this.generateMetadataFeatures(totalElements);
     } else {
-      // Full mel-spectrogram model (10K+ elements)
-      console.log('Using full mel-spectrogram generation');
-      return this.generateFullMelSpectrogram(audioData, modelInputShape);
+      // Main audio model (10K+ elements) - expects raw Float32 audio samples
+      console.log('Detected main audio model - using raw Float32 audio samples');
+      return this.processRawAudio(audioData);
     }
   }
-  
+
   /**
-   * Generate audio features for feature-based models (1-100 elements)
+   * CORRECTED: Process raw audio samples for main BirdNET models
+   * Based on whoBIRD analysis: Main models expect raw Float32 audio samples (Short → Float conversion)
    */
-  private static async generateAudioFeatures(audioData: Float32Array, targetSize: number = 3): Promise<{
+  private static processRawAudio(audioData: Float32Array): {
     processedData: Float32Array;
     shape: number[];
-    processingType: 'audio_features';
-  }> {
-    console.log(`Extracting ${targetSize} features for BirdNET MData model`);
+    processingType: 'raw_audio';
+  } {
+    console.log(`Processing raw audio: ${audioData.length} samples`);
+    
+    // CORRECTED: Simple Short → Float conversion (no complex preprocessing)
+    const processedData = new Float32Array(audioData.length);
+    
+    for (let i = 0; i < audioData.length; i++) {
+      let sample = audioData[i];
+      
+      // Optional high-pass filtering (configurable)
+      if (this.config.highPassFilter) {
+        sample = this.applyHighPassFilter(sample, i);
+      }
+      
+      // Direct conversion - no normalization (preserve original signal)
+      processedData[i] = sample;
+    }
+    
+    console.log(`Raw audio processed: ${processedData.length} Float32 samples`);
+    
+    return {
+      processedData,
+      shape: [1, processedData.length], // [batch_size, num_samples]
+      processingType: 'raw_audio'
+    };
+  }
+
+  /**
+   * Generate metadata features for location/temporal models (BirdNET Meta models)
+   */
+  private static generateMetadataFeatures(targetSize: number = 3): {
+    processedData: Float32Array;
+    shape: number[];
+    processingType: 'metadata_features';
+  } {
+    console.log(`Generating ${targetSize} metadata features for BirdNET Meta model`);
     
     const features = new Float32Array(targetSize);
     
     if (targetSize === 3) {
-      // Special case for BirdNET MData V2 FP16 model
-      // This model expects metadata inputs: [latitude, longitude, week_of_year]
-      // All values should be normalized to [0, 1] range
+      // BirdNET Meta model expects: [latitude, longitude, week_of_year_cosine]
+      const locationMeta = (this as any).locationMetadata;
+      const now = locationMeta?.date || new Date();
+      const dayOfYear = this.getDayOfYear(now);
+      const week = Math.ceil(dayOfYear * 48.0 / 366.0); // 48-week model year
+      const weekCosine = Math.cos((week * 7.5) * Math.PI / 180) + 1.0; // 0-2 range
       
-      features[0] = 0.5;    // Latitude normalized (0.5 = equator, reasonable default)
-      features[1] = 0.5;    // Longitude normalized (0.5 = 0° longitude, reasonable default) 
-      features[2] = 0.25;   // Week of year normalized (0.25 = week 13, spring season)
+      features[0] = locationMeta?.latitude || 0.0;  // Use provided latitude or default
+      features[1] = locationMeta?.longitude || 0.0; // Use provided longitude or default
+      features[2] = weekCosine;                      // Week of year (cosine-transformed)
       
-      console.log('Using BirdNET MData format: [lat=0.5, lon=0.5, week=0.25]');
+      console.log('Generated BirdNET Meta features:', {
+        latitude: features[0],
+        longitude: features[1], 
+        week_cosine: features[2],
+        source: locationMeta ? 'provided' : 'default'
+      });
     } else {
-      // Fallback to audio feature extraction for other sizes
-      if (targetSize >= 1) {
-        // Feature 1: RMS (Root Mean Square) - overall energy
-        let rms = 0;
-        for (let i = 0; i < audioData.length; i++) {
-          rms += audioData[i] * audioData[i];
-        }
-        features[0] = Math.sqrt(rms / audioData.length);
-      }
-      
-      if (targetSize >= 2) {
-        // Feature 2: Zero Crossing Rate - measure of noise vs tonal content
-        let zeroCrossings = 0;
-        for (let i = 1; i < audioData.length; i++) {
-          if ((audioData[i] > 0) !== (audioData[i-1] > 0)) {
-            zeroCrossings++;
-          }
-        }
-        features[1] = zeroCrossings / audioData.length;
-      }
-      
-      if (targetSize >= 3) {
-        // Feature 3: Spectral Centroid - brightness measure
-        const spectrum = this.computeSimpleSpectrum(audioData);
-        let weightedSum = 0;
-        let magnitudeSum = 0;
-        
-        for (let i = 0; i < spectrum.length; i++) {
-          const frequency = i * this.config.sampleRate / (2 * spectrum.length);
-          weightedSum += frequency * spectrum[i];
-          magnitudeSum += spectrum[i];
-        }
-        
-        features[2] = magnitudeSum > 0 ? weightedSum / magnitudeSum / 1000 : 0; // Normalize by 1kHz
-      }
-      
-      // Fill remaining features with variations or additional spectral features
-      for (let i = 3; i < targetSize; i++) {
-        // Add more spectral features, MFCC components, etc.
-        features[i] = features[i % 3] * (0.8 + 0.4 * Math.random()); // Variation for now
-      }
-      
-      // Normalize features to reasonable range [0, 1] for non-MData models
-      for (let i = 0; i < features.length; i++) {
-        features[i] = (Math.tanh(features[i]) + 1) / 2; // Normalize to [0, 1]
+      // For other sizes, fill with appropriate metadata
+      for (let i = 0; i < targetSize; i++) {
+        features[i] = 0.5; // Neutral default values
       }
     }
-    
-    console.log(`Generated ${targetSize} features:`, Array.from(features.slice(0, Math.min(5, targetSize))));
     
     return {
       processedData: features,
       shape: [1, targetSize],
-      processingType: 'audio_features'
-    };
-  }
-  
-  /**
-   * Compute simple magnitude spectrum for feature extraction
-   */
-  private static computeSimpleSpectrum(audioData: Float32Array): Float32Array {
-    const fftSize = Math.min(1024, this.nextPowerOfTwo(audioData.length));
-    const windowed = new Float32Array(fftSize);
-    
-    // Copy and window the data
-    for (let i = 0; i < fftSize && i < audioData.length; i++) {
-      const window = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / fftSize);
-      windowed[i] = audioData[i] * window;
-    }
-    
-    // Simple magnitude spectrum (fallback to basic approach)
-    const spectrum = new Float32Array(fftSize / 2);
-    for (let i = 0; i < spectrum.length; i++) {
-      spectrum[i] = Math.abs(windowed[i] || 0);
-    }
-    
-    return spectrum;
-  }
-  
-  /**
-   * Generate compressed audio representation (100-10K elements)
-   */
-  private static async generateCompressedAudio(audioData: Float32Array, modelInputShape: number[]): Promise<{
-    processedData: Float32Array;
-    shape: number[];
-    processingType: 'audio_features';
-  }> {
-    const totalElements = modelInputShape.reduce((acc, dim) => acc * Math.abs(dim), 1);
-    console.log(`Generating compressed audio representation with ${totalElements} elements`);
-    
-    // For now, use audio feature extraction but with more features
-    return this.generateAudioFeatures(audioData, totalElements);
-  }
-  
-  /**
-   * Generate full mel-spectrogram (10K+ elements) - original approach
-   */
-  private static async generateFullMelSpectrogram(audioData: Float32Array, modelInputShape: number[]): Promise<{
-    processedData: Float32Array;
-    shape: number[];
-    processingType: 'mel_spectrogram';
-  }> {
-    console.log(`Generating full mel-spectrogram for shape: [${modelInputShape.join(', ')}]`);
-    
-    // Extract dimensions from model shape
-    let height = 224, width = 224, channels = 3;
-    
-    if (modelInputShape.length >= 3) {
-      height = Math.abs(modelInputShape[modelInputShape.length - 3]);
-      width = Math.abs(modelInputShape[modelInputShape.length - 2]); 
-      channels = Math.abs(modelInputShape[modelInputShape.length - 1]);
-    }
-    
-    console.log(`Generating mel-spectrogram: ${height}x${width}x${channels}`);
-    
-    // Generate single-channel spectrogram
-    const singleChannelSpec = await this.generateSingleChannelMelSpectrogram(audioData, {
-      ...this.config,
-      nMels: height,
-    });
-    
-    const compatibleData = new Float32Array(height * width * channels);
-    
-    // Fill the format by replicating and reshaping the single channel data
-    for (let h = 0; h < height; h++) {
-      for (let w = 0; w < width; w++) {
-        // Get value from single channel spec (with bounds checking)
-        const sourceIndex = h * Math.min(width, Math.floor(singleChannelSpec.length / height)) + Math.min(w, Math.floor(singleChannelSpec.length / height) - 1);
-        const value = sourceIndex < singleChannelSpec.length ? singleChannelSpec[sourceIndex] : 0;
-        
-        const outputIndex = (h * width + w) * channels;
-        
-        // Replicate across channels
-        for (let c = 0; c < channels; c++) {
-          compatibleData[outputIndex + c] = value;
-        }
-      }
-    }
-    
-    console.log(`Full mel-spectrogram generated: ${height}x${width}x${channels}`);
-    return {
-      processedData: compatibleData,
-      shape: [1, height, width, channels],
-      processingType: 'mel_spectrogram'
+      processingType: 'metadata_features'
     };
   }
 
   /**
-   * Generate dual-channel mel-spectrograms for BirdNET v2.4 (unused for now)
+   * Simple high-pass filter implementation (optional)
    */
-  private static async generateDualChannelMelSpectrogram(audioData: Float32Array): Promise<Float32Array> {
-    console.log('Generating dual-channel mel-spectrograms for BirdNET v2.4...');
-    
-    // Generate low-frequency channel (0-3kHz)
-    const lowFreqSpectrogram = await this.generateSingleChannelMelSpectrogram(audioData, this.config);
-    
-    // Generate high-frequency channel (500Hz-15kHz)
-    const highFreqSpectrogram = await this.generateSingleChannelMelSpectrogram(audioData, this.configHighFreq);
-    
-    // Combine into dual-channel format: [height, width, channels]
-    // BirdNET v2.4 expects 96x511 for each channel
-    const height = 96;
-    const width = 511;
-    const channels = 2;
-    
-    const dualChannelData = new Float32Array(height * width * channels);
-    
-    // Interleave the two channels
-    for (let h = 0; h < height; h++) {
-      for (let w = 0; w < width; w++) {
-        const index = h * width + w;
-        const outputIndex = (h * width + w) * channels;
-        
-        // Channel 0: Low frequency (0-3kHz)
-        if (index < lowFreqSpectrogram.length) {
-          dualChannelData[outputIndex] = lowFreqSpectrogram[index];
-        }
-        
-        // Channel 1: High frequency (500Hz-15kHz)
-        if (index < highFreqSpectrogram.length) {
-          dualChannelData[outputIndex + 1] = highFreqSpectrogram[index];
-        }
-      }
-    }
-    
-    console.log(`Dual-channel mel-spectrogram generated: ${height}x${width}x${channels}`);
-    return dualChannelData;
+  private static applyHighPassFilter(sample: number, index: number): number {
+    // Simple first-order high-pass filter (placeholder)
+    // In production, this should be a proper Butterworth filter like whoBIRD uses
+    const alpha = 0.95; // High-pass filter coefficient
+    const previousSample = index > 0 ? sample : 0;
+    return alpha * (sample - previousSample);
   }
 
   /**
-   * Generate single-channel mel-spectrogram from audio data
+   * Calculate day of year for week calculation
    */
-  private static async generateSingleChannelMelSpectrogram(audioData: Float32Array, config: AudioPreprocessingConfig): Promise<Float32Array> {
-    console.log(`Generating mel-spectrogram (${config.fMin}-${config.fMax}Hz)...`);
-    
-    // Normalize audio if requested
-    if (config.normalize) {
-      const maxVal = Math.max(...Array.from(audioData).map(Math.abs));
-      if (maxVal > 0) {
-        for (let i = 0; i < audioData.length; i++) {
-          audioData[i] /= maxVal;
-        }
-      }
-    }
-    
-    // Calculate number of frames to get 511 width for BirdNET v2.4
-    const numFrames = Math.floor((audioData.length - config.windowSize) / config.hopLength) + 1;
-    const spectrogramWidth = Math.min(numFrames, 511); // BirdNET v2.4 expects 511 width
-    
-    // Initialize mel-spectrogram
-    const melSpectrogram = new Float32Array(config.nMels * spectrogramWidth);
-    
-    // Generate mel filter bank with the specific config
-    const melFilters = this.generateMelFilterBankForConfig(config);
-    
-    // Process each frame
-    for (let frame = 0; frame < spectrogramWidth; frame++) {
-      const startSample = frame * config.hopLength;
-      
-      // Extract frame
-      const frameData = new Float32Array(config.windowSize);
-      for (let i = 0; i < config.windowSize; i++) {
-        if (startSample + i < audioData.length) {
-          frameData[i] = audioData[startSample + i];
-        }
-      }
-      
-      // Apply window function (Hann window)
-      for (let i = 0; i < config.windowSize; i++) {
-        const window = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (config.windowSize - 1));
-        frameData[i] *= window;
-      }
-      
-      // Compute FFT magnitude spectrum
-      const spectrum = this.computeFFTMagnitudeForConfig(frameData, config);
-      
-      // Apply mel filter bank
-      for (let mel = 0; mel < config.nMels; mel++) {
-        let melValue = 0;
-        for (let bin = 0; bin < spectrum.length; bin++) {
-          melValue += spectrum[bin] * melFilters[mel][bin];
-        }
-        
-        // Apply log scale and store
-        melSpectrogram[mel * spectrogramWidth + frame] = Math.log(Math.max(melValue, 1e-10));
-      }
-    }
-    
-    // Normalize mel-spectrogram
-    this.normalizeMelSpectrogram(melSpectrogram);
-    
-    console.log(`Mel-spectrogram generated: ${this.config.nMels}x${spectrogramWidth}`);
-    
-    return melSpectrogram;
+  private static getDayOfYear(date: Date): number {
+    const start = new Date(date.getFullYear(), 0, 0);
+    const diff = date.getTime() - start.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
   }
 
   /**
-   * Generate mel filter bank for specific config
-   */
-  private static generateMelFilterBankForConfig(config: AudioPreprocessingConfig): Float32Array[] {
-    const numBins = config.windowSize / 2 + 1;
-    const melFilters: Float32Array[] = [];
-    
-    // Convert Hz to mel scale
-    const melMin = this.hzToMel(config.fMin);
-    const melMax = this.hzToMel(config.fMax);
-    
-    // Create mel points
-    const melPoints: number[] = [];
-    for (let i = 0; i <= config.nMels + 1; i++) {
-      melPoints.push(melMin + (melMax - melMin) * i / (config.nMels + 1));
-    }
-    
-    // Convert mel points to Hz
-    const hzPoints = melPoints.map(mel => this.melToHz(mel));
-    
-    // Convert Hz to bin indices
-    const binPoints = hzPoints.map(hz => Math.floor(hz * config.windowSize / config.sampleRate));
-    
-    // Create triangular filters
-    for (let mel = 0; mel < config.nMels; mel++) {
-      const filter = new Float32Array(numBins);
-      
-      const leftBin = binPoints[mel];
-      const centerBin = binPoints[mel + 1];
-      const rightBin = binPoints[mel + 2];
-      
-      // Left slope
-      for (let bin = leftBin; bin < centerBin && bin < numBins; bin++) {
-        if (centerBin > leftBin) {
-          filter[bin] = (bin - leftBin) / (centerBin - leftBin);
-        }
-      }
-      
-      // Right slope
-      for (let bin = centerBin; bin < rightBin && bin < numBins; bin++) {
-        if (rightBin > centerBin) {
-          filter[bin] = (rightBin - bin) / (rightBin - centerBin);
-        }
-      }
-      
-      melFilters.push(filter);
-    }
-    
-    return melFilters;
-  }
-
-  /**
-   * Generate mel filter bank (legacy method)
-   */
-  private static generateMelFilterBank(): Float32Array[] {
-    const numBins = this.config.windowSize / 2 + 1;
-    const melFilters: Float32Array[] = [];
-    
-    // Convert Hz to mel scale
-    const melMin = this.hzToMel(this.config.fMin);
-    const melMax = this.hzToMel(this.config.fMax);
-    
-    // Create mel points
-    const melPoints: number[] = [];
-    for (let i = 0; i <= this.config.nMels + 1; i++) {
-      melPoints.push(melMin + (melMax - melMin) * i / (this.config.nMels + 1));
-    }
-    
-    // Convert mel points to Hz
-    const hzPoints = melPoints.map(mel => this.melToHz(mel));
-    
-    // Convert Hz to bin indices
-    const binPoints = hzPoints.map(hz => Math.floor(hz * this.config.windowSize / this.config.sampleRate));
-    
-    // Create triangular filters
-    for (let mel = 0; mel < this.config.nMels; mel++) {
-      const filter = new Float32Array(numBins);
-      
-      const leftBin = binPoints[mel];
-      const centerBin = binPoints[mel + 1];
-      const rightBin = binPoints[mel + 2];
-      
-      // Left slope
-      for (let bin = leftBin; bin < centerBin && bin < numBins; bin++) {
-        if (centerBin > leftBin) {
-          filter[bin] = (bin - leftBin) / (centerBin - leftBin);
-        }
-      }
-      
-      // Right slope
-      for (let bin = centerBin; bin < rightBin && bin < numBins; bin++) {
-        if (rightBin > centerBin) {
-          filter[bin] = (rightBin - bin) / (rightBin - centerBin);
-        }
-      }
-      
-      melFilters.push(filter);
-    }
-    
-    return melFilters;
-  }
-
-  /**
-   * Compute FFT magnitude spectrum for specific config
-   */
-  private static computeFFTMagnitudeForConfig(frameData: Float32Array, config: AudioPreprocessingConfig): Float32Array {
-    const n = frameData.length;
-    
-    // Ensure input size is power of 2 for optimal FFT performance
-    const fftSize = this.nextPowerOfTwo(n);
-    const paddedData = new Float32Array(fftSize);
-    paddedData.set(frameData);
-    
-    try {
-      // Try to use fft-js library if available
-      const { FFT } = require('fft-js');
-      
-      // Limit FFT size to prevent stack overflow
-      const safeFFTSize = Math.min(fftSize, 4096);
-      const safePaddedData = new Float32Array(safeFFTSize);
-      safePaddedData.set(paddedData.slice(0, safeFFTSize));
-      
-      // Convert to complex format expected by fft-js
-      const complexInput: [number, number][] = [];
-      for (let i = 0; i < safeFFTSize; i++) {
-        complexInput.push([safePaddedData[i] || 0, 0]); // [real, imaginary]
-      }
-      
-      // Perform FFT
-      const complexOutput = FFT(complexInput);
-      
-      // Compute magnitude spectrum (only positive frequencies)
-      const spectrum = new Float32Array(Math.floor(safeFFTSize / 2) + 1);
-      for (let i = 0; i < spectrum.length; i++) {
-        const real = complexOutput[i][0];
-        const imag = complexOutput[i][1];
-        spectrum[i] = Math.sqrt(real * real + imag * imag);
-      }
-      
-      return spectrum;
-      
-    } catch (error) {
-      console.warn('FFT-JS not available or failed, using simplified approach', error);
-      // Fallback to simplified magnitude calculation
-      const spectrum = new Float32Array(Math.floor(Math.min(fftSize, 1024) / 2) + 1);
-      for (let i = 0; i < spectrum.length; i++) {
-        spectrum[i] = Math.abs(paddedData[i] || 0);
-      }
-      return spectrum;
-    }
-  }
-
-  /**
-   * Compute FFT magnitude spectrum using proper FFT implementation (legacy)
-   */
-  private static computeFFTMagnitude(frameData: Float32Array): Float32Array {
-    const n = frameData.length;
-    
-    // Ensure input size is power of 2 for optimal FFT performance
-    const fftSize = this.nextPowerOfTwo(n);
-    const paddedData = new Float32Array(fftSize);
-    paddedData.set(frameData);
-    
-    try {
-      // Use fft-js library for efficient FFT computation
-      const { FFT } = require('fft-js');
-      
-      // Convert to complex format expected by fft-js
-      const complexInput: [number, number][] = [];
-      for (let i = 0; i < fftSize; i++) {
-        complexInput.push([paddedData[i] || 0, 0]); // [real, imaginary]
-      }
-      
-      // Perform FFT
-      const complexOutput = FFT(complexInput);
-      
-      // Compute magnitude spectrum (only positive frequencies)
-      const spectrum = new Float32Array(Math.floor(fftSize / 2) + 1);
-      for (let i = 0; i < spectrum.length; i++) {
-        const real = complexOutput[i][0];
-        const imag = complexOutput[i][1];
-        spectrum[i] = Math.sqrt(real * real + imag * imag);
-      }
-      
-      return spectrum;
-    } catch (error) {
-      console.error('FFT computation failed, falling back to naive DFT:', error);
-      return this.computeNaiveDFT(frameData);
-    }
-  }
-
-  /**
-   * Fallback naive DFT implementation (for error cases only)
-   */
-  private static computeNaiveDFT(frameData: Float32Array): Float32Array {
-    const n = frameData.length;
-    const spectrum = new Float32Array(Math.floor(n / 2) + 1);
-    
-    for (let k = 0; k < spectrum.length; k++) {
-      let real = 0;
-      let imag = 0;
-      
-      for (let t = 0; t < n; t++) {
-        const angle = -2 * Math.PI * k * t / n;
-        real += frameData[t] * Math.cos(angle);
-        imag += frameData[t] * Math.sin(angle);
-      }
-      
-      spectrum[k] = Math.sqrt(real * real + imag * imag);
-    }
-    
-    return spectrum;
-  }
-
-  /**
-   * Find next power of 2 for optimal FFT performance
-   */
-  private static nextPowerOfTwo(n: number): number {
-    return Math.pow(2, Math.ceil(Math.log2(n)));
-  }
-
-  /**
-   * Convert Hz to mel scale
-   */
-  private static hzToMel(hz: number): number {
-    return 2595 * Math.log10(1 + hz / 700);
-  }
-
-  /**
-   * Convert mel scale to Hz
-   */
-  private static melToHz(mel: number): number {
-    return 700 * (Math.pow(10, mel / 2595) - 1);
-  }
-
-  /**
-   * Normalize mel-spectrogram
-   */
-  private static normalizeMelSpectrogram(melSpectrogram: Float32Array): void {
-    // Find min and max values
-    let min = Infinity;
-    let max = -Infinity;
-    
-    for (let i = 0; i < melSpectrogram.length; i++) {
-      min = Math.min(min, melSpectrogram[i]);
-      max = Math.max(max, melSpectrogram[i]);
-    }
-    
-    // Normalize to [-1, 1] range
-    const range = max - min;
-    if (range > 0) {
-      for (let i = 0; i < melSpectrogram.length; i++) {
-        melSpectrogram[i] = 2 * (melSpectrogram[i] - min) / range - 1;
-      }
-    }
-  }
-
-  /**
-   * Format mel-spectrogram for TensorFlow Lite input
-   */
-  private static formatForTFLite(melSpectrogram: Float32Array): Float32Array {
-    // BirdNET expects input shape [1, 224, 224, 3]
-    // We need to convert our mel-spectrogram to this format
-    
-    const batchSize = 1;
-    const height = 224;  // Fixed to 224 for BirdNET model
-    const width = 224;   // Fixed to 224 for BirdNET model
-    const channels = 3;
-    
-    const totalSize = batchSize * height * width * channels;
-    const formattedData = new Float32Array(totalSize);
-    
-    // Copy mel-spectrogram data to all 3 channels (RGB format)
-    for (let h = 0; h < height; h++) {
-      for (let w = 0; w < width; w++) {
-        const melIndex = h * width + w;
-        const melValue = melIndex < melSpectrogram.length ? melSpectrogram[melIndex] : 0;
-        
-        // Copy to all 3 channels
-        for (let c = 0; c < channels; c++) {
-          const outputIndex = h * width * channels + w * channels + c;
-          formattedData[outputIndex] = melValue;
-        }
-      }
-    }
-    
-    console.log(`Formatted for TFLite: [${batchSize}, ${height}, ${width}, ${channels}]`);
-    
-    return formattedData;
-  }
-
-  /**
-   * Update preprocessing configuration
+   * Update preprocessing configuration for raw audio processing
    */
   static updateConfig(newConfig: Partial<AudioPreprocessingConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    console.log('Audio preprocessing config updated:', this.config);
+    console.log('Audio preprocessing config updated (raw audio mode):', this.config);
+  }
+
+  /**
+   * Update location/temporal metadata for Meta models
+   */
+  static updateLocationMetadata(latitude: number, longitude: number, date?: Date): void {
+    // Store location metadata for use in generateMetadataFeatures
+    (this as any).locationMetadata = {
+      latitude,
+      longitude,
+      date: date || new Date()
+    };
+    console.log('Location metadata updated:', { latitude, longitude, date: date || new Date() });
+  }
+
+  /**
+   * Get current audio processing statistics
+   */
+  static getProcessingStats(): {
+    sampleRate: number;
+    duration: number;
+    expectedSamples: number;
+    processingMode: 'raw_audio';
+  } {
+    return {
+      sampleRate: this.config.sampleRate,
+      duration: this.config.duration,
+      expectedSamples: this.config.sampleRate * this.config.duration,
+      processingMode: 'raw_audio'
+    };
   }
 
   /**
@@ -797,5 +347,144 @@ export class AudioPreprocessingTFLite {
    */
   static getConfig(): AudioPreprocessingConfig {
     return { ...this.config };
+  }
+
+  // ======= CIRCULAR BUFFER MANAGEMENT (whoBIRD pattern) =======
+  
+  /**
+   * Initialize circular buffer for continuous recording
+   */
+  static initializeCircularBuffer(): void {
+    const bufferSize = this.config.sampleRate * this.config.duration; // 144,000 samples for 3s at 48kHz
+    this.circularBuffer = new Int16Array(bufferSize);
+    this.writeIndex = 0;
+    console.log(`Circular buffer initialized: ${bufferSize} samples (${this.config.duration}s at ${this.config.sampleRate}Hz)`);
+  }
+
+  /**
+   * Add new audio samples to circular buffer (whoBIRD pattern)
+   */
+  static addSamplesToCircularBuffer(newSamples: Int16Array): void {
+    if (!this.circularBuffer) {
+      this.initializeCircularBuffer();
+    }
+
+    if (!this.circularBuffer) return;
+
+    // Copy new samples into circular buffer
+    for (let i = 0; i < newSamples.length; i++) {
+      this.circularBuffer[this.writeIndex] = newSamples[i];
+      this.writeIndex = (this.writeIndex + 1) % this.circularBuffer.length;
+    }
+
+    console.log(`Added ${newSamples.length} samples to circular buffer`);
+  }
+
+  /**
+   * Extract inference window from circular buffer (whoBIRD pattern)
+   */
+  static extractInferenceWindow(): Int16Array | null {
+    if (!this.circularBuffer) {
+      console.warn('Circular buffer not initialized');
+      return null;
+    }
+
+    const windowSize = this.circularBuffer.length;
+    const window = new Int16Array(windowSize);
+    
+    // Extract full window starting from current write position (oldest data first)
+    for (let i = 0; i < windowSize; i++) {
+      const readIndex = (this.writeIndex + i) % windowSize;
+      window[i] = this.circularBuffer[readIndex];
+    }
+
+    console.log(`Extracted inference window: ${windowSize} samples`);
+    return window;
+  }
+
+  /**
+   * Process circular buffer data for model inference
+   */
+  static async processCircularBufferForInference(): Promise<ProcessedAudioData | null> {
+    const audioWindow = this.extractInferenceWindow();
+    if (!audioWindow) {
+      return null;
+    }
+
+    // Convert Int16Array to Float32Array
+    const floatAudio = new Float32Array(audioWindow.length);
+    for (let i = 0; i < audioWindow.length; i++) {
+      floatAudio[i] = audioWindow[i];
+    }
+
+    // Process with raw audio method
+    const { processedData, shape } = this.processRawAudio(floatAudio);
+    
+    return {
+      processedData,
+      shape,
+      metadata: {
+        originalSampleRate: this.config.sampleRate,
+        duration: this.config.duration,
+        processingTime: 0, // Immediate processing
+        processingType: 'raw_audio',
+        modelInputShape: shape,
+        sampleCount: processedData.length,
+      },
+    };
+  }
+
+  /**
+   * Start continuous recording mode
+   */
+  static startContinuousRecording(): void {
+    this.isRecording = true;
+    this.initializeCircularBuffer();
+    console.log('Continuous recording started (whoBIRD mode)');
+  }
+
+  /**
+   * Stop continuous recording mode
+   */
+  static stopContinuousRecording(): void {
+    this.isRecording = false;
+    console.log('Continuous recording stopped');
+  }
+
+  /**
+   * Check if in continuous recording mode
+   */
+  static isContinuousRecording(): boolean {
+    return this.isRecording;
+  }
+
+  /**
+   * Clear circular buffer
+   */
+  static clearCircularBuffer(): void {
+    if (this.circularBuffer) {
+      this.circularBuffer.fill(0);
+      this.writeIndex = 0;
+      console.log('Circular buffer cleared');
+    }
+  }
+
+  /**
+   * Get circular buffer statistics
+   */
+  static getCircularBufferStats(): {
+    initialized: boolean;
+    size: number;
+    writeIndex: number;
+    isRecording: boolean;
+    fillPercentage: number;
+  } {
+    return {
+      initialized: this.circularBuffer !== null,
+      size: this.circularBuffer?.length || 0,
+      writeIndex: this.writeIndex,
+      isRecording: this.isRecording,
+      fillPercentage: this.circularBuffer ? (this.writeIndex / this.circularBuffer.length) * 100 : 0
+    };
   }
 }
