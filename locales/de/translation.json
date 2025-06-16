@@ -210,7 +210,8 @@
     "audio_system_unavailable": "Audiosystem nicht verfügbar",
     "listening": "Lauschen...",
     "audio_ready": "Audio bereit",
-    "audio_error": "Audio-Fehler"
+    "audio_error": "Audio-Fehler",
+    "instructions": "Nimm Vogelgeräusche zur Identifikation und zum Speichern auf. Halte das Gerät ruhig und vermeide Hintergrundgeräusche."
   },
   "log": {
     "add_audio": "Audio hinzufügen",
