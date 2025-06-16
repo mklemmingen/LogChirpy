@@ -1,7 +1,7 @@
 import React from 'react';
-import { ThemedPressable } from './ThemedPressable';
-import { ThemedText } from './ThemedText';
-import { useColors } from '@/hooks/useThemeColor';
+import {ThemedPressable} from './ThemedPressable';
+import {ThemedText} from './ThemedText';
+import {useColors} from '@/hooks/useThemeColor';
 
 interface ButtonProps {
   title: string;

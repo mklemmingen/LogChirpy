@@ -1,32 +1,23 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-    View,
-    FlatList,
-    Image,
-    StyleSheet,
-    Alert,
-    Pressable,
-    Share,
-    ActivityIndicator,
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
+import React, {useCallback, useEffect, useState} from 'react';
+import {ActivityIndicator, Alert, FlatList, Image, Pressable, Share, StyleSheet, View,} from 'react-native';
+import {useTranslation} from 'react-i18next';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
 
 // Components
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { ModernCard } from '@/components/ModernCard';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import {ModernCard} from '@/components/ModernCard';
 
 // Hooks
-import { useColors } from '@/hooks/useThemeColor';
+import {useColors} from '@/hooks/useThemeColor';
 
 // URI utilities
-import { filePathToUri, uriToFilePath, validateImageUri } from '@/services/uriUtils';
+import {filePathToUri, uriToFilePath} from '@/services/uriUtils';
 
 interface PhotoItem {
     uri: string;
@@ -64,7 +55,8 @@ export default function GalleryManagementScreen() {
 
             const files = await FileSystem.readDirectoryAsync(galleryDir);
             const photoFiles = files.filter(filename => 
-                (filename.startsWith('bird_') || filename.startsWith('full_')) && filename.endsWith('.jpg')
+                (filename.startsWith('bird_') || filename.startsWith('full_') || filename.startsWith('logchirpy_photo_')) && 
+                (filename.endsWith('.jpg') || filename.endsWith('.jpeg') || filename.endsWith('.png'))
             );
 
             const photoItems: PhotoItem[] = await Promise.all(
@@ -425,6 +417,7 @@ function createStyles() {
     return StyleSheet.create({
         container: {
             flex: 1,
+            paddingTop: 32,
         },
         
         // Header

@@ -1,6 +1,6 @@
 import React from 'react';
-import { ScrollView, ScrollViewProps } from 'react-native';
-import { useTheme } from '@/hooks/useThemeColor';
+import {ScrollView, ScrollViewProps} from 'react-native';
+import {useTheme} from '@/hooks/useThemeColor';
 
 interface ThemedScrollViewProps extends ScrollViewProps {
   background?: 'primary' | 'secondary' | 'tertiary';

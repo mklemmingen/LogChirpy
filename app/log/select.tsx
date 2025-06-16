@@ -10,7 +10,14 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography, useColors} from '@/hooks/useThemeColor';
+import {
+    useColors,
+    useColorVariants,
+    useMotionValues,
+    useSemanticColors,
+    useTheme,
+    useTypography
+} from '@/hooks/useThemeColor';
 import {type BirdSpotting, getBirdSpottings, updateLatinBirDex} from '@/services/database';
 
 interface SpottingCardProps {

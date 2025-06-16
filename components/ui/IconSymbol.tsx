@@ -1,6 +1,6 @@
-import { LucideIcon, icons as LucideIcons } from 'lucide-react-native';
+import {icons as LucideIcons, LucideIcon} from 'lucide-react-native';
 import React from 'react';
-import { StyleProp, ViewStyle } from 'react-native';
+import {StyleProp, ViewStyle} from 'react-native';
 
 const MAPPING = {
   home: 'Home',

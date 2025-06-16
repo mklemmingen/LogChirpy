@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator, Alert, BackHandler, Dimensions, Linking, StatusBar,} from 'react-native';
 import {Audio} from 'expo-av';
 import {router, Stack, useFocusEffect} from 'expo-router';
@@ -8,7 +8,6 @@ import * as Haptics from 'expo-haptics';
 import {BlurView} from 'expo-blur';
 import Animated, {
     Easing,
-    interpolate,
     useAnimatedStyle,
     useSharedValue,
     withRepeat,
@@ -23,6 +22,7 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {useTheme} from '@/hooks/useThemeColor';
+import {BackButton} from '@/components/BackButton';
 
 type RecordingStatus = 'idle' | 'recording' | 'stopping' | 'playback';
 
@@ -57,72 +57,137 @@ const AUDIO_QUALITY = {
     },
 };
 
-// Animated Wave Visualization Component
-function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
-    const waveAnim = useSharedValue(0);
+// BirdNET-style Static Spectrogram Visualization
+function BirdNetSpectrogram({ 
+    isRecording, 
+    duration = 0
+}: { 
+    isRecording: boolean;
+    duration?: number;
+}) {
     const theme = useTheme();
 
-    useEffect(() => {
-        if (isRecording) {
-            waveAnim.value = withRepeat(
-                withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-                -1,
-                true
-            );
-        } else {
-            waveAnim.value = withTiming(0, { duration: 300 });
-        }
-    }, [isRecording]);
+    // Calculate optimal recording zone (3-6 seconds)
+    const isInOptimalZone = duration >= 3 && duration <= 6;
+    const isMinimumReached = duration >= 3;
+
+    // Simple static visualization bars that build up over time
+    const spectrogramBars = useMemo(() => {
+        const maxBars = 60; // Maximum bars to show (representing ~60 seconds)
+        const currentBars = Math.min(duration, maxBars);
+        
+        return Array.from({ length: currentBars }, (_, index) => {
+            // Create frequency bands (5 bands representing different frequency ranges)
+            const bands = Array.from({ length: 5 }, (_, bandIndex) => {
+                // Simulate frequency intensity based on time and band
+                const baseIntensity = 0.2 + Math.sin((index + bandIndex) * 0.3) * 0.3;
+                const randomVariation = Math.random() * 0.3;
+                return Math.max(0.1, Math.min(0.9, baseIntensity + randomVariation));
+            });
+            return bands;
+        });
+    }, [duration]);
 
     return (
-        <ThemedView style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            gap: 4, 
-            height: 60,
-            paddingVertical: 16 
-        }}>
-            {[...Array(7)].map((_, index) => {
-                return (
-                    <WaveBar key={index} index={index} waveAnim={waveAnim} />
-                );
-            })}
+        <ThemedView style={{ alignItems: 'center', gap: 16 }}>
+            {/* BirdNET-style Spectrogram Display */}
+            <ThemedView style={{ 
+                width: '100%',
+                height: 100,
+                backgroundColor: theme.colors.background.secondary,
+                borderRadius: theme.borderRadius.md,
+                padding: 8,
+                justifyContent: 'center',
+                alignItems: 'center'
+            }}>
+                {isRecording ? (
+                    <ThemedView style={{ 
+                        flexDirection: 'row', 
+                        alignItems: 'flex-end',
+                        height: 80,
+                        gap: 1,
+                        overflow: 'hidden'
+                    }}>
+                        {spectrogramBars.map((bands: number[], timeIndex: number) => (
+                            <ThemedView key={timeIndex} style={{ 
+                                flexDirection: 'column',
+                                justifyContent: 'flex-end',
+                                height: 80,
+                                width: 2,
+                                gap: 1
+                            }}>
+                                {bands.map((intensity: number, bandIndex: number) => (
+                                    <ThemedView
+                                        key={bandIndex}
+                                        style={{
+                                            height: Math.max(2, intensity * 15),
+                                            backgroundColor: intensity > 0.6 
+                                                ? theme.colors.text.primary 
+                                                : intensity > 0.3 
+                                                    ? theme.colors.text.secondary 
+                                                    : theme.colors.text.tertiary,
+                                            width: 2,
+                                            opacity: 0.8
+                                        }}
+                                    />
+                                ))}
+                            </ThemedView>
+                        ))}
+                        
+                        {/* Current recording indicator line */}
+                        <ThemedView style={{
+                            width: 2,
+                            height: 80,
+                            backgroundColor: theme.colors.text.primary,
+                            opacity: 0.5
+                        }} />
+                    </ThemedView>
+                ) : (
+                    <ThemedView style={{ alignItems: 'center', gap: 8 }}>
+                        <ThemedIcon name="mic" size={32} color="tertiary" />
+                        <ThemedText variant="caption" color="tertiary">
+                            Audio visualization will appear here
+                        </ThemedText>
+                    </ThemedView>
+                )}
+            </ThemedView>
+
+            {/* Simplified Recording Status */}
+            {isRecording && (
+                <ThemedView style={{ alignItems: 'center', gap: 8 }}>
+                    {/* Duration Status */}
+                    <ThemedView style={{ 
+                        flexDirection: 'row', 
+                        alignItems: 'center', 
+                        gap: 8,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        backgroundColor: isInOptimalZone 
+                            ? theme.colors.status.success + '20' 
+                            : isMinimumReached 
+                                ? theme.colors.status.warning + '20'
+                                : theme.colors.status.error + '20',
+                        borderRadius: theme.borderRadius.sm,
+                    }}>
+                        <ThemedIcon 
+                            name={isInOptimalZone ? "check-circle" : isMinimumReached ? "clock" : "alert-circle"} 
+                            size={14} 
+                            color={isInOptimalZone ? "primary" : isMinimumReached ? "secondary" : "error"} 
+                        />
+                        <ThemedText variant="caption" 
+                            color={isInOptimalZone ? "primary" : isMinimumReached ? "secondary" : "error"}
+                        >
+                            {duration < 3 ? "Keep recording..." : isInOptimalZone ? "Optimal for AI" : "Good length"}
+                        </ThemedText>
+                    </ThemedView>
+                </ThemedView>
+            )}
         </ThemedView>
     );
 }
 
-// Separate component for wave bar to use hooks properly
-function WaveBar({ index, waveAnim }: { index: number; waveAnim: any }) {
-    const animatedStyle = useAnimatedStyle(() => {
-        const delay = index * 0.1;
-        const height = interpolate(
-            waveAnim.value,
-            [0, 1],
-            [4, 30 + Math.sin(delay * 4) * 15]
-        );
-        return {
-            height: Math.max(4, height),
-            opacity: interpolate(waveAnim.value, [0, 1], [0.3, 1]),
-        };
-    });
 
-    return (
-        <Animated.View
-            style={[
-                {
-                    width: 4,
-                    backgroundColor: '#007AFF',
-                    borderRadius: 2,
-                    minHeight: 4,
-                },
-                animatedStyle,
-            ]}
-        />
-    );
-}
-
-// Recording Button Component
+// Enhanced Recording Button with Progress Ring
 function RecordingButton({
     status,
     onPress,
@@ -137,24 +202,32 @@ function RecordingButton({
 
     const scale = useSharedValue(1);
     const glowOpacity = useSharedValue(0);
+    const progressRotation = useSharedValue(0);
 
     useEffect(() => {
         if (status === 'recording') {
             scale.value = withRepeat(
-                withTiming(1.05, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+                withTiming(1.03, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
                 -1,
                 true
             );
             glowOpacity.value = withRepeat(
-                withTiming(0.6, { duration: 1500 }),
+                withTiming(0.4, { duration: 1800 }),
                 -1,
                 true
             );
         } else {
-            scale.value = withSpring(1);
-            glowOpacity.value = withTiming(0);
+            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+            glowOpacity.value = withTiming(0, { duration: 300 });
         }
     }, [status]);
+
+    // Progress ring animation - optimized for performance
+    useEffect(() => {
+        const maxDuration = 60; // 60 seconds max recommended
+        const progress = Math.min(duration / maxDuration, 1);
+        progressRotation.value = withTiming(progress * 360, { duration: 300 });
+    }, [duration]);
 
     const buttonStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
@@ -162,25 +235,71 @@ function RecordingButton({
 
     const glowStyle = useAnimatedStyle(() => ({
         opacity: glowOpacity.value,
-        transform: [{ scale: scale.value * 1.2 }],
+        transform: [{ scale: scale.value * 1.15 }],
+    }));
+
+    const progressStyle = useAnimatedStyle(() => ({
+        transform: [{ rotate: `${progressRotation.value}deg` }],
     }));
 
     const isRecording = status === 'recording';
+    const isInOptimalZone = duration >= 3 && duration <= 6;
     const buttonColor = isRecording ? theme.colors.status.error : theme.colors.background.secondary;
+    
+    // Progress ring color based on duration
+    const progressColor = duration < 3 
+        ? theme.colors.status.error 
+        : isInOptimalZone 
+            ? theme.colors.status.success 
+            : theme.colors.status.warning;
 
     return (
-        <ThemedView style={{ alignItems: 'center', gap: 20 }}>
+        <ThemedView style={{ alignItems: 'center', gap: 24 }}>
             <ThemedView style={{ position: 'relative', alignItems: 'center' }}>
+                {/* Outer Progress Ring */}
+                {isRecording && (
+                    <ThemedView
+                        style={{
+                            position: 'absolute',
+                            width: 170,
+                            height: 170,
+                            borderRadius: 85,
+                            borderWidth: 4,
+                            borderColor: theme.colors.border.secondary + '40',
+                        }}
+                    />
+                )}
+                
+                {/* Animated Progress Ring */}
+                {isRecording && duration > 0 && (
+                    <Animated.View
+                        style={[
+                            {
+                                position: 'absolute',
+                                width: 170,
+                                height: 170,
+                                borderRadius: 85,
+                                borderWidth: 4,
+                                borderTopColor: progressColor,
+                                borderRightColor: 'transparent',
+                                borderBottomColor: 'transparent',
+                                borderLeftColor: 'transparent',
+                            },
+                            progressStyle,
+                        ]}
+                    />
+                )}
+
                 {/* Glow Effect */}
                 {isRecording && (
                     <Animated.View
                         style={[
                             {
                                 position: 'absolute',
-                                width: 160,
-                                height: 160,
-                                borderRadius: 80,
-                                backgroundColor: theme.colors.status.error,
+                                width: 180,
+                                height: 180,
+                                borderRadius: 90,
+                                backgroundColor: progressColor + '20',
                             },
                             glowStyle,
                         ]}
@@ -196,8 +315,8 @@ function RecordingButton({
                             height: 140,
                             borderRadius: 70,
                             backgroundColor: buttonColor,
-                            borderWidth: isRecording ? 4 : 2,
-                            borderColor: isRecording ? theme.colors.status.error : theme.colors.border.primary,
+                            borderWidth: isRecording ? 3 : 2,
+                            borderColor: isRecording ? progressColor : theme.colors.border.primary,
                             justifyContent: 'center',
                             alignItems: 'center',
                             ...theme.shadows.lg,
@@ -209,35 +328,50 @@ function RecordingButton({
                 >
                     <ThemedIcon
                         name={isRecording ? 'square' : 'mic'}
-                        size={48}
+                        size={isRecording ? 44 : 48}
                         color={isRecording ? 'error' : 'primary'}
                     />
                 </AnimatedPressable>
             </ThemedView>
 
-            {/* Status Text */}
-            <ThemedView style={{ alignItems: 'center', gap: 8 }}>
+            {/* Enhanced Status Display */}
+            <ThemedView style={{ alignItems: 'center', gap: 12 }}>
                 <ThemedText
                     variant="body"
                     color="secondary"
-                    style={{ textAlign: 'center' }}
+                    style={{ textAlign: 'center', fontWeight: '500' }}
                 >
-                    {isRecording ? t('audio.tap_to_stop') : t('audio.tap_to_start')}
+                    {isRecording ? t('audio.tap_to_stop', 'Tap to stop recording') : t('audio.tap_to_start', 'Tap to start recording')}
                 </ThemedText>
 
-                {/* Duration Display */}
+                {/* Duration Display with Status */}
                 {(isRecording || duration > 0) && (
-                    <ThemedView
-                        style={{ 
-                            paddingHorizontal: 16, 
-                            paddingVertical: 6,
-                            backgroundColor: theme.colors.background.secondary,
-                            borderRadius: theme.borderRadius.md,
-                        }}
-                    >
-                        <ThemedText variant="h3" color="primary">
-                            {formatDuration(duration)}
-                        </ThemedText>
+                    <ThemedView style={{ alignItems: 'center', gap: 8 }}>
+                        <ThemedView
+                            style={{ 
+                                paddingHorizontal: 20, 
+                                paddingVertical: 8,
+                                backgroundColor: theme.colors.background.secondary,
+                                borderRadius: theme.borderRadius.lg,
+                                borderWidth: 1,
+                                borderColor: isRecording ? progressColor + '40' : theme.colors.border.secondary,
+                            }}
+                        >
+                            <ThemedText variant="h2" color="primary" style={{ fontWeight: '600', fontVariant: ['tabular-nums'] }}>
+                                {formatDuration(duration)}
+                            </ThemedText>
+                        </ThemedView>
+                        
+                        {/* Recording Tips */}
+                        {isRecording && (
+                            <ThemedText variant="caption" color="tertiary" style={{ textAlign: 'center', maxWidth: 200 }}>
+                                {duration < 3 
+                                    ? "Keep recording for better AI accuracy" 
+                                    : isInOptimalZone 
+                                        ? "Perfect length for identification!" 
+                                        : "Good recording length"}
+                            </ThemedText>
+                        )}
                     </ThemedView>
                 )}
             </ThemedView>
@@ -403,7 +537,7 @@ export default function AudioScreen() {
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [hasPermission, setHasPermission] = useState<boolean | null>(null);
     const [isRequestingPermission, setIsRequestingPermission] = useState(false);
-
+    
     // Refs
     const recordingRef = useRef<Audio.Recording | null>(null);
     const durationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -517,6 +651,7 @@ export default function AudioScreen() {
             await recording.startAsync();
             recordingRef.current = recording;
 
+            // Simple duration tracking only
             durationInterval.current = setInterval(() => {
                 setDuration(prev => prev + 1);
             }, 1000);
@@ -535,8 +670,9 @@ export default function AudioScreen() {
     const stopRecording = async () => {
         if (!recordingRef.current) return;
 
-        setStatus('stopping');
+        // Status is already set to 'stopping' in handleRecordingToggle
 
+        // Clear duration interval
         if (durationInterval.current) {
             clearInterval(durationInterval.current);
             durationInterval.current = null;
@@ -622,15 +758,18 @@ export default function AudioScreen() {
     const handleForceExit = useCallback(async () => {
         await stopRecording();
         router.back();
-    }, []);
+    }, [stopRecording]);
 
-    const handleRecordingToggle = () => {
+    const handleRecordingToggle = useCallback(() => {
         if (status === 'recording') {
+            // Immediately set status to stopping to prevent multiple taps
+            setStatus('stopping');
             stopRecording();
-        } else {
+        } else if (status === 'idle') {
             startRecording();
         }
-    };
+        // Ignore taps while already stopping or starting
+    }, [status]);
 
     // Permission denied state
     if (hasPermission === false) {
@@ -676,21 +815,15 @@ export default function AudioScreen() {
                 style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    paddingHorizontal: 16,
+                    paddingHorizontal: 8,
                     paddingVertical: 12,
                     borderBottomWidth: 1,
                     borderBottomColor: theme.colors.border.primary
                 }}
             >
-                <ThemedPressable
-                    variant="ghost"
-                    style={{ padding: 8 }}
-                    onPress={() => router.back()}
-                >
-                    <ThemedIcon name="arrow-left" size={24} color="primary" />
-                </ThemedPressable>
+                <BackButton variant="inline" />
 
-                <ThemedText variant="h3" style={{ marginLeft: 16 }}>
+                <ThemedText variant="h3" style={{ marginLeft: 8 }}>
                     {t('audio.record_audio', 'Record Audio')}
                 </ThemedText>
             </ThemedView>
@@ -736,9 +869,12 @@ export default function AudioScreen() {
                         </ThemedView>
                     )}
 
-                    {/* Wave Visualization */}
-                    <ThemedView style={{ marginBottom: 32 }}>
-                        <WaveVisualizer isRecording={status === 'recording'} />
+                    {/* BirdNET-style Spectrogram */}
+                    <ThemedView style={{ marginBottom: 32, width: '100%' }}>
+                        <BirdNetSpectrogram 
+                            isRecording={status === 'recording'}
+                            duration={duration}
+                        />
                     </ThemedView>
 
                     {/* Recording Button */}
@@ -748,16 +884,49 @@ export default function AudioScreen() {
                         duration={duration}
                     />
 
-                    {/* Instructions */}
+                    {/* Smart Recording Instructions */}
                     {status === 'idle' && !recordedUri && (
-                        <ThemedView style={{ marginTop: 32, alignItems: 'center' }}>
+                        <ThemedView style={{ marginTop: 32, alignItems: 'center', gap: 16 }}>
                             <ThemedText
                                 variant="body"
                                 color="secondary"
-                                style={{ textAlign: 'center', lineHeight: 24 }}
+                                style={{ textAlign: 'center', lineHeight: 24, maxWidth: 300 }}
                             >
-                                {t('audio.instructions')}
+                                {t('audio.instructions', 'Record bird sounds for AI identification. For best results, record 3-6 seconds of clear bird calls.')}
                             </ThemedText>
+                            
+                            {/* Recording Tips */}
+                            <ThemedView style={{ alignItems: 'center', gap: 8 }}>
+                                <ThemedView style={{ 
+                                    flexDirection: 'row', 
+                                    alignItems: 'center', 
+                                    gap: 8,
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 6,
+                                    backgroundColor: theme.colors.background.secondary,
+                                    borderRadius: theme.borderRadius.sm,
+                                }}>
+                                    <ThemedIcon name="info" size={14} color="accent" />
+                                    <ThemedText variant="caption" color="secondary">
+                                        Hold device steady, minimize wind noise
+                                    </ThemedText>
+                                </ThemedView>
+                                
+                                <ThemedView style={{ 
+                                    flexDirection: 'row', 
+                                    alignItems: 'center', 
+                                    gap: 8,
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 6,
+                                    backgroundColor: theme.colors.status.success + '20',
+                                    borderRadius: theme.borderRadius.sm,
+                                }}>
+                                    <ThemedIcon name="check-circle" size={14} color="primary" />
+                                    <ThemedText variant="caption" color="primary">
+                                        3-6 seconds optimal for AI identification
+                                    </ThemedText>
+                                </ThemedView>
+                            </ThemedView>
                         </ThemedView>
                     )}
                 </ModernCard>

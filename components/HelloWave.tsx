@@ -1,15 +1,14 @@
-import React from 'react';
-import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import React, {useEffect} from 'react';
+import {StyleSheet} from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withRepeat,
-  withSequence,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/ThemedText';
+import {ThemedText} from '@/components/ThemedText';
 
 export function HelloWave() {
   const rotationAnimation = useSharedValue(0);

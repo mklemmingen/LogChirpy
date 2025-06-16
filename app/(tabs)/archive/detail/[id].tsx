@@ -1,15 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Linking,
-    Modal,
-    Pressable,
-    Share,
-    StyleSheet,
-    View,
-} from 'react-native';
+import {ActivityIndicator, Alert, Image, Linking, Modal, Pressable, Share, StyleSheet, View,} from 'react-native';
 import {Audio} from 'expo-av';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';

@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, ViewProps } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '@/hooks/useThemeColor';
+import {View, ViewProps} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useTheme} from '@/hooks/useThemeColor';
 
 interface ThemedSafeAreaViewProps extends ViewProps {
   background?: 'primary' | 'secondary' | 'tertiary';

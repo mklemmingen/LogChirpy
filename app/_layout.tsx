@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {ThemeProvider} from '@react-navigation/native';
+import {useFonts} from 'expo-font';
+import {Stack} from 'expo-router';
+import type {NativeStackNavigationOptions} from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import { useTranslation } from 'react-i18next';
+import {StatusBar} from 'expo-status-bar';
+import {Platform, Pressable, StyleSheet, Text, View} from 'react-native';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {useTranslation} from 'react-i18next';
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -18,13 +18,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
-import { useColors, useTheme, useTypography, useShadows } from '@/hooks/useThemeColor';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
-import { MemoryMonitor } from '@/components/MemoryMonitor';
+import {useColors, useShadows, useTheme, useTypography} from '@/hooks/useThemeColor';
+import {AuthProvider} from '@/contexts/AuthContext';
+import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
+import {MemoryMonitor} from '@/components/MemoryMonitor';
 
 import {
     ImageLabelingConfig,
@@ -39,8 +39,8 @@ import {
 } from '@infinitered/react-native-mlkit-object-detection';
 
 // Database imports
-import { initDB } from '@/services/database';
-import { AudioIdentificationService } from '@/services/audioIdentificationService';
+import {initDB} from '@/services/database';
+import {AudioIdentificationService} from '@/services/audioIdentificationService';
 
 SplashScreen.preventAutoHideAsync();
 

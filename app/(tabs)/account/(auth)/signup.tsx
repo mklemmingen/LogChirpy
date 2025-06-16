@@ -1,23 +1,15 @@
 import React, {useRef, useState} from 'react';
-import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    View,
-} from 'react-native';
+import {KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View,} from 'react-native';
 import {useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import { ThemedIcon } from '@/components/ThemedIcon';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 // Firebase imports
 import {createUserWithEmailAndPassword} from 'firebase/auth';
 import {auth} from '@/firebase/config';
-import { UserProfileService } from '@/services/userProfile';
+import {UserProfileService} from '@/services/userProfile';
 
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';

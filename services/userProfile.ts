@@ -1,5 +1,5 @@
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { firestore, auth } from '@/firebase/config';
+import {doc, getDoc, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
+import {auth, firestore} from '@/firebase/config';
 
 export interface UserProfile {
   uid: string;

@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system';
-import { fastTfliteBirdClassifier, BirdClassificationResult } from './fastTfliteBirdClassifier';
-import { AudioPreprocessingTFLite } from './audioPreprocessingTFLite';
-import { ModelType, ModelConfig } from './modelConfig';
+import {BirdClassificationResult, fastTfliteBirdClassifier} from './fastTfliteBirdClassifier';
+import {AudioPreprocessingTFLite} from './audioPreprocessingTFLite';
+import {ModelConfig, ModelType} from './modelConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface AudioPrediction {
@@ -39,6 +39,13 @@ export class AudioIdentificationService {
 
   private static tfliteInitialized = false;
   private static readonly CACHE_KEY_PREFIX = '@audio_cache:';
+  private static currentModelType: ModelType = ModelType.MDATA_V2_FP16; // Use fast FP16 for real-time
+  private static performanceMetrics = {
+    totalProcessingTime: 0,
+    processedCount: 0,
+    averageTime: 0,
+    lastProcessingTime: 0
+  };
 
   static updateConfig(newConfig: Partial<AudioConfig>) {
     this.config = { ...this.config, ...newConfig };
@@ -59,13 +66,25 @@ export class AudioIdentificationService {
     }
   }
 
-  // Initialize audio processing
+  // Initialize audio processing with optimized model selection
   static async initialize(modelType?: ModelType): Promise<void> {
     try {
       console.log('AudioIdentificationService: Initializing audio processing...');
       
+      // Use specified model or default to fast real-time model
+      this.currentModelType = modelType || ModelConfig.getRecommendedModel('real-time');
+      console.log(`AudioIdentificationService: Using ${ModelConfig.getModelInfo(this.currentModelType)} for real-time processing`);
+      
       // Initialize FastTflite for audio classification
       await this.initializeFastTflite();
+      
+      // Reset performance metrics
+      this.performanceMetrics = {
+        totalProcessingTime: 0,
+        processedCount: 0,
+        averageTime: 0,
+        lastProcessingTime: 0
+      };
       
       console.log('AudioIdentificationService: Audio processing initialized successfully');
     } catch (error) {
@@ -127,6 +146,8 @@ export class AudioIdentificationService {
       modelType?: ModelType;
     }
   ): Promise<AudioResponse> {
+    const startTime = Date.now();
+    
     try {
       const fileInfo = await FileSystem.getInfoAsync(audioUri);
       if (!fileInfo.exists) {
@@ -137,6 +158,7 @@ export class AudioIdentificationService {
       const cacheKey = `audio_${fileInfo.modificationTime}_${fileInfo.size}`;
       const cachedResult = await this.getCachedResult(cacheKey);
       if (cachedResult) {
+        console.log(`AudioIdentificationService: Cache hit for ${cacheKey}`);
         return cachedResult;
       }
 
@@ -148,7 +170,8 @@ export class AudioIdentificationService {
       // Try FastTflite first for audio classification
       if (this.tfliteInitialized) {
         try {
-          const modelType = options?.modelType || ModelType.HIGH_ACCURACY_FP32;
+          // Use real-time optimized model unless specifically overridden
+          const modelType = options?.modelType || this.currentModelType;
           console.log(`AudioIdentificationService: Using FastTflite classification for audio with ${ModelConfig.getModelInfo(modelType)}`);
           
           // Get model input shape for correct preprocessing
@@ -157,40 +180,40 @@ export class AudioIdentificationService {
             : undefined;
           
           // Preprocess audio with dynamic format based on model requirements
+          const preprocessingStart = Date.now();
           const processedAudio = await AudioPreprocessingTFLite.processAudioFile(audioUri, modelInputShape);
+          const preprocessingTime = Date.now() - preprocessingStart;
           
-          console.log(`Preprocessed audio shape: [${processedAudio.shape.join(', ')}], type: ${processedAudio.metadata.processingType}`);
+          console.log(`Preprocessed audio in ${preprocessingTime}ms - shape: [${processedAudio.shape.join(', ')}], type: ${processedAudio.metadata.processingType}`);
           
-          // CORRECTED: Classify using FastTflite with two-model architecture
-          const location = (options?.latitude !== undefined && options?.longitude !== undefined) 
-            ? { latitude: options.latitude, longitude: options.longitude }
-            : undefined;
-          
-          console.log(`DEBUG: Requested model type: ${modelType}`);
-          console.log(`DEBUG: Current model ready: ${fastTfliteBirdClassifier.isReady()}`);
-          
-          // Initialize if not ready
+          // Switch to optimized model if needed
           if (!fastTfliteBirdClassifier.isReady()) {
-            console.log('Initializing FastTflite with constructor defaults (FP32 + MData V2)');
+            console.log(`Initializing FastTflite with ${ModelConfig.getModelInfo(modelType)}`);
             await fastTfliteBirdClassifier.initialize();
           }
           
-          // Switch to specified model if needed (with better error handling)
           if (!fastTfliteBirdClassifier.isModelLoaded(modelType)) {
-            console.log(`Switching to requested model: ${modelType}`);
+            console.log(`Switching to optimized model: ${modelType}`);
             const switched = await fastTfliteBirdClassifier.switchModel(modelType);
             if (!switched) {
               console.warn(`Failed to switch to model: ${modelType}, continuing with current model`);
-              // Don't throw error, continue with current model
             }
           }
           
           // Run classification with location data for meta model
+          const location = (options?.latitude !== undefined && options?.longitude !== undefined) 
+            ? { latitude: options.latitude, longitude: options.longitude }
+            : undefined;
+          
+          const classificationStart = Date.now();
           const tfliteResult = await fastTfliteBirdClassifier.classifyBirdAudio(
             processedAudio.processedData,
             audioUri,
             location
           );
+          const classificationTime = Date.now() - classificationStart;
+          
+          console.log(`Classification completed in ${classificationTime}ms`);
           
           // Convert FastTflite result to Audio response format
           const response = this.convertFastTfliteResultToAudioResponse(
@@ -198,6 +221,11 @@ export class AudioIdentificationService {
             tfliteResult.metadata,
             processedAudio.metadata.duration
           );
+          
+          // Update performance metrics
+          const totalTime = Date.now() - startTime;
+          this.updatePerformanceMetrics(totalTime);
+          console.log(`Total audio processing: ${totalTime}ms (avg: ${this.performanceMetrics.averageTime}ms)`);
           
           // Cache the result
           await this.setCachedResult(cacheKey, response);
@@ -214,7 +242,8 @@ export class AudioIdentificationService {
       throw new Error('FastTflite not initialized. Please call initialize() first.');
       
     } catch (error) {
-      console.error('Audio identification error:', error);
+      const totalTime = Date.now() - startTime;
+      console.error(`Audio identification error after ${totalTime}ms:`, error);
       throw error;
     }
   }
@@ -294,5 +323,69 @@ export class AudioIdentificationService {
       console.error('Failed to get cache stats:', error);
       return { count: 0, oldestTimestamp: null };
     }
+  }
+
+  // Performance metrics management
+  private static updatePerformanceMetrics(processingTime: number): void {
+    this.performanceMetrics.processedCount++;
+    this.performanceMetrics.totalProcessingTime += processingTime;
+    this.performanceMetrics.lastProcessingTime = processingTime;
+    this.performanceMetrics.averageTime = Math.round(
+      this.performanceMetrics.totalProcessingTime / this.performanceMetrics.processedCount
+    );
+  }
+
+  static getPerformanceMetrics(): typeof AudioIdentificationService.performanceMetrics {
+    return { ...this.performanceMetrics };
+  }
+
+  // Adaptive interval calculation for camera component
+  static getAdaptiveInterval(hasBirdsDetected: boolean, lastResults: AudioPrediction[]): number {
+    const baseInterval = 5000; // 5 seconds base
+    const fastInterval = 3000;  // 3 seconds when birds detected
+    const slowInterval = 8000;  // 8 seconds when quiet for long time
+    
+    // If birds detected recently, use fast interval
+    if (hasBirdsDetected && lastResults.length > 0) {
+      return fastInterval;
+    }
+    
+    // If processing is slow (>4s avg), reduce frequency to prevent overlap
+    if (this.performanceMetrics.averageTime > 4000) {
+      return slowInterval;
+    }
+    
+    // Default interval
+    return baseInterval;
+  }
+
+  // Switch to different model type for different scenarios
+  static async switchModelForScenario(scenario: 'real-time' | 'manual' | 'research'): Promise<boolean> {
+    try {
+      const newModelType = ModelConfig.getRecommendedModel(scenario);
+      
+      if (newModelType !== this.currentModelType) {
+        console.log(`AudioIdentificationService: Switching from ${this.currentModelType} to ${newModelType} for ${scenario} scenario`);
+        
+        const switched = await fastTfliteBirdClassifier.switchModel(newModelType);
+        if (switched) {
+          this.currentModelType = newModelType;
+          console.log(`AudioIdentificationService: Successfully switched to ${ModelConfig.getModelInfo(newModelType)}`);
+          return true;
+        } else {
+          console.warn(`AudioIdentificationService: Failed to switch to ${newModelType}`);
+          return false;
+        }
+      }
+      
+      return true; // Already using correct model
+    } catch (error) {
+      console.error('AudioIdentificationService: Model switch failed:', error);
+      return false;
+    }
+  }
+
+  static getCurrentModelType(): ModelType {
+    return this.currentModelType;
   }
 }

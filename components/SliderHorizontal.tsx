@@ -1,5 +1,5 @@
-import React, { useMemo, useRef } from 'react';
-import { View, Text, PanResponder, StyleSheet } from 'react-native';
+import React, {useMemo, useRef} from 'react';
+import {PanResponder, StyleSheet, Text, View} from 'react-native';
 
 type CustomSliderProps = {
     style?: object;
