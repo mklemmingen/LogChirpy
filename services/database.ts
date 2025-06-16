@@ -73,8 +73,11 @@ export async function initDB(): Promise<void> {
 /**
  * Insert a new spotting. If InsertBirdSpotting.latinBirDex is provided,
  * it will be stored; otherwise it remains NULL.
+ * Returns the inserted row ID.
  */
-export function insertBirdSpotting(spotting: InsertBirdSpotting): void {
+export function insertBirdSpotting(spotting: InsertBirdSpotting): number {
+  let insertedId: number = 0;
+  
   DB().withTransactionSync(() => {
     const stmt = DB().prepareSync(`
       INSERT INTO bird_spottings
@@ -85,7 +88,7 @@ export function insertBirdSpotting(spotting: InsertBirdSpotting): void {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
     `);
     try {
-      stmt.executeSync([
+      const result = stmt.executeSync([
         spotting.imageUri,
         spotting.videoUri,
         spotting.audioUri,
@@ -98,10 +101,13 @@ export function insertBirdSpotting(spotting: InsertBirdSpotting): void {
         spotting.audioPrediction,
         spotting.latinBirDex ?? null,
       ]);
+      insertedId = result.lastInsertRowId;
     } finally {
       stmt.finalizeSync();
     }
   });
+  
+  return insertedId;
 }
 
 
@@ -142,6 +148,27 @@ export function hasSpottingForLatin(latinBirDex: string): boolean {
 }
 
 /**
+ * Maps database result (snake_case columns) to TypeScript interface (camelCase)
+ */
+function mapDatabaseResult(dbResult: any): BirdSpotting {
+  return {
+    id: dbResult.id,
+    imageUri: dbResult.image_uri || '',
+    videoUri: dbResult.video_uri || '',
+    audioUri: dbResult.audio_uri || '',
+    textNote: dbResult.text_note || '',
+    gpsLat: dbResult.gps_lat || 0,
+    gpsLng: dbResult.gps_lng || 0,
+    date: dbResult.date || '',
+    birdType: dbResult.bird_type || '',
+    imagePrediction: dbResult.image_prediction || '',
+    audioPrediction: dbResult.audio_prediction || '',
+    synced: dbResult.synced || 0,
+    latinBirDex: dbResult.latinBirDex || null,
+  };
+}
+
+/**
  * Fetch all spot entries that have the given latinBirDex.
  */
 export function getSpottingsByLatin(latinBirDex: string): BirdSpotting[] {
@@ -151,7 +178,8 @@ export function getSpottingsByLatin(latinBirDex: string): BirdSpotting[] {
      ORDER BY date DESC;
   `);
   try {
-    return stmt.executeSync(latinBirDex).getAllSync() as BirdSpotting[];
+    const results = stmt.executeSync(latinBirDex).getAllSync();
+    return results.map(mapDatabaseResult);
   } finally {
     stmt.finalizeSync();
   }
@@ -168,7 +196,8 @@ export function getBirdSpottings(
   );
 
   try {
-    return stmt.executeSync([limit]).getAllSync() as BirdSpotting[];
+    const results = stmt.executeSync([limit]).getAllSync();
+    return results.map(mapDatabaseResult);
   } finally {
     stmt.finalizeSync();
   }
@@ -179,8 +208,8 @@ export function getSpottingById(id: number): BirdSpotting | null {
     `SELECT * FROM bird_spottings WHERE id = ? LIMIT 1`
   );
   try {
-    const rows = stmt.executeSync(id).getAllSync() as BirdSpotting[];
-    return rows.length ? rows[0] : null;
+    const results = stmt.executeSync(id).getAllSync();
+    return results.length ? mapDatabaseResult(results[0]) : null;
   } finally {
     stmt.finalizeSync();
   }

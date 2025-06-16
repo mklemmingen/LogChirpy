@@ -424,16 +424,38 @@ export const useSnackbar = () => {
         variant: 'default',
     });
 
+    // Use a ref to prevent immediate hiding
+    const hideTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const show = React.useCallback((
         message: string,
         variant: SnackbarVariant = 'default',
         action?: { label: string; onPress: () => void }
     ) => {
+        // Clear any pending hide operations
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
+        }
+        
         setSnackbarState({ visible: true, message, variant, action });
+        console.log('🍞 [Snackbar] Showing:', variant, message);
     }, []);
 
     const hide = React.useCallback(() => {
-        setSnackbarState(prev => ({ ...prev, visible: false }));
+        console.log('🍞 [Snackbar] Hiding...');
+        
+        // Clear any existing timeout
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
+        }
+        
+        // Add a small delay to prevent rapid hide/show cycles
+        hideTimeoutRef.current = setTimeout(() => {
+            setSnackbarState(prev => ({ ...prev, visible: false }));
+            console.log('🍞 [Snackbar] Hidden');
+        }, 100);
     }, []);
 
     const showSuccess = React.useCallback((message: string, action?: { label: string; onPress: () => void }) => {
@@ -452,6 +474,15 @@ export const useSnackbar = () => {
         show(message, 'info', action);
     }, [show]);
 
+    // Cleanup on unmount
+    React.useEffect(() => {
+        return () => {
+            if (hideTimeoutRef.current) {
+                clearTimeout(hideTimeoutRef.current);
+            }
+        };
+    }, []);
+
     return {
         ...snackbarState,
         show,
@@ -467,6 +498,7 @@ export const useSnackbar = () => {
                 variant={snackbarState.variant}
                 action={snackbarState.action}
                 onHide={hide}
+                duration={6000}
             />
         ),
     };

@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, Alert, BackHandler, StatusBar, StyleSheet, Text, View,} from 'react-native';
 import {router, Stack, useFocusEffect, useRouter} from 'expo-router';
-import {Camera, useCameraDevice, useCameraPermission, useMicrophonePermission,} from 'react-native-vision-camera';
+import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
@@ -21,7 +21,7 @@ import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
-import {EnhancedCameraControls} from '@/components/CameraControls';
+// import {EnhancedCameraControls} from '@/components/CameraControls';
 import {BackButton} from '@/components/BackButton';
 
 // Modern theme hooks
@@ -207,21 +207,24 @@ export default function VideoScreen() {
   const colors = useColors();
 
   // Permissions
-  const { hasPermission: hasCameraPermission, requestPermission: requestCameraPermission } = useCameraPermission();
-  const { hasPermission: hasMicPermission, requestPermission: requestMicPermission } = useMicrophonePermission();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [micPermission, requestMicPermission] = useMicrophonePermissions();
 
   // State
   const [state, setState] = useState<RecordingState>('idle');
   const [recordingTime, setRecordingTime] = useState(0);
   const [videoUri, setVideoUri] = useState<string | null>(null);
-  const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back');
+  const [facing, setFacing] = useState<CameraType>('back');
+  const [isRecording, setIsRecording] = useState(false);
+  const [flash, setFlash] = useState<'off' | 'on' | 'auto'>('off');
+  const [zoom, setZoom] = useState(0);
 
   // Refs
-  const cameraRef = useRef<Camera>(null);
+  const cameraRef = useRef<CameraView>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Device
-  const device = useCameraDevice(cameraPosition);
+  // Check if we have both permissions
+  const hasPermissions = cameraPermission?.granted && micPermission?.granted;
 
   // Handle back button during recording
   useFocusEffect(
@@ -271,24 +274,23 @@ export default function VideoScreen() {
 
   // Request permissions
   const requestPermissions = useCallback(async () => {
-    const [cameraResult, micResult] = await Promise.all([
-      stableRequestCameraPermission.current(),
-      stableRequestMicPermission.current(),
-    ]);
-
-    if (!cameraResult || !micResult) {
+    try {
+      await requestCameraPermission();
+      await requestMicPermission();
+    } catch (error) {
       Alert.alert(
           t('camera.permission_required'),
           t('camera.video_permission_message')
       );
     }
-  }, [t]);
+  }, [requestCameraPermission, requestMicPermission, t]);
 
   // Start recording
   const startRecording = async () => {
     if (!cameraRef.current) return;
 
     setState('recording');
+    setIsRecording(true);
     setRecordingTime(0);
 
     // Start timer
@@ -297,37 +299,34 @@ export default function VideoScreen() {
     }, 1000);
 
     try {
-      await cameraRef.current.startRecording({
-        flash: 'off',
-        onRecordingFinished: (video) => {
-          clearInterval(timerRef.current!);
-          setState('preview');
-          setVideoUri(video.path);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        },
-        onRecordingError: (error) => {
-          console.error('Recording error', error);
-          clearInterval(timerRef.current!);
-          setState('idle');
-          Alert.alert(t('common.error'), t('video.recording_failed'));
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        },
+      const video = await cameraRef.current.recordAsync({
+        maxDuration: 60, // 60 seconds max
       });
 
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (e) {
-      console.error('Recording failed to start', e);
+      // Recording finished
+      if (video && video.uri) {
+        clearInterval(timerRef.current!);
+        setState('preview');
+        setIsRecording(false);
+        setVideoUri(video.uri);
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Recording error', error);
       clearInterval(timerRef.current!);
       setState('idle');
+      setIsRecording(false);
       Alert.alert(t('common.error'), t('video.recording_failed'));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
   // Stop recording
   const stopRecording = useCallback(async () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current || !isRecording) return;
 
     setState('stopping');
+    setIsRecording(false);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -341,7 +340,7 @@ export default function VideoScreen() {
       console.error('Failed to stop recording:', error);
       setState('idle');
     }
-  }, []);
+  }, [isRecording]);
 
   // Handle recording toggle
   const handleCapture = () => {
@@ -355,8 +354,26 @@ export default function VideoScreen() {
   // Flip camera
   const flipCamera = () => {
     if (state !== 'recording') {
-      setCameraPosition(prev => prev === 'back' ? 'front' : 'back');
+      setFacing(prev => prev === 'back' ? 'front' : 'back');
       Haptics.selectionAsync();
+    }
+  };
+
+  // Toggle flash
+  const toggleFlash = () => {
+    const flashModes: ('off' | 'on' | 'auto')[] = ['off', 'auto', 'on'];
+    const currentIndex = flashModes.indexOf(flash);
+    const nextIndex = (currentIndex + 1) % flashModes.length;
+    setFlash(flashModes[nextIndex]);
+    Haptics.selectionAsync();
+  };
+
+  const getFlashIcon = () => {
+    switch (flash) {
+      case 'on': return 'zap';
+      case 'auto': return 'zap';
+      case 'off': return 'zap-off';
+      default: return 'zap-off';
     }
   };
 
@@ -384,20 +401,8 @@ export default function VideoScreen() {
   }, [stopRecording, router]);
 
   // Permission check
-  if (!hasCameraPermission || !hasMicPermission) {
+  if (!hasPermissions) {
     return <PermissionError onRetry={requestPermissions} />;
-  }
-
-  // Device check
-  if (!device) {
-    return (
-        <ThemedView style={styles.centered}>
-          <ActivityIndicator size="large" />
-          <ThemedText variant="bodyLarge" color="secondary" style={{ marginTop: 16 }}>
-            {t('camera.loading_screen')}
-          </ThemedText>
-        </ThemedView>
-    );
   }
 
   // Show preview if video is captured
@@ -418,13 +423,13 @@ export default function VideoScreen() {
         <StatusBar barStyle="light-content" />
 
         {/* Camera */}
-        <Camera
+        <CameraView
             ref={cameraRef}
             style={StyleSheet.absoluteFillObject}
-            device={device}
-            isActive={state !== 'preview'}
-            video
-            audio
+            facing={facing}
+            mode="video"
+            enableTorch={flash === 'on'}
+            zoom={zoom}
         />
 
         {/* Recording Status */}
@@ -433,22 +438,96 @@ export default function VideoScreen() {
             duration={recordingTime}
         />
 
-        {/* Back Button */}
-        <BackButton 
-            variant="floating" 
-            disabled={state === 'recording'}
-        />
-
-        {/* Camera Controls */}
-        <View style={styles.controlBar}>
-          <EnhancedCameraControls
-              onCapture={handleCapture}
-              onFlip={flipCamera}
-              isRecording={state === 'recording'}
-              isFlipDisabled={state === 'recording'}
-              variant="glass"
-              size="large"
+        {/* Top Controls */}
+        <View style={styles.topControls}>
+          <BackButton 
+              variant="floating" 
+              disabled={state === 'recording'}
           />
+          
+          <View style={styles.topRight}>
+            <ThemedPressable
+                variant="ghost"
+                onPress={toggleFlash}
+                style={[styles.controlButton, { backgroundColor: colors.background + 'CC' }]}
+                disabled={state === 'recording'}
+            >
+              <ThemedIcon name={getFlashIcon()} size={20} color="primary" />
+            </ThemedPressable>
+          </View>
+        </View>
+
+        {/* Zoom Slider */}
+        <View style={styles.zoomContainer}>
+          <ThemedPressable
+              variant="ghost"
+              onPress={() => setZoom(Math.max(0, zoom - 0.1))}
+              style={[styles.zoomButton, { backgroundColor: colors.background + 'CC' }]}
+              disabled={state === 'recording'}
+          >
+            <ThemedIcon name="minus" size={16} color="primary" />
+          </ThemedPressable>
+          
+          <View style={[styles.zoomSliderContainer, { backgroundColor: colors.background + 'CC' }]}>
+            <View style={styles.zoomSlider}>
+              <View style={[styles.zoomTrack, { backgroundColor: colors.backgroundSecondary }]} />
+              <View 
+                  style={[
+                      styles.zoomFill, 
+                      { 
+                          backgroundColor: colors.primary,
+                          width: `${zoom * 100}%` 
+                      }
+                  ]} 
+              />
+            </View>
+            <ThemedText variant="caption" style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>
+              {Math.round(zoom * 100)}%
+            </ThemedText>
+          </View>
+          
+          <ThemedPressable
+              variant="ghost"
+              onPress={() => setZoom(Math.min(1, zoom + 0.1))}
+              style={[styles.zoomButton, { backgroundColor: colors.background + 'CC' }]}
+              disabled={state === 'recording'}
+          >
+            <ThemedIcon name="plus" size={16} color="primary" />
+          </ThemedPressable>
+        </View>
+
+        {/* Bottom Controls */}
+        <View style={styles.bottomControls}>
+          <View style={styles.controlsRow}>
+            {/* Flip Camera */}
+            <ThemedPressable
+                variant="ghost"
+                onPress={flipCamera}
+                disabled={state === 'recording'}
+                style={styles.sideButton}
+            >
+              <ThemedIcon name="rotate-ccw" size={24} color="primary" />
+            </ThemedPressable>
+
+            {/* Record Button */}
+            <ThemedPressable
+                variant="ghost"
+                onPress={handleCapture}
+                disabled={state === 'stopping'}
+                style={[
+                    styles.recordButton,
+                    ...(isRecording ? [styles.recordingButton] : [])
+                ]}
+            >
+              <View style={[
+                  styles.recordInner,
+                  ...(isRecording ? [styles.recordingInner] : [])
+              ]} />
+            </ThemedPressable>
+
+            {/* Settings placeholder */}
+            <View style={styles.sideButton} />
+          </View>
         </View>
 
         {/* Loading Overlay */}
@@ -533,12 +612,124 @@ const styles = StyleSheet.create({
 
   // Navigation
 
-  // Controls
-  controlBar: {
+  // Top Controls
+  topControls: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    zIndex: 10,
+  },
+  topRight: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  controlButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+
+  // Zoom Controls
+  zoomContainer: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    transform: [{ translateY: -100 }],
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 10,
+  },
+  zoomButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  zoomSliderContainer: {
+    width: 36,
+    height: 120,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  zoomSlider: {
+    position: 'relative',
+    width: 4,
+    height: 80,
+  },
+  zoomTrack: {
+    position: 'absolute',
+    width: 4,
+    height: '100%',
+    borderRadius: 2,
+  },
+  zoomFill: {
     position: 'absolute',
     bottom: 0,
+    width: 4,
+    borderRadius: 2,
+  },
+
+  // Bottom Controls
+  bottomControls: {
+    position: 'absolute',
+    bottom: 50,
     left: 0,
     right: 0,
+    paddingHorizontal: 40,
+    zIndex: 10,
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sideButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recordButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  recordingButton: {
+    backgroundColor: '#FF3B30',
+  },
+  recordInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FF3B30',
+  },
+  recordingInner: {
+    width: 30,
+    height: 30,
+    borderRadius: 4,
+    backgroundColor: 'white',
   },
 
   // Preview
