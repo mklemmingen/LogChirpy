@@ -361,7 +361,13 @@ export class NativeAudioProcessor {
   }
 }
 
-// Export factory function
+// Export factory function with error handling
 export const createNativeAudioProcessor = (config: AudioProcessorConfig): NativeAudioProcessor => {
-  return new NativeAudioProcessor(config);
+  try {
+    return new NativeAudioProcessor(config);
+  } catch (error) {
+    console.error('CRITICAL: Failed to create NativeAudioProcessor:', error);
+    console.error('This may indicate a "Super expression must either be null or a function" error');
+    throw error; // Re-throw since this is a factory function
+  }
 };

@@ -536,8 +536,31 @@ class LiveAudioRecordingService {
     }
 }
 
-// Export singleton instance
-export const liveAudioRecordingService = new LiveAudioRecordingService();
+// Export singleton instance with error handling
+let liveAudioRecordingServiceInstance: LiveAudioRecordingService | null = null;
+
+try {
+  liveAudioRecordingServiceInstance = new LiveAudioRecordingService();
+  console.log('LiveAudioRecordingService singleton created successfully');
+} catch (error) {
+  console.error('CRITICAL: Failed to create LiveAudioRecordingService singleton:', error);
+  console.error('This may indicate a "Super expression must either be null or a function" error');
+  
+  // Create a fallback instance that won't crash the app
+  liveAudioRecordingServiceInstance = {
+    initialize: async () => false,
+    startLiveRecording: async () => false,
+    stopLiveRecording: async () => {},
+    isReady: () => false,
+    getState: () => ({ isRecording: false, isProcessing: false, bufferFull: false, totalPredictions: 0, averageProcessingTime: 0 }),
+    dispose: async () => {},
+    onPrediction: () => () => {},
+    onStateChange: () => () => {},
+    updateConfig: () => {},
+  } as any;
+}
+
+export const liveAudioRecordingService = liveAudioRecordingServiceInstance!;
 
 // Convenience functions
 export const initializeLiveAudio = () => liveAudioRecordingService.initialize();

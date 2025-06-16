@@ -29,10 +29,20 @@ export interface ModelConfiguration {
   };
 }
 
+// Helper function to safely require model files
+function safeRequireModel(path: string): any {
+  try {
+    return require(path);
+  } catch (error) {
+    console.error(`Failed to load model from path: ${path}`, error);
+    return null; // Return null instead of throwing
+  }
+}
+
 export class ModelConfig {
   private static readonly configurations: Record<ModelType, ModelConfiguration> = {
     [ModelType.BALANCED_FP16]: {
-      path: require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP16.tflite'),
+      path: safeRequireModel('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP16.tflite'),
       name: 'BirdNET Global 6K v2.4 FP16',
       description: 'Balanced model with good accuracy and fast inference',
       fileSize: '25MB',
@@ -47,7 +57,7 @@ export class ModelConfig {
     },
     
     [ModelType.HIGH_ACCURACY_FP32]: {
-      path: require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite'),
+      path: safeRequireModel('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite'),
       name: 'BirdNET Global 6K v2.4 FP32',
       description: 'High-precision model for maximum accuracy',
       fileSize: '49MB',
@@ -62,7 +72,7 @@ export class ModelConfig {
     },
 
     [ModelType.MDATA_FP16]: {
-      path: require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite'),
+      path: safeRequireModel('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite'),
       name: 'BirdNET Global 6K v2.4 MData FP16',
       description: 'FP16 model with embedded labels - fastest with self-contained labels',
       fileSize: '27MB',
@@ -77,7 +87,7 @@ export class ModelConfig {
     },
 
     [ModelType.MDATA_V2_FP16]: {
-      path: require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite'),
+      path: safeRequireModel('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite'),
       name: 'BirdNET Global 6K v2.4 MData V2 FP16',
       description: 'Enhanced MData FP16 model with improved embedded labels',
       fileSize: '27MB',
@@ -92,7 +102,7 @@ export class ModelConfig {
     },
     
     [ModelType.LEGACY]: {
-      path: require('../assets/models/birdnet/birdnet_v24.tflite'),
+      path: safeRequireModel('../assets/models/birdnet/birdnet_v24.tflite'),
       name: 'BirdNET Legacy v2.4',
       description: 'Legacy 400-species model for backward compatibility',
       fileSize: '~10MB',
@@ -114,6 +124,9 @@ export class ModelConfig {
     const config = this.configurations[modelType];
     if (!config) {
       throw new Error(`No configuration found for model type: ${modelType}`);
+    }
+    if (!config.path) {
+      throw new Error(`Model file not found for model type: ${modelType}. Check if the model file exists in assets.`);
     }
     return config;
   }

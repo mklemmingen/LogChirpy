@@ -378,19 +378,36 @@ export function useRealTimeAudioRecorder(config: RealTimeAudioConfig) {
         logger: console // Use console for debugging
     });
     
-    // Create recorder instance
-    const recorder = new RealTimeAudioRecorder(config);
-    
-    // Connect to React hook
-    recorder.initializeWithHook(audioRecorderHook);
-    
-    return {
-        recorder,
-        ...audioRecorderHook // Also expose the underlying hook methods
-    };
+    try {
+        // Create recorder instance
+        const recorder = new RealTimeAudioRecorder(config);
+        
+        // Connect to React hook
+        recorder.initializeWithHook(audioRecorderHook);
+        
+        return {
+            recorder,
+            ...audioRecorderHook // Also expose the underlying hook methods
+        };
+    } catch (error) {
+        console.error('CRITICAL: Failed to create RealTimeAudioRecorder in React hook:', error);
+        console.error('This may indicate a "Super expression must either be null or a function" error');
+        
+        // Return a fallback object to prevent React hook errors
+        return {
+            recorder: null,
+            ...audioRecorderHook
+        };
+    }
 }
 
-// Export factory function for non-React usage
+// Export factory function for non-React usage with error handling
 export const createRealTimeAudioRecorder = (config: RealTimeAudioConfig): RealTimeAudioRecorder => {
-    return new RealTimeAudioRecorder(config);
+    try {
+        return new RealTimeAudioRecorder(config);
+    } catch (error) {
+        console.error('CRITICAL: Failed to create RealTimeAudioRecorder:', error);
+        console.error('This may indicate a "Super expression must either be null or a function" error');
+        throw error; // Re-throw since this is a factory function
+    }
 };

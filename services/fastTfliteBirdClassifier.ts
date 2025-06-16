@@ -80,14 +80,28 @@ class FastTfliteBirdClassifierService {
   };
 
   constructor() {
-    // DEBUG: Log model paths for verification
-    const mainModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite');
-    const metaModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite');
+    // Safe model path initialization with error handling
+    let mainModelPath: any = null;
+    let metaModelPath: any = null;
+    
+    try {
+      mainModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite');
+    } catch (error) {
+      console.error('Failed to load main model in constructor:', error);
+    }
+    
+    try {
+      metaModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite');
+    } catch (error) {
+      console.error('Failed to load meta model in constructor:', error);
+    }
     
     console.log('DEBUG: Constructor model paths:', {
       mainModel: mainModelPath,
       metaModel: metaModelPath,
-      areEqual: mainModelPath === metaModelPath
+      areEqual: mainModelPath === metaModelPath,
+      mainModelNull: mainModelPath === null,
+      metaModelNull: metaModelPath === null
     });
     
     this.config = {
@@ -344,7 +358,15 @@ class FastTfliteBirdClassifierService {
       // Try to load whoBIRD labels first (preferred)
       try {
         console.log('Loading whoBIRD labels in English...');
-        const labelsText = require('../assets/model_labels_whoBird/labels_en.txt');
+        
+        // Use Asset.fromModule to load text file properly
+        const labelsAsset = require('../assets/model_labels_whoBird/labels_en.txt');
+        const asset = await FileSystem.downloadAsync(
+          typeof labelsAsset === 'string' ? labelsAsset : labelsAsset.uri || labelsAsset,
+          FileSystem.cacheDirectory + 'labels_en.txt'
+        );
+        
+        const labelsText = await FileSystem.readAsStringAsync(asset.uri);
         
         // Parse whoBIRD format: "ScientificName_CommonName"
         this.labels = labelsText.split('\n')
@@ -371,15 +393,27 @@ class FastTfliteBirdClassifierService {
         console.log(`Loaded ${this.labels.length} whoBIRD species labels`);
         return;
       } catch (whoBirdError) {
-        console.warn('whoBIRD labels not found, falling back to legacy format');
+        console.warn('whoBIRD labels not found, falling back to legacy format', whoBirdError);
       }
 
       // Fallback to legacy JSON format
-      const labelsData = require('../assets/models/birdnet/labels.json');
-      if (labelsData && labelsData.labels) {
-        this.labels = labelsData.labels;
-      } else {
-        throw new Error('Invalid labels format');
+      try {
+        const labelsData = require('../assets/models/birdnet/labels.json');
+        if (labelsData && labelsData.labels) {
+          this.labels = labelsData.labels;
+        } else {
+          throw new Error('Invalid labels format');
+        }
+      } catch (legacyError) {
+        console.error('Failed to load legacy labels:', legacyError);
+        // Create minimal dummy labels as last resort
+        this.labels = Array.from({ length: 6522 }, (_, i) => ({
+          index: i,
+          scientific_name: `Species_${i}`,
+          common_name: `Unknown Species ${i}`,
+          label: `Species_${i}`
+        }));
+        console.warn('Using dummy labels - species identification will be limited');
       }
       
       console.log(`Loaded ${this.labels.length} legacy species labels`);
@@ -894,8 +928,27 @@ class FastTfliteBirdClassifierService {
   }
 }
 
-// Create singleton instance
-export const fastTfliteBirdClassifier = new FastTfliteBirdClassifierService();
+// Create singleton instance with error handling
+let fastTfliteBirdClassifierInstance: FastTfliteBirdClassifierService | null = null;
+
+try {
+  fastTfliteBirdClassifierInstance = new FastTfliteBirdClassifierService();
+  console.log('FastTfliteBirdClassifierService singleton created successfully');
+} catch (error) {
+  console.error('CRITICAL: Failed to create FastTfliteBirdClassifierService singleton:', error);
+  console.error('This may indicate a "Super expression must either be null or a function" error');
+  
+  // Create a fallback instance that won't crash the app
+  fastTfliteBirdClassifierInstance = {
+    initialize: async () => false,
+    isReady: () => false,
+    classifyBirdAudio: async () => ({ results: [], metadata: {} as any }),
+    dispose: () => {},
+    // Add other required methods as stubs
+  } as any;
+}
+
+export const fastTfliteBirdClassifier = fastTfliteBirdClassifierInstance!;
 
 // Convenience functions
 export const initializeFastTflite = () => fastTfliteBirdClassifier.initialize();
