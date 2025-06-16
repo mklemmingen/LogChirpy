@@ -64,7 +64,8 @@ export default function GalleryManagementScreen() {
 
             const files = await FileSystem.readDirectoryAsync(galleryDir);
             const photoFiles = files.filter(filename => 
-                (filename.startsWith('bird_') || filename.startsWith('full_')) && filename.endsWith('.jpg')
+                (filename.startsWith('bird_') || filename.startsWith('full_') || filename.startsWith('logchirpy_photo_')) && 
+                (filename.endsWith('.jpg') || filename.endsWith('.jpeg') || filename.endsWith('.png'))
             );
 
             const photoItems: PhotoItem[] = await Promise.all(
