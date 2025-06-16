@@ -6,7 +6,7 @@
  * Mel-spectrograms are only used for visualization purposes.
  */
 
-import { AudioDecoder } from './audioDecoder';
+import {AudioDecoder} from './audioDecoder';
 
 export interface AudioPreprocessingConfig {
   sampleRate: number;        // Target sample rate (48kHz for BirdNET)

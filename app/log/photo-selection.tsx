@@ -5,39 +5,26 @@
  * Integrates with ML-powered bird identification.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    Dimensions,
-    Image,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { ThemedIcon } from '@/components/ThemedIcon';
+import React, {useCallback, useEffect, useState} from 'react';
+import {ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View,} from 'react-native';
+import {router, Stack, useLocalSearchParams} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
-import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling";
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
-} from 'react-native-reanimated';
+import {BlurView} from 'expo-blur';
+import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
 
 // Components
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ModernCard } from '@/components/ModernCard';
-import { useSnackbar } from '@/components/ThemedSnackbar';
-import { BackButton } from '@/components/BackButton';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ModernCard} from '@/components/ModernCard';
+import {useSnackbar} from '@/components/ThemedSnackbar';
+import {BackButton} from '@/components/BackButton';
 
 // Context and Services
-import { useLogDraft } from '@/contexts/LogDraftContext';
-import { useColors, useTheme } from '@/hooks/useThemeColor';
+import {useLogDraft} from '@/contexts/LogDraftContext';
+import {useColors, useTheme} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_SIZE = (SCREEN_WIDTH - 48) / 2;

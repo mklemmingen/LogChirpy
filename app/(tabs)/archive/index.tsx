@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import { Feather } from '@expo/vector-icons';
+import {Feather} from '@expo/vector-icons';
 import {router} from 'expo-router';
 import Animated, {
   FadeInDown,
@@ -28,7 +28,7 @@ import {Card} from '@/components/ThemedView';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {ThemedText} from '@/components/ThemedText';
-import {useColors, useShadows, useTypography} from '@/hooks/useThemeColor';
+import {useColors, useTypography} from '@/hooks/useThemeColor';
 import {type BirdSpotting, getBirdSpottings} from '@/services/database';
 import {syncDatabase} from '@/services/sync_layer';
 
@@ -196,7 +196,7 @@ function SearchHeader({
               style={styles.actionButton}
               onPress={() => setShowSortMenu(!showSortMenu)}
           >
-            <ThemedIcon name={getSortIcon()} size={16} color="primary" />
+            <ThemedIcon name={getSortIcon()} size={16} color="primary"/>
           </ThemedPressable>
 
           {/* Sync Button */}
@@ -620,6 +620,9 @@ function createEmptyStateStyles() {
  */
 function createSearchStyles() {
   return StyleSheet.create({
+    actionIcon: {
+      margin: -2
+    },
     searchHeader: {
       paddingHorizontal: 20,
       marginBottom: 16,
@@ -642,7 +645,8 @@ function createSearchStyles() {
     },
     actionButtons: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 25,
+      overflow: 'visible',
     },
     actionButton: {
       width: 44,

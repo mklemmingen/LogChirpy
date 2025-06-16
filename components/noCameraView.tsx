@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import {Button, StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
 
 interface NoCameraErrorViewProps {
     onRetry: () => void;  // A function that is triggered when the user presses retry

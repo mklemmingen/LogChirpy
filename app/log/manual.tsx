@@ -5,13 +5,10 @@
  * Focus on essential functionality with a clean, accessible design.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Dimensions,
-    Image,
-    Keyboard,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -19,29 +16,29 @@ import {
     useColorScheme,
     View,
 } from 'react-native';
-import { router, Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Audio } from 'expo-av';
+import {router, Stack} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Audio} from 'expo-av';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 
 // Context and Services
-import { useLogDraft } from '@/contexts/LogDraftContext';
-import { BirdSpotting, insertBirdSpotting } from '@/services/database';
-import { AudioIdentificationService } from '@/services/audioIdentificationService';
-import { filePathToUri, validateImageUri } from '@/services/uriUtils';
+import {useLogDraft} from '@/contexts/LogDraftContext';
+import {BirdSpotting, insertBirdSpotting} from '@/services/database';
+import {AudioIdentificationService} from '@/services/audioIdentificationService';
+import {validateImageUri} from '@/services/uriUtils';
 
 // Components
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import { useSnackbar } from '@/components/ThemedSnackbar';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {useSnackbar} from '@/components/ThemedSnackbar';
 
 // Theme
-import { useColors, useSpacing } from '@/hooks/useThemeColor';
+import {useColors, useSpacing} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

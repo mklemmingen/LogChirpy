@@ -5,7 +5,7 @@
  * Uses expo-av for audio loading and processing.
  */
 
-import { Audio } from 'expo-av';
+import {Audio} from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 
 export interface AudioBuffer {

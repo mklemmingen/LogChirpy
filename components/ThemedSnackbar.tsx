@@ -1,31 +1,21 @@
-import React, { useEffect, useRef, useCallback } from 'react';
-import {
-    ViewStyle,
-    Pressable,
-    Text,
-} from 'react-native';
-import { BlurView } from 'expo-blur';
-import { ThemedIcon } from './ThemedIcon';
+import React, {useCallback, useEffect, useRef} from 'react';
+import {Pressable, Text, ViewStyle,} from 'react-native';
+import {BlurView} from 'expo-blur';
+import {ThemedIcon} from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
+    Easing,
+    interpolate,
+    runOnJS,
+    useAnimatedGestureHandler,
     useAnimatedStyle,
     useSharedValue,
-    useAnimatedGestureHandler,
     withSpring,
     withTiming,
-    runOnJS,
-    interpolate,
-    Easing,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues,
-} from '../hooks/useThemeColor';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '../hooks/useThemeColor';
 import {PanGestureHandler} from "react-native-gesture-handler";
 
 // Snackbar variants with semantic meaning
@@ -238,16 +228,16 @@ export function ThemedSnackbar({
     useEffect(() => {
         if (visible) {
             showSnackbar();
-        } else {
-            hideSnackbar();
         }
+        // Note: Don't call hideSnackbar here as it will cause infinite loop
+        // The hiding is handled by onHide prop or user interactions
 
         return () => {
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
             }
         };
-    }, [visible, hideSnackbar, showSnackbar]);
+    }, [visible, showSnackbar]);
 
     // Animated styles
     const containerStyle = useAnimatedStyle(() => ({

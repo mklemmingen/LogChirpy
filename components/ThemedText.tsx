@@ -1,6 +1,6 @@
-import React, { forwardRef } from 'react';
-import { Text, TextProps } from 'react-native';
-import { useTypography, useColors } from '@/hooks/useThemeColor';
+import React, {forwardRef} from 'react';
+import {Text, TextProps} from 'react-native';
+import {useColors, useTypography} from '@/hooks/useThemeColor';
 
 export type ThemedTextProps = TextProps & {
   variant?: 'h1' | 'h2' | 'h3' | 'body' | 'bodySmall' | 'bodyLarge' | 'button' | 'caption' | 'label' | 'labelSmall' | 'labelMedium' | 'labelLarge' | 'displaySmall' | 'displayMedium' | 'headlineLarge';

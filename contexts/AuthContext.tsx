@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from '@/firebase/config';
+import React, {createContext, ReactNode, useContext, useEffect, useState} from 'react';
+import {onAuthStateChanged, signOut as firebaseSignOut, User} from 'firebase/auth';
+import {auth} from '@/firebase/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTranslation } from 'react-i18next';
+import {useTranslation} from 'react-i18next';
 
 interface AuthContextType {
   user: User | null;

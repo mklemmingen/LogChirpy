@@ -2,11 +2,10 @@
 // Simple, accessible, and professional
 
 import React from 'react';
-import { View, Pressable, StyleSheet, ViewStyle, Image } from 'react-native';
-import { ThemedView } from './ThemedView';
-import { ThemedText } from './ThemedText';
-import { useColors, useBorderRadius, useShadows } from '@/hooks/useThemeColor';
-import { ImageSourcePropType } from "react-native";
+import {Image, ImageSourcePropType, Pressable, StyleSheet, View, ViewStyle} from 'react-native';
+import {ThemedView} from './ThemedView';
+import {ThemedText} from './ThemedText';
+import {useBorderRadius, useColors, useShadows} from '@/hooks/useThemeColor';
 
 interface ModernCardProps {
   children?: React.ReactNode;

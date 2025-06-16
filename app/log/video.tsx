@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, Alert, BackHandler, StatusBar, StyleSheet, Text, View,} from 'react-native';
 import {router, Stack, useFocusEffect, useRouter} from 'expo-router';
-import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import {CameraType, CameraView, useCameraPermissions, useMicrophonePermissions} from 'expo-camera';
 import {useVideoPlayer, VideoSource, VideoView} from 'expo-video';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
@@ -25,7 +25,7 @@ import {ModernCard} from '@/components/ModernCard';
 import {BackButton} from '@/components/BackButton';
 
 // Modern theme hooks
-import {useTheme, useTypography, useColors} from '@/hooks/useThemeColor';
+import {useColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 
 // Context
 import {useLogDraft} from '@/contexts/LogDraftContext';

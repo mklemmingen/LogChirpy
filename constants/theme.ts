@@ -1,7 +1,7 @@
 // Minimal black and white design system with accent colors
 // Professional, clean, and accessible
 
-import { TextStyle } from "react-native";
+import {TextStyle} from "react-native";
 
 // Clean typography system
 const typography = {

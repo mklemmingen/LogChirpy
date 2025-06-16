@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, FlatList, StyleSheet, TextInput, Image, View} from 'react-native';
+import {ActivityIndicator, FlatList, Image, StyleSheet, TextInput, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
 import {ThemedIcon} from '@/components/ThemedIcon';
@@ -556,6 +556,7 @@ function createStyles(theme: any) {
     return StyleSheet.create({
         container: {
             flex: 1,
+            paddingTop: 60,
         },
 
         // Header

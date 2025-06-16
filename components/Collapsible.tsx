@@ -1,29 +1,21 @@
-import React, { PropsWithChildren, useState } from 'react';
-import { Pressable, StyleSheet, ViewStyle } from 'react-native';
+import React, {PropsWithChildren, useState} from 'react';
+import {Pressable, StyleSheet, ViewStyle} from 'react-native';
 // import { BlurView } from 'expo-blur';
-import { ThemedIcon } from './ThemedIcon';
+import {ThemedIcon} from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-  // interpolate,
-  Layout,
-  FadeInDown,
-  FadeOutUp,
+    FadeInDown,
+    FadeOutUp,
+    Layout,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import {
-  useSemanticColors,
-  useColorVariants,
-  // useTypography,
-  useTheme,
-  useMotionValues,
-  useColors,
-} from '@/hooks/useThemeColor';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedView} from '@/components/ThemedView';
+import {useColors, useColorVariants, useMotionValues, useSemanticColors, useTheme,} from '@/hooks/useThemeColor';
 
 interface CollapsibleProps extends PropsWithChildren {
   title: string;

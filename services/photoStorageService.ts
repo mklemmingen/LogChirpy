@@ -7,7 +7,7 @@
 
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
-import { filePathToUri, generateDocumentImageUri, ensureGalleryDirectory } from './uriUtils';
+import {ensureGalleryDirectory, filePathToUri} from './uriUtils';
 
 export interface PhotoSaveResult {
     appUri: string;

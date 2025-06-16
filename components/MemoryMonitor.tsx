@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import {useEffect, useRef} from 'react';
 
 // Extend Performance interface to include memory property for environments that support it
 interface PerformanceWithMemory extends Performance {

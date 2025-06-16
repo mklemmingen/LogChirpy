@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { birdDexDB } from '@/services/databaseBirDex';
+import {useEffect, useState} from 'react';
+import {birdDexDB} from '@/services/databaseBirDex';
 
 export function useBirdDexDatabase(localDbReady: boolean = true) {
     const [state, setState] = useState(birdDexDB.getState());

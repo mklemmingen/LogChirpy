@@ -6,49 +6,34 @@
  * Integrates with app gallery system and device storage.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    View,
-} from 'react-native';
-import { router, Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { launchImageLibrary, ImagePickerResponse, ImageLibraryOptions } from 'react-native-image-picker';
-import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {ActivityIndicator, Alert, Dimensions, Image, ScrollView, StatusBar, StyleSheet, View,} from 'react-native';
+import {router, Stack} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {ImageLibraryOptions, ImagePickerResponse, launchImageLibrary} from 'react-native-image-picker';
+import {CameraType, CameraView, FlashMode, useCameraPermissions} from 'expo-camera';
 import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
-import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling";
-import Animated, {
-    Easing,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
+import {BlurView} from 'expo-blur';
+import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
+import Animated, {useAnimatedStyle, useSharedValue, withTiming,} from 'react-native-reanimated';
 
 // Components
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { ModernCard } from '@/components/ModernCard';
-import { useSnackbar } from '@/components/ThemedSnackbar';
-import { BackButton } from '@/components/BackButton';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import {ModernCard} from '@/components/ModernCard';
+import {useSnackbar} from '@/components/ThemedSnackbar';
+import {BackButton} from '@/components/BackButton';
 
 // Context and Services
-import { useLogDraft } from '@/contexts/LogDraftContext';
-import { photoStorageService } from '@/services/photoStorageService';
-import { filePathToUri } from '@/services/uriUtils';
+import {useLogDraft} from '@/contexts/LogDraftContext';
+import {photoStorageService} from '@/services/photoStorageService';
+import {filePathToUri} from '@/services/uriUtils';
 
 // Theme
-import { useColors, useTheme } from '@/hooks/useThemeColor';
+import {useColors, useTheme} from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AnimatedPressable = Animated.createAnimatedComponent(ThemedPressable);

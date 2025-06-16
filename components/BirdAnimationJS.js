@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, Animated, Dimensions, TouchableWithoutFeedback, Easing } from 'react-native';
-import { Audio } from 'expo-av';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {Animated, Dimensions, Easing, StyleSheet, TouchableWithoutFeedback, View} from 'react-native';
+import {Audio} from 'expo-av';
 
 // Ensure global timers are available
 /* global setInterval, clearInterval */

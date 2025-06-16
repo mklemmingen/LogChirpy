@@ -8,10 +8,10 @@
  * CRITICAL: BirdNET models expect raw audio samples, NOT mel-spectrograms!
  */
 
-import { loadTensorflowModel, TensorflowModel, TensorflowModelDelegate } from 'react-native-fast-tflite';
+import {loadTensorflowModel, TensorflowModel, TensorflowModelDelegate} from 'react-native-fast-tflite';
 import * as FileSystem from 'expo-file-system';
-import { Platform } from 'react-native';
-import { ModelType, ModelConfig } from './modelConfig';
+import {Platform} from 'react-native';
+import {ModelConfig, ModelType} from './modelConfig';
 
 export interface BirdClassificationResult {
   species: string;
@@ -336,11 +336,45 @@ class FastTfliteBirdClassifierService {
   }
 
   /**
-   * Load species labels from JSON file
+   * Load species labels from whoBIRD format - CORRECTED implementation
+   * Labels follow format: "ScientificName_CommonName"
    */
   private async loadLabels(): Promise<void> {
     try {
-      // Use static require for Metro bundler compatibility
+      // Try to load whoBIRD labels first (preferred)
+      try {
+        console.log('Loading whoBIRD labels in English...');
+        const labelsText = require('../assets/model_labels_whoBird/labels_en.txt');
+        
+        // Parse whoBIRD format: "ScientificName_CommonName"
+        this.labels = labelsText.split('\n')
+          .filter((line: string) => line.trim().length > 0)
+          .map((line: string, index: number) => {
+            const parts = line.trim().split('_');
+            if (parts.length >= 2) {
+              return {
+                index,
+                scientific_name: parts[0],
+                common_name: parts.slice(1).join('_'), // Handle names with multiple underscores
+                label: parts.slice(1).join('_')
+              };
+            } else {
+              return {
+                index,
+                scientific_name: line.trim(),
+                common_name: line.trim(),
+                label: line.trim()
+              };
+            }
+          });
+        
+        console.log(`Loaded ${this.labels.length} whoBIRD species labels`);
+        return;
+      } catch (whoBirdError) {
+        console.warn('whoBIRD labels not found, falling back to legacy format');
+      }
+
+      // Fallback to legacy JSON format
       const labelsData = require('../assets/models/birdnet/labels.json');
       if (labelsData && labelsData.labels) {
         this.labels = labelsData.labels;
@@ -348,7 +382,7 @@ class FastTfliteBirdClassifierService {
         throw new Error('Invalid labels format');
       }
       
-      console.log(`Loaded ${this.labels.length} species labels`);
+      console.log(`Loaded ${this.labels.length} legacy species labels`);
     } catch (error) {
       console.error('Failed to load labels:', error);
       throw error;
@@ -402,25 +436,56 @@ class FastTfliteBirdClassifierService {
       
       console.log(`Running inference with ${processedData.length} input elements`);
       
-      // Run inference (use synchronous for better performance)
+      // Run main audio model inference (use synchronous for better performance)
       const outputs = this.model.runSync([processedData]);
-      const predictions = outputs[0] as Float32Array;
+      const audioLogits = outputs[0] as Float32Array;
+      
+      // Convert logits to probabilities using sigmoid activation
+      const audioProbabilities = this.applySigmoid(audioLogits);
       
       // DEBUG: Log prediction statistics
-      const maxPrediction = Math.max(...Array.from(predictions));
-      const avgPrediction = Array.from(predictions).reduce((a, b) => a + b, 0) / predictions.length;
-      const aboveThreshold = Array.from(predictions).filter(p => p >= this.config.confidenceThreshold).length;
+      const maxPrediction = Math.max(...Array.from(audioProbabilities));
+      const avgPrediction = Array.from(audioProbabilities).reduce((a, b) => a + b, 0) / audioProbabilities.length;
+      const aboveThreshold = Array.from(audioProbabilities).filter(p => p >= this.config.confidenceThreshold).length;
       
-      console.log('DEBUG: Model output statistics:', {
-        predictionsLength: predictions.length,
+      console.log('DEBUG: Main audio model output:', {
+        predictionsLength: audioProbabilities.length,
         maxConfidence: maxPrediction,
         avgConfidence: avgPrediction,
         aboveThreshold,
         threshold: this.config.confidenceThreshold
       });
 
-      // Process results
-      const results = this.processModelOutput(predictions);
+      let finalProbabilities = audioProbabilities;
+      let metaModelUsed = false;
+      let metaInfluence = 0;
+
+      // If location is provided and meta model is available, use two-model architecture
+      if (location && this.metaModelLoaded && this.metaModel && this.config.useMetaModel) {
+        try {
+          console.log('Running meta model inference for location-based filtering...');
+          const metaProbabilities = await this.runMetaModelInference(location);
+          
+          // Blend audio and meta predictions using whoBIRD formula
+          finalProbabilities = this.blendPredictions(audioProbabilities, metaProbabilities);
+          metaModelUsed = true;
+          metaInfluence = this.config.metaInfluence;
+          
+          console.log('Two-model prediction blending completed');
+        } catch (metaError) {
+          console.warn('Meta model inference failed, using audio-only results:', metaError);
+          finalProbabilities = audioProbabilities;
+        }
+      } else {
+        console.log('Meta model not used:', {
+          hasLocation: !!location,
+          metaModelLoaded: this.metaModelLoaded,
+          useMetaModel: this.config.useMetaModel
+        });
+      }
+
+      // Process final results
+      const results = this.processModelOutput(finalProbabilities);
       
       const processingTime = Date.now() - startTime;
       const metadata: ClassificationMetadata = {
@@ -431,8 +496,8 @@ class FastTfliteBirdClassifierService {
         inputShape: this.getModelInputShape(),
         timestamp: Date.now(),
         audioProcessingType: 'raw_audio',
-        metaModelUsed: false,
-        metaInfluence: 0
+        metaModelUsed,
+        metaInfluence
       };
 
       // Update performance metrics

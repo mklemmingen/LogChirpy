@@ -1,49 +1,23 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    StyleSheet,
-    TextInput,
-    View,
-    Pressable,
-    Image,
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { useRouter } from 'expo-router';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import Animated, {
-    FadeInDown,
-    Layout,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-} from 'react-native-reanimated';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, TextInput, View,} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import {useRouter} from 'expo-router';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {Feather} from '@expo/vector-icons';
+import Animated, {FadeInDown, Layout,} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 // Components
-import { ThemedView, Card } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { Button } from '@/components/Button';
+import {Card, ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 
 // Theme hooks
-import {
-    useColors,
-    useTypography,
-    useBorderRadius,
-    useShadows,
-    useSpacing,
-    useSemanticColors,
-    useColorVariants,
-    useTheme
-} from '@/hooks/useThemeColor';
+import {useColors, useColorVariants, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 
 // Services
-import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
+import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
 import {
     type BirdCategory,
     type BirdDexRecord,
@@ -51,8 +25,8 @@ import {
     getBirdDexRowCount,
     queryBirdDexPage,
 } from '@/services/databaseBirDex';
-import { hasSpottingForLatin } from '@/services/database';
-import { getBirdImageSource } from '@/services/birdImageService';
+import {hasSpottingForLatin} from '@/services/database';
+import {getBirdImageSource} from '@/services/birdImageService';
 
 // Types
 type DisplayRecord = BirdDexRecord & {

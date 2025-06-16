@@ -7,17 +7,17 @@
  */
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {StyleSheet, View} from 'react-native';
+import {router} from 'expo-router';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
 // Components
-import { ThemedPressable } from './ThemedPressable';
-import { ThemedIcon } from './ThemedIcon';
+import {ThemedPressable} from './ThemedPressable';
+import {ThemedIcon} from './ThemedIcon';
 
 // Theme
-import { useColors, useTheme } from '@/hooks/useThemeColor';
+import {useColors, useTheme} from '@/hooks/useThemeColor';
 
 interface BackButtonProps {
     onPress?: () => void;

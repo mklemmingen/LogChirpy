@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system';
-import { fastTfliteBirdClassifier, BirdClassificationResult } from './fastTfliteBirdClassifier';
-import { AudioPreprocessingTFLite } from './audioPreprocessingTFLite';
-import { ModelType, ModelConfig } from './modelConfig';
+import {BirdClassificationResult, fastTfliteBirdClassifier} from './fastTfliteBirdClassifier';
+import {AudioPreprocessingTFLite} from './audioPreprocessingTFLite';
+import {ModelConfig, ModelType} from './modelConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface AudioPrediction {
