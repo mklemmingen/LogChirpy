@@ -22,6 +22,7 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ModernCard} from '@/components/ModernCard';
 import {EnhancedCameraControls} from '@/components/CameraControls';
+import {BackButton} from '@/components/BackButton';
 
 // Modern theme hooks
 import {useTheme, useTypography, useColors} from '@/hooks/useThemeColor';
@@ -433,16 +434,10 @@ export default function VideoScreen() {
         />
 
         {/* Back Button */}
-        <View style={styles.backButton}>
-          <ThemedPressable
-              variant="ghost"
-              style={[styles.topButton, { backgroundColor: colors.background + '99' }]}
-              onPress={() => router.back()}
-              disabled={state === 'recording'}
-          >
-            <ThemedIcon name="arrow-left" size={24} color="primary" />
-          </ThemedPressable>
-        </View>
+        <BackButton 
+            variant="floating" 
+            disabled={state === 'recording'}
+        />
 
         {/* Camera Controls */}
         <View style={styles.controlBar}>
@@ -537,19 +532,6 @@ const styles = StyleSheet.create({
   },
 
   // Navigation
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-  },
-  topButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
 
   // Controls
   controlBar: {

@@ -23,6 +23,7 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {useTheme} from '@/hooks/useThemeColor';
+import {BackButton} from '@/components/BackButton';
 
 type RecordingStatus = 'idle' | 'recording' | 'stopping' | 'playback';
 
@@ -676,21 +677,15 @@ export default function AudioScreen() {
                 style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    paddingHorizontal: 16,
+                    paddingHorizontal: 8,
                     paddingVertical: 12,
                     borderBottomWidth: 1,
                     borderBottomColor: theme.colors.border.primary
                 }}
             >
-                <ThemedPressable
-                    variant="ghost"
-                    style={{ padding: 8 }}
-                    onPress={() => router.back()}
-                >
-                    <ThemedIcon name="arrow-left" size={24} color="primary" />
-                </ThemedPressable>
+                <BackButton variant="inline" />
 
-                <ThemedText variant="h3" style={{ marginLeft: 16 }}>
+                <ThemedText variant="h3" style={{ marginLeft: 8 }}>
                     {t('audio.record_audio', 'Record Audio')}
                 </ThemedText>
             </ThemedView>

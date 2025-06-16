@@ -268,13 +268,14 @@ export default function ManualBirdEntry() {
             {/* Header */}
             <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
                 <ThemedPressable
-                    variant="ghost"
+                    variant="secondary"
+                    size="md"
                     onPress={() => router.back()}
                     style={styles.backButton}
                 >
-                    <ThemedIcon name="arrow-left" size={24} color="primary" />
+                    <ThemedIcon name="arrow-left" size={20} color="primary" />
                 </ThemedPressable>
-
+                
                 <View style={styles.headerContent}>
                     <ThemedText variant="h2" style={styles.headerTitle}>
                         {t('log.manual_entry', 'New Bird Spotting')}
@@ -511,23 +512,20 @@ const styles = StyleSheet.create({
 
     // Header
     header: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
         paddingHorizontal: 20,
         paddingBottom: 16,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(0,0,0,0.05)',
+        gap: 16,
     },
     backButton: {
-        width: 44,
-        height: 44,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 22,
-        alignSelf: 'flex-start',
-        marginBottom: 12,
+        minWidth: 44,
     },
     headerContent: {
-        alignItems: 'center',
-        gap: 8,
+        flex: 1,
+        gap: 4,
     },
     headerTitle: {
         fontWeight: '700',
