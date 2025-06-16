@@ -756,7 +756,7 @@ export default function AudioScreen() {
                                 color="secondary"
                                 style={{ textAlign: 'center', lineHeight: 24 }}
                             >
-                                {t('audio.instructions', 'Record bird sounds for identification and logging. Keep the device steady and minimize background noise.')}
+                                {t('audio.instructions')}
                             </ThemedText>
                         </ThemedView>
                     )}
