@@ -331,8 +331,9 @@
     "audio_processing_failed": "Échec du traitement audio",
     "listening": "À l'écoute...",
     "audio_ready": "Audio prêt",
-    "audio_error": "Erreur audio"
-  },
+    "audio_error": "Erreur audio",
+   "instructions": "Enregistrez les chants d'oiseaux pour l'identification et la journalisation. Gardez l'appareil stable et minimisez les bruits de fond."
+},
   "log": {
     "save_success": "Entrée enregistrée",
     "entry_saved_success": "Votre entrée a été enregistrée.",
