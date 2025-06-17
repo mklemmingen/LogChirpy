@@ -171,6 +171,10 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
 
     // Animation
     const pulseAnimation = useSharedValue(0);
+    
+    // Processing state
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [debugText, setDebugText] = useState('Initializing Neural Networks...');
 
     // Get current location for ML enhancement
     const [location, setLocation] = useState<{ latitude: number; longitude: number } | undefined>();
@@ -236,12 +240,37 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
             onImageDetections: (newDetections) => {
                 setDetections(newDetections);
                 console.log(`[UI] Updated detections: ${newDetections.length} items`);
+                
+                // Log first detection details for debugging
+                if (newDetections.length > 0) {
+                    const firstDetection = newDetections[0];
+                    console.log(`[SVG Debug] First detection:`, {
+                        origin: firstDetection.frame.origin,
+                        size: firstDetection.frame.size,
+                        labels: firstDetection.labels[0]?.text,
+                        confidence: firstDetection.labels[0]?.confidence
+                    });
+                    console.log(`[SVG Debug] Scaled coordinates:`, {
+                        x: firstDetection.frame.origin.x * W,
+                        y: firstDetection.frame.origin.y * H,
+                        width: firstDetection.frame.size.x * W,
+                        height: firstDetection.frame.size.y * H,
+                        screenDims: { W, H }
+                    });
+                }
+                
+                setDebugText(
+                    newDetections.length > 0
+                        ? `Detection successful: ${newDetections.length} objects found`
+                        : 'No objects detected'
+                );
             },
             onImageProcessingStart: () => {
-                // Could show processing indicator
+                setIsProcessing(true);
+                setDebugText('Processing image...');
             },
             onImageProcessingEnd: () => {
-                // Could hide processing indicator
+                setIsProcessing(false);
             },
             onHighConfidenceSave: () => {
                 // Haptic feedback for saved detections
@@ -252,12 +281,16 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
             onAudioPredictions: (newPredictions) => {
                 setAudioResults(newPredictions);
                 console.log(`[UI] Updated audio results: ${newPredictions.length} items`);
+                if (newPredictions.length > 0) {
+                    const topResult = newPredictions[0];
+                    setDebugText(`Audio: ${topResult.common_name} (${Math.round(topResult.confidence * 100)}%)`);
+                }
             },
             onAudioProcessingStart: () => {
-                // Could show audio indicator
+                setDebugText('Recording audio...');
             },
             onAudioProcessingEnd: () => {
-                // Could hide audio indicator
+                // Audio processing complete
             },
             
             // General callbacks
@@ -272,6 +305,31 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
             onStateChange: (state) => {
                 setPipelineState(state);
                 console.log(`[UnifiedPipeline] State: ${state}`);
+                
+                // Update debug text based on pipeline state
+                switch (state) {
+                    case 'capturing_image':
+                        setDebugText('Capturing photo...');
+                        break;
+                    case 'detecting_objects':
+                        setDebugText('Detecting objects...');
+                        break;
+                    case 'classifying_objects':
+                        setDebugText('Classifying objects...');
+                        break;
+                    case 'recording_audio':
+                        setDebugText('Recording audio...');
+                        break;
+                    case 'processing_audio':
+                        setDebugText('Processing audio...');
+                        break;
+                    case 'waiting':
+                        setDebugText('Neural networks active');
+                        break;
+                    case 'idle':
+                        setDebugText('Neural networks offline');
+                        break;
+                }
             }
         });
 
@@ -281,7 +339,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
 
         return () => {
             console.log('[UnifiedPipeline] Cleaning up...');
-            pipelineRef.current?.stop();
+            pipelineRef.current?.cleanup();
             pipelineRef.current = null;
         };
     }, [isCameraActive, isFocused, isInitialized, detector, classifier, hasAudioPermission, hasLocationPermission, location]);
@@ -308,10 +366,45 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
             {/* Detection Overlays */}
             <View pointerEvents="none" style={styles.svgContainer}>
                 <Svg style={styles.svg} viewBox={`0 0 ${W} ${H}`}>
+                    {/* Debug indicator - always visible red dot in top-left */}
+                    <Rect
+                        x={20}
+                        y={20}
+                        width={10}
+                        height={10}
+                        fill="#FF0000"
+                        opacity="1"
+                    />
+                    
+                    {/* Debug detection box - always visible for testing */}
+                    <Rect
+                        x={100}
+                        y={100}
+                        width={200}
+                        height={150}
+                        fill="transparent"
+                        stroke={CYBER_COLORS.primary}
+                        strokeWidth="3"
+                        rx="4"
+                    />
+                    <SvgText
+                        x={110}
+                        y={90}
+                        fontSize="14"
+                        fontWeight="bold"
+                        fill={CYBER_COLORS.primary}
+                    >
+                        DEBUG BOX
+                    </SvgText>
+                    
                     {detections.map((detection, index) => {
+                        console.log(`[SVG Render] Processing detection ${index}:`, detection);
                         const { origin, size } = detection.frame;
                         const bestLabel = detection.labels[0];
-                        if (!bestLabel) return null;
+                        if (!bestLabel) {
+                            console.log(`[SVG Render] No label for detection ${index}`);
+                            return null;
+                        }
                         
                         const color = getConfidenceColor(bestLabel.confidence);
                         
@@ -369,7 +462,10 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                     <View style={styles.statusPanel}>
                         <ThemedText style={styles.hudTitle}>NEURAL VISION SYSTEM</ThemedText>
                         <ThemedText style={styles.statusText}>
-                            Status: {pipelineState.toUpperCase()}
+                            Status: {pipelineState.toUpperCase()} | Detections: {detections.length}
+                        </ThemedText>
+                        <ThemedText style={styles.debugText}>
+                            {debugText}
                         </ThemedText>
                     </View>
                 </View>
@@ -508,12 +604,13 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         backgroundColor: CYBER_COLORS.overlay,
         opacity: 0.1,
+        zIndex: 1,
     },
 
     // SVG overlays
     svgContainer: {
         ...StyleSheet.absoluteFillObject,
-        zIndex: 2,
+        zIndex: 4, // Higher than HUD to ensure visibility
     },
     svg: {
         flex: 1,
@@ -554,6 +651,12 @@ const styles = StyleSheet.create({
         color: CYBER_COLORS.textMuted,
         fontSize: 12,
         marginTop: 4,
+    },
+    debugText: {
+        color: CYBER_COLORS.text,
+        fontSize: 11,
+        marginTop: 4,
+        fontStyle: 'italic',
     },
 
     // Results panel
