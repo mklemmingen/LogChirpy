@@ -21,6 +21,7 @@ import Animated, {
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 import { ThemedTextInput } from '@/components/ThemedTextInput';
 import { ModernCard } from '@/components/ModernCard';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import {
     useTheme,
     useTypography,
@@ -28,7 +29,6 @@ import {
     useColorVariants,
 } from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
-import { Feather } from '@expo/vector-icons';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -206,7 +206,7 @@ export default function SignupScreen() {
                         <Animated.View style={fadeInStyle}>
                             <View style={styles.header}>
                                 <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
-                                    <Feather name="user-plus" size={32} color={semanticColors.primary} />
+                                    <ThemedIcon name="user-plus" size={32} color="primary" />
                                 </View>
                                 <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
                                     {t('auth.signup_title', 'Sign Up')}
@@ -296,11 +296,7 @@ export default function SignupScreen() {
                                                 onPress={() => setShowPassword(!showPassword)}
                                                 disabled={isLoading}
                                             >
-                                                <Feather
-                                                    name={showPassword ? 'eye-off' : 'eye'}
-                                                    size={20}
-                                                    color={semanticColors.secondary}
-                                                />
+                                                <ThemedIcon name={showPassword ? 'eye-off' : 'eye'} size={20} color="secondary" />
                                             </Pressable>
                                         </View>
                                         {errors.password && (
@@ -341,11 +337,7 @@ export default function SignupScreen() {
                                                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                                                 disabled={isLoading}
                                             >
-                                                <Feather
-                                                    name={showConfirmPassword ? 'eye-off' : 'eye'}
-                                                    size={20}
-                                                    color={semanticColors.secondary}
-                                                />
+                                                <ThemedIcon name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color="secondary" />
                                             </Pressable>
                                         </View>
                                         {errors.confirmPassword && (
@@ -379,7 +371,7 @@ export default function SignupScreen() {
                                                 </View>
                                             ) : (
                                                 <>
-                                                    <Feather name="user-plus" size={20} color={semanticColors.background} />
+                                                    <ThemedIcon name="user-plus" size={20} color="inverse" />
                                                     <Text style={[typography.body, styles.signupButtonText, { color: semanticColors.background }]}>
                                                         {t('auth.create_account')}
                                                     </Text>

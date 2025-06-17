@@ -1,426 +1,251 @@
-import React, {useCallback, useEffect, useRef, useState, useMemo} from 'react';
+/**
+ * 80s Sci-Fi ObjectIdentCamera Component
+ * 
+ * Features:
+ * ✅ Retro-futuristic 80s sci-fi UI design
+ * ✅ Automatic object detection → image classification
+ * ✅ Automatic audio bird classification
+ * ✅ Camera zoom and flash controls
+ * ✅ Portrait and landscape orientation support
+ * ✅ Compact ML pipeline results display
+ */
+
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
     ActivityIndicator,
-    Button,
     Dimensions,
     Image,
-    LayoutAnimation,
-    Modal,
     Platform,
     StyleSheet,
-    Text,
-    TouchableOpacity,
     UIManager,
-    useColorScheme,
     View,
+    StatusBar,
 } from 'react-native';
-import {Camera, useCameraDevice, useCameraPermission,} from 'react-native-vision-camera';
-import Svg, {Rect, Text as SvgText} from 'react-native-svg';
-import * as ImageManipulator from 'expo-image-manipulator';
-import {useObjectDetection} from '@infinitered/react-native-mlkit-object-detection';
-import type {MyModelsConfig} from './../_layout';
-
-import {useFocusEffect, useIsFocused} from '@react-navigation/native';
-import {AppState} from 'react-native';
-import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
-
-import * as FileSystem from 'expo-file-system';
+import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { Audio } from 'expo-av';
+import * as Location from 'expo-location';
+import * as ImageManipulator from 'expo-image-manipulator';
+import Svg, { Rect, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { useObjectDetection } from '@infinitered/react-native-mlkit-object-detection';
+import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling";
+import type { MyModelsConfig } from './../_layout';
 
-import {useTranslation} from 'react-i18next';
-import { filePathToUri, copyFileWithProperUri, ensureGalleryDirectory } from '@/services/uriUtils';
-
+import { useIsFocused } from '@react-navigation/native';
+import { AppState } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Slider from '@react-native-community/slider';
-
-import { AudioIdentificationService, AudioPrediction } from '@/services/audioIdentificationService';
-
-import {ThemedSnackbar} from "@/components/ThemedSnackbar";
-import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
-
 import * as Haptics from 'expo-haptics';
+import Animated, {
+    useAnimatedStyle,
+    withRepeat,
+    withTiming,
+    interpolate,
+    useSharedValue,
+    withSpring,
+} from 'react-native-reanimated';
 
-import {theme} from "@/constants/theme";
-import {Config} from "@/constants/config";
-import {ModelType} from "@/services/modelConfig";
+import { ThemedView } from "@/components/ThemedView";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedPressable } from "@/components/ThemedPressable";
+import { ThemedIcon } from "@/components/ThemedIcon";
+import { Config } from "@/constants/config";
 
+import { capturePhoto, saveClassifiedImage } from '@/services/cameraOperationsService';
+import { ensureGalleryDirectory, copyFileWithProperUri } from '@/services/uriUtils';
+import { 
+    classifyBirdAudioForPipeline as classifyWithUltraSimple,
+    initializeBirdClassifier as initUltraSimple
+} from '@/services/ultraSimpleBirdClassifier';
 
-// Note: Storage keys now managed globally in constants/config.ts
-const { width: W, height: H } = Dimensions.get('window');
-
+// Core interfaces
 interface Detection {
     frame: { origin: { x: number; y: number }; size: { x: number; y: number } };
     labels: { text: string; confidence: number; index: number }[];
 }
 
-interface CropBox {
-    origin: { x: number; y: number };
-    size: { x: number; y: number };
+interface AudioPrediction {
+    common_name: string;
+    scientific_name: string;
+    confidence: number;
 }
 
-interface SnackbarOptions {
-    bird?: string;
-    confidence?: number;
-    message?: string;
-    [key: string]: any;
-}
+const { width: W, height: H } = Dimensions.get('window');
 
-function getBoxStyle(confidence: number) {
-    // Clamp conf to [0,1]
+// Dark Cyberpunk Color Palette
+const CYBER_COLORS = {
+    primary: '#00D4FF',      // Electric blue
+    secondary: '#7C3AED',    // Deep purple
+    accent: '#10B981',       // Emerald green
+    warning: '#F59E0B',      // Amber
+    danger: '#EF4444',       // Red
+    success: '#22C55E',      // Green
+    text: '#F8FAFC',         // Near white
+    textMuted: '#94A3B8',    // Slate 400
+    background: '#0F0F23',   // Very dark blue
+    surface: '#1E1E2E',      // Dark surface
+    surfaceElevated: '#262640', // Elevated surface
+    border: '#374151',       // Gray border
+    borderActive: '#00D4FF', // Active border
+    overlay: '#000000CC',    // Semi-transparent black
+};
+
+// Helper function for cyberpunk confidence visualization
+function getCyberBoxStyle(confidence: number) {
     const c = Math.min(Math.max(confidence, 0), 1);
-    // Map confidence → hue (0 = red, 120 = green)
-    const hue = Math.round(c * 120);
-    // Use full saturation + mid lightness
-    const color = `hsl(${hue}, 100%, 50%)`;
-    // Make sure we never go fully transparent
-    const opacity = 0.2 + 0.8 * c;
-    return { color, opacity };
+    
+    if (c > 0.8) return { color: CYBER_COLORS.success, opacity: 0.9 };
+    if (c > 0.6) return { color: CYBER_COLORS.primary, opacity: 0.8 };
+    if (c > 0.4) return { color: CYBER_COLORS.accent, opacity: 0.7 };
+    if (c > 0.2) return { color: CYBER_COLORS.warning, opacity: 0.6 };
+    return { color: CYBER_COLORS.danger, opacity: 0.5 };
 }
 
-
-const getDelayPresetLabel = (value: number): string => {
-    if (value <= 0.25) return '⚡ Fast';
-    if (value <= 0.6) return '⚖️ Balanced';
-    return '🔍 Thorough';
-};
-
-const getConfidencePresetLabel = (value: number): string => {
-    if (value < 0.4) return '🟢 Lenient';
-    if (value < 0.75) return '🟡 Normal';
-    return '🔴 Strict';
-};
-
-function generateFilename(prefix: string, label: string, confidence: number) {
-    const now = new Date();
-    const timestamp = now.toISOString().replace(/[:.]/g, '-');
-    const milliseconds = now.getTime();
-    const safeLabel = label.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-    const confidenceStr = Math.round(confidence * 100).toString().padStart(3, '0');
-    return `${prefix}_${safeLabel}_conf${confidenceStr}_${timestamp}_${milliseconds}.jpg`;
-}
-
-async function handleClassifiedSave(
-    fileUri: string,
-    label: { text: string; confidence: number },
-    threshold: number,
-    prefix: 'bird' | 'full',
-    showSnackbar: (key: string, options?: SnackbarOptions) => void,
-    setDebugText: (txt: string) => void
-): Promise<void> {
-    if (label.confidence < threshold) return;
-
-    const filename = generateFilename(prefix, label.text, label.confidence);
+// Helper function to crop detected objects from images
+async function cropDetectionImage(
+    imageUri: string, 
+    frame: { origin: { x: number; y: number }; size: { x: number; y: number } }
+): Promise<string> {
     try {
-        // Ensure gallery directory exists
-        const galleryDir = await ensureGalleryDirectory();
-
-        // Save to gallery directory with proper URI handling
-        const destPath = `${galleryDir}${filename}`;
-        const savedUri = await copyFileWithProperUri(fileUri, destPath);
-
-        console.log(`${prefix} classified image saved to gallery:`, savedUri);
-        showSnackbar('camera.bird_detected', {
-            bird: label.text,
-            confidence: Math.round(label.confidence * 100),
+        const { origin, size } = frame;
+        
+        // Validate coordinates are reasonable
+        if (origin.x < 0 || origin.y < 0 || size.x <= 0 || size.y <= 0) {
+            throw new Error(`Invalid crop coordinates: origin(${origin.x}, ${origin.y}) size(${size.x}, ${size.y})`);
+        }
+        
+        // Detect if coordinates are normalized (0-1) or pixel coordinates
+        const isNormalized = origin.x <= 1 && origin.y <= 1 && size.x <= 1 && size.y <= 1;
+        
+        let cropX, cropY, cropWidth, cropHeight;
+        
+        if (isNormalized) {
+            // Coordinates are normalized (0-1), need to get image dimensions
+            // For this case, we'll use a reasonable assumption about image size
+            // Camera typically captures at device screen resolution or higher
+            const imageWidth = 1080; // Assume typical camera resolution width
+            const imageHeight = 1920; // Assume typical camera resolution height
+            
+            cropX = Math.round(origin.x * imageWidth);
+            cropY = Math.round(origin.y * imageHeight);
+            cropWidth = Math.round(size.x * imageWidth);
+            cropHeight = Math.round(size.y * imageHeight);
+            
+            console.log(`[ImageML] Normalized coordinates detected, scaling to pixels:`, {
+                normalized: { origin, size },
+                pixels: { x: cropX, y: cropY, width: cropWidth, height: cropHeight }
+            });
+        } else {
+            // Coordinates are already in pixels
+            cropX = Math.round(origin.x);
+            cropY = Math.round(origin.y);
+            cropWidth = Math.round(size.x);
+            cropHeight = Math.round(size.y);
+            
+            console.log(`[ImageML] Pixel coordinates detected:`, {
+                pixels: { x: cropX, y: cropY, width: cropWidth, height: cropHeight }
+            });
+        }
+        
+        // Ensure minimum crop size for classification
+        cropWidth = Math.max(cropWidth, 50);
+        cropHeight = Math.max(cropHeight, 50);
+        
+        const cropAction = {
+            crop: {
+                originX: cropX,
+                originY: cropY,
+                width: cropWidth,
+                height: cropHeight
+            }
+        };
+        
+        const result = await ImageManipulator.manipulateAsync(
+            imageUri,
+            [cropAction],
+            { 
+                compress: 0.8, 
+                format: ImageManipulator.SaveFormat.JPEG 
+            }
+        );
+        
+        console.log(`[ImageML] ✅ Crop successful:`, {
+            outputUri: result.uri,
+            outputDimensions: { width: result.width, height: result.height },
+            cropRegion: cropAction.crop
         });
+        return result.uri;
+    } catch (error) {
+        console.error('[ImageML] Crop failed:', error);
+        throw error;
+    }
+}
+
+// Helper function to save high-confidence detection screenshots
+async function saveHighConfidenceScreenshot(
+    originalImageUri: string,
+    croppedImageUri: string,
+    detection: Detection,
+    detectionIndex: number,
+    onSaveSuccess?: () => void
+): Promise<void> {
+    try {
+        const bestLabel = detection.labels[0];
+        if (!bestLabel || bestLabel.confidence < Config.camera.confidenceThreshold) {
+            return; // Below threshold, don't save
+        }
+
+        console.log(`[Screenshot] High confidence detection found: ${bestLabel.text} (${Math.round(bestLabel.confidence * 100)}%)`);
+
+        // Generate descriptive filename
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const safeLabel = bestLabel.text.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+        const confidenceStr = Math.round(bestLabel.confidence * 100).toString().padStart(3, '0');
+        
+        // Save both original and cropped versions
+        const galleryDir = await ensureGalleryDirectory();
+        
+        // Save original full screenshot
+        const originalFilename = `detection_full_${safeLabel}_conf${confidenceStr}_${timestamp}_${Date.now()}.jpg`;
+        const originalDestPath = `${galleryDir}${originalFilename}`;
+        const originalSavedUri = await copyFileWithProperUri(originalImageUri, originalDestPath);
+        
+        // Save cropped object image
+        const croppedFilename = `detection_crop_${safeLabel}_conf${confidenceStr}_${timestamp}_${Date.now()}_crop.jpg`;
+        const croppedDestPath = `${galleryDir}${croppedFilename}`;
+        const croppedSavedUri = await copyFileWithProperUri(croppedImageUri, croppedDestPath);
+        
+        console.log(`[Screenshot] Saved high-confidence detection:`, {
+            label: bestLabel.text,
+            confidence: bestLabel.confidence,
+            originalImage: originalSavedUri,
+            croppedImage: croppedSavedUri
+        });
+
+        // Optional: Add haptic feedback for successful save
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-    } catch (error) {
-        console.error('Failed to save image to gallery directory:', error);
-        const message = error instanceof Error ? error.message : String(error);
-        setDebugText(`Save failed: ${message}`);
-    }
-}
-
-async function waitForFileStability(filePath: string, maxWaitMs: number = 3000): Promise<boolean> {
-    let attempts = 0;
-    const maxAttempts = Math.ceil(maxWaitMs / 100);
-    let lastSize = 0;
-    
-    while (attempts < maxAttempts) {
-        try {
-            const info = await FileSystem.getInfoAsync(filePath);
-            if (!info.exists) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                attempts++;
-                continue;
-            }
-            
-            const currentSize = info.size || 0;
-            if (currentSize > 0 && currentSize === lastSize && attempts > 2) {
-                return true;
-            }
-            
-            lastSize = currentSize;
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        } catch (error) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        }
-    }
-    
-    return false;
-}
-
-async function retryFileOperation<T>(
-    operation: () => Promise<T>,
-    maxRetries: number = 3,
-    delayMs: number = 200
-): Promise<T> {
-    let lastError: Error | null = null;
-    
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            return await operation();
-        } catch (error) {
-            lastError = error as Error;
-            if (i < maxRetries - 1) {
-                await new Promise(resolve => setTimeout(resolve, delayMs * (i + 1)));
-            }
-        }
-    }
-    
-    throw lastError;
-}
-
-async function deleteOldFiles(dirUri: string, maxAgeMinutes: number): Promise<void> {
-    const fileNames = await FileSystem.readDirectoryAsync(dirUri);
-    const now = Date.now();
-
-    for (const name of fileNames) {
-        const fileUri = `${dirUri}${name}`;
-        const info = await FileSystem.getInfoAsync(fileUri) as FileSystem.FileInfo & { modificationTime?: number };
-        const mod = info.modificationTime;
-        if (mod && now - mod * 1000 > maxAgeMinutes * 60 * 1000) {
-            await FileSystem.deleteAsync(fileUri);
-            console.log("Deleted old file:", fileUri);
-        }
-    }
-}
-
-// Audio recording configuration for bird detection
-const AUDIO_CONFIG = {
-    android: {
-        extension: '.m4a',
-        outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-        audioEncoder: Audio.AndroidAudioEncoder.AAC,
-        sampleRate: 48000, // BirdNet prefers 48kHz
-        numberOfChannels: 1, // Mono for smaller files
-        bitRate: 128000,
-    },
-    ios: {
-        extension: '.m4a',
-        outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-        audioQuality: Audio.IOSAudioQuality.HIGH,
-        sampleRate: 48000,
-        numberOfChannels: 1,
-        bitRate: 128000,
-        linearPCMBitDepth: 16,
-        linearPCMIsBigEndian: false,
-        linearPCMIsFloat: false,
-    },
-    web: {
-        extension: '.m4a',
-    }
-};
-
-async function initializeAudio(): Promise<boolean> {
-    try {
-        console.log('[Audio] Initializing audio system...');
         
-        // Step 1: Request audio permissions
-        console.log('[Audio] Requesting microphone permissions...');
-        const { status } = await Audio.requestPermissionsAsync();
-        console.log('[Audio] Permission status:', status);
-        
-        if (status !== 'granted') {
-            console.warn('[Audio] Microphone permission denied, status:', status);
-            throw new Error('Microphone permission required for bird detection');
+        // Notify parent component of successful save
+        if (onSaveSuccess) {
+            onSaveSuccess();
         }
-        
-        console.log('[Audio] Microphone permissions granted');
-        
-        // Step 2: Configure audio mode
-        try {
-            await Audio.setAudioModeAsync({
-                allowsRecordingIOS: true,
-                playsInSilentModeIOS: true,
-                shouldDuckAndroid: true,
-                playThroughEarpieceAndroid: false,
-            });
-        } catch (audioModeError) {
-            console.warn('[Audio] Audio mode configuration failed:', audioModeError);
-            // Continue anyway, as this might still work
-        }
-        
-        // Step 3: Initialize BirdNet service for audio processing
-        try {
-            await AudioIdentificationService.initialize();
-            console.log('[Audio] BirdNet service initialized successfully');
-        } catch (birdNetError) {
-            console.error('[Audio] BirdNet initialization failed:', birdNetError);
-            
-            // Try fallback initialization
-            try {
-                await AudioIdentificationService.initializeFastTflite();
-                console.log('[Audio] BirdNet FastTflite fallback initialized');
-            } catch (fallbackError) {
-                console.error('[Audio] All BirdNet initialization methods failed:', fallbackError);
-                throw new Error('Bird detection models unavailable');
-            }
-        }
-        
-        // Step 4: Test recording capability
-        try {
-            console.log('[Audio] Testing recording capability...');
-            const testRecording = new Audio.Recording();
-            
-            // Try to prepare recording with current config
-            try {
-                await testRecording.prepareToRecordAsync(AUDIO_CONFIG as any);
-            } catch (prepareError) {
-                console.warn('[Audio] Failed to prepare with full config, trying fallback...');
-                // Try with minimal config as fallback
-                const fallbackConfig = Platform.OS === 'ios' ? {
-                    extension: '.m4a',
-                    outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-                    audioQuality: Audio.IOSAudioQuality.MEDIUM,
-                    sampleRate: 44100,
-                    numberOfChannels: 1,
-                } : {
-                    extension: '.m4a',
-                    outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-                    audioEncoder: Audio.AndroidAudioEncoder.AAC,
-                    sampleRate: 44100,
-                    numberOfChannels: 1,
-                };
-                await testRecording.prepareToRecordAsync(fallbackConfig as any);
-            }
-            
-            // Start recording briefly to test capability
-            await testRecording.startAsync();
-            
-            // Wait a small amount to ensure recording actually starts
-            await new Promise(resolve => setTimeout(resolve, 200));
-            
-            // Stop and unload the test recording
-            await testRecording.stopAndUnloadAsync();
-            console.log('[Audio] Recording test passed');
-        } catch (recordingTestError) {
-            console.error('[Audio] Recording test failed:', recordingTestError);
-            console.warn('[Audio] Continuing without recording test validation - recording may still work during actual use');
-            // Don't throw error - allow audio system to continue without test validation
-        }
-        
-        console.log('[Audio] Audio system initialized successfully');
-        return true;
         
     } catch (error) {
-        console.error('[Audio] Failed to initialize audio system:', error);
-        
-        // Return specific error information
-        if (error instanceof Error) {
-            console.error('[Audio] Initialization error details:', error.message);
-        }
-        
-        return false;
-    }
-}
-
-async function recordAndProcessAudio(): Promise<AudioPrediction[]> {
-    let recording: Audio.Recording | null = null;
-    let audioUri: string | null = null;
-    
-    try {
-        console.log('[Audio] Starting 5-second recording...');
-        
-        recording = new Audio.Recording();
-        await recording.prepareToRecordAsync(AUDIO_CONFIG as any);
-        await recording.startAsync();
-        
-        // Record for exactly 5 seconds
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        
-        await recording.stopAndUnloadAsync();
-        audioUri = recording.getURI();
-        
-        if (!audioUri) {
-            throw new Error('Failed to get recording URI');
-        }
-        
-        console.log('[Audio] Recording complete, processing audio...');
-        
-        // Process audio through BirdNet with enhanced error handling
-        // Use MData V2 FP16 model for real-time camera processing (has embedded labels)
-        let result;
-        try {
-            result = await AudioIdentificationService.identifyBirdFromAudio(audioUri, {
-                modelType: ModelType.MDATA_V2_FP16
-            });
-            
-            if (!result || !result.success) {
-                console.warn('[Audio] BirdNet processing failed, no valid results');
-                return [];
-            }
-            
-        } catch (birdNetError) {
-            console.error('[Audio] BirdNet service failed:', birdNetError);
-            
-            // Fallback: Try to extract basic audio info without ML processing
-            console.log('[Audio] Attempting fallback processing...');
-            return []; // Return empty results rather than crashing
-        }
-        
-        console.log(`[Audio] Found ${result.predictions.length} bird detections`);
-        return result.predictions || [];
-        
-    } catch (error) {
-        console.error('[Audio] Recording and processing failed:', error);
-        
-        // Enhanced error handling with specific error types
-        if (error instanceof Error) {
-            if (error.message.includes('permission')) {
-                throw new Error('Microphone permission required');
-            } else if (error.message.includes('recording')) {
-                throw new Error('Recording failed - check microphone');
-            } else if (error.message.includes('processing')) {
-                throw new Error('Audio processing failed');
-            }
-        }
-        
-        throw new Error('Audio pipeline unavailable');
-        
-    } finally {
-        // Ensure cleanup happens regardless of success/failure
-        if (recording) {
-            try {
-                await recording.stopAndUnloadAsync();
-            } catch (stopError) {
-                console.warn('[Audio] Failed to stop recording:', stopError);
-            }
-        }
-        
-        if (audioUri) {
-            try {
-                await FileSystem.deleteAsync(audioUri);
-            } catch (cleanupError) {
-                console.warn('[Audio] Failed to cleanup recording:', cleanupError);
-            }
-        }
+        console.error('[Screenshot] Failed to save high-confidence detection:', error);
     }
 }
 
 export default function ObjectIdentCameraWrapper() {
     const [isLoading, setIsLoading] = useState(true);
     const [permissionRequested, setPermissionRequested] = useState(false);
+    const [audioPermissionRequested, setAudioPermissionRequested] = useState(false);
+    const [locationPermissionRequested, setLocationPermissionRequested] = useState(false);
+    const [hasAudioPermission, setHasAudioPermission] = useState(false);
+    const [hasLocationPermission, setHasLocationPermission] = useState(false);
     const device = useCameraDevice('back');
     const { hasPermission, requestPermission } = useCameraPermission();
     const { t } = useTranslation();
-    const raw = useColorScheme()
-    const colorScheme: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light'
-    const currentTheme = theme[colorScheme]
 
-    // Request permission only once
+    // Request permissions
     useEffect(() => {
         if (!hasPermission && !permissionRequested) {
             setPermissionRequested(true);
@@ -428,75 +253,108 @@ export default function ObjectIdentCameraWrapper() {
         }
     }, [hasPermission, permissionRequested, requestPermission]);
 
-    // Loading timer
+    useEffect(() => {
+        const requestAudioPermission = async () => {
+            if (!hasAudioPermission && !audioPermissionRequested) {
+                setAudioPermissionRequested(true);
+                try {
+                    const { status } = await Audio.requestPermissionsAsync();
+                    setHasAudioPermission(status === 'granted');
+                    console.log('[AudioML] Permission status:', status);
+                    if (status === 'granted') {
+                        console.log('[AudioML] ✅ Audio permission granted - ML will initialize');
+                    } else {
+                        console.log('[AudioML] ❌ Audio permission denied - ML disabled');
+                    }
+                } catch (error) {
+                    console.error('Audio permission request failed:', error);
+                    setHasAudioPermission(false);
+                }
+            }
+        };
+        requestAudioPermission();
+    }, [hasAudioPermission, audioPermissionRequested]);
+
+    useEffect(() => {
+        const requestLocationPermission = async () => {
+            if (!hasLocationPermission && !locationPermissionRequested) {
+                setLocationPermissionRequested(true);
+                try {
+                    const { status } = await Location.requestForegroundPermissionsAsync();
+                    setHasLocationPermission(status === 'granted');
+                } catch (error) {
+                    console.error('Location permission request failed:', error);
+                    setHasLocationPermission(false);
+                }
+            }
+        };
+        requestLocationPermission();
+    }, [hasLocationPermission, locationPermissionRequested]);
+
     useEffect(() => {
         const timer = setTimeout(() => setIsLoading(false), 1000);
         return () => clearTimeout(timer);
     }, []);
 
-    // 2) if we’re still loading resources, show loader
     if (isLoading || !device || !hasPermission) {
         return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#0000ff" />
-                <Text style={{color: currentTheme.colors.text.primary, fontSize: 16, marginTop: 10}}>
-                    {t('camera.loading_screen')}
-                </Text>
+            <View style={styles.cyberLoading}>
+                <StatusBar barStyle="light-content" backgroundColor={CYBER_COLORS.background} />
+                <View style={styles.cyberLoadingContainer}>
+                    <ActivityIndicator size="large" color={CYBER_COLORS.primary} />
+                    <ThemedText style={styles.cyberLoadingText}>
+                        Initializing Neural Networks...
+                    </ThemedText>
+                    <View style={styles.cyberLoadingBar}>
+                        <View style={styles.cyberLoadingBarFill} />
+                    </View>
+                </View>
             </View>
         );
     }
 
-    // 3) when everything’s ready, mount the real camera content
-    return <ObjectIdentCameraContent />;
+    return (
+        <ObjectIdentCamera 
+            hasAudioPermission={hasAudioPermission}
+            hasLocationPermission={hasLocationPermission}
+        />
+    );
 }
 
+interface ObjectIdentCameraProps {
+    hasAudioPermission: boolean;
+    hasLocationPermission: boolean;
+}
 
-function ObjectIdentCameraContent() {
+function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: ObjectIdentCameraProps) {
     const device = useCameraDevice('back');
     const { t } = useTranslation();
-    const raw = useColorScheme()
-    const colorScheme: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light'
-    const currentTheme = theme[colorScheme]
 
-    // Camera setup and permissions
+    // Core state
     const cameraRef = useRef<Camera>(null);
     const [isInitialized, setIsInitialized] = useState(false);
-
-    const [isProcessing, setIsProcessing] = useState(false);
     const [zoom, setZoom] = useState(1);
-
-    // MLKit: detection, classification, and UI overlays
+    const [flash, setFlash] = useState<'off' | 'on'>('off');
+    
+    // ML state
     const [detections, setDetections] = useState<Detection[]>([]);
-    const [classifierReady, setClassifierReady] = useState(false);
-    const [imageDims, setImageDims] = useState({ width: 0, height: 0 });
-    const [showOverlays, setShowOverlays] = useState(true);
-
-    // Photo paths and image state
-    const [photoPath, setPhotoPath] = useState<string | null>(null);
-    const [lastPhotoUri, setLastPhotoUri] = useState<string | null>(null);
-    const [modalPhotoUri, setModalPhotoUri] = useState<string | null>(null);
-
-    // Detection pipeline controls
-    const [isDetectionPaused, setIsDetectionPaused] = useState(false);
-    const [pipelineDelay, setPipelineDelay] = useState(Config.camera.pipelineDelay);
-    const [confidenceThreshold, setConfidenceThreshold] = useState(Config.camera.confidenceThreshold);
-
-    // UI Settings and visibility toggles
-    const [showSettings, setShowSettings] = useState(Config.camera.showSettings);
-    const [modalVisible, setModalVisible] = useState(false);
-
-    // Audio processing state
     const [audioResults, setAudioResults] = useState<AudioPrediction[]>([]);
-    const [audioProcessing, setAudioProcessing] = useState(false);
-    const [audioError, setAudioError] = useState<string | null>(null);
-    const [audioInitialized, setAudioInitialized] = useState(false);
-    const audioIntervalRef = useRef<NodeJS.Timeout>();
+    const [imageMLReady, setImageMLReady] = useState(false);
+    const [audioMLReady, setAudioMLReady] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [recentSaves, setRecentSaves] = useState<number>(0); // Count of recent screenshot saves
 
-    // Note: Tooltip states removed - settings now managed globally
-
-    // Focus/app state control
+    // Focus and app state
     const isFocused = useIsFocused();
     const [appState, setAppState] = useState(AppState.currentState);
+    
+    // Subtle animated values for cyberpunk effects
+    const pulseAnimation = useSharedValue(0);
+    
+    useEffect(() => {
+        // Gentle pulse for status indicators only
+        pulseAnimation.value = withRepeat(withTiming(1, { duration: 2000 }), -1, true);
+    }, []);
     
     useEffect(() => {
         const subscription = AppState.addEventListener('change', setAppState);
@@ -504,1039 +362,713 @@ function ObjectIdentCameraContent() {
     }, []);
     
     const isCameraActive = isFocused && appState === 'active';
-    
-    // Component cleanup to prevent view conflicts
-    useFocusEffect(
-        useCallback(() => {
-            return () => {
-                // Cleanup when losing focus to prevent view conflicts
-                setIsInitialized(false);
-                setIsDetectionPaused(true);
-                setModalVisible(false);
-                setModalPhotoUri(null);
-                setShowOverlays(true);
-                
-                // Stop audio processing
-                if (audioIntervalRef.current) {
-                    clearInterval(audioIntervalRef.current);
-                }
-            };
-        }, [])
-    );
 
-    // Permissions
-    const [hasMediaPermission, setHasMediaPermission] = useState(false);
-
-    // Snackbar notification logic
-    const [snackbarVisible, setSnackbarVisible] = useState(false);
-    const [snackbarMessage, setSnackbarMessage] = useState('');
-    const showSnackbar = useCallback((key: string, options?: SnackbarOptions) => {
-        setSnackbarMessage(t(key, options));
-        setSnackbarVisible(true);
-        setTimeout(() => setSnackbarVisible(false), 2500);
-    }, [t]);
-
-
-    // Debug message shown to user
-    const [debugText, setDebugText] = useState(t('camera.initializing'));
-
-    // Load settings from global config on mount and when config changes
-    useEffect(() => {
-        setPipelineDelay(Config.camera.pipelineDelay);
-        setConfidenceThreshold(Config.camera.confidenceThreshold);
-        setShowSettings(Config.camera.showSettings);
-    }, []);
-    
-    // Update local state when global config changes (e.g., from settings page)
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (Config.camera.pipelineDelay !== pipelineDelay) {
-                setPipelineDelay(Config.camera.pipelineDelay);
-            }
-            if (Config.camera.confidenceThreshold !== confidenceThreshold) {
-                setConfidenceThreshold(Config.camera.confidenceThreshold);
-            }
-            if (Config.camera.showSettings !== showSettings) {
-                setShowSettings(Config.camera.showSettings);
-            }
-        }, 1000); // Check every second
-        
-        return () => clearInterval(interval);
-    }, [pipelineDelay, confidenceThreshold, showSettings]);
-
-    // Note: Settings handlers removed - values now managed globally via settings page
-
-    const toggleShowSettings = useCallback(() => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setShowSettings(prev => !prev);
-        // Note: showSettings is now managed globally via settings page
-    }, []);
-
-    // Initialize component once on mount
-    useEffect(() => {
-        console.log('[ObjectDetection] Component mounted, initializing...');
-        let isMounted = true;
-        
-        const initializeComponent = async () => {
-            if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-                UIManager.setLayoutAnimationEnabledExperimental(true);
-            }
-
-            // No media permissions needed for document directory storage
-            if (isMounted) {
-                setHasMediaPermission(true);
-            }
-            
-            // Initialize audio system
-            try {
-                const audioSuccess = await initializeAudio();
-                if (isMounted) {
-                    setAudioInitialized(audioSuccess);
-                    if (audioSuccess) {
-                        console.log('[Audio] Audio system ready for bird detection');
-                    } else {
-                        setAudioError(t('audio.audio_initialization_failed'));
-                    }
-                }
-            } catch (error) {
-                console.error('[Audio] Audio initialization error:', error);
-                if (isMounted) {
-                    setAudioError(t('audio.audio_system_unavailable'));
-                }
-            }
-        };
-
-        initializeComponent();
-        
-        // Cleanup function to prevent view conflicts on unmount
-        return () => {
-            console.log('[ObjectDetection] Component unmounting, cleaning up...');
-            isMounted = false;
-            setIsInitialized(false);
-            setIsDetectionPaused(true);
-            setModalVisible(false);
-            setModalPhotoUri(null);
-        };
-    }, []);
-
-
+    // MLKit setup
     const detector = useObjectDetection<MyModelsConfig>('efficientNetlite0int8');
     const classifier = useImageLabeling("birdClassifier");
     
-    // Memoize classifier ready check
     const isClassifierReady = useMemo(() => {
         return !!(classifier && typeof classifier.classifyImage === 'function');
     }, [classifier]);
 
-    type ClassificationResult = { text: string; confidence: number; index: number }[];
-
-    const classifyImage = async (imageUri: string): Promise<ClassificationResult> => {
+    const classifyImage = async (imageUri: string) => {
         try {
+            console.log('[ImageML] Classifying image:', imageUri);
             const result = await classifier?.classifyImage(imageUri);
-            console.log('Classifier result:', result);
-
-            // If result is string, try JSON.parse
+            console.log('[ImageML] Raw classification result type:', typeof result);
+            
+            let parsedResult;
             if (typeof result === 'string') {
+                console.log('[ImageML] Parsing string result...');
                 const parsed = JSON.parse(result);
-                return Array.isArray(parsed) ? parsed : [];
+                parsedResult = Array.isArray(parsed) ? parsed : [];
+            } else {
+                parsedResult = result ?? [];
             }
-
-            return result ?? [];
+            
+            console.log('[ImageML] Parsed classification result:', {
+                isArray: Array.isArray(parsedResult),
+                length: parsedResult.length,
+                sample: parsedResult[0] || 'No results'
+            });
+            
+            return parsedResult;
         } catch (error) {
-            console.error("Classification failed:", error);
+            console.error("[ImageML] Classification failed:", error);
             return [];
         }
     };
 
-    // Component active state
-    const isActive = useRef(true);
-    const captureTimeoutRef = useRef<NodeJS.Timeout>();
-
-    // Capture loop: take photo, manipulate, and save to document directory
+    // Initialize ML systems independently (only once)
     useEffect(() => {
-        if (!isInitialized || isDetectionPaused || !cameraRef.current || !detector) {
+        let isMounted = true;
+        
+        // Prevent re-initialization if already ready
+        if (imageMLReady && audioMLReady) {
+            return;
+        }
+        
+        // Initialize Image ML
+        const initImageML = async () => {
+            if (imageMLReady) return;
+            try {
+                if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+                    UIManager.setLayoutAnimationEnabledExperimental(true);
+                }
+                setImageMLReady(true);
+                console.log('[ImageML] ✅ Ready');
+            } catch (error) {
+                console.error('[ImageML] ❌ Failed:', error);
+            }
+        };
+        
+        // Initialize Audio ML
+        const initAudioML = async () => {
+            if (audioMLReady) return;
+            try {
+                if (!hasAudioPermission) {
+                    console.log('[AudioML] ⚠️ No audio permission - audio ML disabled');
+                    return;
+                }
+                
+                const initialized = await initUltraSimple();
+                if (initialized && isMounted) {
+                    setAudioMLReady(true);
+                    console.log('[AudioML] ✅ Ready');
+                }
+            } catch (error) {
+                console.error('[AudioML] ❌ Failed:', error);
+            }
+        };
+
+        if (!imageMLReady) initImageML().catch(console.error);
+        if (!audioMLReady && hasAudioPermission) initAudioML().catch(console.error);
+        
+        return () => { isMounted = false; };
+    }, [hasAudioPermission, imageMLReady, audioMLReady]);
+
+    // Image ML loop
+    useEffect(() => {
+        if (!isInitialized || !cameraRef.current || !detector || !isClassifierReady || !imageMLReady || !isCameraActive) {
             return;
         }
 
-        const captureLoop = async () => {
-            if (!cameraRef.current || !isInitialized || isDetectionPaused || !isActive.current) {
-                return;
-            }
-
+        let isActive = true;
+        
+        const detectionLoop = async () => {
+            if (!isActive) return;
+            
             try {
                 setIsProcessing(true);
-                setDebugText(t('camera.capturing'));
-
-                const photo = await cameraRef.current.takePhoto({
-                    flash: 'off',
-                    enableShutterSound: false,
-                });
-
-                console.log('Photo taken:', photo);
-
-                if (!photo?.path) {
-                    setDebugText(t('errors.no_photo_path'));
-                    return;
-                }
-
-                // Apply any desired image manipulations (compression, format, etc.)
-                const manipResult = await ImageManipulator.manipulateAsync(
-                    photo.path,
-                    [],
-                    { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG }
-                );
-
-                setImageDims({ width: manipResult.width, height: manipResult.height });
-
-                // Save manipulated image to the document directory with proper URI handling
+                
+                // Capture photo with error isolation
+                let photoResult;
                 try {
-                    const fileName = `photo_${Date.now()}.jpg`;
-                    const destPath = `${FileSystem.documentDirectory}${fileName}`;
-
-                    // Copy the manipulated image to document directory and get proper URI
-                    const savedUri = await copyFileWithProperUri(manipResult.uri, destPath);
-                    
-                    console.log('Photo saved to document directory:', savedUri);
-                    setPhotoPath(savedUri);
-
-                } catch (copyError: unknown) {
-                    console.error('Error copying photo to document directory:', copyError);
-                    const message = copyError instanceof Error ? copyError.message : String(copyError);
-                    setDebugText(t('errors.save_photo_failed', { message }));
+                    photoResult = await capturePhoto(cameraRef, { manual: false, quality: 0.3 });
+                    if (!photoResult.success || !photoResult.uri) {
+                        console.warn('[ImageML] Photo capture failed:', photoResult.error || 'No URI returned');
+                        return;
+                    }
+                } catch (captureError) {
+                    console.error('[ImageML] Photo capture error:', captureError);
                     return;
                 }
-            } catch (err: unknown) {
-                const message = err instanceof Error ? err.message : String(err);
-                console.error(t('errors.capture_failed', { message }));
-                setDebugText(t('errors.capture_failed', { message }));
+
+                // Detect objects with error isolation
+                let objects = [];
+                try {
+                    console.log('[ImageML] 🔍 Step 1: Starting object detection...');
+                    objects = await detector.detectObjects(photoResult.uri);
+                    console.log(`[ImageML] ✅ Step 1 Complete: Detected ${objects.length} objects`);
+                    
+                    // Log detailed frame data for debugging
+                    objects.forEach((obj, idx) => {
+                        console.log(`[ImageML] Object ${idx + 1} frame:`, {
+                            origin: obj.frame?.origin,
+                            size: obj.frame?.size,
+                            hasLabels: !!obj.labels,
+                            labelCount: obj.labels?.length || 0
+                        });
+                    });
+                } catch (detectionError) {
+                    console.error('[ImageML] ❌ Object detection error:', detectionError);
+                    return; // Skip this cycle if detection fails
+                }
+                
+                // Process detections with individual error isolation and proper cropping
+                const enrichedDetections: Detection[] = [];
+                for (const [index, obj] of objects.entries()) {
+                    try {
+                        // Validate detection frame
+                        if (!obj.frame || !obj.frame.origin || !obj.frame.size) {
+                            console.warn(`[ImageML] Invalid detection frame for object ${index + 1}`);
+                            continue;
+                        }
+                        
+                        // Crop the detected object and classify the cropped image
+                        let labels = [];
+                        let croppedUri = '';
+                        try {
+                            console.log(`[ImageML] 📐 Step 2.${index + 1}: Cropping object ${index + 1}...`);
+                            croppedUri = await cropDetectionImage(photoResult.uri, obj.frame);
+                            console.log(`[ImageML] ✅ Step 2.${index + 1} Complete: Cropped successfully`);
+                            
+                            console.log(`[ImageML] 🧠 Step 3.${index + 1}: Classifying cropped image...`);
+                            labels = await classifyImage(croppedUri);
+                            console.log(`[ImageML] ✅ Step 3.${index + 1} Complete: Got ${labels.length} labels`);
+                            
+                            if (labels.length > 0) {
+                                console.log(`[ImageML] Top classifications for object ${index + 1}:`, 
+                                    labels.slice(0, 3).map(l => `${l.text} (${Math.round(l.confidence * 100)}%)`).join(', ')
+                                );
+                            }
+                        } catch (cropError) {
+                            console.warn(`[ImageML] ⚠️ Cropping failed for object ${index + 1}, using full image:`, cropError instanceof Error ? cropError.message : 'Unknown error');
+                            // Fallback to full image classification
+                            labels = await classifyImage(photoResult.uri);
+                            croppedUri = photoResult.uri; // Use original if crop failed
+                        }
+                        
+                        const detection: Detection = {
+                            frame: obj.frame,
+                            labels: labels.slice(0, 2) // Top 2 labels
+                        };
+                        
+                        // Check if we should save this high-confidence detection
+                        if (labels.length > 0 && croppedUri) {
+                            try {
+                                await saveHighConfidenceScreenshot(
+                                    photoResult.uri, 
+                                    croppedUri, 
+                                    detection, 
+                                    index,
+                                    () => {
+                                        // Increment save counter for UI feedback
+                                        setRecentSaves(prev => prev + 1);
+                                        // Reset counter after 3 seconds
+                                        setTimeout(() => setRecentSaves(prev => Math.max(0, prev - 1)), 3000);
+                                    }
+                                );
+                            } catch (screenshotError) {
+                                console.warn(`[Screenshot] Failed to save screenshot for object ${index + 1}:`, screenshotError);
+                                // Don't fail the pipeline for screenshot errors
+                            }
+                        }
+                        
+                        enrichedDetections.push(detection);
+                    } catch (classificationError) {
+                        console.warn(`[ImageML] Classification failed for object ${index + 1}:`, classificationError instanceof Error ? classificationError.message : 'Unknown error');
+                        // Add detection with empty labels instead of skipping
+                        enrichedDetections.push({
+                            frame: obj.frame,
+                            labels: []
+                        });
+                    }
+                }
+
+                console.log(`[ImageML] 📊 Step 4: Setting ${enrichedDetections.length} detections for rendering`);
+                setDetections(enrichedDetections);
+                
+                // Log final detection data for SVG rendering debug
+                if (enrichedDetections.length > 0) {
+                    console.log('[ImageML] 🎯 Final detections for SVG:', enrichedDetections.map((d, i) => ({
+                        index: i,
+                        frame: d.frame,
+                        topLabel: d.labels[0] ? `${d.labels[0].text} (${Math.round(d.labels[0].confidence * 100)}%)` : 'No labels'
+                    })));
+                }
+                
+            } catch (error) {
+                console.error('[ImageML] ❌ Detection pipeline error:', error);
+                // Clear detections on major error to avoid stale data
+                setDetections([]);
             } finally {
                 setIsProcessing(false);
             }
 
-            // Continue capture loop if still active
-            if (isActive.current && !isDetectionPaused) {
-                captureTimeoutRef.current = setTimeout(captureLoop, pipelineDelay * 1000);
+            // Continue loop
+            if (isActive) {
+                setTimeout(detectionLoop, Config.camera.pipelineDelay * 1000);
             }
         };
 
-        // Start the capture loop
-        const timeoutId = setTimeout(captureLoop, 1000); // Initial delay
-        
+        const timer = setTimeout(detectionLoop, 1000);
         return () => {
-            clearTimeout(timeoutId);
-            if (captureTimeoutRef.current) {
-                clearTimeout(captureTimeoutRef.current);
-            }
+            isActive = false;
+            clearTimeout(timer);
         };
-    }, [isInitialized, isDetectionPaused, detector, pipelineDelay, t]);
+    }, [isInitialized, detector, isClassifierReady, imageMLReady, isCameraActive]);
 
-    async function cropImage(imageUri: string, box: CropBox) : Promise<string> {
-        const cropAction = {
-            crop: {
-                originX: box.origin.x,
-                originY: box.origin.y,
-                width: box.size.x,
-                height: box.size.y
-            }
-        };
-        const cropResult = await ImageManipulator.manipulateAsync(
-            imageUri,
-            [cropAction],
-            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        // cropResult.uri is the URI of the cropped image
-        return cropResult.uri;
-    }
-
-    // Update classifier ready state
+    // Audio ML loop with proper recording management
     useEffect(() => {
-        setClassifierReady(isClassifierReady);
-        if (isClassifierReady) {
-            console.log("[ObjectDetection] Classifier ready and functional");
-        } else if (classifier === null) {
-            console.log("[ObjectDetection] Classifier failed to initialize");
-        }
-    }, [isClassifierReady, classifier]);
+        if (!audioMLReady || !isCameraActive) return;
 
-    useEffect(() => {
-        if (detector) {
-            console.log("[ObjectDetection] Detector available with methods:", Object.keys(detector || {}));
-        } else if (detector === null) {
-            console.log("[ObjectDetection] Detector failed to initialize");
-        }
-    }, [detector]);
-
-
-    // Process photoPath with MLKit and delete previous photos
-    useEffect(() => {
-        if (!photoPath || !detector || !classifierReady) {
-            if (!photoPath) return;
-            if (!detector) {
-                setDebugText(t('errors.detector_unavailable'));
-                console.error('[ObjectDetection] Object detector not loaded. Detector state:', detector);
-                return;
-            }
-            if (!classifierReady) {
-                setDebugText(t('errors.classifier_unavailable'));
-                console.warn('Image classifier not ready yet.');
-                return;
-            }
-        }
-
-        let isMounted = true;
+        let isActive = true;
+        let isRecording = false;
+        let currentRecording: Audio.Recording | null = null;
         
-        const processPhoto = async () => {
-            if (!isMounted) return;
-
-            // Use the photoPath directly since it's already been processed
-            const imagePath = photoPath;
-
+        const audioLoop = async () => {
+            if (!isActive || isRecording) return;
+            
             try {
-                console.log('Processing image...');
-
-                // Wait for file to be stable before processing
-                console.log('Waiting for file stability:', imagePath);
-                const isStable = await waitForFileStability(imagePath, 3000);
-                if (!isStable) {
-                    throw new Error(`File not stable after waiting: ${imagePath}`);
-                }
-
-                console.log('MLKit Path:', imagePath);
-
-                // Keep existing image dimensions from when photo was first processed
-                setDebugText(t('camera.detection_running'));
-
-                // Run object detection on the image with retry logic
-                console.log('[ObjectDetection] Starting object detection on image:', imagePath);
-                console.log('[ObjectDetection] Detector ready:', !!detector, 'Has detectObjects method:', !!detector?.detectObjects);
+                isRecording = true;
+                console.log('[AudioML] Starting new audio recording...');
                 
-                const objects = await retryFileOperation(
-                    () => detector.detectObjects(imagePath),
-                    3,
-                    300
-                );
-                console.log('[ObjectDetection] Detection completed successfully. Results:', objects);
-                console.log('[ObjectDetection] Number of objects detected:', objects.length);
-
-
-                // pipeline to run all objects into the image classificer pipeline with classifyImage(imagePath: string): Promise<ClassificationResult>
-                // for this, we need to cut the image from path into each objects piece, run it through classifiy, and then map the right label onto the object for display
-
-                // type ClassificationResult = Array<{
-                //   text: string;
-                //   index: number;
-                //   confidence: number;
-                // }>;
-
-                // interface ObjectDetectionObject {
-                //   frame: {
-                //     origin: { x: number; y: number };
-                //     size: { x: number; y: number };
-                //   };
-                //   labels: Array<{
-                //     text: string;
-                //     confidence: number;
-                //     index: number;
-                //   }>;
-                //   trackingID?: number;
-                // }
-
-                // Set current photo as last photo for UI display (ensure proper URI format)
-                setLastPhotoUri(filePathToUri(imagePath));
-
-                // 1) Enrich each detection by cropping + classifying:
-                const enriched: Detection[] = [];
-                for (const obj of objects) {
-                    // crop the box out of the image
-                    const cropUri = await cropImage(imagePath, obj.frame);
-
-                    try {
-                        // classify the cropped image with retry logic
-                        if (typeof classifier?.classifyImage !== 'function') {
-                            console.warn("Classifier method not available");
-                            return;
-                        }
-                        const labelResult = await retryFileOperation(
-                            () => classifyImage(cropUri),
-                            3,
-                            200
-                        );
-
-                        console.log(labelResult);
-
-                        // pick the top label
-                        const labels = labelResult.length
-                            ? [{
-                                text:    labelResult[0].text,
-                                confidence: labelResult[0].confidence,
-                                index:   labelResult[0].index
-                            }]
-                            : [];
-
-                        // check if the label confidence is above the threshold, and save the image if it is
-                        if (labels[0]) {
-                            await handleClassifiedSave(
-                                cropUri,
-                                labels[0],
-                                confidenceThreshold,
-                                'bird',
-                                showSnackbar,
-                                setDebugText
-                            );
-                        }
-
-                        // attach those labels to a fresh object
-                        enriched.push({
-                            frame: obj.frame,
-                            labels,
-                        });
-                    } catch (e) {
-                        console.warn('Failed to classify crop:', e);
-                    }
-
-                    // Delete the crop file
-                    try {
-                        await FileSystem.deleteAsync(cropUri);
-                        console.log('Deleted crop:', cropUri);
-                    } catch (err) {
-                        console.warn('Could not delete crop file:', err);
-                    }
-                }
-
-                // 2) Update state with your new list:
-                setDetections(enriched);
-                setDebugText(
-                    enriched.length > 0
-                        ? t('camera.detection_successful', { count: enriched.length })
-                        : t('camera.detection_none')
-                );
-
-                // Run classification on the full image
-                try {
-                    const fullImageLabels = await retryFileOperation(
-                        () => classifyImage(imagePath),
-                        3,
-                        200
-                    );
-                    console.log('Full image classification:', fullImageLabels);
-
-                    const top = fullImageLabels[0];
-                    if (top) {
-                        await handleClassifiedSave(
-                            imagePath,
-                            top,
-                            confidenceThreshold,
-                            'full',
-                            showSnackbar,
-                            setDebugText
-                        );
-                    }
-
-                } catch (e) {
-                    console.warn('Failed to classify full image:', e);
-                }
-
-                // Delete the previous photo file only after all processing is complete
-                if (lastPhotoUri && lastPhotoUri !== imagePath) {
-                    try {
-                        const fileInfo = await FileSystem.getInfoAsync(lastPhotoUri);
-                        if (fileInfo.exists) {
-                            await FileSystem.deleteAsync(lastPhotoUri);
-                            console.log('Deleted previous photo:', lastPhotoUri);
-                        }
-                    } catch (deleteError) {
-                        console.warn('Error deleting previous photo:', deleteError);
-                    }
-                }
-
-            } catch (err: unknown) {
-                const message = err instanceof Error ? err.message : String(err);
-                console.error(t('errors.detection_failed', { message }));
-                setDebugText(t('errors.detection_failed', { message }));
-                
-                // Still try to delete previous photo on error to prevent accumulation
-                if (lastPhotoUri && lastPhotoUri !== imagePath) {
-                    try {
-                        const fileInfo = await FileSystem.getInfoAsync(lastPhotoUri);
-                        if (fileInfo.exists) {
-                            await FileSystem.deleteAsync(lastPhotoUri);
-                            console.log('Deleted previous photo after error:', lastPhotoUri);
-                        }
-                    } catch (deleteError) {
-                        console.warn('Error deleting previous photo after error:', deleteError);
-                    }
-                }
-            }
-        };
-        
-        processPhoto();
-        
-        return () => {
-            isMounted = false;
-        };
-    }, [photoPath, detector, classifierReady, classifier, lastPhotoUri, confidenceThreshold, showSnackbar, t]);
-
-    // Cleanup effect
-    useEffect(() => {
-        return () => {
-            isActive.current = false;
-            
-            if (captureTimeoutRef.current) {
-                clearTimeout(captureTimeoutRef.current);
-            }
-
-            (async () => {
-                try {
-                    console.log("Cleaning up old files in document and cache directories...");
-                    await deleteOldFiles(FileSystem.documentDirectory!, 5); // Files older than 5 minutes
-                    await deleteOldFiles(FileSystem.cacheDirectory!, 5);
-                } catch (e) {
-                    console.warn("Cleanup failed:", e);
-                }
-            })();
-        };
-    }, []);
-
-    // Audio processing interval effect
-    useEffect(() => {
-        if (!audioInitialized || isDetectionPaused || !isActive.current) {
-            return;
-        }
-
-        const startAudioProcessing = () => {
-            console.log('[Audio] Starting 5-second audio processing interval');
-            
-            const processAudioInterval = async () => {
-                if (!audioInitialized || isDetectionPaused || !isActive.current) {
-                    return;
-                }
+                // Create and prepare recording with error isolation
+                let recordingUri;
                 
                 try {
-                    setAudioProcessing(true);
-                    setAudioError(null);
-                    
-                    const predictions = await recordAndProcessAudio();
-                    
-                    // Filter predictions by confidence and take top 3
-                    const filteredPredictions = predictions
-                        .filter(p => p.confidence >= 0.1) // 10% minimum confidence
-                        .slice(0, 3) // Max 3 results
-                        .sort((a, b) => b.confidence - a.confidence);
-                    
-                    setAudioResults(filteredPredictions);
-                    
-                    if (filteredPredictions.length > 0) {
-                        console.log(`[Audio] Detected ${filteredPredictions.length} bird(s):`, 
-                            filteredPredictions.map(p => `${p.common_name} (${Math.round(p.confidence * 100)}%)`));
+                    // Clean up any existing recording first
+                    if (currentRecording) {
+                        try {
+                            await currentRecording.stopAndUnloadAsync();
+                        } catch (cleanupError) {
+                            console.warn('[AudioML] Failed to cleanup previous recording:', cleanupError);
+                        }
+                        currentRecording = null;
                     }
                     
-                } catch (error) {
-                    console.error('[Audio] Processing error:', error);
-                    setAudioError(error instanceof Error ? error.message : t('audio.audio_processing_failed'));
+                    currentRecording = new Audio.Recording();
+                    
+                    await currentRecording.prepareToRecordAsync({
+                        android: {
+                            extension: '.wav',
+                            outputFormat: Audio.AndroidOutputFormat.DEFAULT,
+                            audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+                            sampleRate: 48000, // Use BirdNET target sample rate
+                            numberOfChannels: 1,
+                            bitRate: 128000, // Higher quality
+                        },
+                        ios: {
+                            extension: '.wav',
+                            outputFormat: Audio.IOSOutputFormat.LINEARPCM,
+                            audioQuality: Audio.IOSAudioQuality.HIGH,
+                            sampleRate: 48000, // Match BirdNET target
+                            numberOfChannels: 1,
+                            bitRate: 128000,
+                            linearPCMBitDepth: 16, // Standard 16-bit depth
+                            linearPCMIsBigEndian: false,
+                            linearPCMIsFloat: false,
+                        },
+                        web: {
+                            mimeType: 'audio/wav',
+                            bitsPerSecond: 128000,
+                        }
+                    });
+                } catch (prepareError) {
+                    console.error('[AudioML] Recording preparation failed:', prepareError);
+                    return; // Skip this cycle if preparation fails
+                }
+                
+                // Record audio with error isolation
+                try {
+                    await currentRecording.startAsync();
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    await currentRecording.stopAndUnloadAsync();
+                    recordingUri = currentRecording.getURI();
+                } catch (recordError) {
+                    console.error('[AudioML] Recording process failed:', recordError);
+                    try {
+                        if (currentRecording) {
+                            await currentRecording.stopAndUnloadAsync();
+                        }
+                    } catch (stopError) {
+                        console.warn('[AudioML] Failed to stop recording after error:', stopError);
+                    }
+                    currentRecording = null;
+                    return; // Skip processing if recording fails
+                }
+                
+                // Process audio with error isolation
+                if (recordingUri && isActive) {
+                    console.log('[AudioML] Processing audio:', recordingUri);
+                    try {
+                        const location = hasLocationPermission ? { latitude: 0, longitude: 0 } : undefined;
+                        const predictions = await classifyWithUltraSimple(recordingUri, location);
+                        
+                        if (isActive) {
+                            if (predictions && Array.isArray(predictions) && predictions.length > 0) {
+                                // Pipeline-compatible function already returns correct format
+                                setAudioResults(predictions.slice(0, 3));
+                                console.log(`[AudioML] ✅ Classification successful: ${predictions.length} predictions`);
+                                console.log(`[AudioML] Top result: ${predictions[0].common_name} (${Math.round(predictions[0].confidence * 100)}%)`);
+                            } else {
+                                console.warn('[AudioML] Classification returned no valid results');
+                                setAudioResults([]);
+                            }
+                        }
+                    } catch (classifyError) {
+                        console.error('[AudioML] Classification error:', classifyError);
+                        // Don't clear previous results on classification error - just log and continue
+                    }
+                } else {
+                    console.warn('[AudioML] No recording URI available or context inactive');
+                }
+                
+            } catch (error) {
+                console.error('[AudioML] Audio pipeline error:', error);
+                // Clear audio results on major pipeline error
+                if (isActive) {
                     setAudioResults([]);
-                } finally {
-                    setAudioProcessing(false);
                 }
-            };
-            
-            // Initial processing
-            processAudioInterval();
-            
-            // Set up 5-second interval
-            audioIntervalRef.current = setInterval(processAudioInterval, 5000);
-        };
+            } finally {
+                isRecording = false;
+                // Clean up current recording
+                if (currentRecording) {
+                    try {
+                        await currentRecording.stopAndUnloadAsync();
+                    } catch (cleanupError) {
+                        console.warn('[AudioML] Final cleanup failed:', cleanupError);
+                    }
+                    currentRecording = null;
+                }
+            }
 
-        // Small delay to let camera initialize first
-        const audioStartTimeout = setTimeout(startAudioProcessing, 2000);
-        
-        return () => {
-            clearTimeout(audioStartTimeout);
-            if (audioIntervalRef.current) {
-                clearInterval(audioIntervalRef.current);
+            // Continue loop with longer delay
+            if (isActive) {
+                setTimeout(audioLoop, 10000); // Every 10 seconds to avoid conflicts
             }
         };
-    }, [audioInitialized, isDetectionPaused]);
 
-    // Focus/unfocus effect
-    useFocusEffect(
-        useCallback(() => {
-            // Component is focused
-            isActive.current = true;
-            setIsDetectionPaused(false);
+        const timer = setTimeout(audioLoop, 5000); // Start after 5 seconds
+        return () => {
+            isActive = false;
+            clearTimeout(timer);
+            // Cleanup on unmount
+            if (currentRecording) {
+                currentRecording.stopAndUnloadAsync().catch(console.warn);
+                currentRecording = null;
+            }
+        };
+    }, [audioMLReady, hasLocationPermission, isCameraActive]);
 
-            return () => {
-                // Component lost focus
-                isActive.current = false;
-                setIsDetectionPaused(true);
-                if (captureTimeoutRef.current) {
-                    clearTimeout(captureTimeoutRef.current);
-                }
-                if (audioIntervalRef.current) {
-                    clearInterval(audioIntervalRef.current);
-                }
-            };
-        }, [])
-    );
+    // Subtle animated styles for cyberpunk effects
+    const statusPulseStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(pulseAnimation.value, [0, 1], [0.7, 1]),
+    }));
 
-    // Calculate scale for rendering detection bounding boxes
-    const scaleX = imageDims.width ? W / imageDims.width : 1;
-    const scaleY = imageDims.height ? H / imageDims.height : 1;
+    const processingIndicatorStyle = useAnimatedStyle(() => ({
+        opacity: isProcessing ? withTiming(1, { duration: 200 }) : withTiming(0.5, { duration: 200 }),
+    }));
 
-    // ——— FALLBACKS & CONTENT ———
-    if (!device) {
-        return (
-            <View style={styles.centered}>
-                <Text>{t('camera_advanced.no_camera_found')}</Text>
-            </View>
-        );
-    }
-
-    if (Platform.OS === 'web') {
-        return (
-            <View style={styles.centered}>
-                <Text>{ t('camera.unsupported_platform') }</Text>
-            </View>
-        );
-    }
+    // Log current detections for debugging
+    useEffect(() => {
+        if (detections.length > 0) {
+            console.log(`[Render] Current detections state: ${detections.length} items`);
+        }
+    }, [detections]);
 
     return (
-        <ThemedSafeAreaView style={{ flex: 1 }}>
-            <View style={styles.container}>
-                {showOverlays && (
-                    <View pointerEvents="none" style={styles.overlay}>
-                        <Svg style={{ width: '100%', height: '100%' }}>
-                            {detections.map((item, index) => {
-                                const { origin, size } = item.frame;
-                                const labels = item.labels;
-                                const conf = labels[0]?.confidence ?? 0;
-                                const { color, opacity } = getBoxStyle(conf);
+        <View style={styles.cyberContainer}>
+            <StatusBar barStyle="light-content" backgroundColor={CYBER_COLORS.background} />
+            
+            <Camera
+                ref={cameraRef}
+                style={styles.camera}
+                device={device!}
+                isActive={isCameraActive}
+                onInitialized={() => setIsInitialized(true)}
+                zoom={zoom}
+                torch={flash}
+                photo={true}
+            />
 
-                                return (
-                                    <React.Fragment key={`det-${index}`}>
-                                        {/* Bounding box */}
-                                        <Rect
-                                            x={origin.x * scaleX}
-                                            y={origin.y * scaleY}
-                                            width={size.x * scaleX}
-                                            height={size.y * scaleY}
-                                            stroke={color}
-                                            strokeWidth={2}
-                                            fill="none"
-                                            fillOpacity={opacity * 0.3}
-                                        />
-                                        {labels.slice(0, 3).map((label, idx) => {
-                                            const conf = label.confidence;
-                                            const labelText = `${label.text} ${(conf * 100).toFixed(0)}%`;
-                                            const labelX = origin.x * scaleX;
-                                            const labelY = Math.max(origin.y * scaleY - 22 * (labels.length - idx), 0);
-                                            const labelWidth = labelText.length * 6.8 + 12;
-                                            const backgroundPadding = 4;
+            {/* Dark overlay for better contrast */}
+            <View style={styles.cyberOverlay} />
 
-                                            return (
-                                                <React.Fragment key={`label-${index}-${idx}`}>
-                                                    <Rect
-                                                        x={labelX - backgroundPadding}
-                                                        y={labelY - 12}
-                                                        width={labelWidth}
-                                                        height={18}
-                                                        rx={4}
-                                                        ry={4}
-                                                        fill="rgba(0,0,0,0.8)"
-                                                        fillOpacity={0.5}
-                                                    />
-                                                    <SvgText
-                                                        x={labelX}
-                                                        y={labelY}
-                                                        fill="white"
-                                                        fontSize="12"
-                                                        fontWeight="bold"
-                                                    >
-                                                        {labelText}
-                                                    </SvgText>
-                                                    <Rect
-                                                        x={labelX - backgroundPadding}
-                                                        y={labelY + 6}
-                                                        width={labelWidth * Math.min(conf, 1)}
-                                                        height={4}
-                                                        rx={2}
-                                                        fill={conf >= confidenceThreshold ? 'limegreen' : 'crimson'}
-                                                    />
-                                                </React.Fragment>
-                                            );
-                                        })}
-                                    </React.Fragment>
-                                );
-                            })}
-                        </Svg>
-                    </View>
-                )}
+            {/* Detection Overlays with Cyberpunk Styling */}
+            <View pointerEvents="none" style={styles.overlay}>
+                <Svg style={{ width: '100%', height: '100%' }} viewBox={`0 0 ${W} ${H}`}>
+                    {detections.map((detection, index) => {
+                        const { origin, size } = detection.frame;
+                        const bestLabel = detection.labels[0];
+                        if (!bestLabel) return null;
+                        
+                        const { color, opacity } = getCyberBoxStyle(bestLabel.confidence);
+                        
+                        // Calculate scale factors (assuming ML model output is normalized 0-1)
+                        // MLKit typically provides normalized coordinates, so scale to screen dimensions
+                        const scaleX = W;
+                        const scaleY = H;
+                        
+                        // Scale coordinates to screen dimensions
+                        const x = origin.x * scaleX;
+                        const y = origin.y * scaleY;
+                        const width = size.x * scaleX;
+                        const height = size.y * scaleY;
+                        
+                        // Log SVG rendering coordinates for debugging
+                        if (index === 0) { // Only log first detection to avoid spam
+                            console.log(`[SVG] Rendering detection ${index + 1}:`, {
+                                screenDimensions: { W, H },
+                                originalFrame: { origin, size },
+                                scaledCoords: { x, y, width, height },
+                                label: bestLabel.text,
+                                confidence: Math.round(bestLabel.confidence * 100)
+                            });
+                        }
+                        
+                        const labelText = `${bestLabel.text} ${Math.round(bestLabel.confidence * 100)}%`;
+                        
+                        return (
+                            <React.Fragment key={`detection-${index}`}>
+                                {/* Main detection box */}
+                                <Rect
+                                    x={x}
+                                    y={y}
+                                    width={width}
+                                    height={height}
+                                    stroke={color}
+                                    strokeWidth="3"
+                                    fill="none"
+                                    strokeOpacity={opacity}
+                                    rx="8"
+                                    ry="8"
+                                />
+                                
+                                {/* Corner brackets for cyberpunk effect */}
+                                <Rect x={x} y={y} width="16" height="3" fill={color} fillOpacity={opacity} />
+                                <Rect x={x} y={y} width="3" height="16" fill={color} fillOpacity={opacity} />
+                                <Rect x={x + width - 16} y={y} width="16" height="3" fill={color} fillOpacity={opacity} />
+                                <Rect x={x + width - 3} y={y} width="3" height="16" fill={color} fillOpacity={opacity} />
+                                <Rect x={x} y={y + height - 3} width="16" height="3" fill={color} fillOpacity={opacity} />
+                                <Rect x={x} y={y + height - 16} width="3" height="16" fill={color} fillOpacity={opacity} />
+                                <Rect x={x + width - 16} y={y + height - 3} width="16" height="3" fill={color} fillOpacity={opacity} />
+                                <Rect x={x + width - 3} y={y + height - 16} width="3" height="16" fill={color} fillOpacity={opacity} />
+                                
+                                {/* Label background */}
+                                <Rect
+                                    x={x}
+                                    y={Math.max(y - 28, 4)}
+                                    width={labelText.length * 8 + 16}
+                                    height="24"
+                                    rx="12"
+                                    fill={color}
+                                    fillOpacity="0.9"
+                                />
+                                
+                                {/* Label text */}
+                                <SvgText
+                                    x={x + 8}
+                                    y={Math.max(y - 8, 18)}
+                                    fontSize="13"
+                                    fill="white"
+                                    fontWeight="600"
+                                    fontFamily="system-ui"
+                                >
+                                    {labelText}
+                                </SvgText>
+                            </React.Fragment>
+                        );
+                    })}
+                </Svg>
+            </View>
 
-                {/* Audio Results Display */}
-                <View style={[styles.audioResultsContainer, { backgroundColor: currentTheme.colors.overlay.heavy }]}>
-                    <View style={styles.audioHeader}>
-                        <View style={styles.audioStatusIndicator}>
-                            {audioProcessing ? (
-                                <ActivityIndicator size="small" color="#00FF00" />
-                            ) : audioInitialized ? (
-                                <View style={[styles.statusDot, { backgroundColor: '#00FF00' }]} />
-                            ) : (
-                                <View style={[styles.statusDot, { backgroundColor: '#FF0000' }]} />
+            {/* Cyberpunk HUD - Top Panel */}
+            <Animated.View style={[styles.cyberHUD, statusPulseStyle]}>
+                <View style={styles.cyberPanel}>
+                    <View style={styles.cyberPanelHeader}>
+                        <ThemedText style={styles.cyberTitle}>NEURAL VISION SYSTEM</ThemedText>
+                        <Animated.View style={[styles.cyberStatusIndicators, processingIndicatorStyle]}>
+                            <View style={[styles.cyberStatusDot, { 
+                                backgroundColor: imageMLReady ? CYBER_COLORS.success : CYBER_COLORS.warning 
+                            }]} />
+                            <ThemedText style={styles.cyberStatusText}>IMG</ThemedText>
+                            <View style={[styles.cyberStatusDot, { 
+                                backgroundColor: audioMLReady ? CYBER_COLORS.success : CYBER_COLORS.warning 
+                            }]} />
+                            <ThemedText style={styles.cyberStatusText}>AUD</ThemedText>
+                            {recentSaves > 0 && (
+                                <>
+                                    <View style={[styles.cyberStatusDot, { 
+                                        backgroundColor: CYBER_COLORS.accent 
+                                    }]} />
+                                    <ThemedText style={styles.cyberStatusText}>SAVE ({recentSaves})</ThemedText>
+                                </>
                             )}
-                            <Text style={styles.audioStatusText}>
-                                {audioProcessing ? t('audio.listening') : audioInitialized ? t('audio.audio_ready') : t('audio.audio_error')}
-                            </Text>
-                        </View>
-                        {audioResults.length > 0 && (
-                            <Text style={styles.audioResultCount}>
-                                🐦 {audioResults.length}
-                            </Text>
-                        )}
+                        </Animated.View>
                     </View>
                     
-                    {audioError && (
-                        <View style={[styles.audioErrorContainer, { backgroundColor: currentTheme.colors.status.error }]}>
-                            <Text style={styles.audioErrorText}>
-                                ⚠️ {audioError}
-                            </Text>
-                        </View>
-                    )}
-                    
-                    {audioResults.length > 0 && (
-                        <View style={styles.audioBirdList}>
-                            {audioResults.map((bird, index) => (
-                                <View key={`${bird.common_name}-${index}`} style={[
-                                    styles.audioBirdItem,
-                                    { backgroundColor: currentTheme.colors.overlay.medium }
-                                ]}>
-                                    <Text style={styles.audioBirdName} numberOfLines={1}>
-                                        {bird.common_name}
-                                    </Text>
-                                    <View style={[
-                                        styles.audioConfidenceBar,
-                                        { backgroundColor: currentTheme.colors.overlay.light }
-                                    ]}>
-                                        <View 
-                                            style={[
-                                                styles.audioConfidenceFill,
-                                                { 
-                                                    width: `${bird.confidence * 100}%`,
-                                                    backgroundColor: bird.confidence > 0.5 ? '#00FF00' : bird.confidence > 0.2 ? '#FFFF00' : '#FF9900'
-                                                }
-                                            ]} 
-                                        />
-                                        <Text style={styles.audioConfidenceText}>
-                                            {Math.round(bird.confidence * 100)}%
-                                        </Text>
-                                    </View>
+                    {/* Results Display */}
+                    <View style={styles.cyberResultsContainer}>
+                        {/* Visual Analysis Panel */}
+                        <View style={styles.cyberDetectionPanel}>
+                            <View style={styles.cyberSectionHeader}>
+                                <ThemedText style={styles.cyberSectionTitle}>VISUAL</ThemedText>
+                                <View style={styles.cyberBadge}>
+                                    <ThemedText style={styles.cyberBadgeText}>{detections.length}</ThemedText>
                                 </View>
-                            ))}
-                        </View>
-                    )}
-                </View>
-
-                <TouchableOpacity
-                    onPress={toggleShowSettings}
-                    style={{
-                        position: 'absolute',
-                        top: 10,
-                        right: 10,
-                        backgroundColor: currentTheme.colors.overlay.dark,
-                        padding: 6,
-                        borderRadius: 20,
-                        zIndex: 15,
-                    }}
-                >
-                    <Text style={{ color: 'white', fontSize: 18 }}>⚙️</Text>
-                </TouchableOpacity>
-
-                <Camera
-                    style={styles.camera}
-                    ref={cameraRef}
-                    device={device!}
-                    isActive={isCameraActive}
-                    photo={true}
-                    zoom={zoom}
-                    enableZoomGesture={true}
-                    onInitialized={() => {
-                        console.log("Camera initialized!");
-                        setIsInitialized(true);
-                    }}
-                />
-                {isCameraActive && (
-                    <View style={[styles.statusBadge, { backgroundColor: currentTheme.colors.overlay.dark }]}>
-                        <View style={[
-                            styles.statusDot,
-                            { backgroundColor: isProcessing ? 'limegreen' : 'red' }
-                        ]} />
-                        <Text style={styles.statusText}>
-                            {isProcessing ? t('camera.status_detecting') : t('camera.status_idle')}
-                        </Text>
-                    </View>
-                )}
-                {showSettings && (
-                    <View style={[styles.sliderBlock, { backgroundColor: currentTheme.colors.overlay.medium }]}>
-                        <View style={styles.sliderRow}>
-                            <Text style={styles.sliderLabel}>{t('camera.zoom')}</Text>
-                            <Slider
-                                value={zoom}
-                                onValueChange={setZoom}
-                                minimumValue={1}
-                                maximumValue={device?.maxZoom ?? 5}
-                                step={0.01}
-                                minimumTrackTintColor="#1EB1FC"
-                                maximumTrackTintColor="#d3d3d3"
-                                thumbTintColor="#1EB1FC"
-                                style={{ width: '100%', height: 40 }}
-                            />
-                            <Text style={styles.sliderValue}>{zoom.toFixed(2)}x</Text>
+                            </View>
+                            {detections.length > 0 && (
+                                <View style={styles.cyberDetectionList}>
+                                    {detections.slice(0, 2).map((detection, index) => {
+                                        const bestLabel = detection.labels[0];
+                                        if (!bestLabel) return null;
+                                        return (
+                                            <View key={index} style={styles.cyberDetectionItem}>
+                                                <ThemedText style={styles.cyberDetectionName}>
+                                                    {bestLabel.text}
+                                                </ThemedText>
+                                                <View style={[styles.cyberConfidenceBar, { 
+                                                    backgroundColor: getCyberBoxStyle(bestLabel.confidence).color + '40' 
+                                                }]}>
+                                                    <View style={[styles.cyberConfidenceFill, { 
+                                                        width: `${bestLabel.confidence * 100}%`,
+                                                        backgroundColor: getCyberBoxStyle(bestLabel.confidence).color
+                                                    }]} />
+                                                    <ThemedText style={styles.cyberConfidenceText}>
+                                                        {Math.round(bestLabel.confidence * 100)}%
+                                                    </ThemedText>
+                                                </View>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            )}
                         </View>
                         
-                        {/* AI Settings Status */}
-                        <View style={styles.settingsStatus}>
-                            <Text style={[styles.statusLabel, { color: currentTheme.colors.text.secondary }]}>AI Settings</Text>
-                            <Text style={[styles.statusValue, { color: currentTheme.colors.text.primary }]}>
-                                Speed: {getDelayPresetLabel(pipelineDelay).split(' ')[1]} | 
-                                Confidence: {getConfidencePresetLabel(confidenceThreshold).split(' ')[1]}
-                            </Text>
-                            <Text style={[styles.statusNote, { color: currentTheme.colors.text.tertiary }]}>
-                                Configure in Settings → Camera AI
-                            </Text>
+                        {/* Audio Analysis Panel */}
+                        <View style={styles.cyberAudioPanel}>
+                            <View style={styles.cyberSectionHeader}>
+                                <ThemedText style={styles.cyberSectionTitle}>AUDIO</ThemedText>
+                                <View style={styles.cyberBadge}>
+                                    <ThemedText style={styles.cyberBadgeText}>{audioResults.length}</ThemedText>
+                                </View>
+                            </View>
+                            {audioResults.length > 0 ? (
+                                <View style={styles.cyberAudioResults}>
+                                    {audioResults.slice(0, 2).map((result, index) => (
+                                        <View key={index} style={styles.cyberAudioItem}>
+                                            <ThemedText style={styles.cyberAudioName}>
+                                                {result.common_name}
+                                            </ThemedText>
+                                            <View style={styles.cyberConfidenceBar}>
+                                                <View style={[styles.cyberConfidenceFill, { 
+                                                    width: `${result.confidence * 100}%`,
+                                                    backgroundColor: CYBER_COLORS.primary
+                                                }]} />
+                                                <ThemedText style={styles.cyberConfidenceText}>
+                                                    {Math.round(result.confidence * 100)}%
+                                                </ThemedText>
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+                            ) : (
+                                <ThemedText style={styles.cyberStatusText}>
+                                    {audioMLReady ? 'Listening...' : 'Offline'}
+                                </ThemedText>
+                            )}
                         </View>
-
-                        <TouchableOpacity
-                            onPress={() => setIsDetectionPaused(prev => !prev)}
-                            style={[styles.pauseResumeButton, {
-                                backgroundColor: isDetectionPaused ? currentTheme.colors.status.error : currentTheme.colors.interactive.primary,
-                            }]}
-                        >
-                            <Text style={[styles.pauseResumeText, { color: currentTheme.colors.text.inverse }]}>
-                                {isDetectionPaused ? t('camera.resume') : t('camera.pause')} Detection
-                            </Text>
-                        </TouchableOpacity>
                     </View>
-                )}
-
-                {/* Photo and Video Capture Buttons */}
-                <View style={styles.captureButtons}>
-                    <TouchableOpacity
-                        onPress={() => {
-                            console.log('Manual photo capture requested');
-                            // Manual photo capture - saves a single high-quality photo
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(console.warn);
-                        }}
-                        style={[styles.captureButton, { backgroundColor: currentTheme.colors.interactive.primary }]}
-                    >
-                        <Text style={styles.captureButtonText}>📸</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                        onPress={() => {
-                            console.log('Video recording requested');
-                            // Video recording functionality
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(console.warn);
-                        }}
-                        style={[styles.captureButton, { backgroundColor: '#FF6B6B' }]}
-                    >
-                        <Text style={styles.captureButtonText}>🎥</Text>
-                    </TouchableOpacity>
                 </View>
+            </Animated.View>
 
-                {lastPhotoUri && (
-                    <TouchableOpacity
+            {/* Cyberpunk Control Panel - Bottom */}
+            <View style={styles.cyberControlPanel}>
+                <View style={styles.cyberControlsContainer}>
+                    {/* Zoom Control with Cyberpunk Styling */}
+                    <View style={styles.cyberZoomContainer}>
+                        <ThemedText style={styles.cyberControlLabel}>ZOOM</ThemedText>
+                        <View style={styles.cyberSliderContainer}>
+                            <Slider
+                                style={styles.cyberSlider}
+                                minimumValue={1}
+                                maximumValue={5}
+                                value={zoom}
+                                onValueChange={setZoom}
+                                thumbTintColor={CYBER_COLORS.primary}
+                                minimumTrackTintColor={CYBER_COLORS.primary}
+                                maximumTrackTintColor={CYBER_COLORS.border}
+                            />
+                            <View style={styles.cyberZoomDisplay}>
+                                <ThemedText style={styles.cyberZoomValue}>
+                                    {zoom.toFixed(1)}X
+                                </ThemedText>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Flash Toggle with Cyberpunk Styling */}
+                    <ThemedPressable
+                        style={[styles.cyberFlashButton, { 
+                            backgroundColor: flash === 'on' ? CYBER_COLORS.warning + '20' : CYBER_COLORS.surface,
+                            borderColor: flash === 'on' ? CYBER_COLORS.warning : CYBER_COLORS.border
+                        }]}
                         onPress={() => {
-                            setModalPhotoUri(lastPhotoUri); // freeze the preview
-                            setModalVisible(true);
-                            setShowOverlays(false);
+                            setFlash(flash === 'off' ? 'on' : 'off');
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         }}
-                        style={styles.thumbnail}
                     >
-                        <Image
-                            source={{ uri: lastPhotoUri }}
-                            style={{ width: '100%', height: '100%', borderRadius: 4 }}
+                        <ThemedIcon 
+                            name={flash === 'on' ? 'zap' : 'zap-off'} 
+                            size={18}
+                            color={flash === 'on' ? 'accent' : 'primary'}
                         />
-                    </TouchableOpacity>
-                )}
-                <View style={[styles.debugTextContainer, { backgroundColor: currentTheme.colors.overlay.heavy }]}>
-                    <Text
-                        style={styles.debugText}
-                        accessibilityRole="alert"
-                        accessibilityLiveRegion="polite"
-                    >
-                        {debugText}
-                    </Text>
+                        <ThemedText style={[styles.cyberButtonText, { 
+                            color: flash === 'on' ? CYBER_COLORS.warning : CYBER_COLORS.text 
+                        }]}>
+                            FLASH
+                        </ThemedText>
+                    </ThemedPressable>
                 </View>
-                <ThemedSnackbar
-                    visible={snackbarVisible}
-                    message={snackbarMessage}
-                    onHide={() => setSnackbarVisible(false)}
-                />
             </View>
-            {!hasMediaPermission && (
-                <View style={[styles.permissionWarning, { backgroundColor: currentTheme.colors.status.error }]}>
-                    <Text style={styles.permissionWarningText}>
-                        {t('warnings.media_permission_required')}
-                    </Text>
-                    <Button
-                        title={t('buttons.grant_permission')}
-                        onPress={async () => {
-                            // No media permissions needed for document directory storage
-                            setHasMediaPermission(true);
-                        }}
-                    />
-                </View>
-            )}
-            <Modal
-                visible={modalVisible && modalPhotoUri !== null}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={() => {
-                    setModalVisible(false);
-                    setTimeout(() => setModalPhotoUri(null), 100);
-                }}
-            >
-                {modalPhotoUri && (
-                    <View style={styles.modalContainer}>
-                        <Image source={{ uri: modalPhotoUri }} style={styles.modalImage} />
-                        <View style={styles.modalOverlay}>
-                            {detections.map((d, i) => {
-                                const { origin, size } = d.frame;
-                                const label = d.labels[0];
-                                const conf = label?.confidence ?? 0;
-                                const { color } = getBoxStyle(conf);
-                                return (
-                                    <View
-                                        key={i}
-                                        style={{
-                                            position: 'absolute',
-                                            left: origin.x * scaleX,
-                                            top: origin.y * scaleY,
-                                            width: size.x * scaleX,
-                                            height: size.y * scaleY,
-                                            borderWidth: 2,
-                                            borderColor: color,
-                                        }}
-                                    />
-                                );
-                            })}
-                        </View>
-                        <View style={[styles.modalButtons, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
-                            <TouchableOpacity 
-                                style={[styles.modalButton, { backgroundColor: currentTheme.colors.interactive.primary }]}
-                                onPress={() => {
-                                    // Safe modal close to prevent view conflicts
-                                    setModalVisible(false);
-                                    setShowOverlays(true);
-                                    // Delay clearing the URI to ensure modal is fully unmounted
-                                    setTimeout(() => {
-                                        setModalPhotoUri(null);
-                                    }, 100);
-                                }}
-                            >
-                                <Text style={[styles.modalButtonText, { color: currentTheme.colors.text.inverse }]}>
-                                    {t('buttons.close')}
-                                </Text>
-                            </TouchableOpacity>
-                            {/* Optional, havent fully fletched out the UX yet */}
-                            {/* <TouchableOpacity title="Delete" onPress={...} /> */}
-                            {/* <TouchableOpacity title="Save" onPress={...} /> */}
-                        </View>
-                    </View>
-                )}
-            </Modal>
-        </ThemedSafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    tooltipBox: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        marginTop: 4,
-        alignSelf: 'flex-start',
-        zIndex: 10,
-    },
-    tooltipText: {
-        color: 'white',
-        fontSize: 12,
-        fontStyle: 'italic',
-        zIndex: 10,
-    },
-    modalContainer: {
+    // Loading Screen
+    cyberLoading: {
         flex: 1,
-        backgroundColor: 'black',
+        backgroundColor: CYBER_COLORS.background,
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 10, // Ensure modal is above the SVG overlay
     },
-    modalImage: {
-        width: W,
-        height: H,
-        resizeMode: 'contain',
-        zIndex: 10, // Ensure modal image is above the SVG overlay
-    },
-    modalOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: W,
-        height: H,
-        zIndex: 10, // Ensure modal overlay is above the SVG overlay
-    },
-    modalButtons: {
-        position: 'absolute',
-        bottom: 40,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        width: '100%',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderRadius: 12,
-        marginHorizontal: 20,
-        zIndex: 10, // Ensure modal buttons are above the SVG overlay
-    },
-    modalButton: {
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 8,
-        minWidth: 100,
+    cyberLoadingContainer: {
         alignItems: 'center',
+        padding: 40,
     },
-    modalButtonText: {
+    cyberLoadingText: {
+        color: CYBER_COLORS.text,
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '500',
+        marginTop: 20,
+        letterSpacing: 0.5,
     },
-    statusBadge: {
-        position: 'absolute',
-        top: 10,
-        left: 10,
-        borderRadius: 16,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        flexDirection: 'row',
-        alignItems: 'center',
-        zIndex: 5,
+    cyberLoadingBar: {
+        width: 200,
+        height: 3,
+        backgroundColor: CYBER_COLORS.surface,
+        marginTop: 20,
+        borderRadius: 2,
+        overflow: 'hidden',
     },
-    statusDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        marginRight: 6,
-        zIndex: 10,
+    cyberLoadingBarFill: {
+        height: '100%',
+        width: '70%',
+        backgroundColor: CYBER_COLORS.primary,
     },
-    statusText: {
-        color: 'white',
-        fontSize: 12,
-        zIndex: 10,
+
+    // Main Container
+    cyberContainer: {
+        flex: 1,
+        backgroundColor: CYBER_COLORS.background,
     },
-    container: { flex: 1 },
     camera: {
+        flex: 1,
+    },
+
+    // Cyberpunk Effects
+    cyberOverlay: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 1,
+        backgroundColor: CYBER_COLORS.overlay,
+        opacity: 0.2,
+        zIndex: 5,
     },
     overlay: {
         position: 'absolute',
@@ -1544,211 +1076,209 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 5, // Ensure SVG overlay is below the modal
+        zIndex: 8,
     },
-    thumbnail: {
-        position: 'absolute',
-        width: 80,
-        height: 80,
-        bottom: 10,
-        right: 10,
-        borderColor: '#fff',
-        borderWidth: 1,
-        zIndex: 20
-    },
-    sliderValue: {
-        color: 'white',
-        fontSize: 10,
-        textAlign: 'right',
-        marginTop: -6,
-        marginBottom: 8,
-    },
-    settingsStatus: {
-        padding: 12,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        borderRadius: 8,
-        gap: 4,
-    },
-    statusLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-    },
-    statusValue: {
-        fontSize: 13,
-        fontWeight: '500',
-    },
-    statusNote: {
-        fontSize: 11,
-        fontStyle: 'italic',
-    },
-    pauseResumeButton: {
-        padding: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginTop: 8,
-    },
-    pauseResumeText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    centered: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    debugTextContainer: {
-        position: 'absolute',
-        top: 40,
-        alignSelf: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
-        zIndex: 10,
-    },
-    debugText: { color: 'white', fontSize: 16 },
-    sliderBlock: {
-        position: 'absolute',
-        bottom: 20,
-        left: 20,
-        right: 20,
-        padding: 10,
-        borderRadius: 10,
-        zIndex: 10,
-    },
-    sliderRow: {
-        marginBottom: 10,
-        zIndex: 10,
-    },
-    sliderLabel: {
-        color: 'white',
-        fontSize: 10,
-        fontWeight: '400',
-        marginBottom: 4,
-    },
-    permissionWarning: {
-        position: 'absolute',
-        bottom: 100,
-        left: 20,
-        right: 20,
-        padding: 15,
-        borderRadius: 10,
-        zIndex: 25, // Higher than other UI elements
-        alignItems: 'center',
-    },
-    permissionWarningText: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: '600',
-        textAlign: 'center',
-        marginBottom: 10,
-    },
-    captureButtons: {
-        position: 'absolute',
-        bottom: 100,
-        left: 20,
-        flexDirection: 'column',
-        gap: 12,
-        zIndex: 20,
-    },
-    captureButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    captureButtonText: {
-        fontSize: 24,
-        color: 'white',
-    },
-    
-    // Audio Results Styles
-    audioResultsContainer: {
+
+    // HUD and Panels
+    cyberHUD: {
         position: 'absolute',
         top: 60,
-        left: 10,
-        right: 10,
-        borderRadius: 12,
-        padding: 12,
-        zIndex: 20,
-        maxHeight: 200,
+        left: 16,
+        right: 16,
+        zIndex: 15,
     },
-    audioHeader: {
+    cyberPanel: {
+        backgroundColor: CYBER_COLORS.surfaceElevated,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: CYBER_COLORS.border,
+        padding: 14,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    cyberPanelHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 12,
+        paddingBottom: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: CYBER_COLORS.border,
     },
-    audioStatusIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    audioStatusText: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    audioResultCount: {
-        color: 'white',
+    cyberTitle: {
+        color: CYBER_COLORS.text,
         fontSize: 14,
-        fontWeight: 'bold',
+        fontWeight: '600',
+        letterSpacing: 0.5,
     },
-    audioErrorContainer: {
-        padding: 8,
-        borderRadius: 6,
-        marginTop: 4,
-    },
-    audioErrorText: {
-        color: 'white',
-        fontSize: 11,
-        textAlign: 'center',
-    },
-    audioBirdList: {
-        gap: 6,
-        maxHeight: 120,
-    },
-    audioBirdItem: {
+    cyberStatusIndicators: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 8,
-        borderRadius: 8,
-        gap: 8,
+        gap: 12,
     },
-    audioBirdName: {
-        color: 'white',
-        fontSize: 13,
-        fontWeight: '600',
+    cyberStatusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    cyberStatusText: {
+        color: CYBER_COLORS.textMuted,
+        fontSize: 11,
+        fontWeight: '500',
+        marginLeft: 4,
+    },
+
+    // Results Display
+    cyberResultsContainer: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    cyberDetectionPanel: {
         flex: 1,
     },
-    audioConfidenceBar: {
-        width: 60,
-        height: 16,
-        borderRadius: 8,
-        position: 'relative',
-        justifyContent: 'center',
+    cyberAudioPanel: {
+        flex: 1,
+    },
+    cyberSectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 12,
     },
-    audioConfidenceFill: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        height: '100%',
-        borderRadius: 8,
+    cyberSectionTitle: {
+        color: CYBER_COLORS.primary,
+        fontSize: 12,
+        fontWeight: '600',
+        letterSpacing: 0.5,
     },
-    audioConfidenceText: {
-        color: 'black',
+    cyberBadge: {
+        backgroundColor: CYBER_COLORS.primary + '20',
+        borderRadius: 12,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderWidth: 1,
+        borderColor: CYBER_COLORS.primary + '40',
+    },
+    cyberBadgeText: {
+        color: CYBER_COLORS.primary,
         fontSize: 10,
-        fontWeight: 'bold',
+        fontWeight: '600',
+    },
+    cyberDetectionList: {
+        gap: 8,
+    },
+    cyberDetectionItem: {
+        gap: 4,
+    },
+    cyberDetectionName: {
+        color: CYBER_COLORS.text,
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    cyberConfidenceBar: {
+        height: 4,
+        backgroundColor: CYBER_COLORS.surface,
+        borderRadius: 2,
+        overflow: 'hidden',
+        position: 'relative',
+    },
+    cyberConfidenceFill: {
+        height: '100%',
+        borderRadius: 2,
+    },
+    cyberConfidenceText: {
+        position: 'absolute',
+        right: 4,
+        top: -16,
+        color: CYBER_COLORS.textMuted,
+        fontSize: 9,
+        fontWeight: '500',
+    },
+    cyberAudioResults: {
+        gap: 8,
+    },
+    cyberAudioItem: {
+        gap: 4,
+    },
+    cyberAudioName: {
+        color: CYBER_COLORS.text,
+        fontSize: 12,
+        fontWeight: '500',
+    },
+
+    // Control Panel
+    cyberControlPanel: {
+        position: 'absolute',
+        bottom: 40,
+        left: 16,
+        right: 16,
+        zIndex: 15,
+    },
+    cyberControlsContainer: {
+        backgroundColor: CYBER_COLORS.surfaceElevated,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: CYBER_COLORS.border,
+        padding: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    cyberZoomContainer: {
+        flex: 1,
+    },
+    cyberControlLabel: {
+        color: CYBER_COLORS.textMuted,
+        fontSize: 11,
+        fontWeight: '500',
+        marginBottom: 8,
+        letterSpacing: 0.5,
+    },
+    cyberSliderContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    cyberSlider: {
+        flex: 1,
+        height: 30,
+    },
+    cyberZoomDisplay: {
+        backgroundColor: CYBER_COLORS.surface,
+        borderRadius: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderWidth: 1,
+        borderColor: CYBER_COLORS.border,
+    },
+    cyberZoomValue: {
+        color: CYBER_COLORS.text,
+        fontSize: 12,
+        fontWeight: '600',
         textAlign: 'center',
-        zIndex: 1,
+        minWidth: 30,
+    },
+    cyberFlashButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        gap: 8,
+    },
+    cyberButtonText: {
+        fontSize: 11,
+        fontWeight: '600',
+        letterSpacing: 0.5,
     },
 });
-

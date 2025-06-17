@@ -31,7 +31,6 @@ import {
     useColorVariants,
 } from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
-import { Feather } from '@expo/vector-icons';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -156,7 +155,7 @@ export default function LoginScreen() {
                         <Animated.View style={fadeInStyle}>
                             <View style={styles.header}>
                                 <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
-                                    <Feather name="log-in" size={32} color={semanticColors.primary} />
+                                    <ThemedIcon name="log-in" size={32} color="primary" />
                                 </View>
                                 <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
                                     {t('auth.login_title')}
@@ -246,10 +245,10 @@ export default function LoginScreen() {
                                                 onPress={() => setShowPassword(!showPassword)}
                                                 disabled={isLoading}
                                             >
-                                                <Feather
+                                                <ThemedIcon
                                                     name={showPassword ? 'eye-off' : 'eye'}
                                                     size={20}
-                                                    color={semanticColors.secondary}
+                                                    color="secondary"
                                                 />
                                             </Pressable>
                                         </View>
@@ -294,7 +293,11 @@ export default function LoginScreen() {
                                                 </View>
                                             ) : (
                                                 <>
-                                                    <Feather name="log-in" size={20} color={semanticColors.background} />
+                                                    <ThemedIcon
+                                                        name="log-in"
+                                                        size={20}
+                                                        color="inverse"
+                                                    />
                                                     <Text style={[typography.body, styles.loginButtonText, { color: semanticColors.background }]}>
                                                         {t('auth.signin')}
                                                     </Text>
@@ -337,15 +340,15 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        padding: 24,
+        paddingHorizontal: 24,
+        paddingVertical: 10,
         justifyContent: 'center',
-        minHeight: '100%',
     },
 
     // Header
     header: {
         alignItems: 'center',
-        marginBottom: 32,
+        paddingVertical: 16,
     },
     logoContainer: {
         width: 80,
@@ -381,9 +384,22 @@ const styles = StyleSheet.create({
     inputGroup: {
         gap: 8,
     },
-    label: {
-        fontWeight: '500',
-        marginBottom: 4,
+    inputLabel: {
+        fontWeight: '600',
+    },
+    inputWrapper: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        minHeight: 48,
+    },
+    inputContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        minHeight: 48,
+    },
+    inputIcon: {
+        marginRight: 12,
     },
     textInput: {
         minHeight: 48,

@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   Alert,
+  Dimensions,
   FlatList,
   Image,
   Pressable,
@@ -11,7 +12,7 @@ import {
 } from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import { Feather } from '@expo/vector-icons';
+import {Feather} from '@expo/vector-icons';
 import {router} from 'expo-router';
 import Animated, {
   FadeInDown,
@@ -27,7 +28,7 @@ import {Card} from '@/components/ThemedView';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {ThemedText} from '@/components/ThemedText';
-import {useColors, useShadows, useTypography} from '@/hooks/useThemeColor';
+import {useColors, useTypography} from '@/hooks/useThemeColor';
 import {type BirdSpotting, getBirdSpottings} from '@/services/database';
 import {syncDatabase} from '@/services/sync_layer';
 
@@ -195,7 +196,7 @@ function SearchHeader({
               style={styles.actionButton}
               onPress={() => setShowSortMenu(!showSortMenu)}
           >
-            <ThemedIcon name={getSortIcon()} size={16} color="primary" />
+            <ThemedIcon name={getSortIcon()} size={16} color="primary"/>
           </ThemedPressable>
 
           {/* Sync Button */}
@@ -402,12 +403,15 @@ export default function ArchiveScreen() {
     return `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
   };
 
-  // Render spotting card
-  const renderSpotting = useCallback(({item, index}: { item: BirdSpotting; index: number }) => (
+  // Render spotting card with Pinterest-like layout
+  const renderSpotting = useCallback(({item, index}: { item: BirdSpotting; index: number }) => {
+    const hasMedia = !!(item.imageUri || item.videoUri);
+    
+    return (
       <Animated.View
-          entering={FadeInDown.delay(index * 50).springify()}
+          entering={FadeInDown.delay(index * 30).springify()}
           layout={Layout.springify()}
-          style={styles.cardContainer}
+          style={[styles.cardContainer, hasMedia ? styles.mediaCardContainer : styles.textCardContainer]}
       >
         <ThemedPressable
             variant="ghost"
@@ -415,35 +419,68 @@ export default function ArchiveScreen() {
             style={styles.spottingCard}
         >
           <Card style={styles.spottingCardInner}>
-            {item.imageUri && (
-              <Image source={{uri: item.imageUri}} style={styles.spottingImage} />
+            {/* Media Section */}
+            {hasMedia && (
+              <View style={styles.mediaSection}>
+                <Image 
+                  source={{uri: item.imageUri || item.videoUri}} 
+                  style={styles.spottingImage}
+                  resizeMode="cover"
+                />
+                {/* Media overlay indicators */}
+                <View style={styles.mediaOverlay}>
+                  {item.videoUri && (
+                    <View style={styles.videoIndicator}>
+                      <ThemedIcon name="play" size={12} color="inverse" />
+                    </View>
+                  )}
+                  {item.audioUri && (
+                    <View style={styles.audioIndicator}>
+                      <ThemedIcon name="mic" size={10} color="inverse" />
+                    </View>
+                  )}
+                </View>
+              </View>
             )}
-            <View style={styles.spottingContent}>
-              <ThemedText variant="body" numberOfLines={1} style={styles.birdName}>
+            
+            {/* Content Section */}
+            <View style={[styles.spottingContent, hasMedia ? styles.mediaContentPadding : styles.textContentPadding]}>
+              <ThemedText variant="bodySmall" numberOfLines={2} style={styles.birdName}>
                 {item.birdType || t('archive.unknown_bird')}
               </ThemedText>
+              
               {item.latinBirDex && (
-                <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
+                <ThemedText variant="caption" color="secondary" numberOfLines={1} style={styles.latinName}>
                   {item.latinBirDex}
                 </ThemedText>
               )}
-              <ThemedText variant="caption" color="secondary">
-                {formatDate(item.date)}
-              </ThemedText>
-              {formatLocation(item.gpsLat, item.gpsLng) && (
-                <ThemedText variant="caption" color="secondary" numberOfLines={1}>
-                  {formatLocation(item.gpsLat, item.gpsLng)}
+              
+              <View style={styles.metaInfo}>
+                <ThemedText variant="caption" color="tertiary" style={styles.dateText}>
+                  {formatDate(item.date)}
                 </ThemedText>
-              )}
-              <View style={styles.mediaIndicators}>
-                {item.audioUri && <ThemedIcon name="mic" size={16} color="primary" />}
-                {item.videoUri && <ThemedIcon name="video" size={16} color="primary" />}
+                {formatLocation(item.gpsLat, item.gpsLng) && (
+                  <View style={styles.locationRow}>
+                    <ThemedIcon name="map-pin" size={8} color="tertiary" />
+                    <ThemedText variant="caption" color="tertiary" numberOfLines={1} style={styles.locationText}>
+                      {formatLocation(item.gpsLat, item.gpsLng)}
+                    </ThemedText>
+                  </View>
+                )}
               </View>
+              
+              {/* Text-only cards get audio indicator */}
+              {!hasMedia && item.audioUri && (
+                <View style={styles.audioOnlyIndicator}>
+                  <ThemedIcon name="mic" size={12} color="primary" />
+                </View>
+              )}
             </View>
           </Card>
         </ThemedPressable>
       </Animated.View>
-  ), [handleSpottingPress, t, colors]);
+    );
+  }, [handleSpottingPress, t, formatDate, formatLocation]);
 
   // Loading state
   if (loading) {
@@ -535,7 +572,6 @@ export default function ArchiveScreen() {
                       colors={[colors.primary]}
                   />
                 }
-                ItemSeparatorComponent={() => <View style={styles.separator}/>}
             />
         )}
       </ThemedSafeAreaView>
@@ -584,6 +620,9 @@ function createEmptyStateStyles() {
  */
 function createSearchStyles() {
   return StyleSheet.create({
+    actionIcon: {
+      margin: -2
+    },
     searchHeader: {
       paddingHorizontal: 20,
       marginBottom: 16,
@@ -606,7 +645,8 @@ function createSearchStyles() {
     },
     actionButtons: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 25,
+      overflow: 'visible',
     },
     actionButton: {
       width: 44,
@@ -659,12 +699,14 @@ function createSearchStyles() {
 }
 
 /**
- * Creates styles for main archive screen
+ * Creates styles for main archive screen with Pinterest-like layout
  */
 function createStyles() {
-  const cardMargin = 16;
+  const screenWidth = Dimensions.get('window').width;
+  const cardMargin = 6;
+  const horizontalPadding = 12;
   const cardsPerRow = 2;
-  const cardWidth = (350 - (cardMargin * 3)) / cardsPerRow; // Assuming reasonable screen width
+  const cardWidth = (screenWidth - (horizontalPadding * 2) - (cardMargin * (cardsPerRow + 1))) / cardsPerRow;
   
   return StyleSheet.create({
     container: {
@@ -676,7 +718,7 @@ function createStyles() {
     header: {
       paddingHorizontal: 20,
       paddingTop: 16,
-      paddingBottom: 32,
+      paddingBottom: 24,
     },
     headerContent: {
       flexDirection: 'row',
@@ -699,45 +741,137 @@ function createStyles() {
       gap: 4,
     },
 
-    // List
+    // Pinterest-style List
     listContent: {
-      paddingHorizontal: 16,
+      paddingHorizontal: horizontalPadding,
       paddingBottom: 32,
     },
     row: {
       justifyContent: 'space-between',
-      paddingHorizontal: 8,
+      gap: cardMargin,
     },
+    
+    // Card Containers - Different heights for variety
     cardContainer: {
-      marginBottom: 16,
       width: cardWidth,
+      marginBottom: cardMargin,
     },
+    mediaCardContainer: {
+      // Media cards can be taller
+    },
+    textCardContainer: {
+      // Text-only cards are more compact
+    },
+    
+    // Card Structure
     spottingCard: {
-      borderRadius: 8,
+      borderRadius: 12,
+      overflow: 'hidden',
     },
     spottingCardInner: {
       overflow: 'hidden',
       padding: 0,
+      borderRadius: 12,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+    },
+    
+    // Media Section
+    mediaSection: {
+      position: 'relative',
+      width: '100%',
     },
     spottingImage: {
       width: '100%',
-      height: 80,
-      resizeMode: 'cover',
+      height: cardWidth * 0.8, // Aspect ratio for Pinterest feel
+      minHeight: 120,
     },
-    spottingContent: {
-      padding: 12,
+    mediaOverlay: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      flexDirection: 'row',
       gap: 4,
     },
+    videoIndicator: {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      borderRadius: 10,
+      width: 20,
+      height: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    audioIndicator: {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      borderRadius: 8,
+      width: 16,
+      height: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    
+    // Content Section
+    spottingContent: {
+      gap: 3,
+    },
+    mediaContentPadding: {
+      padding: 8,
+    },
+    textContentPadding: {
+      padding: 12,
+    },
+    
+    // Text Styles
     birdName: {
       fontWeight: '600',
+      fontSize: 13,
+      lineHeight: 16,
     },
-    mediaIndicators: {
-      flexDirection: 'row',
-      gap: 8,
+    latinName: {
+      fontSize: 11,
+      fontStyle: 'italic',
+      opacity: 0.8,
+    },
+    
+    // Meta Information
+    metaInfo: {
       marginTop: 4,
+      gap: 2,
     },
-    separator: {
-      height: 8,
+    dateText: {
+      fontSize: 10,
+      opacity: 0.7,
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    locationText: {
+      fontSize: 10,
+      opacity: 0.7,
+      flex: 1,
+    },
+    
+    // Audio-only indicator
+    audioOnlyIndicator: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      borderRadius: 12,
+      width: 24,
+      height: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 2,
+      elevation: 2,
     },
 
     // Empty States

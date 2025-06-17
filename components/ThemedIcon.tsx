@@ -1,6 +1,6 @@
 import React from 'react';
-import { Feather } from '@expo/vector-icons';
-import { useTheme } from '@/hooks/useThemeColor';
+import {Feather} from '@expo/vector-icons';
+import {useTheme} from '@/hooks/useThemeColor';
 
 interface ThemedIconProps {
     name: keyof typeof Feather.glyphMap;

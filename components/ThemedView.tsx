@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, type ViewProps } from 'react-native';
-import { useColors, useBorderRadius, useShadows } from '@/hooks/useThemeColor';
+import {View, type ViewProps} from 'react-native';
+import {useBorderRadius, useColors, useShadows} from '@/hooks/useThemeColor';
 
 export type ThemedViewProps = ViewProps & {
   background?: 'primary' | 'secondary' | 'tertiary' | 'surface' | 'transparent';

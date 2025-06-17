@@ -23,13 +23,13 @@ import Animated, {
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 import { ThemedTextInput } from '@/components/ThemedTextInput';
 import { ModernCard } from '@/components/ModernCard';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import {
     useTheme,
     useTypography,
     useSemanticColors,
     useColorVariants,
 } from '@/hooks/useThemeColor';
-import { Feather } from '@expo/vector-icons';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -162,7 +162,7 @@ export default function ForgotPasswordScreen() {
                             <Animated.View style={fadeInStyle}>
                                 <View style={styles.header}>
                                     <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
-                                        <Feather name="mail" size={32} color={semanticColors.primary} />
+                                        <ThemedIcon name="mail" size={32} color="primary" />
                                     </View>
                                     <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
                                         {t('auth.email_sent', 'Email Sent')}
@@ -175,7 +175,7 @@ export default function ForgotPasswordScreen() {
                                 <ModernCard elevated={true} bordered={false} style={styles.successCard}>
                                     <View style={styles.successContent}>
                                         <View style={[styles.emailIconContainer, { backgroundColor: variants.primary.light }]}>
-                                            <Feather name="check-circle" size={24} color={semanticColors.primary} />
+                                            <ThemedIcon name="check-circle" size={24} color="primary" />
                                         </View>
                                         <View style={styles.successText}>
                                             <Text style={[typography.body, { color: semanticColors.primary }]}>
@@ -198,7 +198,7 @@ export default function ForgotPasswordScreen() {
                                         onPress={handleResendEmail}
                                         android_ripple={{ color: variants.secondary.main + '33' }}
                                     >
-                                        <Feather name="refresh-cw" size={18} color={semanticColors.secondary} />
+                                        <ThemedIcon name="refresh-cw" size={18} color="secondary" />
                                         <Text style={[typography.body, { color: semanticColors.secondary, fontWeight: '500' }]}>
                                             {t('auth.resend_email', 'Resend Email')}
                                         </Text>
@@ -236,13 +236,13 @@ export default function ForgotPasswordScreen() {
                         <Animated.View style={fadeInStyle}>
                             <View style={styles.header}>
                                 <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
-                                    <Feather name="key" size={32} color={semanticColors.primary} />
+                                    <ThemedIcon name="key" size={32} color="primary" />
                                 </View>
                                 <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
-                                    {t('auth.forgot_password_title', 'Reset Password')}
+                                    {t('auth.forgot_password_title', 'Forgot Password')}
                                 </Text>
                                 <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
-                                    {t('auth.forgot_password_instructions', 'Enter email for reset instructions')}
+                                    {t('auth.forgot_password_subtitle', 'Enter your email to reset your password')}
                                 </Text>
                             </View>
 
@@ -296,7 +296,7 @@ export default function ForgotPasswordScreen() {
                                                 </View>
                                             ) : (
                                                 <>
-                                                    <Feather name="send" size={20} color={semanticColors.background} />
+                                                    <ThemedIcon name="send" size={20} color="inverse" />
                                                     <Text style={[typography.body, styles.resetButtonText, { color: semanticColors.background }]}>
                                                         {t('auth.send_reset', 'Send Reset')}
                                                     </Text>
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     form: {
-        gap: 24,
+        gap: 16,
     },
     inputGroup: {
         gap: 8,

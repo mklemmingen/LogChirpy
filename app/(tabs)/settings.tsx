@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { I18nManager, Linking, ScrollView, StyleSheet, Switch, useColorScheme, View, } from "react-native";
-import { useTranslation } from "react-i18next";
-import { ThemedIcon } from '@/components/ThemedIcon';
+import {useEffect, useState} from "react";
+import {I18nManager, Linking, ScrollView, StyleSheet, Switch, useColorScheme, View,} from "react-native";
+import {useTranslation} from "react-i18next";
+import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
     FadeInDown,
     Layout,
@@ -14,14 +14,14 @@ import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
-import { languages } from "@/i18n/languages";
-import { Config, STORAGE_KEYS } from "@/constants/config";
+import {languages} from "@/i18n/languages";
+import {Config, STORAGE_KEYS} from "@/constants/config";
 import Slider from '@react-native-community/slider';
-import { ThemedView, Card } from "@/components/ThemedView";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedPressable } from "@/components/ThemedPressable";
-import { ThemedSafeAreaView } from "@/components/ThemedSafeAreaView";
-import { useColors, useTheme, useTypography } from "@/hooks/useThemeColor";
+import {Card, ThemedView} from "@/components/ThemedView";
+import {ThemedText} from "@/components/ThemedText";
+import {ThemedPressable} from "@/components/ThemedPressable";
+import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
+import {useColors, useTheme, useTypography} from "@/hooks/useThemeColor";
 
 /**
  * Language selection card with flags and animations
@@ -789,6 +789,116 @@ export default function SettingsScreen() {
                         </Card>
                     </Animated.View>
                 </ThemedView>
+
+                {/* Credit Section */}
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        {t("settings.credits.title")}
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        {t("settings.credits.subtitle")}
+                    </ThemedText>
+
+                    <Animated.View
+                        entering={FadeInDown.delay(300).springify()}
+                        layout={Layout.springify()}
+                    >
+                        <Card style={styles.aboutCard}>
+                            <View style={styles.aboutContent}>
+                                <View style={[
+                                    styles.aboutIcon,
+                                    { backgroundColor: colors.backgroundSecondary }
+                                ]}>
+                                    <ThemedIcon
+                                        name="key"
+                                        size={32}
+                                        color="primary"
+                                    />
+                                </View>
+
+                                <View style={styles.aboutText}>
+                                    <ThemedText variant="h3" style={styles.appTitle}>
+                                        Encyclopedia
+                                    </ThemedText>
+                                    <ThemedText variant="body" color="secondary" style={styles.appDescription}>
+                                        {t("settings.credits.encyclopedia")}
+                                    </ThemedText>
+                                    <ThemedText variant="body" color="secondary" style={styles.appDescription}>
+                                        {t("settings.credits.wikimedia")}
+                                    </ThemedText>
+                                </View>
+
+                            </View>
+                        </Card>
+                    </Animated.View>
+
+                    <Animated.View
+                        entering={FadeInDown.delay(300).springify()}
+                        layout={Layout.springify()}
+                    >
+                        <Card style={styles.aboutCard}>
+                            <View style={styles.aboutContent}>
+                                <View style={[
+                                    styles.aboutIcon,
+                                    { backgroundColor: colors.backgroundSecondary }
+                                ]}>
+                                    <ThemedIcon
+                                        name="search"
+                                        size={32}
+                                        color="primary"
+                                    />
+                                </View>
+
+                                <View style={styles.aboutText}>
+                                    <ThemedText variant="h3" style={styles.appTitle}>
+                                        ML
+                                    </ThemedText>
+                                    <ThemedText variant="body" color="secondary" style={styles.appDescription}>
+                                        {t("settings.credits.objectidentify")}
+                                    </ThemedText>
+                                    <ThemedText variant="body" color="secondary" style={styles.appDescription}>
+                                        {t("settings.credits.imageclassify")}
+                                    </ThemedText>
+                                    <ThemedText variant="body" color="secondary" style={styles.appDescription}>
+                                        {t("settings.credits.audioclassify")}
+                                    </ThemedText>
+                                </View>
+                            </View>
+                        </Card>
+                    </Animated.View>
+
+                    <Animated.View
+                        entering={FadeInDown.delay(300).springify()}
+                        layout={Layout.springify()}
+                    >
+                        <Card style={styles.aboutCard}>
+                            <View style={styles.aboutContent}>
+                                <View style={[
+                                    styles.aboutIcon,
+                                    { backgroundColor: colors.backgroundSecondary }
+                                ]}>
+                                    <ThemedIcon
+                                        name="italic"
+                                        size={32}
+                                        color="primary"
+                                    />
+                                </View>
+
+                                <View style={styles.aboutText}>
+                                    <ThemedText variant="h3" style={styles.appTitle}>
+                                        Birdsprites
+                                    </ThemedText>
+                                    <ThemedText variant="body" color="secondary" style={styles.appDescription}>
+                                        {t("settings.credits.birdsprites")}
+                                    </ThemedText>
+                                </View>
+                            </View>
+                        </Card>
+                    </Animated.View>
+
+
+                </ThemedView>
+
             </ScrollView>
         </ThemedSafeAreaView>
     );

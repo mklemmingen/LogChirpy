@@ -5,7 +5,7 @@
  * Uses expo-av for audio loading and processing.
  */
 
-import { Audio } from 'expo-av';
+import {Audio} from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 
 export interface AudioBuffer {
@@ -149,12 +149,54 @@ export class AudioDecoder {
       // Decode base64 to bytes
       const headerBytes = this.base64ToUint8Array(base64Data);
       
-      // Parse WAV header
+      // Parse WAV header with validation
       const view = new DataView(headerBytes.buffer);
+      
+      // Validate WAV signature first - be more lenient
+      let riffSignature, waveSignature;
+      try {
+        riffSignature = view.getUint32(0, false);
+        waveSignature = view.getUint32(8, false);
+      } catch (signatureError) {
+        throw new Error('Unable to read WAV file header');
+      }
+      
+      // Check for RIFF and WAVE signatures, but be more forgiving
+      const isValidWav = (riffSignature === 0x52494646) && (waveSignature === 0x57415645);
+      if (!isValidWav) {
+        console.warn(`WAV signature check failed: RIFF=${riffSignature.toString(16)}, WAVE=${waveSignature.toString(16)}`);
+        // Don't throw immediately, try to continue with fallback processing
+      }
+      
       const numChannels = view.getUint16(22, true);
       const sampleRate = view.getUint32(24, true);
       const bitsPerSample = view.getUint16(34, true);
       const dataSize = view.getUint32(40, true);
+      
+      // Validate header values to prevent corrupted data, but be forgiving
+      let validatedSampleRate = sampleRate;
+      let validatedChannels = numChannels;
+      let validatedBitsPerSample = bitsPerSample;
+      
+      // Fix obviously wrong values with reasonable defaults
+      if (sampleRate < 8000 || sampleRate > 192000) {
+        console.warn(`Invalid sample rate ${sampleRate}Hz, using 48000Hz`);
+        validatedSampleRate = 48000;
+      }
+      if (numChannels < 1 || numChannels > 8) {
+        console.warn(`Invalid channel count ${numChannels}, using 1 channel`);
+        validatedChannels = 1;
+      }
+      if (bitsPerSample !== 8 && bitsPerSample !== 16 && bitsPerSample !== 24 && bitsPerSample !== 32) {
+        console.warn(`Invalid bit depth ${bitsPerSample}, using 16 bits`);
+        validatedBitsPerSample = 16;
+      }
+      
+      // If we had to fix any values, use fallback processing
+      if (validatedSampleRate !== sampleRate || validatedChannels !== numChannels || validatedBitsPerSample !== bitsPerSample || !isValidWav) {
+        console.warn('WAV file appears corrupted, using fallback audio generation');
+        throw new Error('WAV validation failed, using fallback');
+      }
       
       console.log(`WAV Info: ${sampleRate}Hz, ${numChannels}ch, ${bitsPerSample}bit`);
       
@@ -167,17 +209,59 @@ export class AudioDecoder {
       
       // Extract PCM data (skip 44-byte header)
       const pcmData = fullBytes.slice(44);
-      const samples = new Float32Array(pcmData.length / (bitsPerSample / 8));
+      const bytesPerSample = bitsPerSample / 8;
+      const maxSamples = Math.floor(pcmData.length / (bytesPerSample * numChannels));
       
-      // Convert to float32 based on bit depth
+      // Add bounds checking to prevent RangeError
+      if (maxSamples <= 0 || pcmData.length < bytesPerSample) {
+        throw new Error(`Insufficient PCM data: ${pcmData.length} bytes for ${bitsPerSample}-bit ${numChannels}-channel audio`);
+      }
+      
+      const samples = new Float32Array(maxSamples);
+      
+      // Convert to float32 based on bit depth with bounds checking
       if (bitsPerSample === 16) {
-        for (let i = 0; i < samples.length; i++) {
-          const int16 = (pcmData[i * 2 + 1] << 8) | pcmData[i * 2];
-          samples[i] = int16 / 32768.0; // Normalize to [-1, 1]
+        for (let i = 0; i < maxSamples; i++) {
+          const byteIndex = i * 2 * numChannels; // Account for channels
+          if (byteIndex + 1 < pcmData.length) {
+            const int16 = (pcmData[byteIndex + 1] << 8) | pcmData[byteIndex];
+            // Convert unsigned to signed 16-bit
+            const signedInt16 = int16 > 32767 ? int16 - 65536 : int16;
+            samples[i] = signedInt16 / 32768.0; // Normalize to [-1, 1]
+          } else {
+            samples[i] = 0; // Pad with silence if insufficient data
+          }
         }
       } else if (bitsPerSample === 8) {
-        for (let i = 0; i < samples.length; i++) {
-          samples[i] = (pcmData[i] - 128) / 128.0; // Normalize to [-1, 1]
+        for (let i = 0; i < maxSamples; i++) {
+          const byteIndex = i * numChannels;
+          if (byteIndex < pcmData.length) {
+            samples[i] = (pcmData[byteIndex] - 128) / 128.0; // Normalize to [-1, 1]
+          } else {
+            samples[i] = 0; // Pad with silence if insufficient data
+          }
+        }
+      } else if (bitsPerSample === 24) {
+        for (let i = 0; i < maxSamples; i++) {
+          const byteIndex = i * 3 * numChannels;
+          if (byteIndex + 2 < pcmData.length) {
+            const int24 = (pcmData[byteIndex + 2] << 16) | (pcmData[byteIndex + 1] << 8) | pcmData[byteIndex];
+            const signedInt24 = int24 > 8388607 ? int24 - 16777216 : int24;
+            samples[i] = signedInt24 / 8388608.0; // Normalize to [-1, 1]
+          } else {
+            samples[i] = 0;
+          }
+        }
+      } else if (bitsPerSample === 32) {
+        for (let i = 0; i < maxSamples; i++) {
+          const byteIndex = i * 4 * numChannels;
+          if (byteIndex + 3 < pcmData.length) {
+            // Assume 32-bit float PCM
+            const dataView = new DataView(pcmData.buffer, pcmData.byteOffset + byteIndex, 4);
+            samples[i] = dataView.getFloat32(0, true);
+          } else {
+            samples[i] = 0;
+          }
         }
       }
       

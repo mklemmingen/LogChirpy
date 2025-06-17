@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Pressable } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {Pressable} from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Audio } from 'expo-av';
+import {Audio} from 'expo-av';
 
 interface HapticTabProps extends Omit<React.ComponentProps<typeof Pressable>, 'onPress'> {
   children: React.ReactNode;

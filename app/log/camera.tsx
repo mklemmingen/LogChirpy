@@ -11,6 +11,7 @@ import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {useColors} from '@/hooks/useThemeColor';
+import {BackButton} from '@/components/BackButton';
 
 // Screen dimensions available if needed
 // const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -160,12 +161,7 @@ export default function CameraScreen() {
 
             {/* Top Controls */}
             <View style={styles.topControls}>
-                <ThemedPressable
-                    style={[styles.controlButton, { backgroundColor: colors.overlay }]}
-                    onPress={() => router.back()}
-                >
-                    <ThemedIcon name="arrow-left" size={24} color="primary" />
-                </ThemedPressable>
+                <BackButton variant="floating" />
 
                 <View style={styles.topCenter}>
                     <ThemedText style={styles.photoCount}>
@@ -174,7 +170,7 @@ export default function CameraScreen() {
                 </View>
 
                 <ThemedPressable
-                    style={[styles.controlButton, { backgroundColor: colors.overlay }]}
+                    style={[styles.flashButton, { backgroundColor: colors.overlay }]}
                     onPress={toggleFlash}
                 >
                     <ThemedIcon name={getFlashIcon()} size={24} color="primary" />
@@ -272,7 +268,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
     },
-    controlButton: {
+    flashButton: {
         width: 44,
         height: 44,
         borderRadius: 22,

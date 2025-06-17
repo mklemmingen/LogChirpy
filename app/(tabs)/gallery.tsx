@@ -1,32 +1,28 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-    View,
-    FlatList,
-    Image,
-    StyleSheet,
-    Alert,
-    Pressable,
-    Share,
-    ActivityIndicator,
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
+import React, {useCallback, useEffect, useState} from 'react';
+import {ActivityIndicator, Alert, FlatList, Image, Pressable, Share, StyleSheet, View,} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import {router, useLocalSearchParams, useFocusEffect} from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
 
 // Components
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { ModernCard } from '@/components/ModernCard';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import {ModernCard} from '@/components/ModernCard';
+import {useSnackbar} from '@/components/ThemedSnackbar';
+
+// Context
+import {useLogDraft} from '@/contexts/LogDraftContext';
 
 // Hooks
-import { useColors } from '@/hooks/useThemeColor';
+import {useColors} from '@/hooks/useThemeColor';
 
 // URI utilities
-import { filePathToUri, uriToFilePath, validateImageUri } from '@/services/uriUtils';
+import {filePathToUri, uriToFilePath} from '@/services/uriUtils';
 
 interface PhotoItem {
     uri: string;
@@ -42,6 +38,9 @@ export default function GalleryManagementScreen() {
     const { t } = useTranslation();
     const colors = useColors();
     const styles = createStyles();
+    const { selectMode } = useLocalSearchParams();
+    const { update } = useLogDraft();
+    const { SnackbarComponent, showSuccess, showError } = useSnackbar();
 
     const [photos, setPhotos] = useState<PhotoItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -64,7 +63,8 @@ export default function GalleryManagementScreen() {
 
             const files = await FileSystem.readDirectoryAsync(galleryDir);
             const photoFiles = files.filter(filename => 
-                (filename.startsWith('bird_') || filename.startsWith('full_')) && filename.endsWith('.jpg')
+                (filename.startsWith('bird_') || filename.startsWith('full_') || filename.startsWith('logchirpy_photo_')) && 
+                (filename.endsWith('.jpg') || filename.endsWith('.jpeg') || filename.endsWith('.png'))
             );
 
             const photoItems: PhotoItem[] = await Promise.all(
@@ -99,6 +99,15 @@ export default function GalleryManagementScreen() {
     useEffect(() => {
         loadPhotos();
     }, [loadPhotos]);
+
+    // Reset selection state when screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            // Always reset selection state when returning to gallery
+            setSelectionMode(false);
+            setSelectedPhotos(new Set());
+        }, [])
+    );
 
     // Extract classification data from filename patterns like "bird_house_finch_conf085_timestamp_milliseconds.jpg"
     const extractDataFromFilename = (filename: string): { 
@@ -231,6 +240,28 @@ export default function GalleryManagementScreen() {
         }
     };
 
+    // Use selected photo for logging
+    const usePhotoForLog = useCallback(async () => {
+        if (selectedPhotos.size !== 1) {
+            showError('Please select exactly one photo to use for logging');
+            return;
+        }
+
+        const selectedPhotoUri = Array.from(selectedPhotos)[0];
+        try {
+            // Update the LogDraft context with the selected photo
+            update({ imageUri: selectedPhotoUri });
+            showSuccess('Photo selected for bird log');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            
+            // Navigate to the manual entry screen
+            router.push('/log/manual');
+        } catch (error) {
+            console.error('Failed to use photo for log:', error);
+            showError('Failed to select photo for logging');
+        }
+    }, [selectedPhotos, update, showSuccess, showError]);
+
     const renderPhoto = ({ item }: { item: PhotoItem }) => {
         const isSelected = selectedPhotos.has(item.uri);
         const isBroken = brokenImages.has(item.uri);
@@ -242,7 +273,7 @@ export default function GalleryManagementScreen() {
                         if (selectionMode) {
                             toggleSelection(item.uri);
                         } else {
-                            // Single photo actions
+                            // Single photo view or quick actions could go here
                         }
                     }}
                     onLongPress={() => {
@@ -334,19 +365,37 @@ export default function GalleryManagementScreen() {
             </ThemedView>
 
             {/* Selection Mode Actions */}
-            {selectionMode && selectedPhotos.size > 0 && (
+            {(selectionMode && selectedPhotos.size > 0) && (
                 <View style={styles.actionBar}>
                     <ModernCard style={styles.actionCard}>
                         <View style={styles.actionButtons}>
+                            {/* Use for Bird Log button - always available when photos are selected */}
                             <ThemedPressable
                                 variant="primary"
+                                size="sm"
+                                onPress={usePhotoForLog}
+                                disabled={selectedPhotos.size !== 1}
+                                style={[
+                                    styles.actionButton,
+                                    ...(selectedPhotos.size !== 1 ? [{ opacity: 0.5 }] : [])
+                                ]}
+                            >
+                                <ThemedIcon name="edit" size={16} color="inverse" />
+                                <ThemedText variant="labelMedium" color="inverse">
+                                    Use for Log
+                                </ThemedText>
+                            </ThemedPressable>
+
+                            {/* Standard gallery actions - always available */}
+                            <ThemedPressable
+                                variant="secondary"
                                 size="sm"
                                 onPress={() => saveToGallery(Array.from(selectedPhotos))}
                                 style={styles.actionButton}
                             >
                                 <ThemedIcon name="download" size={16} color="primary" />
                                 <ThemedText variant="labelMedium" color="primary">
-                                    {t('gallery.save_to_gallery')}
+                                    Save to Gallery
                                 </ThemedText>
                             </ThemedPressable>
 
@@ -356,9 +405,9 @@ export default function GalleryManagementScreen() {
                                 onPress={() => sharePhotos(Array.from(selectedPhotos))}
                                 style={styles.actionButton}
                             >
-                                <ThemedIcon name="share" size={16} color="secondary" />
-                                <ThemedText variant="labelMedium" color="secondary">
-                                    {t('buttons.share')}
+                                <ThemedIcon name="share" size={16} color="primary" />
+                                <ThemedText variant="labelMedium" color="primary">
+                                    Share
                                 </ThemedText>
                             </ThemedPressable>
 
@@ -366,11 +415,11 @@ export default function GalleryManagementScreen() {
                                 variant="secondary"
                                 size="sm"
                                 onPress={() => deletePhotos(Array.from(selectedPhotos))}
-                                style={[styles.actionButton, { backgroundColor: 'red' }]}
+                                style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
                             >
-                                <ThemedIcon name="trash-2" size={16} color="error" />
-                                <ThemedText variant="labelMedium" color="error">
-                                    {t('buttons.delete')}
+                                <ThemedIcon name="trash-2" size={16} color="inverse" />
+                                <ThemedText variant="labelMedium" color="inverse">
+                                    Delete
                                 </ThemedText>
                             </ThemedPressable>
 
@@ -383,9 +432,23 @@ export default function GalleryManagementScreen() {
                                 }}
                             >
                                 <ThemedText variant="labelMedium" color="tertiary">
-                                    {t('buttons.cancel')}
+                                    Cancel
                                 </ThemedText>
                             </ThemedPressable>
+                        </View>
+                    </ModernCard>
+                </View>
+            )}
+
+            {/* Instructions */}
+            {selectedPhotos.size === 0 && !selectionMode && photos.length > 0 && (
+                <View style={styles.actionBar}>
+                    <ModernCard style={styles.actionCard}>
+                        <View style={styles.instructionContainer}>
+                            <ThemedIcon name="info" size={20} color="primary" />
+                            <ThemedText variant="body" color="secondary" style={styles.instructionText}>
+                                Long press any photo to select, then choose an action (log, save, share, or delete)
+                            </ThemedText>
                         </View>
                     </ModernCard>
                 </View>
@@ -417,6 +480,7 @@ export default function GalleryManagementScreen() {
                     refreshing={loading}
                 />
             )}
+            <SnackbarComponent />
         </ThemedSafeAreaView>
     );
 }
@@ -425,6 +489,7 @@ function createStyles() {
     return StyleSheet.create({
         container: {
             flex: 1,
+            paddingTop: 32,
         },
         
         // Header
@@ -464,6 +529,16 @@ function createStyles() {
         actionButton: {
             flexDirection: 'row',
             gap: 4,
+        },
+        instructionContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            padding: 4,
+        },
+        instructionText: {
+            flex: 1,
+            lineHeight: 20,
         },
 
         // Photo Grid

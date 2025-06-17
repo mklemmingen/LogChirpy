@@ -1,18 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-} from 'react-native-reanimated';
+import {StyleSheet, Text, View, ViewStyle} from 'react-native';
+import {BlurView} from 'expo-blur';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring,} from 'react-native-reanimated';
 
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-} from '../hooks/useThemeColor';
+import {useColorVariants, useSemanticColors, useTheme, useTypography,} from '../hooks/useThemeColor';
 
 // Enhanced props interface
 interface SectionProps {
