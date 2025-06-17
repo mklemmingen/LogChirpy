@@ -60,14 +60,27 @@ const CYBER_COLORS = {
     overlay: '#000000CC',    // Semi-transparent black
 };
 
-// Confidence color coding for detection boxes
-function getConfidenceColor(confidence: number): string {
+// Confidence color coding for detection boxes (old style)
+function getBoxStyle(confidence: number) {
+    // Clamp conf to [0,1]
     const c = Math.min(Math.max(confidence, 0), 1);
-    if (c > 0.8) return CYBER_COLORS.success;
-    if (c > 0.6) return CYBER_COLORS.primary;
-    if (c > 0.4) return CYBER_COLORS.accent;
-    if (c > 0.2) return CYBER_COLORS.warning;
-    return CYBER_COLORS.danger;
+    // Map confidence → hue (0 = red, 120 = green)
+    const hue = Math.round(c * 120);
+    // Use full saturation + mid lightness
+    const color = `hsl(${hue}, 100%, 50%)`;
+    // Make sure we never go fully transparent
+    const opacity = 0.2 + 0.8 * c;
+    return { color, opacity };
+}
+
+// Cyber-themed version of getBoxStyle for modern UI
+function getCyberBoxStyle(confidence: number) {
+    const c = Math.min(Math.max(confidence, 0), 1);
+    if (c > 0.8) return { color: CYBER_COLORS.success, opacity: 0.9 };
+    if (c > 0.6) return { color: CYBER_COLORS.primary, opacity: 0.8 };
+    if (c > 0.4) return { color: CYBER_COLORS.accent, opacity: 0.7 };
+    if (c > 0.2) return { color: CYBER_COLORS.warning, opacity: 0.6 };
+    return { color: CYBER_COLORS.danger, opacity: 0.5 };
 }
 
 // Permission Wrapper Component
@@ -164,6 +177,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
     const [detections, setDetections] = useState<Detection[]>([]);
     const [audioResults, setAudioResults] = useState<AudioPrediction[]>([]);
     const [pipelineState, setPipelineState] = useState<PipelineState>('idle');
+    const [imageDims, setImageDims] = useState({ width: 0, height: 0 });
 
     // ML Kit hooks
     const detector = useObjectDetection('default');
@@ -237,9 +251,18 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
         // Set up callbacks for UI updates
         pipeline.setCallbacks({
             // Image ML callbacks
-            onImageDetections: (newDetections) => {
+            onImageDetections: (newDetections, imageDimensions) => {
                 setDetections(newDetections);
                 console.log(`[UI] Updated detections: ${newDetections.length} items`);
+                
+                // Set image dimensions for coordinate scaling
+                if (imageDimensions) {
+                    setImageDims(imageDimensions);
+                    console.log(`[UI] Image dimensions set:`, imageDimensions);
+                } else {
+                    // Fallback to screen dimensions
+                    setImageDims({ width: W, height: H });
+                }
                 
                 // Log first detection details for debugging
                 if (newDetections.length > 0) {
@@ -250,13 +273,20 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         labels: firstDetection.labels[0]?.text,
                         confidence: firstDetection.labels[0]?.confidence
                     });
-                    console.log(`[SVG Debug] Scaled coordinates:`, {
-                        x: firstDetection.frame.origin.x * W,
-                        y: firstDetection.frame.origin.y * H,
-                        width: firstDetection.frame.size.x * W,
-                        height: firstDetection.frame.size.y * H,
-                        screenDims: { W, H }
-                    });
+                    
+                    if (imageDimensions) {
+                        const scaleX = W / imageDimensions.width;
+                        const scaleY = H / imageDimensions.height;
+                        console.log(`[SVG Debug] Scaled coordinates:`, {
+                            x: firstDetection.frame.origin.x * scaleX,
+                            y: firstDetection.frame.origin.y * scaleY,
+                            width: firstDetection.frame.size.x * scaleX,
+                            height: firstDetection.frame.size.y * scaleY,
+                            scale: { scaleX, scaleY },
+                            imageDims: imageDimensions,
+                            screenDims: { W, H }
+                        });
+                    }
                 }
                 
                 setDebugText(
@@ -366,89 +396,82 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
             {/* Detection Overlays */}
             <View pointerEvents="none" style={styles.svgContainer}>
                 <Svg style={styles.svg} viewBox={`0 0 ${W} ${H}`}>
-                    {/* Debug indicator - always visible red dot in top-left */}
-                    <Rect
-                        x={20}
-                        y={20}
-                        width={10}
-                        height={10}
-                        fill="#FF0000"
-                        opacity="1"
-                    />
-                    
-                    {/* Debug detection box - always visible for testing */}
-                    <Rect
-                        x={100}
-                        y={100}
-                        width={200}
-                        height={150}
-                        fill="transparent"
-                        stroke={CYBER_COLORS.primary}
-                        strokeWidth="3"
-                        rx="4"
-                    />
-                    <SvgText
-                        x={110}
-                        y={90}
-                        fontSize="14"
-                        fontWeight="bold"
-                        fill={CYBER_COLORS.primary}
-                    >
-                        DEBUG BOX
-                    </SvgText>
-                    
-                    {detections.map((detection, index) => {
-                        console.log(`[SVG Render] Processing detection ${index}:`, detection);
-                        const { origin, size } = detection.frame;
-                        const bestLabel = detection.labels[0];
-                        if (!bestLabel) {
-                            console.log(`[SVG Render] No label for detection ${index}`);
+                    {detections.map((item, index) => {
+                        const { origin, size } = item.frame;
+                        const labels = item.labels;
+                        
+                        if (!labels || labels.length === 0) {
+                            console.log(`[SVG] No labels for detection ${index}`);
                             return null;
                         }
                         
-                        const color = getConfidenceColor(bestLabel.confidence);
+                        const conf = labels[0]?.confidence ?? 0;
+                        const { color, opacity } = getBoxStyle(conf);
                         
-                        // Scale coordinates (MLKit provides normalized coordinates)
-                        const x = origin.x * W;
-                        const y = origin.y * H;
-                        const width = size.x * W;
-                        const height = size.y * H;
+                        // Calculate scale for rendering detection bounding boxes (like old code)
+                        const scaleX = imageDims.width ? W / imageDims.width : 1;
+                        const scaleY = imageDims.height ? H / imageDims.height : 1;
                         
+                        console.log(`[SVG] Detection ${index}:`, {
+                            frame: { origin, size },
+                            scale: { scaleX, scaleY },
+                            imageDims,
+                            screenDims: { W, H }
+                        });
+
                         return (
-                            <React.Fragment key={`detection-${index}`}>
-                                {/* Detection box */}
+                            <React.Fragment key={`det-${index}`}>
+                                {/* Bounding box */}
                                 <Rect
-                                    x={x}
-                                    y={y}
-                                    width={width}
-                                    height={height}
-                                    fill="transparent"
+                                    x={origin.x * scaleX}
+                                    y={origin.y * scaleY}
+                                    width={size.x * scaleX}
+                                    height={size.y * scaleY}
                                     stroke={color}
-                                    strokeWidth="2"
-                                    rx="4"
+                                    strokeWidth={2}
+                                    fill="none"
+                                    fillOpacity={opacity * 0.3}
                                 />
-                                
-                                {/* Label background */}
-                                <Rect
-                                    x={x}
-                                    y={Math.max(0, y - 30)}
-                                    width={Math.min(width, 200)}
-                                    height="25"
-                                    fill={color}
-                                    opacity="0.8"
-                                    rx="4"
-                                />
-                                
-                                {/* Label text */}
-                                <SvgText
-                                    x={x + 8}
-                                    y={Math.max(18, y - 8)}
-                                    fontSize="14"
-                                    fontWeight="bold"
-                                    fill={CYBER_COLORS.background}
-                                >
-                                    {bestLabel.text} ({Math.round(bestLabel.confidence * 100)}%)
-                                </SvgText>
+                                {labels.slice(0, 3).map((label, idx) => {
+                                    const conf = label.confidence;
+                                    const labelText = `${label.text} ${(conf * 100).toFixed(0)}%`;
+                                    const labelX = origin.x * scaleX;
+                                    const labelY = Math.max(origin.y * scaleY - 22 * (labels.length - idx), 0);
+                                    const labelWidth = labelText.length * 6.8 + 12;
+                                    const backgroundPadding = 4;
+
+                                    return (
+                                        <React.Fragment key={`label-${index}-${idx}`}>
+                                            <Rect
+                                                x={labelX - backgroundPadding}
+                                                y={labelY - 12}
+                                                width={labelWidth}
+                                                height={18}
+                                                rx={4}
+                                                ry={4}
+                                                fill="black"
+                                                fillOpacity={0.5}
+                                            />
+                                            <SvgText
+                                                x={labelX}
+                                                y={labelY}
+                                                fill="white"
+                                                fontSize="12"
+                                                fontWeight="bold"
+                                            >
+                                                {labelText}
+                                            </SvgText>
+                                            <Rect
+                                                x={labelX - backgroundPadding}
+                                                y={labelY + 6}
+                                                width={labelWidth * Math.min(conf, 1)}
+                                                height={4}
+                                                rx={2}
+                                                fill={conf >= 0.7 ? 'limegreen' : 'crimson'}
+                                            />
+                                        </React.Fragment>
+                                    );
+                                })}
                             </React.Fragment>
                         );
                     })}
@@ -457,24 +480,18 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
 
             {/* Cyberpunk HUD */}
             <View style={styles.hud}>
-                {/* Top Status Bar */}
-                <View style={styles.topBar}>
-                    <View style={styles.statusPanel}>
-                        <ThemedText style={styles.hudTitle}>NEURAL VISION SYSTEM</ThemedText>
+
+                {/* Detection Results Panel */}
+                <View style={styles.resultsPanel}>
+
                         <ThemedText style={styles.statusText}>
                             Status: {pipelineState.toUpperCase()} | Detections: {detections.length}
                         </ThemedText>
                         <ThemedText style={styles.debugText}>
                             {debugText}
                         </ThemedText>
-                    </View>
-                </View>
 
-                {/* Detection Results Panel */}
-                <View style={styles.resultsPanel}>
-                    {/* Image Analysis */}
-                    <View style={styles.analysisSection}>
-                        <ThemedText style={styles.sectionTitle}>VISUAL ANALYSIS</ThemedText>
+                        <ThemedText style={styles.sectionTitle}>VISUAL ANALYSIS: </ThemedText>
                         {detections.slice(0, 2).map((detection, index) => {
                             const label = detection.labels[0];
                             if (!label) return null;
@@ -484,24 +501,23 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                                         {label.text}
                                     </ThemedText>
                                     <View style={styles.confidenceBar}>
-                                        <View 
+                                        <View
                                             style={[
-                                                styles.confidenceFill, 
-                                                { 
+                                                styles.confidenceFill,
+                                                {
                                                     width: `${label.confidence * 100}%`,
-                                                    backgroundColor: getConfidenceColor(label.confidence)
+                                                    backgroundColor: getCyberBoxStyle(label.confidence).color
                                                 }
-                                            ]} 
+                                            ]}
                                         />
                                     </View>
                                 </View>
                             );
                         })}
-                    </View>
 
-                    {/* Audio Analysis */}
-                    <View style={styles.analysisSection}>
-                        <ThemedText style={styles.sectionTitle}>AUDIO ANALYSIS</ThemedText>
+
+
+                        <ThemedText style={styles.sectionTitle}>AUDIO ANALYSIS: </ThemedText>
                         {audioResults.slice(0, 2).map((result, index) => (
                             <View key={index} style={styles.resultItem}>
                                 <ThemedText style={styles.resultText}>
@@ -511,19 +527,19 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                                     {result.scientific_name}
                                 </ThemedText>
                                 <View style={styles.confidenceBar}>
-                                    <View 
+                                    <View
                                         style={[
-                                            styles.confidenceFill, 
-                                            { 
+                                            styles.confidenceFill,
+                                            {
                                                 width: `${result.confidence * 100}%`,
-                                                backgroundColor: getConfidenceColor(result.confidence)
+                                                backgroundColor: getCyberBoxStyle(result.confidence).color
                                             }
-                                        ]} 
+                                        ]}
                                     />
                                 </View>
                             </View>
                         ))}
-                    </View>
+
                 </View>
 
                 {/* Controls Panel */}
@@ -571,6 +587,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         </ThemedText>
                     </ThemedPressable>
                 </View>
+
             </View>
         </View>
     );
@@ -610,7 +627,7 @@ const styles = StyleSheet.create({
     // SVG overlays
     svgContainer: {
         ...StyleSheet.absoluteFillObject,
-        zIndex: 4, // Higher than HUD to ensure visibility
+        zIndex: 5, // Match old code overlay z-index
     },
     svg: {
         flex: 1,
@@ -621,7 +638,7 @@ const styles = StyleSheet.create({
     // HUD
     hud: {
         position: 'absolute',
-        top: 0,
+        top: 500,
         left: 0,
         right: 0,
         bottom: 0,
@@ -633,13 +650,6 @@ const styles = StyleSheet.create({
     // Top bar
     topBar: {
         marginTop: 40,
-    },
-    statusPanel: {
-        backgroundColor: CYBER_COLORS.surface,
-        padding: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: CYBER_COLORS.border,
     },
     hudTitle: {
         color: CYBER_COLORS.primary,
@@ -662,30 +672,23 @@ const styles = StyleSheet.create({
     // Results panel
     resultsPanel: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: "flex-start",
         marginHorizontal: 20,
-    },
-    analysisSection: {
-        backgroundColor: CYBER_COLORS.surface,
-        padding: 12,
-        borderRadius: 8,
-        marginVertical: 8,
-        borderWidth: 1,
-        borderColor: CYBER_COLORS.border,
+        maxWidth: 250,
     },
     sectionTitle: {
-        color: CYBER_COLORS.primary,
+        color: CYBER_COLORS.text,
         fontSize: 12,
         fontWeight: 'bold',
-        marginBottom: 8,
+        marginBottom: 4,
         letterSpacing: 1,
     },
     resultItem: {
-        marginVertical: 4,
+        marginVertical: 1,
     },
     resultText: {
-        color: CYBER_COLORS.text,
-        fontSize: 14,
+        color: CYBER_COLORS.primary,
+        fontSize: 15,
         fontWeight: '500',
     },
     scientificText: {
@@ -698,7 +701,8 @@ const styles = StyleSheet.create({
         height: 4,
         backgroundColor: CYBER_COLORS.border,
         borderRadius: 2,
-        marginTop: 4,
+        marginBottom: 4,
+        maxWidth: 150,
         overflow: 'hidden',
     },
     confidenceFill: {
