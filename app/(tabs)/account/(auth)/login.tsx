@@ -8,6 +8,8 @@ import {
     View,
     KeyboardAvoidingView,
     Platform,
+    TextStyle,
+    StyleProp,
 } from 'react-native';
 import { router, Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -50,6 +52,7 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
     // Animation values
     const loginButtonScale = useSharedValue(1);
@@ -68,12 +71,26 @@ export default function LoginScreen() {
         transform: [{ scale: loginButtonScale.value }],
     }));
 
+    const clearErrors = () => {
+        setErrors({});
+    };
+
     const handleLogin = async () => {
-        if (!email.trim() || !password.trim()) {
-            Alert.alert(
-                t('auth.error', 'Error'),
-                t('auth.fillAllFields', 'Please fill in all fields')
-            );
+        clearErrors();
+        const newErrors: { email?: string; password?: string; general?: string } = {};
+
+        // Always validate both fields
+        if (!email.trim()) {
+            newErrors.email = 'Please enter your email';
+        }
+
+        if (!password.trim()) {
+            newErrors.password = 'Please enter your password';
+        }
+
+        // Show errors if any field is empty
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
@@ -85,26 +102,29 @@ export default function LoginScreen() {
         } catch (error: any) {
             console.error('Login error:', error);
 
-            let errorMessage = t('auth.loginError', 'Failed to sign in. Please try again.');
-
             switch (error.code) {
+                case 'auth/invalid-email':
+                    setErrors({ email: 'Invalid email format' });
+                    break;
                 case 'auth/user-not-found':
+                    setErrors({ email: 'No account exists with this email' });
+                    break;
                 case 'auth/wrong-password':
                 case 'auth/invalid-credential':
-                    errorMessage = t('auth.invalidCredentials', 'Invalid email or password');
+                    setErrors({ password: 'Incorrect password' });
                     break;
                 case 'auth/user-disabled':
-                    errorMessage = t('auth.accountDisabled', 'This account has been disabled');
+                    setErrors({ email: 'This account has been disabled' });
                     break;
                 case 'auth/too-many-requests':
-                    errorMessage = t('auth.tooManyAttempts', 'Too many failed attempts. Please try again later');
+                    setErrors({ general: 'Too many failed attempts. Please try again later' });
                     break;
                 case 'auth/network-request-failed':
-                    errorMessage = t('auth.networkError', 'Network error. Please check your connection');
+                    setErrors({ general: 'Network error. Please check your connection' });
                     break;
+                default:
+                    setErrors({ general: 'Failed to sign in. Please try again' });
             }
-
-            Alert.alert(t('auth.error', 'Error'), errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -119,7 +139,6 @@ export default function LoginScreen() {
     };
 
     const isFormValid = email.trim() && password.trim() && !isLoading;
-
 
     return (
         <ProtectedRoute requireAuth={false}>
@@ -157,20 +176,43 @@ export default function LoginScreen() {
                                 }}
                             >
                                 <View style={styles.form}>
+                                    {errors.general && (
+                                        <View style={styles.errorContainer}>
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.general}
+                                            </Text>
+                                        </View>
+                                    )}
+
                                     <View style={styles.inputGroup}>
                                         <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
                                             {t('auth.email_label', 'Email')}
                                         </Text>
                                         <ThemedTextInput
-                                            style={[styles.textInput, { borderRadius: 12 }]}
+                                            style={[
+                                                styles.textInput,
+                                                { borderRadius: 12 },
+                                                errors.email ? {
+                                                    borderColor: semanticColors.error,
+                                                    borderWidth: 1
+                                                } : undefined
+                                            ]}
                                             placeholder={t('auth.email_placeholder', 'Enter your email')}
                                             value={email}
-                                            onChangeText={setEmail}
+                                            onChangeText={(text) => {
+                                                setEmail(text);
+                                                if (errors.email) clearErrors();
+                                            }}
                                             keyboardType="email-address"
                                             autoCapitalize="none"
                                             autoCorrect={false}
                                             editable={!isLoading}
                                         />
+                                        {errors.email && (
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.email}
+                                            </Text>
+                                        )}
                                     </View>
 
                                     <View style={styles.inputGroup}>
@@ -179,10 +221,21 @@ export default function LoginScreen() {
                                         </Text>
                                         <View style={styles.passwordContainer}>
                                             <ThemedTextInput
-                                                style={[styles.textInput, styles.passwordInput, { borderRadius: 12 }]}
+                                                style={[
+                                                    styles.textInput,
+                                                    styles.passwordInput,
+                                                    { borderRadius: 12 },
+                                                    errors.password ? {
+                                                        borderColor: semanticColors.error,
+                                                        borderWidth: 1
+                                                    } : undefined
+                                                ]}
                                                 placeholder={t('auth.password_placeholder', 'Enter your password')}
                                                 value={password}
-                                                onChangeText={setPassword}
+                                                onChangeText={(text) => {
+                                                    setPassword(text);
+                                                    if (errors.password) clearErrors();
+                                                }}
                                                 secureTextEntry={!showPassword}
                                                 autoCapitalize="none"
                                                 autoCorrect={false}
@@ -200,6 +253,11 @@ export default function LoginScreen() {
                                                 />
                                             </Pressable>
                                         </View>
+                                        {errors.password && (
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.password}
+                                            </Text>
+                                        )}
                                     </View>
 
                                     <View style={[styles.forgotPasswordContainer, { marginTop: 4 }]}>
@@ -217,7 +275,8 @@ export default function LoginScreen() {
                                             style={[
                                                 styles.loginButton,
                                                 {
-                                                    backgroundColor: isFormValid ? semanticColors.primary : semanticColors.secondary,
+                                                    backgroundColor: semanticColors.primary,
+                                                    opacity: isFormValid ? 1 : 0.5,
                                                     borderRadius: 12,
                                                     paddingVertical: 14,
                                                 },
@@ -225,7 +284,6 @@ export default function LoginScreen() {
                                             onPress={handleLogin}
                                             onPressIn={handleLoginPressIn}
                                             onPressOut={handleLoginPressOut}
-                                            disabled={!isFormValid}
                                             android_ripple={{ color: theme.colors.surface + '33' }}
                                         >
                                             {isLoading ? (
@@ -383,5 +441,13 @@ const styles = StyleSheet.create({
     },
     signUpLink: {
         fontWeight: '600',
+    },
+
+    // Error
+    errorContainer: {
+        marginBottom: 16,
+    },
+    errorText: {
+        fontWeight: '500',
     },
 }); 

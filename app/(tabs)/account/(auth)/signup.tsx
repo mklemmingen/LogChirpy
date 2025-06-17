@@ -51,6 +51,12 @@ export default function SignupScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [errors, setErrors] = useState<{
+        email?: string;
+        password?: string;
+        confirmPassword?: string;
+        general?: string;
+    }>({});
 
     // Animation values
     const signupButtonScale = useSharedValue(1);
@@ -90,44 +96,41 @@ export default function SignupScreen() {
 
     const passwordStrength = getPasswordStrength(password);
 
-    const handleSignup = async () => {
-        if (!email.trim()) {
-            Alert.alert(
-                t('auth.error', 'Error'),
-                t('auth.email_required', 'Please enter your email address')
-            );
-            return;
-        }
+    const clearErrors = () => {
+        setErrors({});
+    };
 
-        if (!validateEmail(email.trim())) {
-            Alert.alert(
-                t('auth.error', 'Error'),
-                t('auth.invalid_email', 'Please enter a valid email address')
-            );
-            return;
+    const handleSignup = async () => {
+        clearErrors();
+        const newErrors: {
+            email?: string;
+            password?: string;
+            confirmPassword?: string;
+            general?: string;
+        } = {};
+
+        // Always validate all fields
+        if (!email.trim()) {
+            newErrors.email = 'Please enter your email address';
+        } else if (!validateEmail(email.trim())) {
+            newErrors.email = 'Invalid email format';
         }
 
         if (!password.trim()) {
-            Alert.alert(
-                t('auth.error', 'Error'),
-                t('auth.password_required', 'Please enter a password')
-            );
-            return;
+            newErrors.password = 'Please enter a password';
+        } else if (!validatePassword(password)) {
+            newErrors.password = 'Password must be at least 6 characters long';
         }
 
-        if (!validatePassword(password)) {
-            Alert.alert(
-                t('auth.error', 'Error'),
-                t('auth.password_too_short', 'Password must be at least 6 characters long')
-            );
-            return;
+        if (!confirmPassword.trim()) {
+            newErrors.confirmPassword = 'Please confirm your password';
+        } else if (password !== confirmPassword) {
+            newErrors.confirmPassword = 'Passwords do not match';
         }
 
-        if (password !== confirmPassword) {
-            Alert.alert(
-                t('auth.error', 'Error'),
-                t('auth.passwords_dont_match', 'Passwords do not match')
-            );
+        // Show errors if any field is empty or invalid
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
@@ -139,24 +142,25 @@ export default function SignupScreen() {
         } catch (error: any) {
             console.error('Signup error:', error);
 
-            let errorMessage = t('errors.signup_error', 'Failed to create account. Please try again.');
-
             switch (error.code) {
                 case 'auth/email-already-in-use':
-                    errorMessage = t('errors.signup_email_in_use', 'This email is already registered');
+                    setErrors({ email: 'This email is already registered' });
                     break;
                 case 'auth/invalid-email':
-                    errorMessage = t('errors.invalid_email', 'Please enter a valid email address');
+                    setErrors({ email: 'Invalid email format' });
+                    break;
+                case 'auth/operation-not-allowed':
+                    setErrors({ general: 'Email/password accounts are not enabled. Please contact support.' });
                     break;
                 case 'auth/weak-password':
-                    errorMessage = t('errors.weak_password', 'Password is too weak');
+                    setErrors({ password: 'Password is too weak. It must be at least 6 characters long.' });
                     break;
                 case 'auth/network-request-failed':
-                    errorMessage = t('errors.network_error', 'Network error. Please check your connection');
+                    setErrors({ general: 'Network error. Please check your connection' });
                     break;
+                default:
+                    setErrors({ general: 'Failed to create account. Please try again' });
             }
-
-            Alert.alert(t('errors.error', 'Error'), errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -171,12 +175,9 @@ export default function SignupScreen() {
     };
 
     const isFormValid =
-        email.trim() &&
-        validateEmail(email.trim()) &&
-        password.trim() &&
-        validatePassword(password) &&
-        confirmPassword.trim() &&
-        password === confirmPassword &&
+        email.trim().length > 0 &&
+        password.trim().length > 0 &&
+        confirmPassword.trim().length > 0 &&
         !isLoading;
 
     const getPasswordStrengthColor = (strength: number) => {
@@ -225,20 +226,43 @@ export default function SignupScreen() {
                                 }}
                             >
                                 <View style={styles.form}>
+                                    {errors.general && (
+                                        <View style={styles.errorContainer}>
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.general}
+                                            </Text>
+                                        </View>
+                                    )}
+
                                     <View style={styles.inputGroup}>
                                         <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
                                             {t('auth.email_label', 'Email')}
                                         </Text>
                                         <ThemedTextInput
-                                            style={[styles.textInput, { borderRadius: 12 }]}
+                                            style={[
+                                                styles.textInput,
+                                                { borderRadius: 12 },
+                                                errors.email ? {
+                                                    borderColor: semanticColors.error,
+                                                    borderWidth: 1
+                                                } : undefined
+                                            ]}
                                             placeholder={t('auth.email_placeholder', 'Enter your email')}
                                             value={email}
-                                            onChangeText={setEmail}
+                                            onChangeText={(text) => {
+                                                setEmail(text);
+                                                if (errors.email) clearErrors();
+                                            }}
                                             keyboardType="email-address"
                                             autoCapitalize="none"
                                             autoCorrect={false}
                                             editable={!isLoading}
                                         />
+                                        {errors.email && (
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.email}
+                                            </Text>
+                                        )}
                                     </View>
 
                                     <View style={styles.inputGroup}>
@@ -247,10 +271,21 @@ export default function SignupScreen() {
                                         </Text>
                                         <View style={styles.passwordContainer}>
                                             <ThemedTextInput
-                                                style={[styles.textInput, styles.passwordInput, { borderRadius: 12 }]}
+                                                style={[
+                                                    styles.textInput,
+                                                    styles.passwordInput,
+                                                    { borderRadius: 12 },
+                                                    errors.password ? {
+                                                        borderColor: semanticColors.error,
+                                                        borderWidth: 1
+                                                    } : undefined
+                                                ]}
                                                 placeholder={t('auth.password_placeholder', 'Enter your password')}
                                                 value={password}
-                                                onChangeText={setPassword}
+                                                onChangeText={(text) => {
+                                                    setPassword(text);
+                                                    if (errors.password) clearErrors();
+                                                }}
                                                 secureTextEntry={!showPassword}
                                                 autoCapitalize="none"
                                                 autoCorrect={false}
@@ -268,18 +303,34 @@ export default function SignupScreen() {
                                                 />
                                             </Pressable>
                                         </View>
+                                        {errors.password && (
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.password}
+                                            </Text>
+                                        )}
                                     </View>
 
                                     <View style={styles.inputGroup}>
                                         <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
-                                            {t('app_errors.confirm_password_required', 'Confirm Password')}
+                                            {t('auth.confirm_password_label', 'Confirm Password')}
                                         </Text>
                                         <View style={styles.passwordContainer}>
                                             <ThemedTextInput
-                                                style={[styles.textInput, styles.passwordInput, { borderRadius: 12 }]}
-                                                placeholder={t('app_errors.confirm_password_placeholder', 'Confirm your password')}
+                                                style={[
+                                                    styles.textInput,
+                                                    styles.passwordInput,
+                                                    { borderRadius: 12 },
+                                                    errors.confirmPassword ? {
+                                                        borderColor: semanticColors.error,
+                                                        borderWidth: 1
+                                                    } : undefined
+                                                ]}
+                                                placeholder={t('auth.confirm_password_placeholder', 'Confirm your password')}
                                                 value={confirmPassword}
-                                                onChangeText={setConfirmPassword}
+                                                onChangeText={(text) => {
+                                                    setConfirmPassword(text);
+                                                    if (errors.confirmPassword) clearErrors();
+                                                }}
                                                 secureTextEntry={!showConfirmPassword}
                                                 autoCapitalize="none"
                                                 autoCorrect={false}
@@ -297,14 +348,20 @@ export default function SignupScreen() {
                                                 />
                                             </Pressable>
                                         </View>
+                                        {errors.confirmPassword && (
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.confirmPassword}
+                                            </Text>
+                                        )}
                                     </View>
 
-                                    <Animated.View style={signupButtonAnimatedStyle}>
+                                    <Animated.View style={[signupButtonAnimatedStyle, { marginTop: 16 }]}>
                                         <AnimatedPressable
                                             style={[
                                                 styles.signupButton,
                                                 {
-                                                    backgroundColor: isFormValid ? semanticColors.primary : semanticColors.secondary,
+                                                    backgroundColor: semanticColors.primary,
+                                                    opacity: isFormValid ? 1 : 0.5,
                                                     borderRadius: 12,
                                                     paddingVertical: 14,
                                                 },
@@ -312,20 +369,19 @@ export default function SignupScreen() {
                                             onPress={handleSignup}
                                             onPressIn={handleSignupPressIn}
                                             onPressOut={handleSignupPressOut}
-                                            disabled={!isFormValid}
                                             android_ripple={{ color: theme.colors.surface + '33' }}
                                         >
                                             {isLoading ? (
                                                 <View style={styles.loadingContainer}>
                                                     <Text style={[typography.body, styles.signupButtonText, { color: semanticColors.background }]}>
-                                                        {t('auth.signingUp', 'Signing Up...')}
+                                                        Creating Account...
                                                     </Text>
                                                 </View>
                                             ) : (
                                                 <>
                                                     <Feather name="user-plus" size={20} color={semanticColors.background} />
                                                     <Text style={[typography.body, styles.signupButtonText, { color: semanticColors.background }]}>
-                                                        {t('auth.signup', 'Sign Up')}
+                                                        Create Account
                                                     </Text>
                                                 </>
                                             )}
@@ -433,9 +489,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: 40,
     },
+    errorContainer: {
+        marginBottom: 16,
+    },
     errorText: {
-        fontSize: 12,
-        marginTop: 4,
+        fontWeight: '500',
     },
 
     // Password Strength

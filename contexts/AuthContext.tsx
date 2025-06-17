@@ -1,13 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import {
   User,
   onAuthStateChanged,
   signOut as firebaseSignOut,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  updateProfile
-} from 'firebase/auth';
+  sendPasswordResetEmail} from 'firebase/auth';
 import { auth } from '@/firebase/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
