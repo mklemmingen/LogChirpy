@@ -265,7 +265,7 @@
     "send_reset": "Send Reset",
     "forgot_password_link": "Forgot Password?",
     "signup_link": "Sign up",
-    "already_have_account": "Sign in",
+    "already_have_account": "Alrady have an account?",
     "email_sent_title": "Email Sent",
     "email_sent_message": "Check {{email}} for reset instructions",
     "back_to_login": "Back"

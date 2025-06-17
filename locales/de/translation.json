@@ -113,7 +113,11 @@
     "confirm_password_placeholder": "Passwort bestätigen",
     "email_sent_title": "E-Mail gesendet!",
     "email_sent_message": "Wir haben Anweisungen zum Zurücksetzen des Passworts an {{email}} gesendet. Bitte prüfen Sie Ihren Posteingang und folgen Sie den Anweisungen.",
-    "back_to_login": "Zurück zur Anmeldung"
+    "back_to_login": "Zurück zum Login",
+    "forgot_password_link": "Passwort vergessen?",
+    "signup_link": "Registrieren",
+    "already_have_account": "Bereits ein Konto?",
+    "password_placeholder": "Passwort"
   },
   "errors": {
     "email_required": "E-Mail ist erforderlich",
