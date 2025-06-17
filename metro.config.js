@@ -7,7 +7,7 @@ const config = getDefaultConfig(projectRoot);
 config.watchFolders = [projectRoot];
 
 // 2) Add custom asset and source extensions
-config.resolver.assetExts.push('bin', 'json', 'tflite', 'csv', 'xml');
+config.resolver.assetExts.push('bin', 'json', 'tflite', 'csv', 'xml', 'txt');
 config.resolver.sourceExts.push('cjs', 'mjs');
 
 module.exports = config;

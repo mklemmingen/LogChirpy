@@ -7,16 +7,45 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAudioRecorder } from '@siteed/expo-audio-studio';
-import { 
-    RealTimeAudioRecorder, 
-    type RealTimeAudioConfig,
-    type AudioStreamSample 
-} from '../services/realTimeAudioRecorder';
-import { 
-    liveAudioRecordingService,
-    type LivePrediction,
-    type RecordingState 
-} from '../services/liveAudioRecordingService';
+// Note: Real-time audio services removed - this hook is deprecated
+// Use ultraSimpleBirdClassifier directly instead
+
+interface RealTimeAudioConfig {
+    sampleRate: number;
+    channels: number;
+    encoding: string;
+    bufferSizeMs: number;
+    inferenceIntervalMs: number;
+    enableHighPass: boolean;
+    streamInterval: number;
+}
+
+interface AudioStreamSample {
+    samples: Float32Array;
+    timestamp: number;
+    sampleCount: number;
+    sampleRate: number;
+    channels: number;
+    isValid: boolean;
+    bufferPosition: number;
+}
+
+interface LivePrediction {
+    species: string;
+    scientificName: string;
+    confidence: number;
+    timestamp: number;
+    location?: { latitude: number; longitude: number };
+    metaModelUsed: boolean;
+}
+
+interface RecordingState {
+    isRecording: boolean;
+    isProcessing: boolean;
+    bufferFull: boolean;
+    totalPredictions: number;
+    averageProcessingTime: number;
+}
 
 export interface UseWhoBirdAudioOptions {
     /** Enable automatic start on mount */
@@ -124,7 +153,8 @@ export function useWhoBirdAudio(options: UseWhoBirdAudioOptions = {}): UseWhoBir
         const initializeService = async () => {
             try {
                 console.log('[useWhoBirdAudio] Initializing live audio service...');
-                const initialized = await liveAudioRecordingService.initialize();
+                console.warn('useWhoBirdAudio: Live audio recording service removed. Use ultraSimpleBirdClassifier directly.');
+                const initialized = false; // Service removed
                 
                 if (mounted) {
                     setIsReady(initialized);
@@ -150,17 +180,12 @@ export function useWhoBirdAudio(options: UseWhoBirdAudioOptions = {}): UseWhoBir
         if (!isReady) return;
 
         // Subscribe to predictions
-        predictionUnsubscribeRef.current = liveAudioRecordingService.onPrediction((prediction) => {
-            setLatestPrediction(prediction);
-            setPredictions(prev => [...prev, prediction]);
-            onPrediction?.(prediction);
-        });
+        predictionUnsubscribeRef.current = () => {}; // Service removed
+        // Prediction subscription disabled - service removed
 
         // Subscribe to state changes
-        stateUnsubscribeRef.current = liveAudioRecordingService.onStateChange((state) => {
-            setRecordingState(state);
-            onStateChange?.(state);
-        });
+        stateUnsubscribeRef.current = () => {}; // Service removed
+        // State change subscription disabled - service removed
 
         return () => {
             predictionUnsubscribeRef.current?.();
@@ -184,7 +209,8 @@ export function useWhoBirdAudio(options: UseWhoBirdAudioOptions = {}): UseWhoBir
             setPredictions([]);
             setLatestPrediction(null);
             
-            const success = await liveAudioRecordingService.startLiveRecording(enableLocation);
+            console.warn('startRecording: Service removed. Use ultraSimpleBirdClassifier directly.');
+            const success = false; // Service removed
             console.log('[useWhoBirdAudio] Recording started:', success);
             
             return success;
@@ -197,7 +223,8 @@ export function useWhoBirdAudio(options: UseWhoBirdAudioOptions = {}): UseWhoBir
     const stopRecording = async (): Promise<void> => {
         try {
             console.log('[useWhoBirdAudio] Stopping recording...');
-            await liveAudioRecordingService.stopLiveRecording();
+            console.warn('stopRecording: Service removed.');
+            // liveAudioRecordingService.stopLiveRecording(); // Service removed
             console.log('[useWhoBirdAudio] Recording stopped');
         } catch (error) {
             console.error('[useWhoBirdAudio] Failed to stop recording:', error);
@@ -209,7 +236,8 @@ export function useWhoBirdAudio(options: UseWhoBirdAudioOptions = {}): UseWhoBir
         return () => {
             predictionUnsubscribeRef.current?.();
             stateUnsubscribeRef.current?.();
-            liveAudioRecordingService.stopLiveRecording();
+            console.warn('Cleanup: Service removed.');
+            // liveAudioRecordingService.stopLiveRecording(); // Service removed
         };
     }, []);
 

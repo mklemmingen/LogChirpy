@@ -39,7 +39,7 @@ export class AudioIdentificationService {
 
   private static tfliteInitialized = false;
   private static readonly CACHE_KEY_PREFIX = '@audio_cache:';
-  private static currentModelType: ModelType = ModelType.MDATA_V2_FP16; // Use fast FP16 for real-time
+  private static currentModelType: ModelType = ModelType.HIGH_ACCURACY_FP32; // Use main audio model, not meta model
   private static performanceMetrics = {
     totalProcessingTime: 0,
     processedCount: 0,

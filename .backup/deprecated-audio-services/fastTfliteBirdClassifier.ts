@@ -12,6 +12,7 @@ import {loadTensorflowModel, TensorflowModel, TensorflowModelDelegate} from 'rea
 import * as FileSystem from 'expo-file-system';
 import {Platform} from 'react-native';
 import {ModelConfig, ModelType} from './modelConfig';
+import {getLabelsForLanguage} from './generated/BirdLabelsMap';
 
 export interface BirdClassificationResult {
   species: string;
@@ -83,15 +84,17 @@ class FastTfliteBirdClassifierService {
     // Safe model path initialization with error handling
     let mainModelPath: any = null;
     let metaModelPath: any = null;
-    
+
     try {
+      // CORRECTED: Use the main audio model for raw Float32 audio samples
       mainModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite');
     } catch (error) {
-      console.error('Failed to load main model in constructor:', error);
+      console.error('Failed to load main audio model in constructor:', error);
     }
     
     try {
-      metaModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite');
+      // CORRECTED: Use the separate meta model for location/temporal filtering
+      metaModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite');
     } catch (error) {
       console.error('Failed to load meta model in constructor:', error);
     }
@@ -350,7 +353,7 @@ class FastTfliteBirdClassifierService {
   }
 
   /**
-   * Load species labels from whoBIRD format - CORRECTED implementation
+   * Load species labels from whoBIRD format - FIXED implementation for Metro
    * Labels follow format: "ScientificName_CommonName"
    */
   private async loadLabels(): Promise<void> {
@@ -359,14 +362,35 @@ class FastTfliteBirdClassifierService {
       try {
         console.log('Loading whoBIRD labels in English...');
         
-        // Use Asset.fromModule to load text file properly
-        const labelsAsset = require('../assets/model_labels_whoBird/labels_en.txt');
-        const asset = await FileSystem.downloadAsync(
-          typeof labelsAsset === 'string' ? labelsAsset : labelsAsset.uri || labelsAsset,
-          FileSystem.cacheDirectory + 'labels_en.txt'
-        );
+        // Use the BirdLabelsMap approach - static require that Metro can handle
+        const labelsAsset = getLabelsForLanguage('en'); // Default to English
         
-        const labelsText = await FileSystem.readAsStringAsync(asset.uri);
+        // Check if we got the asset correctly
+        if (!labelsAsset) {
+          throw new Error('Labels asset not found in BirdLabelsMap');
+        }
+        
+        // For Metro bundler, the asset might be a number (asset ID) or object
+        let labelsText: string;
+        
+        if (typeof labelsAsset === 'number') {
+          // Asset ID - use expo-asset to resolve
+          const { Asset } = await import('expo-asset');
+          const asset = Asset.fromModule(labelsAsset);
+          await asset.downloadAsync();
+          
+          if (!asset.localUri) {
+            throw new Error('Failed to download labels asset');
+          }
+          
+          labelsText = await FileSystem.readAsStringAsync(asset.localUri);
+        } else if (typeof labelsAsset === 'object' && labelsAsset.default) {
+          // Direct asset object
+          labelsText = labelsAsset.default;
+        } else {
+          // Try to use it directly as text
+          labelsText = String(labelsAsset);
+        }
         
         // Parse whoBIRD format: "ScientificName_CommonName"
         this.labels = labelsText.split('\n')
@@ -390,7 +414,7 @@ class FastTfliteBirdClassifierService {
             }
           });
         
-        console.log(`Loaded ${this.labels.length} whoBIRD species labels`);
+        console.log(`Loaded ${this.labels.length} whoBIRD species labels from static require`);
         return;
       } catch (whoBirdError) {
         console.warn('whoBIRD labels not found, falling back to legacy format', whoBirdError);
@@ -424,9 +448,8 @@ class FastTfliteBirdClassifierService {
   }
 
   /**
-   * Classify bird audio - CORRECTED: Two-model architecture with raw audio
-   * Main model: Raw Float32 audio samples → species logits
-   * Meta model: [latitude, longitude, week_cosine] → species filters
+   * Classify bird audio - CORRECTED: Single MData model with embedded metadata
+   * MData model: [Raw Float32 audio samples, metadata] → species probabilities
    */
   async classifyBirdAudio(
     processedData: Float32Array,
@@ -459,67 +482,53 @@ class FastTfliteBirdClassifierService {
         this.updateCacheHitRate(false);
       }
 
-      // Validate input size matches model expectations
-      const expectedShape = this.getModelInputShape();
-      const expectedSize = expectedShape.reduce((acc, dim) => acc * Math.abs(dim), 1);
+      // Prepare model inputs - just use the processed audio data
+      const modelInputs = [processedData];
       
-      if (processedData.length !== expectedSize) {
-        console.warn(`Input size mismatch: expected ${expectedSize}, got ${processedData.length}`);
-        // For now, continue with available data but log the issue
+      console.log(`Running inference with model inputs:`, {
+        inputCount: modelInputs.length,
+        audioSamples: processedData.length,
+        hasLocation: !!location
+      });
+      
+      // Run main model inference
+      const outputs = this.model.runSync(modelInputs);
+      let probabilities = outputs[0] as Float32Array;
+      
+      // Apply sigmoid activation to convert logits to probabilities
+      probabilities = this.applySigmoid(probabilities);
+      
+      // Meta model blending if enabled and location provided
+      let metaModelUsed = false;
+      let metaInfluence = 0;
+      
+      if (this.config.useMetaModel && this.metaModelLoaded && location) {
+        try {
+          const metaProbabilities = await this.runMetaModelInference(location);
+          probabilities = this.blendPredictions(probabilities, metaProbabilities);
+          metaModelUsed = true;
+          metaInfluence = this.config.metaInfluence;
+        } catch (metaError) {
+          console.warn('Meta model inference failed, using audio-only results:', metaError);
+        }
       }
       
-      console.log(`Running inference with ${processedData.length} input elements`);
-      
-      // Run main audio model inference (use synchronous for better performance)
-      const outputs = this.model.runSync([processedData]);
-      const audioLogits = outputs[0] as Float32Array;
-      
-      // Convert logits to probabilities using sigmoid activation
-      const audioProbabilities = this.applySigmoid(audioLogits);
-      
       // DEBUG: Log prediction statistics
-      const maxPrediction = Math.max(...Array.from(audioProbabilities));
-      const avgPrediction = Array.from(audioProbabilities).reduce((a, b) => a + b, 0) / audioProbabilities.length;
-      const aboveThreshold = Array.from(audioProbabilities).filter(p => p >= this.config.confidenceThreshold).length;
+      const maxPrediction = Math.max(...Array.from(probabilities));
+      const avgPrediction = Array.from(probabilities).reduce((a, b) => a + b, 0) / probabilities.length;
+      const aboveThreshold = Array.from(probabilities).filter(p => p >= this.config.confidenceThreshold).length;
       
-      console.log('DEBUG: Main audio model output:', {
-        predictionsLength: audioProbabilities.length,
+      console.log('DEBUG: Model output:', {
+        predictionsLength: probabilities.length,
         maxConfidence: maxPrediction,
         avgConfidence: avgPrediction,
         aboveThreshold,
-        threshold: this.config.confidenceThreshold
+        threshold: this.config.confidenceThreshold,
+        metadataUsed: !!location
       });
 
-      let finalProbabilities = audioProbabilities;
-      let metaModelUsed = false;
-      let metaInfluence = 0;
-
-      // If location is provided and meta model is available, use two-model architecture
-      if (location && this.metaModelLoaded && this.metaModel && this.config.useMetaModel) {
-        try {
-          console.log('Running meta model inference for location-based filtering...');
-          const metaProbabilities = await this.runMetaModelInference(location);
-          
-          // Blend audio and meta predictions using whoBIRD formula
-          finalProbabilities = this.blendPredictions(audioProbabilities, metaProbabilities);
-          metaModelUsed = true;
-          metaInfluence = this.config.metaInfluence;
-          
-          console.log('Two-model prediction blending completed');
-        } catch (metaError) {
-          console.warn('Meta model inference failed, using audio-only results:', metaError);
-          finalProbabilities = audioProbabilities;
-        }
-      } else {
-        console.log('Meta model not used:', {
-          hasLocation: !!location,
-          metaModelLoaded: this.metaModelLoaded,
-          useMetaModel: this.config.useMetaModel
-        });
-      }
-
       // Process final results
-      const results = this.processModelOutput(finalProbabilities);
+      const results = this.processModelOutput(probabilities);
       
       const processingTime = Date.now() - startTime;
       const metadata: ClassificationMetadata = {
@@ -928,27 +937,79 @@ class FastTfliteBirdClassifierService {
   }
 }
 
-// Create singleton instance with error handling
+// Create singleton instance with lazy initialization
 let fastTfliteBirdClassifierInstance: FastTfliteBirdClassifierService | null = null;
 
-try {
-  fastTfliteBirdClassifierInstance = new FastTfliteBirdClassifierService();
-  console.log('FastTfliteBirdClassifierService singleton created successfully');
-} catch (error) {
-  console.error('CRITICAL: Failed to create FastTfliteBirdClassifierService singleton:', error);
-  console.error('This may indicate a "Super expression must either be null or a function" error');
-  
-  // Create a fallback instance that won't crash the app
-  fastTfliteBirdClassifierInstance = {
-    initialize: async () => false,
-    isReady: () => false,
-    classifyBirdAudio: async () => ({ results: [], metadata: {} as any }),
-    dispose: () => {},
-    // Add other required methods as stubs
-  } as any;
+function createSafeInstance(): FastTfliteBirdClassifierService {
+  if (fastTfliteBirdClassifierInstance) {
+    return fastTfliteBirdClassifierInstance;
+  }
+
+  try {
+    fastTfliteBirdClassifierInstance = new FastTfliteBirdClassifierService();
+    console.log('FastTfliteBirdClassifierService singleton created successfully');
+    return fastTfliteBirdClassifierInstance;
+  } catch (error) {
+    console.error('CRITICAL: Failed to create FastTfliteBirdClassifierService singleton:', error);
+    console.error('This may indicate a "Super expression must either be null or a function" error');
+    
+    // Create a fallback instance that won't crash the app
+    const fallbackInstance = {
+      initialize: async () => {
+        console.warn('Using fallback FastTflite instance - functionality limited');
+        return false;
+      },
+      isReady: () => false,
+      classifyBirdAudio: async () => ({ 
+        results: [], 
+        metadata: {
+          modelVersion: 'fallback',
+          modelType: ModelType.LEGACY,
+          processingTime: 0,
+          modelSource: 'fallback' as const,
+          inputShape: [],
+          timestamp: Date.now(),
+          audioProcessingType: 'raw_audio' as const,
+        }
+      }),
+      dispose: () => {},
+      getPerformanceMetrics: () => ({
+        avgInferenceTime: 0,
+        totalInferences: 0,
+        memoryUsage: 0,
+        modelSize: 0,
+        cacheHitRate: 0
+      }),
+      // Add other required methods as stubs
+      switchModel: async () => false,
+      getCurrentModelType: () => ModelType.LEGACY,
+      isModelLoaded: () => false,
+      classifyBirdAudioWithModel: async () => ({ 
+        results: [], 
+        metadata: {
+          modelVersion: 'fallback',
+          modelType: ModelType.LEGACY,
+          processingTime: 0,
+          modelSource: 'fallback' as const,
+          inputShape: [],
+          timestamp: Date.now(),
+          audioProcessingType: 'raw_audio' as const,
+        }
+      }),
+      isMainModelReady: () => false,
+      isMetaModelReady: () => false,
+      updateMetaConfig: () => {},
+      getModelInputShape: () => [1, 3],
+      updateConfig: () => {},
+      clearCache: () => {},
+    } as unknown as FastTfliteBirdClassifierService;
+    
+    fastTfliteBirdClassifierInstance = fallbackInstance;
+    return fallbackInstance;
+  }
 }
 
-export const fastTfliteBirdClassifier = fastTfliteBirdClassifierInstance!;
+export const fastTfliteBirdClassifier = createSafeInstance();
 
 // Convenience functions
 export const initializeFastTflite = () => fastTfliteBirdClassifier.initialize();

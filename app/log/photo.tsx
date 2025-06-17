@@ -670,8 +670,8 @@ export default function PhotoScreen() {
 
     // Handle app gallery navigation
     const handleAppGallery = useCallback(() => {
-        // Navigate to app gallery tab
-        router.push('/(tabs)/gallery');
+        // Navigate to app gallery with selection mode
+        router.push('/(tabs)/gallery?selectMode=true');
     }, []);
 
     // Handle photo confirmation and saving

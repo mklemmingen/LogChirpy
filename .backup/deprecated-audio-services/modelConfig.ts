@@ -29,20 +29,56 @@ export interface ModelConfiguration {
   };
 }
 
-// Helper function to safely require model files
-function safeRequireModel(path: string): any {
+// Safe model loading with static require statements
+function getBalancedFP16Model(): any {
   try {
-    return require(path);
+    return require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP16.tflite');
   } catch (error) {
-    console.error(`Failed to load model from path: ${path}`, error);
-    return null; // Return null instead of throwing
+    console.error('Failed to load BirdNET_GLOBAL_6K_V2.4_Model_FP16.tflite:', error);
+    return null;
+  }
+}
+
+function getHighAccuracyFP32Model(): any {
+  try {
+    return require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite');
+  } catch (error) {
+    console.error('Failed to load BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite:', error);
+    return null;
+  }
+}
+
+function getMDataFP16Model(): any {
+  try {
+    return require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite');
+  } catch (error) {
+    console.error('Failed to load BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite:', error);
+    return null;
+  }
+}
+
+function getMDataV2FP16Model(): any {
+  try {
+    return require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite');
+  } catch (error) {
+    console.error('Failed to load BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite:', error);
+    return null;
+  }
+}
+
+function getLegacyModel(): any {
+  try {
+    return require('../assets/models/birdnet/birdnet_v24.tflite');
+  } catch (error) {
+    console.error('Failed to load birdnet_v24.tflite:', error);
+    return null;
   }
 }
 
 export class ModelConfig {
   private static readonly configurations: Record<ModelType, ModelConfiguration> = {
     [ModelType.BALANCED_FP16]: {
-      path: safeRequireModel('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP16.tflite'),
+      path: getBalancedFP16Model(),
       name: 'BirdNET Global 6K v2.4 FP16',
       description: 'Balanced model with good accuracy and fast inference',
       fileSize: '25MB',
@@ -57,7 +93,7 @@ export class ModelConfig {
     },
     
     [ModelType.HIGH_ACCURACY_FP32]: {
-      path: safeRequireModel('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite'),
+      path: getHighAccuracyFP32Model(),
       name: 'BirdNET Global 6K v2.4 FP32',
       description: 'High-precision model for maximum accuracy',
       fileSize: '49MB',
@@ -72,7 +108,7 @@ export class ModelConfig {
     },
 
     [ModelType.MDATA_FP16]: {
-      path: safeRequireModel('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite'),
+      path: getMDataFP16Model(),
       name: 'BirdNET Global 6K v2.4 MData FP16',
       description: 'FP16 model with embedded labels - fastest with self-contained labels',
       fileSize: '27MB',
@@ -87,7 +123,7 @@ export class ModelConfig {
     },
 
     [ModelType.MDATA_V2_FP16]: {
-      path: safeRequireModel('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite'),
+      path: getMDataV2FP16Model(),
       name: 'BirdNET Global 6K v2.4 MData V2 FP16',
       description: 'Enhanced MData FP16 model with improved embedded labels',
       fileSize: '27MB',
@@ -102,7 +138,7 @@ export class ModelConfig {
     },
     
     [ModelType.LEGACY]: {
-      path: safeRequireModel('../assets/models/birdnet/birdnet_v24.tflite'),
+      path: getLegacyModel(),
       name: 'BirdNET Legacy v2.4',
       description: 'Legacy 400-species model for backward compatibility',
       fileSize: '~10MB',

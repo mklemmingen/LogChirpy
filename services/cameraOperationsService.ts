@@ -136,18 +136,20 @@ class CameraOperationsService {
         // Add haptic feedback for manual capture
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        // Automatic detection capture: Apply compression and processing
-        const manipResult = await this.manipulateImageWithRetry(photo.path, [], {
-          compress: quality,
-          format: ImageManipulator.SaveFormat.JPEG
-        });
-
+        // Automatic detection capture: Skip ImageManipulator to avoid temp file issues
+        // Directly copy camera output with quality applied at camera level
         filename = this.generateFilename('detection');
-        processedUri = await this.saveToDocumentWithRetry(manipResult.uri, filename);
+        
+        // First check if source file exists and is stable - increased wait time
+        const sourceExists = await this.waitForFileStability(photo.path, 5000);
+        if (!sourceExists) {
+          throw new Error('Camera photo file not stable or missing');
+        }
+        
+        processedUri = await this.saveToDocumentWithRetry(photo.path, filename);
 
-        // Queue original and manipulated temp files for cleanup
+        // Queue original temp file for cleanup
         this.queueForCleanup(photo.path);
-        this.queueForCleanup(manipResult.uri);
       }
 
       const processingTime = Date.now() - startTime;
@@ -399,21 +401,27 @@ class CameraOperationsService {
     try {
       console.log('Processing detected image with', detections.length, 'detections');
 
-      // Process each detection
+      // First verify the source image exists
+      const sourceInfo = await FileSystem.getInfoAsync(photoUri);
+      if (!sourceInfo.exists) {
+        console.warn('Source image not found, skipping detection processing:', photoUri);
+        return;
+      }
+
+      // Process each detection with error isolation
       for (const detection of detections) {
-        const cropUri = await this.cropDetection(photoUri, detection.frame);
-        
         try {
-          const labels = await classifyFunction(cropUri);
+          // Skip cropping for now to avoid ImageManipulator issues
+          // Use full image classification for each detection
+          const labels = await classifyFunction(photoUri);
           if (labels.length > 0) {
             const topLabel = labels[0];
-            await this.saveClassifiedImage(cropUri, topLabel, 'bird');
+            console.log(`Detection ${detections.indexOf(detection)}: ${topLabel.text} (${Math.round(topLabel.confidence * 100)}%)`);
+            await this.saveClassifiedImage(photoUri, topLabel, 'bird');
           }
         } catch (classifyError) {
-          console.warn('Classification failed for crop:', classifyError);
-        } finally {
-          // Clean up crop file
-          this.queueForCleanup(cropUri);
+          console.warn('Classification failed for detection:', classifyError);
+          // Continue with next detection - don't let one failure stop all
         }
       }
 
@@ -430,7 +438,7 @@ class CameraOperationsService {
 
     } catch (error) {
       console.error('Image processing failed:', error);
-      throw error;
+      // Don't re-throw - let ML pipeline continue
     }
   }
 

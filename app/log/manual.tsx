@@ -27,7 +27,7 @@ import * as FileSystem from 'expo-file-system';
 // Context and Services
 import {useLogDraft} from '@/contexts/LogDraftContext';
 import {BirdSpotting, insertBirdSpotting} from '@/services/database';
-import {AudioIdentificationService} from '@/services/audioIdentificationService';
+import {classifyBirdAudio} from '@/services/ultraSimpleBirdClassifier';
 import {validateImageUri} from '@/services/uriUtils';
 
 // Components
@@ -107,11 +107,16 @@ export default function ManualBirdEntry() {
         console.log('🤖 [Audio ID] Audio URI:', draft.audioUri);
         setIsIdentifying(true);
         try {
-            const predictions = await AudioIdentificationService.identifyBirdFromAudio(draft.audioUri);
+            const result = await classifyBirdAudio(draft.audioUri);
+            const predictions = result.success ? result.predictions.map(pred => ({
+                common_name: pred.species,
+                scientific_name: pred.species,
+                confidence: pred.confidence
+            })) : [];
             console.log('🤖 [Audio ID] Predictions received:', predictions);
             
-            if (predictions && predictions.predictions.length > 0) {
-                const topPrediction = predictions.predictions[0];
+            if (predictions && predictions.length > 0) {
+                const topPrediction = predictions[0];
                 console.log('🤖 [Audio ID] Top prediction:', topPrediction);
                 update({ 
                     audioPrediction: topPrediction.common_name,
@@ -385,10 +390,23 @@ export default function ManualBirdEntry() {
                     <ThemedText variant="h2" style={styles.headerTitle}>
                         {t('log.manual_entry', 'New Bird Spotting')}
                     </ThemedText>
-                    <View style={styles.completionBadge}>
-                        <ThemedText variant="caption" color="secondary">
-                            {completionPercentage}% complete
-                        </ThemedText>
+                    <View style={styles.headerActions}>
+                        <View style={styles.completionBadge}>
+                            <ThemedText variant="caption" color="secondary">
+                                {completionPercentage}% complete
+                            </ThemedText>
+                        </View>
+                        <ThemedPressable
+                            variant="ghost"
+                            size="sm"
+                            onPress={clear}
+                            style={styles.clearButton}
+                        >
+                            <ThemedIcon name="x" size={16} color="secondary" />
+                            <ThemedText variant="caption" color="secondary">
+                                Clear
+                            </ThemedText>
+                        </ThemedPressable>
                     </View>
                 </View>
             </View>
@@ -636,11 +654,24 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         textAlign: 'center',
     },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
     completionBadge: {
         paddingHorizontal: 12,
         paddingVertical: 4,
         backgroundColor: 'rgba(34, 197, 94, 0.1)',
         borderRadius: 12,
+    },
+    clearButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
     },
 
     // Content
