@@ -10,10 +10,13 @@ import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
 import { AudioDecoder } from './audioDecoder';
 import { birdLabelsMap, getLabelsForLanguage } from './generated/BirdLabelsMap';
 import { AudioWindowManager } from './audioWindowManager';
+import { Asset } from 'expo-asset';
 
 interface BirdPrediction {
-  species: string;
+  commonName: string;
+  scientificName: string;
   confidence: number;
+  index: number;
 }
 
 interface ClassificationResult {
@@ -35,6 +38,8 @@ interface AudioPrediction {
   common_name: string;
   scientific_name: string;
   confidence: number;
+  index: number;
+  assetUrl?: string;
 }
 
 /**
@@ -44,8 +49,11 @@ class UltraSimpleBirdClassifier {
   private mainModel: TensorflowModel | null = null;
   private metaModel: TensorflowModel | null = null;
   private labels: string[] = [];
+  private scientificNames: string[] = [];
+  private assets: string[] = [];
   private initialized = false;
   private windowManager: AudioWindowManager;
+  private currentLanguage: string = 'en';
 
   constructor() {
     this.windowManager = new AudioWindowManager(48000, 3, 10);
@@ -54,7 +62,8 @@ class UltraSimpleBirdClassifier {
   /**
    * Initialize the two models - hardcoded paths, no fallbacks
    */
-  async initialize(): Promise<boolean> {
+  async initialize(language: string = 'en'): Promise<boolean> {
+    this.currentLanguage = language;
     try {
       console.log('🔧 Loading BirdNET models...');
       
@@ -66,8 +75,8 @@ class UltraSimpleBirdClassifier {
       const metaModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite');
       this.metaModel = await loadTensorflowModel(metaModelPath, 'default');
       
-      // Load labels (hardcoded)
-      this.labels = await this.loadLabels();
+      // Load labels and assets
+      await this.loadLabelsAndAssets();
       
       this.initialized = true;
       console.log('✅ Models loaded successfully');
@@ -80,47 +89,63 @@ class UltraSimpleBirdClassifier {
   }
 
   /**
+   * Load bird species labels, scientific names, and assets
+   */
+  private async loadLabelsAndAssets(): Promise<void> {
+    await Promise.all([
+      this.loadLabels(),
+      this.loadAssets()
+    ]);
+  }
+
+  /**
    * Load bird species labels using the existing generated BirdLabelsMap
    */
-  private async loadLabels(): Promise<string[]> {
+  private async loadLabels(): Promise<void> {
     try {
       // Use the existing generated bird labels service
-      const labelsData = getLabelsForLanguage('en');
+      const labelsData = getLabelsForLanguage(this.currentLanguage);
       
       if (!labelsData) {
-        throw new Error('No labels data found for English');
+        throw new Error(`No labels data found for language: ${this.currentLanguage}`);
       }
       
-      // Handle different possible return types from the labels map
+      // Handle Metro bundler asset loading
       let labelsText: string;
-      if (typeof labelsData === 'string') {
+      
+      // Metro bundler returns a number (module ID) for assets
+      if (typeof labelsData === 'number') {
+        // This is a Metro module ID, load it as an asset
+        const asset = Asset.fromModule(labelsData);
+        await asset.downloadAsync();
+        
+        if (asset.localUri) {
+          const response = await fetch(asset.localUri);
+          labelsText = await response.text();
+        } else {
+          throw new Error('Failed to download label asset');
+        }
+      } else if (typeof labelsData === 'string') {
         labelsText = labelsData;
       } else if (labelsData && typeof labelsData === 'object') {
-        // Metro bundler might return an object with a default property or uri property
+        // Try various object formats
         if (labelsData.default) {
           labelsText = labelsData.default;
         } else if (labelsData.uri) {
-          // If it's a bundled asset with URI, fetch it
           const response = await fetch(labelsData.uri);
           labelsText = await response.text();
         } else {
-          // Try to extract any string property
-          const keys = Object.keys(labelsData);
-          const stringKey = keys.find(key => typeof labelsData[key] === 'string');
-          if (stringKey) {
-            labelsText = labelsData[stringKey];
-          } else {
-            console.warn('Unexpected labels data structure:', labelsData);
-            throw new Error('Could not resolve labels data from BirdLabelsMap');
-          }
+          console.warn('Unexpected labels data structure:', labelsData);
+          throw new Error('Could not resolve labels data from BirdLabelsMap');
         }
       } else {
-        throw new Error('Could not resolve labels data from BirdLabelsMap');
+        throw new Error(`Unexpected labels data type: ${typeof labelsData}`);
       }
       
-      // Split into lines and extract common names
+      // Split into lines and extract both common and scientific names
       const lines = labelsText.trim().split('\n');
       const labels: string[] = [];
+      const scientificNames: string[] = [];
       
       for (const line of lines) {
         const trimmedLine = line.trim();
@@ -129,24 +154,30 @@ class UltraSimpleBirdClassifier {
         // Format: "Scientific_Name_Common Name" (exactly like whoBIRD)
         const parts = trimmedLine.split('_');
         if (parts.length >= 2) {
+          // Extract scientific name (first part)
+          const scientificName = parts[0].trim();
+          scientificNames.push(scientificName);
+          
           // Extract common name (everything after the first underscore)
           // This matches whoBIRD's labelList[element.index].split("_").last() logic
           const commonName = parts.slice(1).join(' ').trim();
           labels.push(commonName);
         } else {
           // Fallback if format is unexpected
+          scientificNames.push(trimmedLine);
           labels.push(trimmedLine);
         }
       }
       
-      console.log(`✅ Loaded ${labels.length} bird labels from labels_en.txt`);
+      console.log(`✅ Loaded ${labels.length} bird labels from labels_${this.currentLanguage}.txt`);
       
       // Verify we have the expected number of labels
       if (labels.length !== 6522) {
         console.warn(`⚠️ Expected 6522 labels, got ${labels.length}`);
       }
       
-      return labels;
+      this.labels = labels;
+      this.scientificNames = scientificNames;
       
     } catch (error) {
       console.error('❌ Failed to load bird labels, using fallback:', error);
@@ -154,11 +185,101 @@ class UltraSimpleBirdClassifier {
       // Fallback to numbered labels
       const labelCount = 6522;
       const fallbackLabels: string[] = [];
+      const fallbackScientific: string[] = [];
       for (let i = 0; i < labelCount; i++) {
         fallbackLabels.push(`Species_${i}`);
+        fallbackScientific.push(`Unknown_${i}`);
       }
-      return fallbackLabels;
+      this.labels = fallbackLabels;
+      this.scientificNames = fallbackScientific;
     }
+  }
+
+  /**
+   * Load assets mapping for Macaulay Library images
+   */
+  private async loadAssets(): Promise<void> {
+    try {
+      // Load assets.txt file
+      const assetsData = require('../assets/model_labels_whoBird/assets.txt');
+      
+      let assetsText: string;
+      
+      // Metro bundler returns a number (module ID) for assets
+      if (typeof assetsData === 'number') {
+        // This is a Metro module ID, load it as an asset
+        const asset = Asset.fromModule(assetsData);
+        await asset.downloadAsync();
+        
+        if (asset.localUri) {
+          const response = await fetch(asset.localUri);
+          assetsText = await response.text();
+        } else {
+          throw new Error('Failed to download assets file');
+        }
+      } else if (typeof assetsData === 'string') {
+        assetsText = assetsData;
+      } else if (assetsData && typeof assetsData === 'object') {
+        if (assetsData.default) {
+          assetsText = assetsData.default;
+        } else if (assetsData.uri) {
+          const response = await fetch(assetsData.uri);
+          assetsText = await response.text();
+        } else {
+          throw new Error('Could not resolve assets data');
+        }
+      } else {
+        throw new Error(`Unexpected assets data type: ${typeof assetsData}`);
+      }
+      
+      // Split into lines and store asset IDs
+      const lines = assetsText.trim().split('\n');
+      const assets: string[] = [];
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine) {
+          assets.push(trimmedLine);
+        }
+      }
+      
+      console.log(`✅ Loaded ${assets.length} asset mappings`);
+      
+      // Verify we have the expected number of assets
+      if (assets.length !== 6522) {
+        console.warn(`⚠️ Expected 6522 assets, got ${assets.length}`);
+      }
+      
+      this.assets = assets;
+      
+    } catch (error) {
+      console.error('❌ Failed to load assets, using fallback:', error);
+      
+      // Fallback to NO_ASSET for all entries
+      const assetCount = 6522;
+      const fallbackAssets: string[] = [];
+      for (let i = 0; i < assetCount; i++) {
+        fallbackAssets.push('NO_ASSET');
+      }
+      this.assets = fallbackAssets;
+    }
+  }
+
+  /**
+   * Get Macaulay Library asset URL for a species index
+   */
+  getAssetUrl(index: number): string | undefined {
+    if (index < 0 || index >= this.assets.length) {
+      return undefined;
+    }
+    
+    const assetId = this.assets[index];
+    if (assetId === 'NO_ASSET' || !assetId) {
+      return undefined;
+    }
+    
+    // Match whoBIRD's URL format exactly
+    return `https://macaulaylibrary.org/asset/${assetId}/embed`;
   }
 
   /**
@@ -369,8 +490,10 @@ class UltraSimpleBirdClassifier {
     for (let i = 0; i < audioProbabilities.length; i++) {
       if (audioProbabilities[i] >= minConfidence) {
         predictions.push({
-          species: this.labels[i] || `Unknown_${i}`,
-          confidence: audioProbabilities[i]
+          commonName: this.labels[i] || `Unknown_${i}`,
+          scientificName: this.scientificNames[i] || `Unknown_${i}`,
+          confidence: audioProbabilities[i],
+          index: i
         });
       }
     }
@@ -410,11 +533,12 @@ const ultraSimpleClassifier = new UltraSimpleBirdClassifier();
  */
 export async function classifyBirdAudio(
   audioFilePath: string,
-  location?: { latitude: number; longitude: number }
+  location?: { latitude: number; longitude: number },
+  language: string = 'en'
 ): Promise<ClassificationResult> {
   // Auto-initialize if needed
   if (!ultraSimpleClassifier.isReady()) {
-    const initialized = await ultraSimpleClassifier.initialize();
+    const initialized = await ultraSimpleClassifier.initialize(language);
     if (!initialized) {
       return {
         predictions: [],
@@ -435,9 +559,10 @@ export async function classifyBirdAudioUltimate(
   audioFilePath: string,
   latitude: number,
   longitude: number,
-  date: Date = new Date()
+  date: Date = new Date(),
+  language: string = 'en'
 ): Promise<PredictionResult[]> {
-  const result = await classifyBirdAudio(audioFilePath, { latitude, longitude });
+  const result = await classifyBirdAudio(audioFilePath, { latitude, longitude }, language);
   
   if (!result.success) {
     console.error('Bird classification failed:', result.error);
@@ -445,10 +570,10 @@ export async function classifyBirdAudioUltimate(
   }
   
   // Convert to ULTIMATE guide format
-  return result.predictions.map((pred, index) => ({
-    species: pred.species,
+  return result.predictions.map(pred => ({
+    species: pred.commonName,
     confidence: pred.confidence,
-    index: index
+    index: pred.index
   }));
 }
 
@@ -457,9 +582,10 @@ export async function classifyBirdAudioUltimate(
  */
 export async function classifyBirdAudioForPipeline(
   audioFilePath: string,
-  location?: { latitude: number; longitude: number }
+  location?: { latitude: number; longitude: number },
+  language: string = 'en'
 ): Promise<AudioPrediction[]> {
-  const result = await classifyBirdAudio(audioFilePath, location);
+  const result = await classifyBirdAudio(audioFilePath, location, language);
   
   if (!result.success) {
     console.warn('Bird classification failed:', result.error);
@@ -468,17 +594,19 @@ export async function classifyBirdAudioForPipeline(
   
   // Convert to audio pipeline format
   return result.predictions.map(pred => ({
-    common_name: pred.species,
-    scientific_name: pred.species, // For now, use same name for both
-    confidence: pred.confidence
+    common_name: pred.commonName,
+    scientific_name: pred.scientificName,
+    confidence: pred.confidence,
+    index: pred.index,
+    assetUrl: ultraSimpleClassifier.getAssetUrl ? ultraSimpleClassifier.getAssetUrl(pred.index) : undefined
   }));
 }
 
 /**
  * Manual initialization (optional)
  */
-export async function initializeBirdClassifier(): Promise<boolean> {
-  return ultraSimpleClassifier.initialize();
+export async function initializeBirdClassifier(language: string = 'en'): Promise<boolean> {
+  return ultraSimpleClassifier.initialize(language);
 }
 
 /**

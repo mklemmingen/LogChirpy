@@ -109,8 +109,8 @@ export default function ManualBirdEntry() {
         try {
             const result = await classifyBirdAudio(draft.audioUri);
             const predictions = result.success ? result.predictions.map(pred => ({
-                common_name: pred.species,
-                scientific_name: pred.species,
+                common_name: pred.commonName,
+                scientific_name: pred.scientificName,
                 confidence: pred.confidence
             })) : [];
             console.log('🤖 [Audio ID] Predictions received:', predictions);

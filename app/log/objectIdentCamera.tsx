@@ -1,8 +1,8 @@
 /**
- * 80s Sci-Fi ObjectIdentCamera Component
+ * ObjectIdentCamera Component
  * 
  * Features:
- * ✅ Retro-futuristic 80s sci-fi UI design
+ * ✅ Retro-futuristic UI design
  * ✅ Automatic object detection → image classification
  * ✅ Automatic audio bird classification
  * ✅ Camera zoom and flash controls
@@ -67,14 +67,16 @@ interface AudioPrediction {
     common_name: string;
     scientific_name: string;
     confidence: number;
+    index: number;
+    assetUrl?: string;
 }
 
 const { width: W, height: H } = Dimensions.get('window');
 
 // Dark Cyberpunk Color Palette
 const CYBER_COLORS = {
-    primary: '#00D4FF',      // Electric blue
-    secondary: '#7C3AED',    // Deep purple
+    primary: '#ffffff',      // Electric blue
+    secondary: '#4f4f4f',    // Deep purple
     accent: '#10B981',       // Emerald green
     warning: '#F59E0B',      // Amber
     danger: '#EF4444',       // Red
@@ -82,9 +84,9 @@ const CYBER_COLORS = {
     text: '#F8FAFC',         // Near white
     textMuted: '#94A3B8',    // Slate 400
     background: '#0F0F23',   // Very dark blue
-    surface: '#1E1E2E',      // Dark surface
-    surfaceElevated: '#262640', // Elevated surface
-    border: '#374151',       // Gray border
+    surface: '#4f4f4f',      // Dark surface
+    surfaceElevated: '#4f4f4fCC', // Elevated surface
+    border: '#000000',       // Black border
     borderActive: '#00D4FF', // Active border
     overlay: '#000000CC',    // Semi-transparent black
 };
@@ -336,6 +338,17 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
     const [zoom, setZoom] = useState(1);
     const [flash, setFlash] = useState<'off' | 'on'>('off');
     
+    // Audio recording state management with ref to persist across renders
+    const audioRecordingRef = useRef<{
+        recording: Audio.Recording | null;
+        isRecording: boolean;
+        isCleaningUp: boolean;
+    }>({
+        recording: null,
+        isRecording: false,
+        isCleaningUp: false
+    });
+    
     // ML state
     const [detections, setDetections] = useState<Detection[]>([]);
     const [audioResults, setAudioResults] = useState<AudioPrediction[]>([]);
@@ -350,6 +363,45 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
     
     // Subtle animated values for cyberpunk effects
     const pulseAnimation = useSharedValue(0);
+    
+    // Safe recording cleanup function
+    const cleanupRecording = async (forceCleanup: boolean = false) => {
+        const recordingState = audioRecordingRef.current;
+        
+        if (recordingState.isCleaningUp && !forceCleanup) {
+            console.log('[AudioML] Cleanup already in progress, skipping...');
+            return;
+        }
+        
+        recordingState.isCleaningUp = true;
+        
+        try {
+            if (recordingState.recording) {
+                console.log('[AudioML] Cleaning up recording...');
+                
+                // Check if the recording is in a valid state before cleanup
+                const status = await recordingState.recording.getStatusAsync();
+                
+                if (status.canRecord || status.isRecording) {
+                    // Recording is active, stop it first
+                    await recordingState.recording.stopAndUnloadAsync();
+                } else if (status.isDoneRecording) {
+                    // Recording is done, just unload it
+                    await recordingState.recording.stopAndUnloadAsync();
+                }
+                
+                recordingState.recording = null;
+                console.log('[AudioML] Recording cleanup successful');
+            }
+        } catch (cleanupError) {
+            console.warn('[AudioML] Recording cleanup failed:', cleanupError);
+            // Force cleanup by setting to null even if unload failed
+            recordingState.recording = null;
+        } finally {
+            recordingState.isRecording = false;
+            recordingState.isCleaningUp = false;
+        }
+    };
     
     useEffect(() => {
         // Gentle pulse for status indicators only
@@ -599,37 +651,34 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
         };
     }, [isInitialized, detector, isClassifierReady, imageMLReady, isCameraActive]);
 
-    // Audio ML loop with proper recording management
+    // Audio ML loop with improved recording management
     useEffect(() => {
         if (!audioMLReady || !isCameraActive) return;
 
         let isActive = true;
-        let isRecording = false;
-        let currentRecording: Audio.Recording | null = null;
         
         const audioLoop = async () => {
-            if (!isActive || isRecording) return;
+            const recordingState = audioRecordingRef.current;
+            
+            // Skip if already recording or cleaning up
+            if (!isActive || recordingState.isRecording || recordingState.isCleaningUp) {
+                console.log('[AudioML] Skipping cycle - already busy');
+                return;
+            }
             
             try {
-                isRecording = true;
+                recordingState.isRecording = true;
                 console.log('[AudioML] Starting new audio recording...');
                 
-                // Create and prepare recording with error isolation
+                // Clean up any existing recording first
+                await cleanupRecording();
+                
+                // Wait a bit after cleanup to ensure everything is settled
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
                 let recordingUri;
                 
                 try {
-                    // Clean up any existing recording first
-                    if (currentRecording) {
-                        try {
-                            await currentRecording.stopAndUnloadAsync();
-                        } catch (cleanupError) {
-                            console.warn('[AudioML] Failed to cleanup previous recording:', cleanupError);
-                        }
-                        currentRecording = null;
-                        // Add a small delay to ensure full cleanup
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                    }
-                    
                     // Set audio mode before creating recording
                     await Audio.setAudioModeAsync({
                         allowsRecordingIOS: true,
@@ -639,25 +688,26 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         staysActiveInBackground: false,
                     });
                     
-                    currentRecording = new Audio.Recording();
+                    // Create new recording
+                    recordingState.recording = new Audio.Recording();
                     
-                    await currentRecording.prepareToRecordAsync({
+                    await recordingState.recording.prepareToRecordAsync({
                         android: {
                             extension: '.m4a',
                             outputFormat: Audio.AndroidOutputFormat.MPEG_4,
                             audioEncoder: Audio.AndroidAudioEncoder.AAC,
-                            sampleRate: 48000, // Use BirdNET target sample rate
+                            sampleRate: 48000,
                             numberOfChannels: 1,
-                            bitRate: 128000, // Higher quality
+                            bitRate: 128000,
                         },
                         ios: {
                             extension: '.wav',
                             outputFormat: Audio.IOSOutputFormat.LINEARPCM,
                             audioQuality: Audio.IOSAudioQuality.HIGH,
-                            sampleRate: 48000, // Match BirdNET target
+                            sampleRate: 48000,
                             numberOfChannels: 1,
                             bitRate: 128000,
-                            linearPCMBitDepth: 16, // Standard 16-bit depth
+                            linearPCMBitDepth: 16,
                             linearPCMIsBigEndian: false,
                             linearPCMIsFloat: false,
                         },
@@ -666,31 +716,32 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                             bitsPerSecond: 128000,
                         }
                     });
+                    
+                    console.log('[AudioML] Recording prepared, starting...');
+                    
                 } catch (prepareError) {
                     console.error('[AudioML] Recording preparation failed:', prepareError);
-                    return; // Skip this cycle if preparation fails
+                    await cleanupRecording(true); // Force cleanup on preparation failure
+                    return;
                 }
                 
-                // Record audio with error isolation
+                // Record audio
                 try {
-                    await currentRecording.startAsync();
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                    await currentRecording.stopAndUnloadAsync();
-                    recordingUri = currentRecording.getURI();
+                    if (recordingState.recording) {
+                        await recordingState.recording.startAsync();
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        await recordingState.recording.stopAndUnloadAsync();
+                        recordingUri = recordingState.recording.getURI();
+                        recordingState.recording = null; // Clear immediately after getting URI
+                        console.log('[AudioML] Recording completed successfully');
+                    }
                 } catch (recordError) {
                     console.error('[AudioML] Recording process failed:', recordError);
-                    try {
-                        if (currentRecording) {
-                            await currentRecording.stopAndUnloadAsync();
-                        }
-                    } catch (stopError) {
-                        console.warn('[AudioML] Failed to stop recording after error:', stopError);
-                    }
-                    currentRecording = null;
-                    return; // Skip processing if recording fails
+                    await cleanupRecording(true); // Force cleanup on record failure
+                    return;
                 }
                 
-                // Process audio with error isolation
+                // Process audio
                 if (recordingUri && isActive) {
                     console.log('[AudioML] Processing audio:', recordingUri);
                     try {
@@ -699,7 +750,6 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         
                         if (isActive) {
                             if (predictions && Array.isArray(predictions) && predictions.length > 0) {
-                                // Pipeline-compatible function already returns correct format
                                 setAudioResults(predictions.slice(0, 3));
                                 console.log(`[AudioML] ✅ Classification successful: ${predictions.length} predictions`);
                                 console.log(`[AudioML] Top result: ${predictions[0].common_name} (${Math.round(predictions[0].confidence * 100)}%)`);
@@ -710,7 +760,6 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         }
                     } catch (classifyError) {
                         console.error('[AudioML] Classification error:', classifyError);
-                        // Don't clear previous results on classification error - just log and continue
                     }
                 } else {
                     console.warn('[AudioML] No recording URI available or context inactive');
@@ -718,26 +767,17 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                 
             } catch (error) {
                 console.error('[AudioML] Audio pipeline error:', error);
-                // Clear audio results on major pipeline error
                 if (isActive) {
                     setAudioResults([]);
                 }
+                await cleanupRecording(true); // Force cleanup on major error
             } finally {
-                isRecording = false;
-                // Clean up current recording
-                if (currentRecording) {
-                    try {
-                        await currentRecording.stopAndUnloadAsync();
-                    } catch (cleanupError) {
-                        console.warn('[AudioML] Final cleanup failed:', cleanupError);
-                    }
-                    currentRecording = null;
-                }
+                recordingState.isRecording = false;
             }
 
-            // Continue loop with longer delay
+            // Continue loop with delay
             if (isActive) {
-                setTimeout(audioLoop, 10000); // Every 10 seconds to avoid conflicts
+                setTimeout(audioLoop, 12000); // Every 12 seconds to ensure cleanup completes
             }
         };
 
@@ -745,11 +785,8 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
         return () => {
             isActive = false;
             clearTimeout(timer);
-            // Cleanup on unmount
-            if (currentRecording) {
-                currentRecording.stopAndUnloadAsync().catch(console.warn);
-                currentRecording = null;
-            }
+            // Force cleanup on unmount
+            cleanupRecording(true).catch(console.warn);
         };
     }, [audioMLReady, hasLocationPermission, isCameraActive]);
 
@@ -952,6 +989,9 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                                         <View key={index} style={styles.cyberAudioItem}>
                                             <ThemedText style={styles.cyberAudioName}>
                                                 {result.common_name}
+                                            </ThemedText>
+                                            <ThemedText style={styles.cyberStatusText}>
+                                                {result.scientific_name}
                                             </ThemedText>
                                             <View style={styles.cyberConfidenceBar}>
                                                 <View style={[styles.cyberConfidenceFill, { 
