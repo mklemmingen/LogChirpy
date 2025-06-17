@@ -58,10 +58,6 @@ export default function LoginScreen() {
         fadeInOpacity.value = withTiming(1, { duration: 600 });
     }, []);
 
-    React.useEffect(() => {
-        console.log('login page render');
-    });
-
     const fadeInStyle = useAnimatedStyle(() => ({
         opacity: fadeInOpacity.value,
         transform: [{ translateY: withTiming(fadeInOpacity.value === 1 ? 0 : 30) }],
