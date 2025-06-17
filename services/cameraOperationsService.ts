@@ -122,8 +122,8 @@ class CameraOperationsService {
 
       console.log('Camera photo captured:', photo.path);
 
-      // Wait for file to be stable before processing
-      await this.waitForFileStability(photo.path);
+      // Skip file stability check for camera photos - Vision Camera ensures completeness
+      // await this.waitForFileStability(photo.path);
 
       let processedUri: string;
       let filename: string;
@@ -136,20 +136,15 @@ class CameraOperationsService {
         // Add haptic feedback for manual capture
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        // Automatic detection capture: Skip ImageManipulator to avoid temp file issues
-        // Directly copy camera output with quality applied at camera level
+        // Automatic detection capture: Use camera file directly for ML processing
+        // No immediate copying needed - saves time and avoids file system issues
         filename = this.generateFilename('detection');
         
-        // First check if source file exists and is stable - increased wait time
-        const sourceExists = await this.waitForFileStability(photo.path, 5000);
-        if (!sourceExists) {
-          throw new Error('Camera photo file not stable or missing');
-        }
+        // Return the camera file URI directly for ML processing
+        processedUri = `file://${photo.path}`;
         
-        processedUri = await this.saveToDocumentWithRetry(photo.path, filename);
-
-        // Queue original temp file for cleanup
-        this.queueForCleanup(photo.path);
+        // Don't queue for immediate cleanup - let ML pipeline use it first
+        // It will be cleaned up later or by the system
       }
 
       const processingTime = Date.now() - startTime;

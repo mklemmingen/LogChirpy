@@ -484,8 +484,8 @@ function PhotoPreview({
             {/* Header */}
             <View style={styles.previewHeader}>
                 <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFillObject} />
-                <BackButton variant="floating" />
-                <ThemedText variant="h3" style={{ color: 'white' }}>
+                <BackButton variant="floating" style={styles.previewBackButton} />
+                <ThemedText variant="h3" style={styles.previewTitle}>
                     {t('photo.preview_title', 'Photo Preview')}
                 </ThemedText>
             </View>
@@ -1032,9 +1032,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         zIndex: 10,
         overflow: 'hidden',
-        flexDirection: 'row',
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: 16,
+    },
+    previewBackButton: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        zIndex: 11,
+    },
+    previewTitle: {
+        color: 'white',
+        textAlign: 'center',
     },
     previewControls: {
         position: 'absolute',
