@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (email: string, password: string) => {
     if (!auth) {
       throw new Error(t('app_errors.firebase_not_available', 'Authentication service is not available'));
     }
@@ -100,10 +100,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
-
-      await updateProfile(user, {
-        displayName: displayName.trim(),
-      });
 
       try {
         await UserProfileService.createUserProfile(user.uid, user.email);

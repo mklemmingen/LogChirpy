@@ -48,7 +48,6 @@ export default function SignupScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [displayName, setDisplayName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -92,14 +91,6 @@ export default function SignupScreen() {
     const passwordStrength = getPasswordStrength(password);
 
     const handleSignup = async () => {
-        if (!displayName.trim()) {
-            Alert.alert(
-                t('auth.error', 'Error'),
-                t('auth.name_required', 'Please enter your name')
-            );
-            return;
-        }
-
         if (!email.trim()) {
             Alert.alert(
                 t('auth.error', 'Error'),
@@ -143,7 +134,7 @@ export default function SignupScreen() {
         setIsLoading(true);
 
         try {
-            await signUp(email, password, displayName);
+            await signUp(email, password);
             router.replace('/(tabs)/account');
         } catch (error: any) {
             console.error('Signup error:', error);
@@ -180,7 +171,6 @@ export default function SignupScreen() {
     };
 
     const isFormValid =
-        displayName.trim() &&
         email.trim() &&
         validateEmail(email.trim()) &&
         password.trim() &&
@@ -235,21 +225,6 @@ export default function SignupScreen() {
                                 }}
                             >
                                 <View style={styles.form}>
-                                    <View style={styles.inputGroup}>
-                                        <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
-                                            {t('auth.name_label', 'Display Name')}
-                                        </Text>
-                                        <ThemedTextInput
-                                            style={[styles.textInput, { borderRadius: 12 }]}
-                                            placeholder={t('auth.name_placeholder', 'Enter your name')}
-                                            value={displayName}
-                                            onChangeText={setDisplayName}
-                                            autoCapitalize="words"
-                                            autoCorrect={false}
-                                            editable={!isLoading}
-                                        />
-                                    </View>
-
                                     <View style={styles.inputGroup}>
                                         <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
                                             {t('auth.email_label', 'Email')}
@@ -324,7 +299,7 @@ export default function SignupScreen() {
                                         </View>
                                     </View>
 
-                                    <Animated.View style={[signupButtonAnimatedStyle, { marginTop: 16 }]}>
+                                    <Animated.View style={signupButtonAnimatedStyle}>
                                         <AnimatedPressable
                                             style={[
                                                 styles.signupButton,
@@ -359,7 +334,7 @@ export default function SignupScreen() {
                                 </View>
                             </ModernCard>
 
-                            <View style={[styles.signInContainer, { marginTop: 16 }]}>
+                            <View style={styles.signInContainer}>
                                 <Text style={[typography.body, { color: semanticColors.secondary }]}>
                                     {t('auth.already_have_account', 'Already have an account?')}
                                 </Text>
