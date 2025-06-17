@@ -45,11 +45,8 @@ export default function GalleryManagementScreen() {
     const [photos, setPhotos] = useState<PhotoItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
-    const [selectionMode, setSelectionMode] = useState(!!selectMode);
+    const [selectionMode, setSelectionMode] = useState(false);
     const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
-    
-    // Check if we're in photo selection mode from manual entry
-    const isPhotoSelectionMode = !!selectMode;
 
     // Load photos from document storage gallery directory
     const loadPhotos = useCallback(async () => {
@@ -103,15 +100,13 @@ export default function GalleryManagementScreen() {
         loadPhotos();
     }, [loadPhotos]);
 
-    // Reset state when screen is focused and not in selection mode
+    // Reset selection state when screen is focused
     useFocusEffect(
         useCallback(() => {
-            // Reset selection state if we're not supposed to be in selection mode
-            if (!selectMode) {
-                setSelectionMode(false);
-                setSelectedPhotos(new Set());
-            }
-        }, [selectMode])
+            // Always reset selection state when returning to gallery
+            setSelectionMode(false);
+            setSelectedPhotos(new Set());
+        }, [])
     );
 
     // Extract classification data from filename patterns like "bird_house_finch_conf085_timestamp_milliseconds.jpg"
@@ -275,10 +270,10 @@ export default function GalleryManagementScreen() {
             <View style={styles.photoContainer}>
                 <Pressable
                     onPress={() => {
-                        if (selectionMode || isPhotoSelectionMode) {
+                        if (selectionMode) {
                             toggleSelection(item.uri);
                         } else {
-                            // Single photo actions for normal gallery mode
+                            // Single photo view or quick actions could go here
                         }
                     }}
                     onLongPress={() => {
@@ -362,13 +357,10 @@ export default function GalleryManagementScreen() {
             {/* Header */}
             <ThemedView style={styles.header}>
                 <ThemedText variant="h2" style={styles.headerTitle}>
-                    {isPhotoSelectionMode ? 'Select Photo for Log' : t('gallery.title')}
+                    {t('gallery.title')}
                 </ThemedText>
                 <ThemedText variant="body" color="secondary">
-                    {isPhotoSelectionMode 
-                        ? 'Tap a photo to select it for your bird log'
-                        : t('gallery.subtitle', { count: photos.length })
-                    }
+                    {t('gallery.subtitle', { count: photos.length })}
                 </ThemedText>
             </ThemedView>
 
@@ -377,80 +369,70 @@ export default function GalleryManagementScreen() {
                 <View style={styles.actionBar}>
                     <ModernCard style={styles.actionCard}>
                         <View style={styles.actionButtons}>
-                            {/* Use for Log button - only show in photo selection mode */}
-                            {isPhotoSelectionMode && (
-                                <ThemedPressable
-                                    variant="primary"
-                                    size="sm"
-                                    onPress={usePhotoForLog}
-                                    disabled={selectedPhotos.size !== 1}
-                                    style={[
-                                        styles.actionButton,
-                                        ...(selectedPhotos.size !== 1 ? [{ opacity: 0.5 }] : [])
-                                    ]}
-                                >
-                                    <ThemedIcon name="check" size={16} color="inverse" />
-                                    <ThemedText variant="labelMedium" color="inverse">
-                                        Use for Log
-                                    </ThemedText>
-                                </ThemedPressable>
-                            )}
+                            {/* Use for Bird Log button - always available when photos are selected */}
+                            <ThemedPressable
+                                variant="primary"
+                                size="sm"
+                                onPress={usePhotoForLog}
+                                disabled={selectedPhotos.size !== 1}
+                                style={[
+                                    styles.actionButton,
+                                    ...(selectedPhotos.size !== 1 ? [{ opacity: 0.5 }] : [])
+                                ]}
+                            >
+                                <ThemedIcon name="edit" size={16} color="inverse" />
+                                <ThemedText variant="labelMedium" color="inverse">
+                                    Use for Log
+                                </ThemedText>
+                            </ThemedPressable>
 
-                            {/* Standard gallery actions - show when NOT in photo selection mode */}
-                            {!isPhotoSelectionMode && (
-                                <>
-                                    <ThemedPressable
-                                        variant="primary"
-                                        size="sm"
-                                        onPress={() => saveToGallery(Array.from(selectedPhotos))}
-                                        style={styles.actionButton}
-                                    >
-                                        <ThemedIcon name="download" size={16} color="inverse" />
-                                        <ThemedText variant="labelMedium" color="inverse">
-                                            Save to Gallery
-                                        </ThemedText>
-                                    </ThemedPressable>
+                            {/* Standard gallery actions - always available */}
+                            <ThemedPressable
+                                variant="secondary"
+                                size="sm"
+                                onPress={() => saveToGallery(Array.from(selectedPhotos))}
+                                style={styles.actionButton}
+                            >
+                                <ThemedIcon name="download" size={16} color="primary" />
+                                <ThemedText variant="labelMedium" color="primary">
+                                    Save to Gallery
+                                </ThemedText>
+                            </ThemedPressable>
 
-                                    <ThemedPressable
-                                        variant="secondary"
-                                        size="sm"
-                                        onPress={() => sharePhotos(Array.from(selectedPhotos))}
-                                        style={styles.actionButton}
-                                    >
-                                        <ThemedIcon name="share" size={16} color="primary" />
-                                        <ThemedText variant="labelMedium" color="primary">
-                                            Share
-                                        </ThemedText>
-                                    </ThemedPressable>
+                            <ThemedPressable
+                                variant="secondary"
+                                size="sm"
+                                onPress={() => sharePhotos(Array.from(selectedPhotos))}
+                                style={styles.actionButton}
+                            >
+                                <ThemedIcon name="share" size={16} color="primary" />
+                                <ThemedText variant="labelMedium" color="primary">
+                                    Share
+                                </ThemedText>
+                            </ThemedPressable>
 
-                                    <ThemedPressable
-                                        variant="secondary"
-                                        size="sm"
-                                        onPress={() => deletePhotos(Array.from(selectedPhotos))}
-                                        style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
-                                    >
-                                        <ThemedIcon name="trash-2" size={16} color="inverse" />
-                                        <ThemedText variant="labelMedium" color="inverse">
-                                            Delete
-                                        </ThemedText>
-                                    </ThemedPressable>
-                                </>
-                            )}
+                            <ThemedPressable
+                                variant="secondary"
+                                size="sm"
+                                onPress={() => deletePhotos(Array.from(selectedPhotos))}
+                                style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
+                            >
+                                <ThemedIcon name="trash-2" size={16} color="inverse" />
+                                <ThemedText variant="labelMedium" color="inverse">
+                                    Delete
+                                </ThemedText>
+                            </ThemedPressable>
 
                             <ThemedPressable
                                 variant="ghost"
                                 size="sm"
                                 onPress={() => {
-                                    if (isPhotoSelectionMode) {
-                                        router.back();
-                                    } else {
-                                        setSelectionMode(false);
-                                        setSelectedPhotos(new Set());
-                                    }
+                                    setSelectionMode(false);
+                                    setSelectedPhotos(new Set());
                                 }}
                             >
                                 <ThemedText variant="labelMedium" color="tertiary">
-                                    {isPhotoSelectionMode ? 'Back' : 'Cancel'}
+                                    Cancel
                                 </ThemedText>
                             </ThemedPressable>
                         </View>
@@ -465,10 +447,7 @@ export default function GalleryManagementScreen() {
                         <View style={styles.instructionContainer}>
                             <ThemedIcon name="info" size={20} color="primary" />
                             <ThemedText variant="body" color="secondary" style={styles.instructionText}>
-                                {isPhotoSelectionMode 
-                                    ? 'Tap any photo to select it for your bird log entry'
-                                    : 'Long press any photo to select, then choose action'
-                                }
+                                Long press any photo to select, then choose an action (log, save, share, or delete)
                             </ThemedText>
                         </View>
                     </ModernCard>

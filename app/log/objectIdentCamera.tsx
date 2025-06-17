@@ -168,7 +168,11 @@ async function cropDetectionImage(
             }
         );
         
-        console.log(`[ImageML] Crop successful: ${result.uri}`);
+        console.log(`[ImageML] ✅ Crop successful:`, {
+            outputUri: result.uri,
+            outputDimensions: { width: result.width, height: result.height },
+            cropRegion: cropAction.crop
+        });
         return result.uri;
     } catch (error) {
         console.error('[ImageML] Crop failed:', error);
@@ -369,14 +373,28 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
 
     const classifyImage = async (imageUri: string) => {
         try {
+            console.log('[ImageML] Classifying image:', imageUri);
             const result = await classifier?.classifyImage(imageUri);
+            console.log('[ImageML] Raw classification result type:', typeof result);
+            
+            let parsedResult;
             if (typeof result === 'string') {
+                console.log('[ImageML] Parsing string result...');
                 const parsed = JSON.parse(result);
-                return Array.isArray(parsed) ? parsed : [];
+                parsedResult = Array.isArray(parsed) ? parsed : [];
+            } else {
+                parsedResult = result ?? [];
             }
-            return result ?? [];
+            
+            console.log('[ImageML] Parsed classification result:', {
+                isArray: Array.isArray(parsedResult),
+                length: parsedResult.length,
+                sample: parsedResult[0] || 'No results'
+            });
+            
+            return parsedResult;
         } catch (error) {
-            console.error("Classification failed:", error);
+            console.error("[ImageML] Classification failed:", error);
             return [];
         }
     };
@@ -459,13 +477,21 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                 // Detect objects with error isolation
                 let objects = [];
                 try {
+                    console.log('[ImageML] 🔍 Step 1: Starting object detection...');
                     objects = await detector.detectObjects(photoResult.uri);
-                    console.log(`[ImageML] Detected ${objects.length} objects:`, objects.map(o => ({
-                        frame: o.frame,
-                        labels: o.labels?.slice(0, 1) // Log first label only
-                    })));
+                    console.log(`[ImageML] ✅ Step 1 Complete: Detected ${objects.length} objects`);
+                    
+                    // Log detailed frame data for debugging
+                    objects.forEach((obj, idx) => {
+                        console.log(`[ImageML] Object ${idx + 1} frame:`, {
+                            origin: obj.frame?.origin,
+                            size: obj.frame?.size,
+                            hasLabels: !!obj.labels,
+                            labelCount: obj.labels?.length || 0
+                        });
+                    });
                 } catch (detectionError) {
-                    console.error('[ImageML] Object detection error:', detectionError);
+                    console.error('[ImageML] ❌ Object detection error:', detectionError);
                     return; // Skip this cycle if detection fails
                 }
                 
@@ -483,11 +509,21 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         let labels = [];
                         let croppedUri = '';
                         try {
+                            console.log(`[ImageML] 📐 Step 2.${index + 1}: Cropping object ${index + 1}...`);
                             croppedUri = await cropDetectionImage(photoResult.uri, obj.frame);
+                            console.log(`[ImageML] ✅ Step 2.${index + 1} Complete: Cropped successfully`);
+                            
+                            console.log(`[ImageML] 🧠 Step 3.${index + 1}: Classifying cropped image...`);
                             labels = await classifyImage(croppedUri);
-                            console.log(`[ImageML] Object ${index + 1} cropped and classified:`, labels.slice(0, 2));
+                            console.log(`[ImageML] ✅ Step 3.${index + 1} Complete: Got ${labels.length} labels`);
+                            
+                            if (labels.length > 0) {
+                                console.log(`[ImageML] Top classifications for object ${index + 1}:`, 
+                                    labels.slice(0, 3).map(l => `${l.text} (${Math.round(l.confidence * 100)}%)`).join(', ')
+                                );
+                            }
                         } catch (cropError) {
-                            console.warn(`[ImageML] Cropping failed for object ${index + 1}, using full image:`, cropError instanceof Error ? cropError.message : 'Unknown error');
+                            console.warn(`[ImageML] ⚠️ Cropping failed for object ${index + 1}, using full image:`, cropError instanceof Error ? cropError.message : 'Unknown error');
                             // Fallback to full image classification
                             labels = await classifyImage(photoResult.uri);
                             croppedUri = photoResult.uri; // Use original if crop failed
@@ -530,10 +566,20 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                     }
                 }
 
+                console.log(`[ImageML] 📊 Step 4: Setting ${enrichedDetections.length} detections for rendering`);
                 setDetections(enrichedDetections);
                 
+                // Log final detection data for SVG rendering debug
+                if (enrichedDetections.length > 0) {
+                    console.log('[ImageML] 🎯 Final detections for SVG:', enrichedDetections.map((d, i) => ({
+                        index: i,
+                        frame: d.frame,
+                        topLabel: d.labels[0] ? `${d.labels[0].text} (${Math.round(d.labels[0].confidence * 100)}%)` : 'No labels'
+                    })));
+                }
+                
             } catch (error) {
-                console.error('[ImageML] Detection pipeline error:', error);
+                console.error('[ImageML] ❌ Detection pipeline error:', error);
                 // Clear detections on major error to avoid stale data
                 setDetections([]);
             } finally {
@@ -705,6 +751,13 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
         opacity: isProcessing ? withTiming(1, { duration: 200 }) : withTiming(0.5, { duration: 200 }),
     }));
 
+    // Log current detections for debugging
+    useEffect(() => {
+        if (detections.length > 0) {
+            console.log(`[Render] Current detections state: ${detections.length} items`);
+        }
+    }, [detections]);
+
     return (
         <View style={styles.cyberContainer}>
             <StatusBar barStyle="light-content" backgroundColor={CYBER_COLORS.background} />
@@ -743,6 +796,17 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         const y = origin.y * scaleY;
                         const width = size.x * scaleX;
                         const height = size.y * scaleY;
+                        
+                        // Log SVG rendering coordinates for debugging
+                        if (index === 0) { // Only log first detection to avoid spam
+                            console.log(`[SVG] Rendering detection ${index + 1}:`, {
+                                screenDimensions: { W, H },
+                                originalFrame: { origin, size },
+                                scaledCoords: { x, y, width, height },
+                                label: bestLabel.text,
+                                confidence: Math.round(bestLabel.confidence * 100)
+                            });
+                        }
                         
                         const labelText = `${bestLabel.text} ${Math.round(bestLabel.confidence * 100)}%`;
                         
