@@ -387,7 +387,8 @@
     "audio_system_unavailable": "Audio system unavailable",
     "listening": "Listening...",
     "audio_ready": "Audio Ready",
-    "audio_error": "Audio Error"
+    "audio_error": "Audio Error",
+    "instructions": "Record bird sounds for identification and logging. Keep the device steady and minimize background noise."
   },
   "log": {
     "save_success": "Saved",

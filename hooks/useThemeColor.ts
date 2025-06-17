@@ -1,5 +1,5 @@
-import { useColorScheme } from 'react-native';
-import { theme, type Theme, buttonStyles } from '@/constants/theme';
+import {useColorScheme} from 'react-native';
+import {buttonStyles, type Theme, theme} from '@/constants/theme';
 
 export function useTheme(): Theme {
   const colorScheme = useColorScheme() ?? 'light';

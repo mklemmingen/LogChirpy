@@ -8,10 +8,11 @@
  * CRITICAL: BirdNET models expect raw audio samples, NOT mel-spectrograms!
  */
 
-import { loadTensorflowModel, TensorflowModel, TensorflowModelDelegate } from 'react-native-fast-tflite';
+import {loadTensorflowModel, TensorflowModel, TensorflowModelDelegate} from 'react-native-fast-tflite';
 import * as FileSystem from 'expo-file-system';
-import { Platform } from 'react-native';
-import { ModelType, ModelConfig } from './modelConfig';
+import {Platform} from 'react-native';
+import {ModelConfig, ModelType} from './modelConfig';
+import {getLabelsForLanguage} from './generated/BirdLabelsMap';
 
 export interface BirdClassificationResult {
   species: string;
@@ -80,14 +81,30 @@ class FastTfliteBirdClassifierService {
   };
 
   constructor() {
-    // DEBUG: Log model paths for verification
-    const mainModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite');
-    const metaModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite');
+    // Safe model path initialization with error handling
+    let mainModelPath: any = null;
+    let metaModelPath: any = null;
+
+    try {
+      // CORRECTED: Use the main audio model for raw Float32 audio samples
+      mainModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite');
+    } catch (error) {
+      console.error('Failed to load main audio model in constructor:', error);
+    }
+    
+    try {
+      // CORRECTED: Use the separate meta model for location/temporal filtering
+      metaModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite');
+    } catch (error) {
+      console.error('Failed to load meta model in constructor:', error);
+    }
     
     console.log('DEBUG: Constructor model paths:', {
       mainModel: mainModelPath,
       metaModel: metaModelPath,
-      areEqual: mainModelPath === metaModelPath
+      areEqual: mainModelPath === metaModelPath,
+      mainModelNull: mainModelPath === null,
+      metaModelNull: metaModelPath === null
     });
     
     this.config = {
@@ -336,19 +353,94 @@ class FastTfliteBirdClassifierService {
   }
 
   /**
-   * Load species labels from JSON file
+   * Load species labels from whoBIRD format - FIXED implementation for Metro
+   * Labels follow format: "ScientificName_CommonName"
    */
   private async loadLabels(): Promise<void> {
     try {
-      // Use static require for Metro bundler compatibility
-      const labelsData = require('../assets/models/birdnet/labels.json');
-      if (labelsData && labelsData.labels) {
-        this.labels = labelsData.labels;
-      } else {
-        throw new Error('Invalid labels format');
+      // Try to load whoBIRD labels first (preferred)
+      try {
+        console.log('Loading whoBIRD labels in English...');
+        
+        // Use the BirdLabelsMap approach - static require that Metro can handle
+        const labelsAsset = getLabelsForLanguage('en'); // Default to English
+        
+        // Check if we got the asset correctly
+        if (!labelsAsset) {
+          throw new Error('Labels asset not found in BirdLabelsMap');
+        }
+        
+        // For Metro bundler, the asset might be a number (asset ID) or object
+        let labelsText: string;
+        
+        if (typeof labelsAsset === 'number') {
+          // Asset ID - use expo-asset to resolve
+          const { Asset } = await import('expo-asset');
+          const asset = Asset.fromModule(labelsAsset);
+          await asset.downloadAsync();
+          
+          if (!asset.localUri) {
+            throw new Error('Failed to download labels asset');
+          }
+          
+          labelsText = await FileSystem.readAsStringAsync(asset.localUri);
+        } else if (typeof labelsAsset === 'object' && labelsAsset.default) {
+          // Direct asset object
+          labelsText = labelsAsset.default;
+        } else {
+          // Try to use it directly as text
+          labelsText = String(labelsAsset);
+        }
+        
+        // Parse whoBIRD format: "ScientificName_CommonName"
+        this.labels = labelsText.split('\n')
+          .filter((line: string) => line.trim().length > 0)
+          .map((line: string, index: number) => {
+            const parts = line.trim().split('_');
+            if (parts.length >= 2) {
+              return {
+                index,
+                scientific_name: parts[0],
+                common_name: parts.slice(1).join('_'), // Handle names with multiple underscores
+                label: parts.slice(1).join('_')
+              };
+            } else {
+              return {
+                index,
+                scientific_name: line.trim(),
+                common_name: line.trim(),
+                label: line.trim()
+              };
+            }
+          });
+        
+        console.log(`Loaded ${this.labels.length} whoBIRD species labels from static require`);
+        return;
+      } catch (whoBirdError) {
+        console.warn('whoBIRD labels not found, falling back to legacy format', whoBirdError);
+      }
+
+      // Fallback to legacy JSON format
+      try {
+        const labelsData = require('../assets/models/birdnet/labels.json');
+        if (labelsData && labelsData.labels) {
+          this.labels = labelsData.labels;
+        } else {
+          throw new Error('Invalid labels format');
+        }
+      } catch (legacyError) {
+        console.error('Failed to load legacy labels:', legacyError);
+        // Create minimal dummy labels as last resort
+        this.labels = Array.from({ length: 6522 }, (_, i) => ({
+          index: i,
+          scientific_name: `Species_${i}`,
+          common_name: `Unknown Species ${i}`,
+          label: `Species_${i}`
+        }));
+        console.warn('Using dummy labels - species identification will be limited');
       }
       
-      console.log(`Loaded ${this.labels.length} species labels`);
+      console.log(`Loaded ${this.labels.length} legacy species labels`);
     } catch (error) {
       console.error('Failed to load labels:', error);
       throw error;
@@ -356,9 +448,8 @@ class FastTfliteBirdClassifierService {
   }
 
   /**
-   * Classify bird audio - CORRECTED: Two-model architecture with raw audio
-   * Main model: Raw Float32 audio samples → species logits
-   * Meta model: [latitude, longitude, week_cosine] → species filters
+   * Classify bird audio - CORRECTED: Single MData model with embedded metadata
+   * MData model: [Raw Float32 audio samples, metadata] → species probabilities
    */
   async classifyBirdAudio(
     processedData: Float32Array,
@@ -391,36 +482,53 @@ class FastTfliteBirdClassifierService {
         this.updateCacheHitRate(false);
       }
 
-      // Validate input size matches model expectations
-      const expectedShape = this.getModelInputShape();
-      const expectedSize = expectedShape.reduce((acc, dim) => acc * Math.abs(dim), 1);
+      // Prepare model inputs - just use the processed audio data
+      const modelInputs = [processedData];
       
-      if (processedData.length !== expectedSize) {
-        console.warn(`Input size mismatch: expected ${expectedSize}, got ${processedData.length}`);
-        // For now, continue with available data but log the issue
+      console.log(`Running inference with model inputs:`, {
+        inputCount: modelInputs.length,
+        audioSamples: processedData.length,
+        hasLocation: !!location
+      });
+      
+      // Run main model inference
+      const outputs = this.model.runSync(modelInputs);
+      let probabilities = outputs[0] as Float32Array;
+      
+      // Apply sigmoid activation to convert logits to probabilities
+      probabilities = this.applySigmoid(probabilities);
+      
+      // Meta model blending if enabled and location provided
+      let metaModelUsed = false;
+      let metaInfluence = 0;
+      
+      if (this.config.useMetaModel && this.metaModelLoaded && location) {
+        try {
+          const metaProbabilities = await this.runMetaModelInference(location);
+          probabilities = this.blendPredictions(probabilities, metaProbabilities);
+          metaModelUsed = true;
+          metaInfluence = this.config.metaInfluence;
+        } catch (metaError) {
+          console.warn('Meta model inference failed, using audio-only results:', metaError);
+        }
       }
       
-      console.log(`Running inference with ${processedData.length} input elements`);
-      
-      // Run inference (use synchronous for better performance)
-      const outputs = this.model.runSync([processedData]);
-      const predictions = outputs[0] as Float32Array;
-      
       // DEBUG: Log prediction statistics
-      const maxPrediction = Math.max(...Array.from(predictions));
-      const avgPrediction = Array.from(predictions).reduce((a, b) => a + b, 0) / predictions.length;
-      const aboveThreshold = Array.from(predictions).filter(p => p >= this.config.confidenceThreshold).length;
+      const maxPrediction = Math.max(...Array.from(probabilities));
+      const avgPrediction = Array.from(probabilities).reduce((a, b) => a + b, 0) / probabilities.length;
+      const aboveThreshold = Array.from(probabilities).filter(p => p >= this.config.confidenceThreshold).length;
       
-      console.log('DEBUG: Model output statistics:', {
-        predictionsLength: predictions.length,
+      console.log('DEBUG: Model output:', {
+        predictionsLength: probabilities.length,
         maxConfidence: maxPrediction,
         avgConfidence: avgPrediction,
         aboveThreshold,
-        threshold: this.config.confidenceThreshold
+        threshold: this.config.confidenceThreshold,
+        metadataUsed: !!location
       });
 
-      // Process results
-      const results = this.processModelOutput(predictions);
+      // Process final results
+      const results = this.processModelOutput(probabilities);
       
       const processingTime = Date.now() - startTime;
       const metadata: ClassificationMetadata = {
@@ -431,8 +539,8 @@ class FastTfliteBirdClassifierService {
         inputShape: this.getModelInputShape(),
         timestamp: Date.now(),
         audioProcessingType: 'raw_audio',
-        metaModelUsed: false,
-        metaInfluence: 0
+        metaModelUsed,
+        metaInfluence
       };
 
       // Update performance metrics
@@ -829,8 +937,79 @@ class FastTfliteBirdClassifierService {
   }
 }
 
-// Create singleton instance
-export const fastTfliteBirdClassifier = new FastTfliteBirdClassifierService();
+// Create singleton instance with lazy initialization
+let fastTfliteBirdClassifierInstance: FastTfliteBirdClassifierService | null = null;
+
+function createSafeInstance(): FastTfliteBirdClassifierService {
+  if (fastTfliteBirdClassifierInstance) {
+    return fastTfliteBirdClassifierInstance;
+  }
+
+  try {
+    fastTfliteBirdClassifierInstance = new FastTfliteBirdClassifierService();
+    console.log('FastTfliteBirdClassifierService singleton created successfully');
+    return fastTfliteBirdClassifierInstance;
+  } catch (error) {
+    console.error('CRITICAL: Failed to create FastTfliteBirdClassifierService singleton:', error);
+    console.error('This may indicate a "Super expression must either be null or a function" error');
+    
+    // Create a fallback instance that won't crash the app
+    const fallbackInstance = {
+      initialize: async () => {
+        console.warn('Using fallback FastTflite instance - functionality limited');
+        return false;
+      },
+      isReady: () => false,
+      classifyBirdAudio: async () => ({ 
+        results: [], 
+        metadata: {
+          modelVersion: 'fallback',
+          modelType: ModelType.LEGACY,
+          processingTime: 0,
+          modelSource: 'fallback' as const,
+          inputShape: [],
+          timestamp: Date.now(),
+          audioProcessingType: 'raw_audio' as const,
+        }
+      }),
+      dispose: () => {},
+      getPerformanceMetrics: () => ({
+        avgInferenceTime: 0,
+        totalInferences: 0,
+        memoryUsage: 0,
+        modelSize: 0,
+        cacheHitRate: 0
+      }),
+      // Add other required methods as stubs
+      switchModel: async () => false,
+      getCurrentModelType: () => ModelType.LEGACY,
+      isModelLoaded: () => false,
+      classifyBirdAudioWithModel: async () => ({ 
+        results: [], 
+        metadata: {
+          modelVersion: 'fallback',
+          modelType: ModelType.LEGACY,
+          processingTime: 0,
+          modelSource: 'fallback' as const,
+          inputShape: [],
+          timestamp: Date.now(),
+          audioProcessingType: 'raw_audio' as const,
+        }
+      }),
+      isMainModelReady: () => false,
+      isMetaModelReady: () => false,
+      updateMetaConfig: () => {},
+      getModelInputShape: () => [1, 3],
+      updateConfig: () => {},
+      clearCache: () => {},
+    } as unknown as FastTfliteBirdClassifierService;
+    
+    fastTfliteBirdClassifierInstance = fallbackInstance;
+    return fallbackInstance;
+  }
+}
+
+export const fastTfliteBirdClassifier = createSafeInstance();
 
 // Convenience functions
 export const initializeFastTflite = () => fastTfliteBirdClassifier.initialize();

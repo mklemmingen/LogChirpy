@@ -6,7 +6,7 @@
  * Mel-spectrograms are only used for visualization purposes.
  */
 
-import { AudioDecoder } from './audioDecoder';
+import {AudioDecoder} from './audioDecoder';
 
 export interface AudioPreprocessingConfig {
   sampleRate: number;        // Target sample rate (48kHz for BirdNET)
@@ -177,32 +177,17 @@ export class AudioPreprocessingTFLite {
   }
 
   /**
-   * CORRECTED: Process audio data based on model type - Raw audio for main models, metadata for location models
+   * SIMPLIFIED: Always process as raw audio for main model - no auto-detection complexity
    */
   private static async processForModelType(audioData: Float32Array, modelInputShape?: number[]): Promise<{
     processedData: Float32Array;
     shape: number[];
     processingType: 'raw_audio' | 'metadata_features';
   }> {
-    if (!modelInputShape || modelInputShape.length === 0) {
-      console.warn('No model input shape provided, using raw audio processing');
-      return this.processRawAudio(audioData);
-    }
-    
-    const totalElements = modelInputShape.reduce((acc, dim) => acc * (dim === -1 ? 1 : Math.abs(dim)), 1);
-    
-    console.log(`Processing audio for model shape: [${modelInputShape.join(', ')}], total elements: ${totalElements}`);
-    
-    // CORRECTED: Determine processing type based on whoBIRD patterns
-    if (totalElements <= 10) {
-      // Meta/location model (1-10 elements) - expects [latitude, longitude, week_of_year]
-      console.log('Detected metadata model - generating location/temporal features');
-      return this.generateMetadataFeatures(totalElements);
-    } else {
-      // Main audio model (10K+ elements) - expects raw Float32 audio samples
-      console.log('Detected main audio model - using raw Float32 audio samples');
-      return this.processRawAudio(audioData);
-    }
+    // SIMPLIFIED: Always use raw audio processing for the main model
+    // Meta model features are handled separately in the classifier
+    console.log('Processing as raw Float32 audio samples (simplified approach)');
+    return this.processRawAudio(audioData);
   }
 
   /**

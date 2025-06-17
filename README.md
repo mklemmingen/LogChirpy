@@ -242,15 +242,15 @@ User Management              Settings & Preferences
 └── Language preference      └── Language, data privacy, etc
 
 Observation Logging          ML & Recognition
-├── Image/audio recording    ├── Integration with BirdNET API
+├── Image/audio recording 
 ├── Manual logging          └── Local TensorFlow.js model for
-├── Offline support             image/audio recognition
+├── Offline support             image/audio and object recognition
 └── GPS tagging
 
 Storage & Sync              Media Processing
 ├── Local Storage           ├── Wikipedia Linking
-├── Firebase Firestore sync └── Bird info from third-party APIs
-└── Optional offline mode
+├── Firebase Firestore sync └── Bird info from third-parties as well as local storage
+└── offline mode
 
 UI/UX Layer
 ├── Navigation

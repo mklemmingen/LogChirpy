@@ -6,9 +6,9 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedIcon } from '@/components/ThemedIcon';
+import {StyleSheet, View} from 'react-native';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedIcon} from '@/components/ThemedIcon';
 
 interface ConfidenceIndicatorProps {
   confidence: number; // 0-1 range

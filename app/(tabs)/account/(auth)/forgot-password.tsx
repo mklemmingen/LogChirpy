@@ -18,7 +18,7 @@ import {ThemedIcon} from '@/components/ThemedIcon';
 import {ModernCard} from '@/components/ModernCard';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
 import {useSnackbar} from '@/components/ThemedSnackbar';
-import {useTheme, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
+import {useColorVariants, useSemanticColors, useTheme} from '@/hooks/useThemeColor';
 import {sendPasswordResetEmail} from 'firebase/auth';
 import {auth} from '@/firebase/config';
 

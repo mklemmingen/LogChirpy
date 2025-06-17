@@ -1,31 +1,21 @@
-import React, { useEffect, useRef, useCallback } from 'react';
-import {
-    ViewStyle,
-    Pressable,
-    Text,
-} from 'react-native';
-import { BlurView } from 'expo-blur';
-import { ThemedIcon } from './ThemedIcon';
+import React, {useCallback, useEffect, useRef} from 'react';
+import {Pressable, Text, ViewStyle,} from 'react-native';
+import {BlurView} from 'expo-blur';
+import {ThemedIcon} from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
+    Easing,
+    interpolate,
+    runOnJS,
+    useAnimatedGestureHandler,
     useAnimatedStyle,
     useSharedValue,
-    useAnimatedGestureHandler,
     withSpring,
     withTiming,
-    runOnJS,
-    interpolate,
-    Easing,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues,
-} from '../hooks/useThemeColor';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '../hooks/useThemeColor';
 import {PanGestureHandler} from "react-native-gesture-handler";
 
 // Snackbar variants with semantic meaning
@@ -238,16 +228,16 @@ export function ThemedSnackbar({
     useEffect(() => {
         if (visible) {
             showSnackbar();
-        } else {
-            hideSnackbar();
         }
+        // Note: Don't call hideSnackbar here as it will cause infinite loop
+        // The hiding is handled by onHide prop or user interactions
 
         return () => {
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
             }
         };
-    }, [visible, hideSnackbar, showSnackbar]);
+    }, [visible, showSnackbar]);
 
     // Animated styles
     const containerStyle = useAnimatedStyle(() => ({
@@ -424,16 +414,38 @@ export const useSnackbar = () => {
         variant: 'default',
     });
 
+    // Use a ref to prevent immediate hiding
+    const hideTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const show = React.useCallback((
         message: string,
         variant: SnackbarVariant = 'default',
         action?: { label: string; onPress: () => void }
     ) => {
+        // Clear any pending hide operations
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
+        }
+        
         setSnackbarState({ visible: true, message, variant, action });
+        console.log('🍞 [Snackbar] Showing:', variant, message);
     }, []);
 
     const hide = React.useCallback(() => {
-        setSnackbarState(prev => ({ ...prev, visible: false }));
+        console.log('🍞 [Snackbar] Hiding...');
+        
+        // Clear any existing timeout
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
+        }
+        
+        // Add a small delay to prevent rapid hide/show cycles
+        hideTimeoutRef.current = setTimeout(() => {
+            setSnackbarState(prev => ({ ...prev, visible: false }));
+            console.log('🍞 [Snackbar] Hidden');
+        }, 100);
     }, []);
 
     const showSuccess = React.useCallback((message: string, action?: { label: string; onPress: () => void }) => {
@@ -452,6 +464,15 @@ export const useSnackbar = () => {
         show(message, 'info', action);
     }, [show]);
 
+    // Cleanup on unmount
+    React.useEffect(() => {
+        return () => {
+            if (hideTimeoutRef.current) {
+                clearTimeout(hideTimeoutRef.current);
+            }
+        };
+    }, []);
+
     return {
         ...snackbarState,
         show,
@@ -467,6 +488,7 @@ export const useSnackbar = () => {
                 variant={snackbarState.variant}
                 action={snackbarState.action}
                 onHide={hide}
+                duration={6000}
             />
         ),
     };

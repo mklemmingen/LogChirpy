@@ -1,14 +1,9 @@
-import React, { forwardRef } from 'react';
-import { Pressable, ViewStyle, PressableProps } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  // withTiming,
-} from 'react-native-reanimated';
+import React, {forwardRef} from 'react';
+import {Pressable, PressableProps, ViewStyle} from 'react-native';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring,} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { useButtonStyles, useBorderRadius, useShadows } from '@/hooks/useThemeColor';
+import {useBorderRadius, useButtonStyles, useShadows} from '@/hooks/useThemeColor';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';

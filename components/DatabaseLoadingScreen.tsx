@@ -1,33 +1,21 @@
 import React from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    Dimensions,
-    SafeAreaView,
-} from 'react-native';
-import { ThemedIcon } from '@/components/ThemedIcon';
+import {Dimensions, SafeAreaView, StyleSheet, Text, View,} from 'react-native';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import Animated, {
+    Easing,
+    interpolate,
     useAnimatedStyle,
     useSharedValue,
     withRepeat,
-    withTiming,
     withSpring,
-    interpolate,
-    Easing,
+    withTiming,
 } from 'react-native-reanimated';
 
-import { useTranslation } from 'react-i18next';
-import { ModernCard } from '@/components/ModernCard';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
-import {
-    // useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useMotionValues
-} from '@/hooks/useThemeColor';
+import {useTranslation} from 'react-i18next';
+import {ModernCard} from '@/components/ModernCard';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
+import {useColorVariants, useMotionValues, useSemanticColors, useTypography} from '@/hooks/useThemeColor';
 
 const { width } = Dimensions.get('window');
 

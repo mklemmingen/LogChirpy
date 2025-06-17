@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSemanticColors } from '../hooks/useThemeColor';
+import React, {useEffect} from 'react';
+import {ActivityIndicator, View} from 'react-native';
+import {router} from 'expo-router';
+import {useAuth} from '@/contexts/AuthContext';
+import {useSemanticColors} from '../hooks/useThemeColor';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

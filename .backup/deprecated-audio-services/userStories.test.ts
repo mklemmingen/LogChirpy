@@ -170,7 +170,7 @@ describe('User Story Tests', () => {
   describe('📝 Manual Logging Stories', () => {
     describe('As a birdwatcher, I want to manually log my bird sightings', () => {
       it('should successfully save a complete bird sighting', async () => {
-        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(undefined);
+        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(5);
 
         const sightingData = {
           imageUri: 'file:///path/to/photo.jpg',
@@ -192,7 +192,7 @@ describe('User Story Tests', () => {
       });
 
       it('should save minimal sighting with just species and location', async () => {
-        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(undefined);
+        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(5);
 
         const minimalSighting = {
           imageUri: '',
@@ -387,7 +387,7 @@ describe('User Story Tests', () => {
         (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockResolvedValue(mockIdentification);
 
         // Step 2: Save to database
-        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(undefined);
+        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(5);
 
         // Step 3: Retrieve from archive
         const mockArchivedSighting = {
@@ -457,7 +457,7 @@ describe('User Story Tests', () => {
         (AudioIdentificationService.identifyBirdFromAudio as jest.MockedFunction<typeof AudioIdentificationService.identifyBirdFromAudio>).mockResolvedValue(mockOfflineResult);
 
         // Mock local database operations
-        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(undefined);
+        (insertBirdSpotting as jest.MockedFunction<typeof insertBirdSpotting>).mockReturnValue(5);
 
         // Execute offline workflow
         const result = await AudioIdentificationService.identifyBirdFromAudio(
