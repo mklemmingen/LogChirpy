@@ -30,6 +30,7 @@ import {
 } from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import { Feather } from '@expo/vector-icons';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -121,146 +122,148 @@ export default function LoginScreen() {
 
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboardContainer}
-            >
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
+        <ProtectedRoute requireAuth={false}>
+            <ThemedSafeAreaView style={styles.container}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.keyboardContainer}
                 >
-                    <Animated.View style={fadeInStyle}>
-                        <View style={styles.header}>
-                            <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
-                                <Feather name="log-in" size={32} color={semanticColors.primary} />
-                            </View>
-                            <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
-                                {t('auth.login_title', 'Sign In')}
-                            </Text>
-                            <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
-                                {t('auth.login_subtitle', 'Welcome back')}
-                            </Text>
-                        </View>
-
-                        <ModernCard
-                            elevated={true}
-                            bordered={false}
-                            style={{
-                                ...styles.formCard,
-                                backgroundColor: semanticColors.surface,
-                                shadowColor: semanticColors.secondary,
-                            }}
-                        >
-                            <View style={styles.form}>
-                                <View style={styles.inputGroup}>
-                                    <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
-                                        {t('auth.email_label', 'Email')}
-                                    </Text>
-                                    <ThemedTextInput
-                                        style={[styles.textInput, { borderRadius: 12 }]}
-                                        placeholder={t('auth.email_placeholder', 'Enter your email')}
-                                        value={email}
-                                        onChangeText={setEmail}
-                                        keyboardType="email-address"
-                                        autoCapitalize="none"
-                                        autoCorrect={false}
-                                        editable={!isLoading}
-                                    />
+                    <ScrollView
+                        style={styles.scrollView}
+                        contentContainerStyle={styles.scrollContent}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        <Animated.View style={fadeInStyle}>
+                            <View style={styles.header}>
+                                <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
+                                    <Feather name="log-in" size={32} color={semanticColors.primary} />
                                 </View>
+                                <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
+                                    {t('auth.login_title', 'Sign In')}
+                                </Text>
+                                <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
+                                    {t('auth.login_subtitle', 'Welcome back')}
+                                </Text>
+                            </View>
 
-                                <View style={styles.inputGroup}>
-                                    <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
-                                        {t('auth.password_label', 'Password')}
-                                    </Text>
-                                    <View style={styles.passwordContainer}>
+                            <ModernCard
+                                elevated={true}
+                                bordered={false}
+                                style={{
+                                    ...styles.formCard,
+                                    backgroundColor: semanticColors.surface,
+                                    shadowColor: semanticColors.secondary,
+                                }}
+                            >
+                                <View style={styles.form}>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
+                                            {t('auth.email_label', 'Email')}
+                                        </Text>
                                         <ThemedTextInput
-                                            style={[styles.textInput, styles.passwordInput, { borderRadius: 12 }]}
-                                            placeholder={t('auth.password_placeholder', 'Enter your password')}
-                                            value={password}
-                                            onChangeText={setPassword}
-                                            secureTextEntry={!showPassword}
+                                            style={[styles.textInput, { borderRadius: 12 }]}
+                                            placeholder={t('auth.email_placeholder', 'Enter your email')}
+                                            value={email}
+                                            onChangeText={setEmail}
+                                            keyboardType="email-address"
                                             autoCapitalize="none"
                                             autoCorrect={false}
                                             editable={!isLoading}
                                         />
-                                        <Pressable
-                                            style={[styles.passwordToggle, { right: 16 }]}
-                                            onPress={() => setShowPassword(!showPassword)}
-                                            disabled={isLoading}
-                                        >
-                                            <Feather
-                                                name={showPassword ? 'eye-off' : 'eye'}
-                                                size={20}
-                                                color={semanticColors.secondary}
-                                            />
-                                        </Pressable>
                                     </View>
-                                </View>
 
-                                <View style={[styles.forgotPasswordContainer, { marginTop: 4 }]}>
-                                    <Link href="/(tabs)/account/(auth)/forgot-password" asChild>
-                                        <Pressable disabled={isLoading}>
-                                            <Text style={[typography.label, styles.forgotPassword, { color: semanticColors.primary }]}>
-                                                {t('auth.forgot_password_link', 'Forgot Password?')}
-                                            </Text>
-                                        </Pressable>
-                                    </Link>
-                                </View>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
+                                            {t('auth.password_label', 'Password')}
+                                        </Text>
+                                        <View style={styles.passwordContainer}>
+                                            <ThemedTextInput
+                                                style={[styles.textInput, styles.passwordInput, { borderRadius: 12 }]}
+                                                placeholder={t('auth.password_placeholder', 'Enter your password')}
+                                                value={password}
+                                                onChangeText={setPassword}
+                                                secureTextEntry={!showPassword}
+                                                autoCapitalize="none"
+                                                autoCorrect={false}
+                                                editable={!isLoading}
+                                            />
+                                            <Pressable
+                                                style={[styles.passwordToggle, { right: 16 }]}
+                                                onPress={() => setShowPassword(!showPassword)}
+                                                disabled={isLoading}
+                                            >
+                                                <Feather
+                                                    name={showPassword ? 'eye-off' : 'eye'}
+                                                    size={20}
+                                                    color={semanticColors.secondary}
+                                                />
+                                            </Pressable>
+                                        </View>
+                                    </View>
 
-                                <Animated.View style={[loginButtonAnimatedStyle, { marginTop: 16 }]}>
-                                    <AnimatedPressable
-                                        style={[
-                                            styles.loginButton,
-                                            {
-                                                backgroundColor: isFormValid ? semanticColors.primary : semanticColors.secondary,
-                                                borderRadius: 12,
-                                                paddingVertical: 14,
-                                            },
-                                        ]}
-                                        onPress={handleLogin}
-                                        onPressIn={handleLoginPressIn}
-                                        onPressOut={handleLoginPressOut}
-                                        disabled={!isFormValid}
-                                        android_ripple={{ color: theme.colors.surface + '33' }}
-                                    >
-                                        {isLoading ? (
-                                            <View style={styles.loadingContainer}>
-                                                <Text style={[typography.body, styles.loginButtonText, { color: semanticColors.background }]}>
-                                                    {t('app_errors.signing_in', 'Signing In...')}
+                                    <View style={[styles.forgotPasswordContainer, { marginTop: 4 }]}>
+                                        <Link href="/(tabs)/account/(auth)/forgot-password" asChild>
+                                            <Pressable disabled={isLoading}>
+                                                <Text style={[typography.label, styles.forgotPassword, { color: semanticColors.primary }]}>
+                                                    {t('auth.forgot_password_link', 'Forgot Password?')}
                                                 </Text>
-                                            </View>
-                                        ) : (
-                                            <>
-                                                <Feather name="log-in" size={20} color={semanticColors.background} />
-                                                <Text style={[typography.body, styles.loginButtonText, { color: semanticColors.background }]}>
-                                                    {t('auth.signin', 'Sign In')}
-                                                </Text>
-                                            </>
-                                        )}
-                                    </AnimatedPressable>
-                                </Animated.View>
+                                            </Pressable>
+                                        </Link>
+                                    </View>
+
+                                    <Animated.View style={[loginButtonAnimatedStyle, { marginTop: 16 }]}>
+                                        <AnimatedPressable
+                                            style={[
+                                                styles.loginButton,
+                                                {
+                                                    backgroundColor: isFormValid ? semanticColors.primary : semanticColors.secondary,
+                                                    borderRadius: 12,
+                                                    paddingVertical: 14,
+                                                },
+                                            ]}
+                                            onPress={handleLogin}
+                                            onPressIn={handleLoginPressIn}
+                                            onPressOut={handleLoginPressOut}
+                                            disabled={!isFormValid}
+                                            android_ripple={{ color: theme.colors.surface + '33' }}
+                                        >
+                                            {isLoading ? (
+                                                <View style={styles.loadingContainer}>
+                                                    <Text style={[typography.body, styles.loginButtonText, { color: semanticColors.background }]}>
+                                                        {t('app_errors.signing_in', 'Signing In...')}
+                                                    </Text>
+                                                </View>
+                                            ) : (
+                                                <>
+                                                    <Feather name="log-in" size={20} color={semanticColors.background} />
+                                                    <Text style={[typography.body, styles.loginButtonText, { color: semanticColors.background }]}>
+                                                        {t('auth.signin', 'Sign In')}
+                                                    </Text>
+                                                </>
+                                            )}
+                                        </AnimatedPressable>
+                                    </Animated.View>
+                                </View>
+                            </ModernCard>
+
+                            <View style={[styles.signUpContainer, { marginTop: 16 }]}>
+                                <Text style={[typography.body, { color: semanticColors.secondary }]}>
+                                    {t('auth.no_account', "Don't have an account?")}
+                                </Text>
+                                <Link href="/(tabs)/account/(auth)/signup" asChild>
+                                    <Pressable disabled={isLoading}>
+                                        <Text style={[typography.body, styles.signUpLink, { color: semanticColors.primary, marginLeft: 4 }]}>
+                                            {t('auth.signup_link', 'Sign Up')}
+                                        </Text>
+                                    </Pressable>
+                                </Link>
                             </View>
-                        </ModernCard>
-
-                        <View style={[styles.signUpContainer, { marginTop: 16 }]}>
-                            <Text style={[typography.body, { color: semanticColors.secondary }]}>
-                                {t('auth.no_account', "Don't have an account?")}
-                            </Text>
-                            <Link href="/(tabs)/account/(auth)/signup" asChild>
-                                <Pressable disabled={isLoading}>
-                                    <Text style={[typography.body, styles.signUpLink, { color: semanticColors.primary, marginLeft: 4 }]}>
-                                        {t('auth.signup_link', 'Sign Up')}
-                                    </Text>
-                                </Pressable>
-                            </Link>
-                        </View>
-                    </Animated.View>
-                </ScrollView>
-            </KeyboardAvoidingView>
-        </ThemedSafeAreaView>
+                        </Animated.View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </ThemedSafeAreaView>
+        </ProtectedRoute>
     );
 }
 

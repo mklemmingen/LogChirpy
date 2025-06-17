@@ -30,6 +30,7 @@ import {
     useColorVariants,
 } from '@/hooks/useThemeColor';
 import { Feather } from '@expo/vector-icons';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -147,6 +148,80 @@ export default function ForgotPasswordScreen() {
 
     if (emailSent) {
         return (
+            <ProtectedRoute requireAuth={false}>
+                <ThemedSafeAreaView style={styles.container}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.keyboardContainer}
+                    >
+                        <ScrollView
+                            style={styles.scrollView}
+                            contentContainerStyle={styles.scrollContent}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <Animated.View style={fadeInStyle}>
+                                <View style={styles.header}>
+                                    <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
+                                        <Feather name="mail" size={32} color={semanticColors.primary} />
+                                    </View>
+                                    <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
+                                        {t('auth.email_sent', 'Email Sent')}
+                                    </Text>
+                                    <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
+                                        {t('auth.reset_email_sent_message', 'We have sent a password reset link to your email address')}
+                                    </Text>
+                                </View>
+
+                                <ModernCard elevated={true} bordered={false} style={styles.successCard}>
+                                    <View style={styles.successContent}>
+                                        <View style={[styles.emailIconContainer, { backgroundColor: variants.primary.light }]}>
+                                            <Feather name="check-circle" size={24} color={semanticColors.primary} />
+                                        </View>
+                                        <View style={styles.successText}>
+                                            <Text style={[typography.body, { color: semanticColors.primary }]}>
+                                                {t('auth.check_your_email', 'Check your email')}
+                                            </Text>
+                                            <Text style={[typography.label, { color: semanticColors.secondary }]}>
+                                                {email}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.instructions}>
+                                        <Text style={[typography.body, { color: semanticColors.secondary }]}>
+                                            {t('auth.reset_instructions', 'Click the link in the email to reset your password. If you don\'t see the email, check your spam folder.')}
+                                        </Text>
+                                    </View>
+
+                                    <Pressable
+                                        style={[styles.resendButton, { backgroundColor: variants.secondary.light }]}
+                                        onPress={handleResendEmail}
+                                        android_ripple={{ color: variants.secondary.main + '33' }}
+                                    >
+                                        <Feather name="refresh-cw" size={18} color={semanticColors.secondary} />
+                                        <Text style={[typography.body, { color: semanticColors.secondary, fontWeight: '500' }]}>
+                                            {t('auth.resend_email', 'Resend Email')}
+                                        </Text>
+                                    </Pressable>
+                                </ModernCard>
+
+                                <View style={styles.backContainer}>
+                                    <Pressable onPress={handleBackToLogin}>
+                                        <Text style={[typography.body, styles.backLink, { color: semanticColors.primary }]}>
+                                            ← {t('auth.back_to_login', 'Back to Login')}
+                                        </Text>
+                                    </Pressable>
+                                </View>
+                            </Animated.View>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
+                </ThemedSafeAreaView>
+            </ProtectedRoute>
+        );
+    }
+
+    return (
+        <ProtectedRoute requireAuth={false}>
             <ThemedSafeAreaView style={styles.container}>
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -156,169 +231,99 @@ export default function ForgotPasswordScreen() {
                         style={styles.scrollView}
                         contentContainerStyle={styles.scrollContent}
                         showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
                     >
                         <Animated.View style={fadeInStyle}>
                             <View style={styles.header}>
                                 <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
-                                    <Feather name="mail" size={32} color={semanticColors.primary} />
+                                    <Feather name="key" size={32} color={semanticColors.primary} />
                                 </View>
                                 <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
-                                    {t('auth.email_sent', 'Email Sent')}
+                                    {t('auth.forgot_password_title', 'Reset Password')}
                                 </Text>
                                 <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
-                                    {t('auth.reset_email_sent_message', 'We have sent a password reset link to your email address')}
+                                    {t('auth.forgot_password_instructions', 'Enter email for reset instructions')}
                                 </Text>
                             </View>
 
-                            <ModernCard elevated={true} bordered={false} style={styles.successCard}>
-                                <View style={styles.successContent}>
-                                    <View style={[styles.emailIconContainer, { backgroundColor: variants.primary.light }]}>
-                                        <Feather name="check-circle" size={24} color={semanticColors.primary} />
-                                    </View>
-                                    <View style={styles.successText}>
-                                        <Text style={[typography.body, { color: semanticColors.primary }]}>
-                                            {t('auth.check_your_email', 'Check your email')}
+                            <ModernCard
+                                elevated={true}
+                                bordered={false}
+                                style={{
+                                    ...styles.formCard,
+                                    backgroundColor: semanticColors.surface,
+                                    shadowColor: semanticColors.secondary,
+                                }}
+                            >
+                                <View style={styles.form}>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
+                                            {t('auth.email_label', 'Email')}
                                         </Text>
-                                        <Text style={[typography.label, { color: semanticColors.secondary }]}>
-                                            {email}
-                                        </Text>
+                                        <ThemedTextInput
+                                            style={[styles.textInput, { borderRadius: 12 }]}
+                                            placeholder={t('auth.email_placeholder', 'Enter your email')}
+                                            value={email}
+                                            onChangeText={setEmail}
+                                            keyboardType="email-address"
+                                            autoCapitalize="none"
+                                            autoCorrect={false}
+                                            editable={!isLoading}
+                                        />
                                     </View>
-                                </View>
 
-                                <View style={styles.instructions}>
-                                    <Text style={[typography.body, { color: semanticColors.secondary }]}>
-                                        {t('auth.reset_instructions', 'Click the link in the email to reset your password. If you don\'t see the email, check your spam folder.')}
-                                    </Text>
+                                    <Animated.View style={[resetButtonAnimatedStyle, { marginTop: 16 }]}>
+                                        <AnimatedPressable
+                                            style={[
+                                                styles.resetButton,
+                                                {
+                                                    backgroundColor: isFormValid ? semanticColors.primary : semanticColors.secondary,
+                                                    borderRadius: 12,
+                                                    paddingVertical: 14,
+                                                },
+                                            ]}
+                                            onPress={handlePasswordReset}
+                                            onPressIn={handleResetPressIn}
+                                            onPressOut={handleResetPressOut}
+                                            disabled={!isFormValid}
+                                            android_ripple={{ color: theme.colors.surface + '33' }}
+                                        >
+                                            {isLoading ? (
+                                                <View style={styles.loadingContainer}>
+                                                    <Text style={[typography.body, styles.resetButtonText, { color: semanticColors.background }]}>
+                                                        {t('auth.sending_reset', 'Sending Reset Link...')}
+                                                    </Text>
+                                                </View>
+                                            ) : (
+                                                <>
+                                                    <Feather name="send" size={20} color={semanticColors.background} />
+                                                    <Text style={[typography.body, styles.resetButtonText, { color: semanticColors.background }]}>
+                                                        {t('auth.send_reset', 'Send Reset')}
+                                                    </Text>
+                                                </>
+                                            )}
+                                        </AnimatedPressable>
+                                    </Animated.View>
                                 </View>
-
-                                <Pressable
-                                    style={[styles.resendButton, { backgroundColor: variants.secondary.light }]}
-                                    onPress={handleResendEmail}
-                                    android_ripple={{ color: variants.secondary.main + '33' }}
-                                >
-                                    <Feather name="refresh-cw" size={18} color={semanticColors.secondary} />
-                                    <Text style={[typography.body, { color: semanticColors.secondary, fontWeight: '500' }]}>
-                                        {t('auth.resend_email', 'Resend Email')}
-                                    </Text>
-                                </Pressable>
                             </ModernCard>
 
-                            <View style={styles.backContainer}>
-                                <Pressable onPress={handleBackToLogin}>
-                                    <Text style={[typography.body, styles.backLink, { color: semanticColors.primary }]}>
-                                        ← {t('auth.back_to_login', 'Back to Login')}
-                                    </Text>
-                                </Pressable>
+                            <View style={[styles.signInContainer, { marginTop: 16 }]}>
+                                <Text style={[typography.body, { color: semanticColors.secondary }]}>
+                                    {t('auth.already_have_account', 'Already have an account?')}
+                                </Text>
+                                <Link href="/(tabs)/account/(auth)/login" asChild>
+                                    <Pressable disabled={isLoading}>
+                                        <Text style={[typography.body, styles.signInLink, { color: semanticColors.primary, marginLeft: 4 }]}>
+                                            {t('auth.signin', 'Sign In')}
+                                        </Text>
+                                    </Pressable>
+                                </Link>
                             </View>
                         </Animated.View>
                     </ScrollView>
                 </KeyboardAvoidingView>
             </ThemedSafeAreaView>
-        );
-    }
-
-    return (
-        <ThemedSafeAreaView style={styles.container}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboardContainer}
-            >
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                >
-                    <Animated.View style={fadeInStyle}>
-                        <View style={styles.header}>
-                            <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
-                                <Feather name="key" size={32} color={semanticColors.primary} />
-                            </View>
-                            <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
-                                {t('auth.forgot_password_title', 'Reset Password')}
-                            </Text>
-                            <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
-                                {t('auth.forgot_password_instructions', 'Enter email for reset instructions')}
-                            </Text>
-                        </View>
-
-                        <ModernCard
-                            elevated={true}
-                            bordered={false}
-                            style={{
-                                ...styles.formCard,
-                                backgroundColor: semanticColors.surface,
-                                shadowColor: semanticColors.secondary,
-                            }}
-                        >
-                            <View style={styles.form}>
-                                <View style={styles.inputGroup}>
-                                    <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
-                                        {t('auth.email_label', 'Email')}
-                                    </Text>
-                                    <ThemedTextInput
-                                        style={[styles.textInput, { borderRadius: 12 }]}
-                                        placeholder={t('auth.email_placeholder', 'Enter your email')}
-                                        value={email}
-                                        onChangeText={setEmail}
-                                        keyboardType="email-address"
-                                        autoCapitalize="none"
-                                        autoCorrect={false}
-                                        editable={!isLoading}
-                                    />
-                                </View>
-
-                                <Animated.View style={[resetButtonAnimatedStyle, { marginTop: 16 }]}>
-                                    <AnimatedPressable
-                                        style={[
-                                            styles.resetButton,
-                                            {
-                                                backgroundColor: isFormValid ? semanticColors.primary : semanticColors.secondary,
-                                                borderRadius: 12,
-                                                paddingVertical: 14,
-                                            },
-                                        ]}
-                                        onPress={handlePasswordReset}
-                                        onPressIn={handleResetPressIn}
-                                        onPressOut={handleResetPressOut}
-                                        disabled={!isFormValid}
-                                        android_ripple={{ color: theme.colors.surface + '33' }}
-                                    >
-                                        {isLoading ? (
-                                            <View style={styles.loadingContainer}>
-                                                <Text style={[typography.body, styles.resetButtonText, { color: semanticColors.background }]}>
-                                                    {t('auth.sending_reset', 'Sending Reset Link...')}
-                                                </Text>
-                                            </View>
-                                        ) : (
-                                            <>
-                                                <Feather name="send" size={20} color={semanticColors.background} />
-                                                <Text style={[typography.body, styles.resetButtonText, { color: semanticColors.background }]}>
-                                                    {t('auth.send_reset', 'Send Reset')}
-                                                </Text>
-                                            </>
-                                        )}
-                                    </AnimatedPressable>
-                                </Animated.View>
-                            </View>
-                        </ModernCard>
-
-                        <View style={[styles.signInContainer, { marginTop: 16 }]}>
-                            <Text style={[typography.body, { color: semanticColors.secondary }]}>
-                                {t('auth.already_have_account', 'Already have an account?')}
-                            </Text>
-                            <Link href="/(tabs)/account/(auth)/login" asChild>
-                                <Pressable disabled={isLoading}>
-                                    <Text style={[typography.body, styles.signInLink, { color: semanticColors.primary, marginLeft: 4 }]}>
-                                        {t('auth.signin', 'Sign In')}
-                                    </Text>
-                                </Pressable>
-                            </Link>
-                        </View>
-                    </Animated.View>
-                </ScrollView>
-            </KeyboardAvoidingView>
-        </ThemedSafeAreaView>
+        </ProtectedRoute>
     );
 }
 

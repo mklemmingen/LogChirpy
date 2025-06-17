@@ -9,6 +9,7 @@ import { ModernCard } from '@/components/ModernCard';
 import { useTheme, useTypography, useSemanticColors, useColorVariants } from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import { Feather } from '@expo/vector-icons';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -98,125 +99,127 @@ export default function AccountProfileScreen() {
     }
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <Text style={[typography.h2, styles.headerTitle]}>
-                    {t('account.title')}
-                </Text>
-                <Text style={[typography.body, styles.headerSubtitle, { color: semanticColors.secondary }]}>
-                    {t('account.subtitle', 'Manage your LogChirpy account')}
-                </Text>
-            </View>
+        <ProtectedRoute>
+            <ThemedSafeAreaView style={styles.container}>
+                <View style={styles.header}>
+                    <Text style={[typography.h2, styles.headerTitle]}>
+                        {t('account.title')}
+                    </Text>
+                    <Text style={[typography.body, styles.headerSubtitle, { color: semanticColors.secondary }]}>
+                        {t('account.subtitle', 'Manage your LogChirpy account')}
+                    </Text>
+                </View>
 
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                <Animated.View style={fadeInStyle}>
-                    <Animated.View style={slideInStyle}>
-                        <ModernCard
-                            elevated={true}
-                            bordered={false}
-                            style={styles.profileCard}
-                        >
-                            <View style={styles.profileContent}>
-                                <View style={[styles.avatarContainer, { backgroundColor: variants.primary.light }]}>
-                                    <Feather name="user" size={32} color={semanticColors.primary} />
-                                </View>
-
-                                <View style={styles.userInfo}>
-                                    <Text style={[typography.body, { color: semanticColors.secondary }]}>
-                                        {t('account.email_label')}
-                                    </Text>
-                                    <Text style={[typography.body, { color: semanticColors.primary }]}>
-                                        {user?.email}
-                                    </Text>
-                                </View>
-                            </View>
-                        </ModernCard>
-
-                        <ModernCard
-                            elevated={false}
-                            bordered={true}
-                            style={styles.actionsCard}
-                        >
-                            <View style={styles.actionsList}>
-                                <Pressable
-                                    style={styles.actionItem}
-                                    onPress={() => {
-                                        // Navigate to sync settings or show sync status
-                                    }}
-                                    android_ripple={{ color: variants.secondary.light }}
-                                >
-                                    <View style={styles.actionLeft}>
-                                        <View style={[styles.actionIcon, { backgroundColor: variants.secondary.light }]}>
-                                            <Feather name="refresh-cw" size={18} color={semanticColors.secondary} />
-                                        </View>
-                                        <View style={styles.actionText}>
-                                            <Text style={[typography.body, { color: semanticColors.primary }]}>
-                                                {t('account.syncStatus', 'Sync Status')}
-                                            </Text>
-                                            <Text style={[typography.label, { color: semanticColors.secondary }]}>
-                                                {t('account.syncDescription', 'Cloud synchronization settings')}
-                                            </Text>
-                                        </View>
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <Animated.View style={fadeInStyle}>
+                        <Animated.View style={slideInStyle}>
+                            <ModernCard
+                                elevated={true}
+                                bordered={false}
+                                style={styles.profileCard}
+                            >
+                                <View style={styles.profileContent}>
+                                    <View style={[styles.avatarContainer, { backgroundColor: variants.primary.light }]}>
+                                        <Feather name="user" size={32} color={semanticColors.primary} />
                                     </View>
-                                    <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
-                                </Pressable>
 
-                                <Pressable
-                                    style={styles.actionItem}
-                                    onPress={() => {
-                                        // Navigate to privacy settings
-                                    }}
-                                    android_ripple={{ color: variants.secondary.light }}
-                                >
-                                    <View style={styles.actionLeft}>
-                                        <View style={[styles.actionIcon, { backgroundColor: variants.primary.light }]}>
-                                            <Feather name="shield" size={18} color={semanticColors.primary} />
-                                        </View>
-                                        <View style={styles.actionText}>
-                                            <Text style={[typography.body, { color: semanticColors.primary }]}>
-                                                {t('account.privacy', 'Privacy Settings')}
-                                            </Text>
-                                            <Text style={[typography.label, { color: semanticColors.secondary }]}>
-                                                {t('account.privacyDescription', 'Manage your data and privacy')}
-                                            </Text>
-                                        </View>
+                                    <View style={styles.userInfo}>
+                                        <Text style={[typography.body, { color: semanticColors.secondary }]}>
+                                            {t('account.email_label')}
+                                        </Text>
+                                        <Text style={[typography.body, { color: semanticColors.primary }]}>
+                                            {user?.email}
+                                        </Text>
                                     </View>
-                                    <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
-                                </Pressable>
+                                </View>
+                            </ModernCard>
+
+                            <ModernCard
+                                elevated={false}
+                                bordered={true}
+                                style={styles.actionsCard}
+                            >
+                                <View style={styles.actionsList}>
+                                    <Pressable
+                                        style={styles.actionItem}
+                                        onPress={() => {
+                                            // Navigate to sync settings or show sync status
+                                        }}
+                                        android_ripple={{ color: variants.secondary.light }}
+                                    >
+                                        <View style={styles.actionLeft}>
+                                            <View style={[styles.actionIcon, { backgroundColor: variants.secondary.light }]}>
+                                                <Feather name="refresh-cw" size={18} color={semanticColors.secondary} />
+                                            </View>
+                                            <View style={styles.actionText}>
+                                                <Text style={[typography.body, { color: semanticColors.primary }]}>
+                                                    {t('account.syncStatus', 'Sync Status')}
+                                                </Text>
+                                                <Text style={[typography.label, { color: semanticColors.secondary }]}>
+                                                    {t('account.syncDescription', 'Cloud synchronization settings')}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
+                                    </Pressable>
+
+                                    <Pressable
+                                        style={styles.actionItem}
+                                        onPress={() => {
+                                            // Navigate to privacy settings
+                                        }}
+                                        android_ripple={{ color: variants.secondary.light }}
+                                    >
+                                        <View style={styles.actionLeft}>
+                                            <View style={[styles.actionIcon, { backgroundColor: variants.primary.light }]}>
+                                                <Feather name="shield" size={18} color={semanticColors.primary} />
+                                            </View>
+                                            <View style={styles.actionText}>
+                                                <Text style={[typography.body, { color: semanticColors.primary }]}>
+                                                    {t('account.privacy', 'Privacy Settings')}
+                                                </Text>
+                                                <Text style={[typography.label, { color: semanticColors.secondary }]}>
+                                                    {t('account.privacyDescription', 'Manage your data and privacy')}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
+                                    </Pressable>
+                                </View>
+                            </ModernCard>
+
+                            <View style={styles.signOutSection}>
+                                <Animated.View style={signOutAnimatedStyle}>
+                                    <AnimatedPressable
+                                        style={[
+                                            styles.signOutButton,
+                                            { backgroundColor: semanticColors.error },
+                                        ]}
+                                        onPress={handleSignOut}
+                                        onPressIn={handleSignOutPressIn}
+                                        onPressOut={handleSignOutPressOut}
+                                        android_ripple={{ color: theme.colors.surface + '33' }}
+                                    >
+                                        <ThemedIcon name="log-out" size={20} color="primary" />
+                                        <Text style={[typography.body, styles.signOutText, { color: semanticColors.background }]}>
+                                            {t('buttons.signout')}
+                                        </Text>
+                                    </AnimatedPressable>
+                                </Animated.View>
+
+                                <Text style={[typography.label, styles.signOutWarning, { color: semanticColors.secondary }]}>
+                                    {t('account.signOutWarning', 'You will need to sign in again to access cloud features')}
+                                </Text>
                             </View>
-                        </ModernCard>
-
-                        <View style={styles.signOutSection}>
-                            <Animated.View style={signOutAnimatedStyle}>
-                                <AnimatedPressable
-                                    style={[
-                                        styles.signOutButton,
-                                        { backgroundColor: semanticColors.error },
-                                    ]}
-                                    onPress={handleSignOut}
-                                    onPressIn={handleSignOutPressIn}
-                                    onPressOut={handleSignOutPressOut}
-                                    android_ripple={{ color: theme.colors.surface + '33' }}
-                                >
-                                    <ThemedIcon name="log-out" size={20} color="primary" />
-                                    <Text style={[typography.body, styles.signOutText, { color: semanticColors.background }]}>
-                                        {t('buttons.signout')}
-                                    </Text>
-                                </AnimatedPressable>
-                            </Animated.View>
-
-                            <Text style={[typography.label, styles.signOutWarning, { color: semanticColors.secondary }]}>
-                                {t('account.signOutWarning', 'You will need to sign in again to access cloud features')}
-                            </Text>
-                        </View>
+                        </Animated.View>
                     </Animated.View>
-                </Animated.View>
-            </ScrollView>
-        </ThemedSafeAreaView>
+                </ScrollView>
+            </ThemedSafeAreaView>
+        </ProtectedRoute>
     );
 }
 
