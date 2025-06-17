@@ -343,10 +343,12 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
         recording: Audio.Recording | null;
         isRecording: boolean;
         isCleaningUp: boolean;
+        isProcessing: boolean;
     }>({
         recording: null,
         isRecording: false,
-        isCleaningUp: false
+        isCleaningUp: false,
+        isProcessing: false
     });
     
     // ML state
@@ -356,6 +358,19 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
     const [audioMLReady, setAudioMLReady] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [recentSaves, setRecentSaves] = useState<number>(0); // Count of recent screenshot saves
+    
+    // Image processing state management with ref to persist across renders
+    const imageProcessingRef = useRef<{
+        isCapturing: boolean;
+        isDetecting: boolean;
+        isCropping: boolean;
+        isClassifying: boolean;
+    }>({
+        isCapturing: false,
+        isDetecting: false,
+        isCropping: false,
+        isClassifying: false
+    });
 
     // Focus and app state
     const isFocused = useIsFocused();
@@ -400,6 +415,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
         } finally {
             recordingState.isRecording = false;
             recordingState.isCleaningUp = false;
+            recordingState.isProcessing = false;
         }
     };
     
@@ -499,7 +515,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
         return () => { isMounted = false; };
     }, [hasAudioPermission, imageMLReady, audioMLReady]);
 
-    // Image ML loop
+    // Sequential Image ML loop - wait → photo → object detection → per object crop → per crop classify → SVG → wait
     useEffect(() => {
         if (!isInitialized || !cameraRef.current || !detector || !isClassifierReady || !imageMLReady || !isCameraActive) {
             return;
@@ -507,13 +523,23 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
 
         let isActive = true;
         
-        const detectionLoop = async () => {
-            if (!isActive) return;
+        const sequentialImageLoop = async () => {
+            const processingState = imageProcessingRef.current;
+            
+            // Skip if any operation is in progress
+            if (!isActive || processingState.isCapturing || processingState.isDetecting || 
+                processingState.isCropping || processingState.isClassifying) {
+                console.log('[ImageML] Skipping cycle - operation in progress');
+                return;
+            }
             
             try {
                 setIsProcessing(true);
                 
-                // Capture photo with error isolation
+                // Step 1: Capture Photo
+                console.log('[ImageML] 📸 Step 1: Capturing photo...');
+                processingState.isCapturing = true;
+                
                 let photoResult;
                 try {
                     photoResult = await capturePhoto(cameraRef, { manual: false, quality: 0.3 });
@@ -521,17 +547,22 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         console.warn('[ImageML] Photo capture failed:', photoResult.error || 'No URI returned');
                         return;
                     }
+                    console.log('[ImageML] ✅ Step 1 Complete: Photo captured');
                 } catch (captureError) {
                     console.error('[ImageML] Photo capture error:', captureError);
                     return;
+                } finally {
+                    processingState.isCapturing = false;
                 }
 
-                // Detect objects with error isolation
+                // Step 2: Object Detection
+                console.log('[ImageML] 🔍 Step 2: Starting object detection...');
+                processingState.isDetecting = true;
+                
                 let objects = [];
                 try {
-                    console.log('[ImageML] 🔍 Step 1: Starting object detection...');
                     objects = await detector.detectObjects(photoResult.uri);
-                    console.log(`[ImageML] ✅ Step 1 Complete: Detected ${objects.length} objects`);
+                    console.log(`[ImageML] ✅ Step 2 Complete: Detected ${objects.length} objects`);
                     
                     // Log detailed frame data for debugging
                     objects.forEach((obj, idx) => {
@@ -544,11 +575,15 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                     });
                 } catch (detectionError) {
                     console.error('[ImageML] ❌ Object detection error:', detectionError);
-                    return; // Skip this cycle if detection fails
+                    return;
+                } finally {
+                    processingState.isDetecting = false;
                 }
                 
-                // Process detections with individual error isolation and proper cropping
+                // Step 3: Process Each Object Sequentially (crop → classify)
+                console.log(`[ImageML] 🔄 Step 3: Processing ${objects.length} objects sequentially...`);
                 const enrichedDetections: Detection[] = [];
+                
                 for (const [index, obj] of objects.entries()) {
                     try {
                         // Validate detection frame
@@ -557,28 +592,40 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                             continue;
                         }
                         
-                        // Crop the detected object and classify the cropped image
+                        // Step 3a: Crop Object
+                        console.log(`[ImageML] 📐 Step 3.${index + 1}a: Cropping object ${index + 1}...`);
+                        processingState.isCropping = true;
+                        
                         let labels = [];
                         let croppedUri = '';
                         try {
-                            console.log(`[ImageML] 📐 Step 2.${index + 1}: Cropping object ${index + 1}...`);
                             croppedUri = await cropDetectionImage(photoResult.uri, obj.frame);
-                            console.log(`[ImageML] ✅ Step 2.${index + 1} Complete: Cropped successfully`);
-                            
-                            console.log(`[ImageML] 🧠 Step 3.${index + 1}: Classifying cropped image...`);
+                            console.log(`[ImageML] ✅ Step 3.${index + 1}a Complete: Cropped successfully`);
+                        } catch (cropError) {
+                            console.warn(`[ImageML] ⚠️ Cropping failed for object ${index + 1}, using full image:`, cropError instanceof Error ? cropError.message : 'Unknown error');
+                            croppedUri = photoResult.uri; // Use original if crop failed
+                        } finally {
+                            processingState.isCropping = false;
+                        }
+                        
+                        // Step 3b: Classify Cropped Image
+                        console.log(`[ImageML] 🧠 Step 3.${index + 1}b: Classifying cropped image...`);
+                        processingState.isClassifying = true;
+                        
+                        try {
                             labels = await classifyImage(croppedUri);
-                            console.log(`[ImageML] ✅ Step 3.${index + 1} Complete: Got ${labels.length} labels`);
+                            console.log(`[ImageML] ✅ Step 3.${index + 1}b Complete: Got ${labels.length} labels`);
                             
                             if (labels.length > 0) {
                                 console.log(`[ImageML] Top classifications for object ${index + 1}:`, 
                                     labels.slice(0, 3).map(l => `${l.text} (${Math.round(l.confidence * 100)}%)`).join(', ')
                                 );
                             }
-                        } catch (cropError) {
-                            console.warn(`[ImageML] ⚠️ Cropping failed for object ${index + 1}, using full image:`, cropError instanceof Error ? cropError.message : 'Unknown error');
-                            // Fallback to full image classification
-                            labels = await classifyImage(photoResult.uri);
-                            croppedUri = photoResult.uri; // Use original if crop failed
+                        } catch (classifyError) {
+                            console.warn(`[ImageML] Classification failed for object ${index + 1}:`, classifyError instanceof Error ? classifyError.message : 'Unknown error');
+                            labels = []; // Empty labels on classification failure
+                        } finally {
+                            processingState.isClassifying = false;
                         }
                         
                         const detection: Detection = {
@@ -586,7 +633,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                             labels: labels.slice(0, 2) // Top 2 labels
                         };
                         
-                        // Check if we should save this high-confidence detection
+                        // Save high-confidence detection screenshots
                         if (labels.length > 0 && croppedUri) {
                             try {
                                 await saveHighConfidenceScreenshot(
@@ -608,8 +655,9 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         }
                         
                         enrichedDetections.push(detection);
-                    } catch (classificationError) {
-                        console.warn(`[ImageML] Classification failed for object ${index + 1}:`, classificationError instanceof Error ? classificationError.message : 'Unknown error');
+                        
+                    } catch (objectProcessingError) {
+                        console.warn(`[ImageML] Processing failed for object ${index + 1}:`, objectProcessingError instanceof Error ? objectProcessingError.message : 'Unknown error');
                         // Add detection with empty labels instead of skipping
                         enrichedDetections.push({
                             frame: obj.frame,
@@ -618,63 +666,87 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                     }
                 }
 
-                console.log(`[ImageML] 📊 Step 4: Setting ${enrichedDetections.length} detections for rendering`);
+                console.log(`[ImageML] ✅ Step 3 Complete: Processed ${enrichedDetections.length} objects`);
+
+                // Step 4: Update SVG Display
+                console.log(`[ImageML] 📊 Step 4: Updating SVG with ${enrichedDetections.length} detections...`);
                 setDetections(enrichedDetections);
                 
                 // Log final detection data for SVG rendering debug
                 if (enrichedDetections.length > 0) {
-                    console.log('[ImageML] 🎯 Final detections for SVG:', enrichedDetections.map((d, i) => ({
+                    console.log('[ImageML] 🎯 Step 4 Complete - Final detections for SVG:', enrichedDetections.map((d, i) => ({
                         index: i,
                         frame: d.frame,
                         topLabel: d.labels[0] ? `${d.labels[0].text} (${Math.round(d.labels[0].confidence * 100)}%)` : 'No labels'
                     })));
+                } else {
+                    console.log('[ImageML] ⚠️ Step 4 Complete - No detections to display');
                 }
                 
+                // Step 5: Wait before next cycle
+                console.log('[ImageML] ⏳ Step 5: Waiting before next cycle...');
+                
             } catch (error) {
-                console.error('[ImageML] ❌ Detection pipeline error:', error);
+                console.error('[ImageML] ❌ Sequential pipeline error:', error);
                 // Clear detections on major error to avoid stale data
                 setDetections([]);
             } finally {
                 setIsProcessing(false);
+                // Reset all processing states
+                processingState.isCapturing = false;
+                processingState.isDetecting = false;
+                processingState.isCropping = false;
+                processingState.isClassifying = false;
             }
 
-            // Continue loop
+            // Continue sequential loop with configured delay
             if (isActive) {
-                setTimeout(detectionLoop, Config.camera.pipelineDelay * 1000);
+                console.log(`[ImageML] 🔄 Scheduling next cycle in ${Config.camera.pipelineDelay} seconds...`);
+                setTimeout(sequentialImageLoop, Config.camera.pipelineDelay * 1000);
             }
         };
 
-        const timer = setTimeout(detectionLoop, 1000);
+        console.log('[ImageML] 🚀 Starting sequential image processing pipeline...');
+        const timer = setTimeout(sequentialImageLoop, 1000);
+        
         return () => {
+            console.log('[ImageML] 🛑 Stopping sequential image processing pipeline...');
             isActive = false;
             clearTimeout(timer);
+            // Reset all processing states on unmount
+            const processingState = imageProcessingRef.current;
+            processingState.isCapturing = false;
+            processingState.isDetecting = false;
+            processingState.isCropping = false;
+            processingState.isClassifying = false;
         };
     }, [isInitialized, detector, isClassifierReady, imageMLReady, isCameraActive]);
 
-    // Audio ML loop with improved recording management
+    // Sequential Audio ML loop - record → process → display → wait → repeat
     useEffect(() => {
         if (!audioMLReady || !isCameraActive) return;
 
         let isActive = true;
         
-        const audioLoop = async () => {
+        const sequentialAudioLoop = async () => {
             const recordingState = audioRecordingRef.current;
             
-            // Skip if already recording or cleaning up
-            if (!isActive || recordingState.isRecording || recordingState.isCleaningUp) {
-                console.log('[AudioML] Skipping cycle - already busy');
+            // Skip if any operation is in progress
+            if (!isActive || recordingState.isRecording || recordingState.isCleaningUp || recordingState.isProcessing) {
+                console.log('[AudioML] Skipping cycle - operation in progress');
                 return;
             }
             
             try {
+                // Step 1: Record Audio
+                console.log('[AudioML] 🎤 Step 1: Starting audio recording...');
                 recordingState.isRecording = true;
-                console.log('[AudioML] Starting new audio recording...');
                 
                 // Clean up any existing recording first
                 await cleanupRecording();
                 
                 // Wait a bit after cleanup to ensure everything is settled
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
                 let recordingUri;
                 
@@ -717,72 +789,116 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         }
                     });
                     
-                    console.log('[AudioML] Recording prepared, starting...');
+                    console.log('[AudioML] ✅ Step 1: Recording prepared and starting...');
                     
                 } catch (prepareError) {
                     console.error('[AudioML] Recording preparation failed:', prepareError);
-                    await cleanupRecording(true); // Force cleanup on preparation failure
+                    await cleanupRecording(true);
                     return;
                 }
                 
-                // Record audio
+                // Record audio for 3 seconds
                 try {
                     if (recordingState.recording) {
                         await recordingState.recording.startAsync();
                         await new Promise(resolve => setTimeout(resolve, 3000));
                         await recordingState.recording.stopAndUnloadAsync();
                         recordingUri = recordingState.recording.getURI();
-                        recordingState.recording = null; // Clear immediately after getting URI
-                        console.log('[AudioML] Recording completed successfully');
+                        recordingState.recording = null;
+                        console.log('[AudioML] ✅ Step 1 Complete: Recording finished');
                     }
                 } catch (recordError) {
                     console.error('[AudioML] Recording process failed:', recordError);
-                    await cleanupRecording(true); // Force cleanup on record failure
+                    await cleanupRecording(true);
                     return;
+                } finally {
+                    recordingState.isRecording = false;
                 }
                 
-                // Process audio
+                // Step 2: Process Audio
                 if (recordingUri && isActive) {
-                    console.log('[AudioML] Processing audio:', recordingUri);
+                    console.log('[AudioML] 🧠 Step 2: Processing audio classification...');
+                    recordingState.isProcessing = true;
+                    
                     try {
                         const location = hasLocationPermission ? { latitude: 0, longitude: 0 } : undefined;
                         const predictions = await classifyWithUltraSimple(recordingUri, location);
                         
+                        console.log('[AudioML] ✅ Step 2 Complete: Audio processed');
+                        
+                        // Step 3: Update UI
                         if (isActive) {
+                            console.log('[AudioML] 📱 Step 3: Updating UI with results...');
                             if (predictions && Array.isArray(predictions) && predictions.length > 0) {
                                 setAudioResults(predictions.slice(0, 3));
-                                console.log(`[AudioML] ✅ Classification successful: ${predictions.length} predictions`);
+                                console.log(`[AudioML] ✅ Step 3 Complete: ${predictions.length} predictions displayed`);
                                 console.log(`[AudioML] Top result: ${predictions[0].common_name} (${Math.round(predictions[0].confidence * 100)}%)`);
                             } else {
-                                console.warn('[AudioML] Classification returned no valid results');
+                                console.log('[AudioML] ⚠️ Step 3: No valid predictions, clearing results');
                                 setAudioResults([]);
                             }
                         }
                     } catch (classifyError) {
-                        console.error('[AudioML] Classification error:', classifyError);
+                        console.error('[AudioML] Step 2 failed - Classification error:', classifyError);
+                        if (isActive) {
+                            setAudioResults([]);
+                        }
+                    } finally {
+                        recordingState.isProcessing = false;
                     }
                 } else {
-                    console.warn('[AudioML] No recording URI available or context inactive');
+                    console.warn('[AudioML] Step 2 skipped - No recording URI or context inactive');
                 }
                 
+                // Step 4: Health Check and Wait
+                console.log('[AudioML] 🔍 Step 4: Running health check...');
+                
+                // Quick health check before next cycle
+                const healthCheck = {
+                    audioMLReady: audioMLReady,
+                    hasPermission: hasAudioPermission,
+                    isContextActive: isCameraActive,
+                    recordingStateClean: !recordingState.isRecording && !recordingState.isCleaningUp && !recordingState.isProcessing,
+                    lastResultsCount: audioResults.length
+                };
+                
+                console.log('[AudioML] ✅ Step 4 Complete - Health check:', healthCheck);
+                
+                if (!healthCheck.audioMLReady) {
+                    console.warn('[AudioML] ⚠️ Health check failed: Audio ML not ready');
+                }
+                if (!healthCheck.hasPermission) {
+                    console.warn('[AudioML] ⚠️ Health check failed: No audio permission');
+                }
+                if (!healthCheck.recordingStateClean) {
+                    console.warn('[AudioML] ⚠️ Health check failed: Recording state not clean');
+                }
+                
+                console.log('[AudioML] ⏳ Step 5: Brief wait before next cycle...');
+                
             } catch (error) {
-                console.error('[AudioML] Audio pipeline error:', error);
+                console.error('[AudioML] Sequential pipeline error:', error);
                 if (isActive) {
                     setAudioResults([]);
                 }
-                await cleanupRecording(true); // Force cleanup on major error
+                await cleanupRecording(true);
             } finally {
                 recordingState.isRecording = false;
+                recordingState.isProcessing = false;
             }
 
-            // Continue loop with delay
+            // Continue sequential loop with much shorter delay
             if (isActive) {
-                setTimeout(audioLoop, 12000); // Every 12 seconds to ensure cleanup completes
+                console.log('[AudioML] 🔄 Scheduling next cycle in 1 second...');
+                setTimeout(sequentialAudioLoop, 1000); // Only 1 second delay between cycles
             }
         };
 
-        const timer = setTimeout(audioLoop, 5000); // Start after 5 seconds
+        console.log('[AudioML] 🚀 Starting sequential audio pipeline...');
+        const timer = setTimeout(sequentialAudioLoop, 3000); // Start after 3 seconds
+        
         return () => {
+            console.log('[AudioML] 🛑 Stopping sequential audio pipeline...');
             isActive = false;
             clearTimeout(timer);
             // Force cleanup on unmount
@@ -845,8 +961,8 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         const width = size.x * scaleX;
                         const height = size.y * scaleY;
                         
-                        // Log SVG rendering coordinates for debugging
-                        if (index === 0) { // Only log first detection to avoid spam
+                        // Log SVG rendering coordinates for debugging (limit to reasonable amount)
+                        if (index < 5) { // Log first 5 detections for debugging
                             console.log(`[SVG] Rendering detection ${index + 1}:`, {
                                 screenDimensions: { W, H },
                                 originalFrame: { origin, size },
