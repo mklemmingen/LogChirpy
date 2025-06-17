@@ -21,6 +21,7 @@ Technical implementation documentation:
 
 ### 🔊 **Audio Pipeline** (`/audio-pipeline/`)
 Audio ML pipeline development and corrections:
+- **`AUDIO_ML_ARCHITECTURE_GUIDE.md`** - Complete whoBIRD architecture documentation
 - **`OBJECTIDENT_CAMERA_CORRECTED.md`** - Camera component audio integration fixes
 - **`DEPRECATED_SERVICES_REMOVED.md`** - Cleanup documentation
 - **`AUDIO_PIPELINE_CORRECTIONS.md`** - Processing step corrections
@@ -55,6 +56,7 @@ Documentation for deprecated/removed components:
 
 ### For Development:
 - **Start Here**: `project-status/CLAUDE.md` - Development instructions
+- **Audio Architecture**: `audio-pipeline/AUDIO_ML_ARCHITECTURE_GUIDE.md` - whoBIRD implementation details
 - **Audio Pipeline**: `audio-pipeline/OBJECTIDENT_CAMERA_CORRECTED.md` - Current audio implementation
 - **Implementation Guide**: `implementation-guides/ULTIMATE_AUDIO_MODEL_IMPLEMENTATION_GUIDE.md`
 
@@ -70,10 +72,10 @@ Documentation for deprecated/removed components:
 
 ## 📊 **Documentation Stats**
 
-- **Total Documents**: 24 markdown files
+- **Total Documents**: 25 markdown files
 - **Categories**: 6 organized categories  
 - **Coverage**: Project setup, implementation, research, testing, components
-- **Root Cleanup**: All scattered .md files organized (except ULTIMATE guide)
+- **Root Cleanup**: All scattered .md files organized - ✅ Complete
 - **Status**: Complete and up-to-date
 
 ## 🔄 **Last Updated**

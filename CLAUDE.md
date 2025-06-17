@@ -286,3 +286,233 @@ interface AudioPrediction {
 - **File Management**: uriUtils for image cropping and saving
 - **Species Mapping**: BirDex database integration for enriched data
 - **User Feedback**: Haptic feedback and snackbar notifications
+
+## Audio ML Pipeline Architecture (whoBIRD Implementation)
+
+### Overview
+The audio classification system is based on the whoBIRD implementation and uses a sophisticated dual-model TensorFlow Lite architecture for accurate bird identification from audio recordings.
+
+### Dual Model System Architecture
+
+#### 1. Primary Audio Model
+**File**: `BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite`
+- **Input**: Processed audio spectrograms (3-second clips, 144,000 Float32 samples)
+- **Output**: Classification probabilities for 6,522 global bird species
+- **Architecture**: BirdNET v2.4 with MobileNet backbone
+- **Size**: ~15-20 MB (FP32 precision)
+- **Inference Time**: 100-500ms per clip (device dependent)
+
+#### 2. Meta Location Model  
+**File**: `BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite`
+- **Input**: Geographic coordinates (lat, lng) + temporal data (week cosine)
+- **Output**: Location-based probability modifiers for the same 6,522 species
+- **Purpose**: Enhances predictions using biogeographic and seasonal data
+- **Size**: ~2-5 MB (FP16 precision)
+- **Meta Influence**: 30% weighting factor
+
+### Species Classification System
+
+#### Global Coverage
+- **Total Species**: 6,522 global bird species
+- **Geographic Coverage**: Worldwide bird populations
+- **Taxonomic Scope**: Comprehensive avian diversity representation
+
+#### Label Format Structure
+```
+"Scientific_Name_Common Name"
+```
+**Examples**:
+- `"Turdus_migratorius_American Robin"`
+- `"Passer_domesticus_House Sparrow"`
+- `"Corvus_brachyrhynchos_American Crow"`
+
+**Parsing Logic**:
+- **Scientific Name**: Everything before the first underscore
+- **Common Name**: Everything after the first underscore (underscores → spaces)
+
+#### Multi-Language Support (40+ Languages)
+**Primary Languages Supported**:
+- English (en), German (de), Spanish (es), French (fr), Ukrainian (uk), Arabic (ar)
+- Dutch (nl), Italian (it), Portuguese (pt), Russian (ru), Polish (pl), Czech (cs)
+- Japanese (ja), Korean (ko), Chinese (zh), and 25+ additional languages
+
+**Label Files**: Each language has dedicated label file (`labels_{lang}.txt`) with localized common names while preserving scientific names for taxonomic accuracy.
+
+### Audio Processing Pipeline
+
+#### Input Audio Requirements
+- **Sample Rate**: 48,000 Hz (48 kHz) - fixed requirement
+- **Duration**: Exactly 3.0 seconds (144,000 samples total)
+- **Channels**: Mono (single channel)
+- **Format**: Float32 array normalized to [-1.0, 1.0]
+- **Bit Depth**: 16-bit input converted to Float32
+
+#### Preprocessing Steps (Sequential)
+
+1. **Audio Loading and Decoding**
+   - Platform-specific audio decoders (WAV, M4A, etc.)
+   - Convert to raw audio samples
+
+2. **Sample Rate Conversion**
+   - Target: 48,000 Hz uniformly
+   - Method: Linear interpolation resampling
+   - Quality preservation for bird call analysis
+
+3. **Format Conversion**
+   ```javascript
+   // Int16 to Float32 conversion
+   floatSample = int16Sample / 32768.0;
+   ```
+
+4. **Duration Standardization**
+   - **Target**: Exactly 144,000 samples
+   - **Trimming**: Center crop if longer
+   - **Padding**: Center pad with zeros if shorter
+
+5. **High-Pass Filtering**
+   - **Cutoff**: 200 Hz
+   - **Type**: First-order digital filter
+   - **Purpose**: Remove low-frequency noise and environmental sounds
+   ```javascript
+   const rc = 1.0 / (2.0 * Math.PI * cutoff);
+   const alpha = rc / (rc + dt);
+   ```
+
+#### Model Inference Process
+
+##### Primary Audio Model Processing
+1. **Input**: Processed Float32 array (144,000 samples)
+2. **Output**: Raw logits for 6,522 species
+3. **Activation**: Sigmoid conversion to probabilities
+   ```javascript
+   probability = 1 / (1 + Math.exp(-logit));
+   ```
+
+##### Meta Model Enhancement (When Location Available)
+1. **Temporal Feature Calculation**:
+   ```javascript
+   const weekOfYear = Math.floor(daysSinceYearStart / 7);
+   const weekCosine = Math.cos(2 * Math.PI * weekOfYear / 52);
+   ```
+
+2. **Meta Input**: `[latitude, longitude, weekCosine]`
+
+3. **Probability Blending**:
+   ```javascript
+   const metaInfluence = 0.3;
+   finalProbability = audioProb * (1 - metaInfluence + metaInfluence * metaProb);
+   ```
+
+#### Post-Processing and Results
+
+##### Confidence Thresholding
+- **Minimum Confidence**: 0.01 (1%)
+- **Maximum Results**: Top 5 predictions
+- **Sorting**: Descending order by confidence
+
+##### Output Interface
+```typescript
+interface BirdPrediction {
+  commonName: string;        // Localized common name
+  scientificName: string;    // Latin scientific name  
+  confidence: number;        // Probability score [0, 1]
+  index: number;             // Species index in model
+}
+
+interface AudioPrediction {
+  common_name: string;       // Pipeline compatible format
+  scientific_name: string;   // Pipeline compatible format
+  confidence: number;
+  index: number;
+  assetUrl?: string;         // Macaulay Library asset URL
+}
+```
+
+### Asset Integration System
+
+#### Macaulay Library Integration
+- **Source File**: `assets.txt` (6,522 entries)
+- **Format**: One asset ID per line, corresponding to species index
+- **URL Pattern**: `https://macaulaylibrary.org/asset/{assetId}/embed`
+- **Asset Types**: High-quality bird photographs, reference audio, behavioral videos, spectrograms
+
+#### Asset URL Generation
+```typescript
+function getAssetUrl(speciesIndex: number): string | undefined {
+  const assetId = assets[speciesIndex];
+  if (assetId === 'NO_ASSET' || !assetId) return undefined;
+  return `https://macaulaylibrary.org/asset/${assetId}/embed`;
+}
+```
+
+### Service Implementation Architecture
+
+#### Core Service: ultraSimpleBirdClassifier.ts
+**Key Functions**:
+- `classifyBirdAudio()`: Main classification function
+- `classifyBirdAudioForPipeline()`: ObjectDetectCamera compatible
+- `initializeBirdClassifier()`: Model loading and initialization
+- `processAudio()`: Audio preprocessing pipeline
+- `runInference()`: Dual-model inference execution
+
+#### Supporting Services
+- **BirdLabelsMap.ts**: Generated language mappings and label loading
+- **speciesMapping.ts**: BirDex database integration and enrichment
+- **audioDecoder.ts**: Platform-specific audio processing
+- **audioWindowManager.ts**: Real-time audio windowing for continuous monitoring
+
+### File Structure and Assets
+```
+/assets/models/whoBIRD-TFlite-master/
+├── BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite     # Primary audio model
+├── BirdNET_GLOBAL_6K_V2.4_MData_Model_FP16.tflite # Meta location model
+└── /assets/model_labels_whoBird/
+    ├── labels_en.txt                              # English labels (6,522 entries)
+    ├── labels_de.txt                              # German labels
+    ├── labels_es.txt                              # Spanish labels
+    ├── labels_fr.txt                              # French labels
+    ├── labels_uk.txt                              # Ukrainian labels
+    ├── labels_ar.txt                              # Arabic labels
+    ├── assets.txt                                 # Macaulay Library asset IDs
+    └── [25+ additional language files]
+```
+
+### Performance Characteristics
+
+#### Model Specifications
+- **Total Memory Footprint**: ~25-30 MB for both models
+- **Inference Time**: 100-500ms per 3-second clip
+- **On-Device Processing**: No network dependency
+- **Quantization**: FP16 meta model for size optimization
+
+#### Real-Time Processing Capabilities
+- **Continuous Monitoring**: Sliding window approach
+- **Processing Pipeline**: Capture → Preprocess → Inference → Results
+- **Background Processing**: Mobile-optimized performance
+- **Result Aggregation**: Confidence smoothing and occurrence tracking
+
+### Error Handling and Robustness
+
+#### Audio Processing Resilience
+- **Format Compatibility**: Multiple audio format support
+- **Quality Adaptation**: Variable audio quality handling
+- **Noise Robustness**: High-pass filtering for environmental noise
+- **Graceful Degradation**: Fallback mechanisms for processing failures
+
+#### Model Management
+- **Lazy Loading**: On-demand model loading
+- **Error Recovery**: Automatic retry mechanisms
+- **Memory Management**: Proper cleanup and resource management
+- **Metro Bundler Integration**: Asset loading through Expo Asset system
+
+### Integration with ObjectDetectCamera
+
+#### Pipeline Compatibility
+The audio system integrates seamlessly with ObjectDetectCamera through:
+- **classifyBirdAudioForPipeline()**: Returns AudioPrediction[] format
+- **Sequential Processing**: Fits into 5-second audio cycle
+- **Health Monitoring**: Validates ML system status
+- **Error Isolation**: Independent failure handling
+- **Real-time Updates**: Updates HUD display with predictions
+
+This architecture provides a robust, scalable, and efficient solution for real-time bird classification using state-of-the-art machine learning techniques while maintaining excellent performance on mobile devices.
