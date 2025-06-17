@@ -144,51 +144,34 @@ export default function AccountProfileScreen() {
                                 style={styles.actionsCard}
                             >
                                 <View style={styles.actionsList}>
-                                    <Pressable
-                                        style={styles.actionItem}
-                                        onPress={() => {
-                                            // Navigate to sync settings or show sync status
-                                        }}
-                                        android_ripple={{ color: variants.secondary.light }}
-                                    >
-                                        <View style={styles.actionLeft}>
-                                            <View style={[styles.actionIcon, { backgroundColor: variants.secondary.light }]}>
-                                                <Feather name="refresh-cw" size={18} color={semanticColors.secondary} />
-                                            </View>
-                                            <View style={styles.actionText}>
-                                                <Text style={[typography.body, { color: semanticColors.primary }]}>
-                                                    {t('account.syncStatus', 'Sync Status')}
-                                                </Text>
-                                                <Text style={[typography.label, { color: semanticColors.secondary }]}>
-                                                    {t('account.syncDescription', 'Cloud synchronization settings')}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                        <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
-                                    </Pressable>
 
-                                    <Pressable
-                                        style={styles.actionItem}
-                                        onPress={() => {
-                                            // Navigate to privacy settings
-                                        }}
-                                        android_ripple={{ color: variants.secondary.light }}
-                                    >
-                                        <View style={styles.actionLeft}>
-                                            <View style={[styles.actionIcon, { backgroundColor: variants.primary.light }]}>
-                                                <Feather name="shield" size={18} color={semanticColors.primary} />
-                                            </View>
-                                            <View style={styles.actionText}>
-                                                <Text style={[typography.body, { color: semanticColors.primary }]}>
-                                                    {t('account.privacy', 'Privacy Settings')}
-                                                </Text>
-                                                <Text style={[typography.label, { color: semanticColors.secondary }]}>
-                                                    {t('account.privacyDescription', 'Manage your data and privacy')}
-                                                </Text>
-                                            </View>
+                                    <View style={styles.actionLeft}>
+                                        <View style={[styles.actionIcon, { backgroundColor: variants.secondary.light }]}>
+                                            <Feather name="refresh-cw" size={18} color={semanticColors.secondary} />
                                         </View>
-                                        <Feather name="chevron-right" size={18} color={semanticColors.secondary} />
-                                    </Pressable>
+                                        <View style={styles.actionText}>
+                                            <Text style={[typography.body, { color: semanticColors.primary }]}>
+                                                {t('account.syncStatus', 'Sync Status')}
+                                            </Text>
+                                            <Text style={[typography.label, { color: semanticColors.secondary }]}>
+                                                {t('account.syncDescription', 'Cloud synchronization settings')}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.actionLeft}>
+                                        <View style={[styles.actionIcon, { backgroundColor: variants.primary.light }]}>
+                                            <Feather name="shield" size={18} color={semanticColors.primary} />
+                                        </View>
+                                        <View style={styles.actionText}>
+                                            <Text style={[typography.body, { color: semanticColors.primary }]}>
+                                                {t('account.privacy', 'Privacy Settings')}
+                                            </Text>
+                                            <Text style={[typography.label, { color: semanticColors.secondary }]}>
+                                                {t('account.privacyDescription', 'Manage your data and privacy')}
+                                            </Text>
+                                        </View>
+                                    </View>
                                 </View>
                             </ModernCard>
 
@@ -230,13 +213,13 @@ const styles = StyleSheet.create({
 
     header: {
         paddingHorizontal: 24,
-        paddingVertical: 16,
+        paddingVertical: 24,
     },
     headerTitle: {
-        marginBottom: 4,
+        marginBottom: 8,
     },
     headerSubtitle: {
-        lineHeight: 20,
+        lineHeight: 22,
     },
 
     scrollView: {
@@ -244,80 +227,82 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 24,
-        paddingBottom: 100,
-        gap: 24,
+        paddingBottom: 120,
+        gap: 32,
     },
 
     profileCard: {
-        marginBottom: 8,
+        marginBottom: 16,
     },
     profileContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        gap: 20,
+        padding: 4,
     },
     avatarContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
+        width: 72,
+        height: 72,
+        borderRadius: 36,
         justifyContent: 'center',
         alignItems: 'center',
     },
     userInfo: {
         flex: 1,
-        gap: 4,
+        gap: 6,
     },
 
     actionsCard: {
-        marginBottom: 8,
+        marginBottom: 16,
     },
     actionsList: {
-        gap: 4,
+        gap: 16,
     },
     actionItem: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingVertical: 16,
-        paddingHorizontal: 4,
+        paddingHorizontal: 8,
         borderRadius: 12,
     },
     actionLeft: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
-        gap: 12,
+        gap: 16,
+        padding: 8,
     },
     actionIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
     },
     actionText: {
         flex: 1,
-        gap: 2,
+        gap: 4,
     },
 
     signOutSection: {
-        marginTop: 16,
-        gap: 12,
+        marginTop: 24,
+        gap: 16,
     },
     signOutButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 14,
-        paddingHorizontal: 24,
-        borderRadius: 12,
-        gap: 8,
+        paddingVertical: 16,
+        paddingHorizontal: 28,
+        borderRadius: 14,
+        gap: 12,
     },
     signOutText: {
         fontWeight: '600',
     },
     signOutWarning: {
         textAlign: 'center',
-        marginTop: 8,
+        marginTop: 12,
     },
 }); 
