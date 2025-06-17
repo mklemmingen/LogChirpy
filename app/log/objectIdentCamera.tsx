@@ -626,15 +626,26 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                             console.warn('[AudioML] Failed to cleanup previous recording:', cleanupError);
                         }
                         currentRecording = null;
+                        // Add a small delay to ensure full cleanup
+                        await new Promise(resolve => setTimeout(resolve, 500));
                     }
+                    
+                    // Set audio mode before creating recording
+                    await Audio.setAudioModeAsync({
+                        allowsRecordingIOS: true,
+                        playsInSilentModeIOS: true,
+                        shouldDuckAndroid: true,
+                        playThroughEarpieceAndroid: false,
+                        staysActiveInBackground: false,
+                    });
                     
                     currentRecording = new Audio.Recording();
                     
                     await currentRecording.prepareToRecordAsync({
                         android: {
-                            extension: '.wav',
-                            outputFormat: Audio.AndroidOutputFormat.DEFAULT,
-                            audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+                            extension: '.m4a',
+                            outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+                            audioEncoder: Audio.AndroidAudioEncoder.AAC,
                             sampleRate: 48000, // Use BirdNET target sample rate
                             numberOfChannels: 1,
                             bitRate: 128000, // Higher quality

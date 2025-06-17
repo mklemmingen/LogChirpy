@@ -95,8 +95,25 @@ class UltraSimpleBirdClassifier {
       let labelsText: string;
       if (typeof labelsData === 'string') {
         labelsText = labelsData;
-      } else if (labelsData && typeof labelsData === 'object' && labelsData.default) {
-        labelsText = labelsData.default;
+      } else if (labelsData && typeof labelsData === 'object') {
+        // Metro bundler might return an object with a default property or uri property
+        if (labelsData.default) {
+          labelsText = labelsData.default;
+        } else if (labelsData.uri) {
+          // If it's a bundled asset with URI, fetch it
+          const response = await fetch(labelsData.uri);
+          labelsText = await response.text();
+        } else {
+          // Try to extract any string property
+          const keys = Object.keys(labelsData);
+          const stringKey = keys.find(key => typeof labelsData[key] === 'string');
+          if (stringKey) {
+            labelsText = labelsData[stringKey];
+          } else {
+            console.warn('Unexpected labels data structure:', labelsData);
+            throw new Error('Could not resolve labels data from BirdLabelsMap');
+          }
+        }
       } else {
         throw new Error('Could not resolve labels data from BirdLabelsMap');
       }

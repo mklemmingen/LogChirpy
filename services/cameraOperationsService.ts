@@ -629,32 +629,45 @@ class CameraOperationsService {
 
   private async waitForFileStability(filePath: string, maxWaitMs: number = 3000): Promise<boolean> {
     let attempts = 0;
-    const maxAttempts = Math.ceil(maxWaitMs / 100);
+    const checkInterval = 200; // Increased interval for better stability
+    const maxAttempts = Math.ceil(maxWaitMs / checkInterval);
     let lastSize = 0;
+    let stableCount = 0;
+    const requiredStableChecks = 3; // Require 3 consecutive stable checks
     
     while (attempts < maxAttempts) {
       try {
         const info = await FileSystem.getInfoAsync(filePath);
         if (!info.exists) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, checkInterval));
           attempts++;
+          stableCount = 0; // Reset stability counter
           continue;
         }
         
         const currentSize = info.size || 0;
-        if (currentSize > 0 && currentSize === lastSize && attempts > 2) {
-          return true;
+        if (currentSize > 0 && currentSize === lastSize) {
+          stableCount++;
+          if (stableCount >= requiredStableChecks) {
+            console.log(`File stable after ${attempts * checkInterval}ms: ${filePath}`);
+            return true;
+          }
+        } else {
+          stableCount = 0; // Reset if size changed
         }
         
         lastSize = currentSize;
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
         attempts++;
       } catch (error) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        console.warn('File stability check error:', error);
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
         attempts++;
+        stableCount = 0;
       }
     }
     
+    console.warn(`File stability timeout after ${maxWaitMs}ms: ${filePath}`);
     return false;
   }
 
