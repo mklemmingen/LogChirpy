@@ -81,11 +81,11 @@ export default function LoginScreen() {
 
         // Always validate both fields
         if (!email.trim()) {
-            newErrors.email = 'Please enter your email';
+            newErrors.email = t('errors.email_required');
         }
 
         if (!password.trim()) {
-            newErrors.password = 'Please enter your password';
+            newErrors.password = t('errors.password_required');
         }
 
         // Show errors if any field is empty
@@ -104,26 +104,26 @@ export default function LoginScreen() {
 
             switch (error.code) {
                 case 'auth/invalid-email':
-                    setErrors({ email: 'Invalid email format' });
+                    setErrors({ email: t('errors.invalid_email') });
                     break;
                 case 'auth/user-not-found':
-                    setErrors({ email: 'No account exists with this email' });
+                    setErrors({ email: t('errors.user_not_found') });
                     break;
                 case 'auth/wrong-password':
                 case 'auth/invalid-credential':
-                    setErrors({ password: 'Incorrect password' });
+                    setErrors({ password: t('errors.wrong_password') });
                     break;
                 case 'auth/user-disabled':
-                    setErrors({ email: 'This account has been disabled' });
+                    setErrors({ email: t('errors.disabled_account') });
                     break;
                 case 'auth/too-many-requests':
-                    setErrors({ general: 'Too many failed attempts. Please try again later' });
+                    setErrors({ general: t('errors.too_many_requests') });
                     break;
                 case 'auth/network-request-failed':
-                    setErrors({ general: 'Network error. Please check your connection' });
+                    setErrors({ general: t('errors.network_error') });
                     break;
                 default:
-                    setErrors({ general: 'Failed to sign in. Please try again' });
+                    setErrors({ general: t('errors.sign_in_error') });
             }
         } finally {
             setIsLoading(false);
@@ -159,10 +159,10 @@ export default function LoginScreen() {
                                     <Feather name="log-in" size={32} color={semanticColors.primary} />
                                 </View>
                                 <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
-                                    {t('auth.login_title', 'Sign In')}
+                                    {t('auth.login_title')}
                                 </Text>
                                 <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
-                                    {t('auth.login_subtitle', 'Welcome back')}
+                                    {t('auth.login_subtitle')}
                                 </Text>
                             </View>
 
@@ -186,7 +186,7 @@ export default function LoginScreen() {
 
                                     <View style={styles.inputGroup}>
                                         <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
-                                            {t('auth.email_label', 'Email')}
+                                            {t('auth.email_label')}
                                         </Text>
                                         <ThemedTextInput
                                             style={[
@@ -197,7 +197,7 @@ export default function LoginScreen() {
                                                     borderWidth: 1
                                                 } : undefined
                                             ]}
-                                            placeholder={t('auth.email_placeholder', 'Enter your email')}
+                                            placeholder={t('auth.email_placeholder')}
                                             value={email}
                                             onChangeText={(text) => {
                                                 setEmail(text);
@@ -217,7 +217,7 @@ export default function LoginScreen() {
 
                                     <View style={styles.inputGroup}>
                                         <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
-                                            {t('auth.password_label', 'Password')}
+                                            {t('auth.password_label')}
                                         </Text>
                                         <View style={styles.passwordContainer}>
                                             <ThemedTextInput
@@ -230,7 +230,7 @@ export default function LoginScreen() {
                                                         borderWidth: 1
                                                     } : undefined
                                                 ]}
-                                                placeholder={t('auth.password_placeholder', 'Enter your password')}
+                                                placeholder={t('auth.password_placeholder')}
                                                 value={password}
                                                 onChangeText={(text) => {
                                                     setPassword(text);
@@ -264,7 +264,7 @@ export default function LoginScreen() {
                                         <Link href="/(tabs)/account/(auth)/forgot-password" asChild>
                                             <Pressable disabled={isLoading}>
                                                 <Text style={[typography.label, styles.forgotPassword, { color: semanticColors.primary }]}>
-                                                    {t('auth.forgot_password_link', 'Forgot Password?')}
+                                                    {t('auth.forgot_password_link')}
                                                 </Text>
                                             </Pressable>
                                         </Link>
@@ -289,14 +289,14 @@ export default function LoginScreen() {
                                             {isLoading ? (
                                                 <View style={styles.loadingContainer}>
                                                     <Text style={[typography.body, styles.loginButtonText, { color: semanticColors.background }]}>
-                                                        {t('app_errors.signing_in', 'Signing In...')}
+                                                        {t('app_errors.signing_in')}
                                                     </Text>
                                                 </View>
                                             ) : (
                                                 <>
                                                     <Feather name="log-in" size={20} color={semanticColors.background} />
                                                     <Text style={[typography.body, styles.loginButtonText, { color: semanticColors.background }]}>
-                                                        {t('auth.signin', 'Sign In')}
+                                                        {t('auth.signin')}
                                                     </Text>
                                                 </>
                                             )}
@@ -306,13 +306,13 @@ export default function LoginScreen() {
                             </ModernCard>
 
                             <View style={[styles.signUpContainer, { marginTop: 16 }]}>
-                                <Text style={[typography.body, { color: semanticColors.secondary }]}>
-                                    {t('auth.no_account', "Don't have an account?")}
+                                <Text style={[typography.body, styles.signUpText, { color: semanticColors.secondary }]}>
+                                    {t('auth.no_account')}
                                 </Text>
                                 <Link href="/(tabs)/account/(auth)/signup" asChild>
                                     <Pressable disabled={isLoading}>
-                                        <Text style={[typography.body, styles.signUpLink, { color: semanticColors.primary, marginLeft: 4 }]}>
-                                            {t('auth.signup_link', 'Sign Up')}
+                                        <Text style={[typography.body, styles.signUpLink, { color: semanticColors.primary }]}>
+                                            {t('auth.signup_link')}
                                         </Text>
                                     </Pressable>
                                 </Link>
@@ -438,6 +438,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         gap: 4,
+    },
+    signUpText: {
+        fontWeight: '600',
     },
     signUpLink: {
         fontWeight: '600',

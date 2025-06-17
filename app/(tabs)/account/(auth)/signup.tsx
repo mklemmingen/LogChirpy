@@ -86,12 +86,12 @@ export default function SignupScreen() {
 
     const getPasswordStrength = (password: string) => {
         if (password.length === 0) return { strength: 0, label: '' };
-        if (password.length < 6) return { strength: 1, label: t('auth.passwordWeak', 'Weak') };
-        if (password.length < 8) return { strength: 2, label: t('auth.passwordFair', 'Fair') };
+        if (password.length < 6) return { strength: 1, label: t('auth.passwordWeak') };
+        if (password.length < 8) return { strength: 2, label: t('auth.passwordFair') };
         if (password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-            return { strength: 4, label: t('auth.passwordStrong', 'Strong') };
+            return { strength: 4, label: t('auth.passwordStrong') };
         }
-        return { strength: 3, label: t('auth.passwordGood', 'Good') };
+        return { strength: 3, label: t('auth.passwordGood') };
     };
 
     const passwordStrength = getPasswordStrength(password);
@@ -111,21 +111,21 @@ export default function SignupScreen() {
 
         // Always validate all fields
         if (!email.trim()) {
-            newErrors.email = 'Please enter your email address';
+            newErrors.email = t('errors.email_required');
         } else if (!validateEmail(email.trim())) {
-            newErrors.email = 'Invalid email format';
+            newErrors.email = t('errors.invalid_email');
         }
 
         if (!password.trim()) {
-            newErrors.password = 'Please enter a password';
+            newErrors.password = t('errors.password_required');
         } else if (!validatePassword(password)) {
-            newErrors.password = 'Password must be at least 6 characters long';
+            newErrors.password = t('auth.password_requirements');
         }
 
         if (!confirmPassword.trim()) {
-            newErrors.confirmPassword = 'Please confirm your password';
+            newErrors.confirmPassword = t('errors.confirm_password_required');
         } else if (password !== confirmPassword) {
-            newErrors.confirmPassword = 'Passwords do not match';
+            newErrors.confirmPassword = t('auth.passwords_dont_match');
         }
 
         // Show errors if any field is empty or invalid
@@ -144,22 +144,22 @@ export default function SignupScreen() {
 
             switch (error.code) {
                 case 'auth/email-already-in-use':
-                    setErrors({ email: 'This email is already registered' });
+                    setErrors({ email: t('errors.signup_email_in_use') });
                     break;
                 case 'auth/invalid-email':
-                    setErrors({ email: 'Invalid email format' });
+                    setErrors({ email: t('errors.invalid_email') });
                     break;
                 case 'auth/operation-not-allowed':
-                    setErrors({ general: 'Email/password accounts are not enabled. Please contact support.' });
+                    setErrors({ general: t('errors.operation_not_allowed') });
                     break;
                 case 'auth/weak-password':
-                    setErrors({ password: 'Password is too weak. It must be at least 6 characters long.' });
+                    setErrors({ password: t('errors.weak_password') });
                     break;
                 case 'auth/network-request-failed':
-                    setErrors({ general: 'Network error. Please check your connection' });
+                    setErrors({ general: t('errors.network_error') });
                     break;
                 default:
-                    setErrors({ general: 'Failed to create account. Please try again' });
+                    setErrors({ general: t('errors.signup_error') });
             }
         } finally {
             setIsLoading(false);
@@ -374,14 +374,14 @@ export default function SignupScreen() {
                                             {isLoading ? (
                                                 <View style={styles.loadingContainer}>
                                                     <Text style={[typography.body, styles.signupButtonText, { color: semanticColors.background }]}>
-                                                        Creating Account...
+                                                        {t('auth.creating_account')}
                                                     </Text>
                                                 </View>
                                             ) : (
                                                 <>
                                                     <Feather name="user-plus" size={20} color={semanticColors.background} />
                                                     <Text style={[typography.body, styles.signupButtonText, { color: semanticColors.background }]}>
-                                                        Create Account
+                                                        {t('auth.create_account')}
                                                     </Text>
                                                 </>
                                             )}
