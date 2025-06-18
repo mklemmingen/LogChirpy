@@ -79,11 +79,11 @@ class UltraSimpleBirdClassifier {
       await this.loadLabelsAndAssets();
       
       this.initialized = true;
-      console.log('✅ Models loaded successfully');
+      console.log('[SUCCESS] Models loaded successfully');
       return true;
       
     } catch (error) {
-      console.error('❌ Failed to initialize models:', error);
+      console.error('[ERROR] Failed to initialize models:', error);
       return false;
     }
   }
@@ -169,18 +169,18 @@ class UltraSimpleBirdClassifier {
         }
       }
       
-      console.log(`✅ Loaded ${labels.length} bird labels from labels_${this.currentLanguage}.txt`);
+      console.log(`[SUCCESS] Loaded ${labels.length} bird labels from labels_${this.currentLanguage}.txt`);
       
       // Verify we have the expected number of labels
       if (labels.length !== 6522) {
-        console.warn(`⚠️ Expected 6522 labels, got ${labels.length}`);
+        console.warn(`[WARNING] Expected 6522 labels, got ${labels.length}`);
       }
       
       this.labels = labels;
       this.scientificNames = scientificNames;
       
     } catch (error) {
-      console.error('❌ Failed to load bird labels, using fallback:', error);
+      console.error('[ERROR] Failed to load bird labels, using fallback:', error);
       
       // Fallback to numbered labels
       const labelCount = 6522;
@@ -243,17 +243,17 @@ class UltraSimpleBirdClassifier {
         }
       }
       
-      console.log(`✅ Loaded ${assets.length} asset mappings`);
+      console.log(`[SUCCESS] Loaded ${assets.length} asset mappings`);
       
       // Verify we have the expected number of assets
       if (assets.length !== 6522) {
-        console.warn(`⚠️ Expected 6522 assets, got ${assets.length}`);
+        console.warn(`[WARNING] Expected 6522 assets, got ${assets.length}`);
       }
       
       this.assets = assets;
       
     } catch (error) {
-      console.error('❌ Failed to load assets, using fallback:', error);
+      console.error('[ERROR] Failed to load assets, using fallback:', error);
       
       // Fallback to NO_ASSET for all entries
       const assetCount = 6522;

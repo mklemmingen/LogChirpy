@@ -295,7 +295,7 @@ export async function createIndexToSpeciesMap(
     });
   }
   
-  console.log(`✅ Created index-to-species map for ${indexMap.size} species`);
+  console.log(`[SUCCESS] Created index-to-species map for ${indexMap.size} species`);
   return indexMap;
 }
 

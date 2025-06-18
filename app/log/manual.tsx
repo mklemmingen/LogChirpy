@@ -122,22 +122,22 @@ export default function ManualBirdEntry() {
                     audioPrediction: topPrediction.common_name,
                     birdType: topPrediction.common_name 
                 });
-                console.log('✅ [Audio ID] Successfully identified bird');
+                console.log('[Audio ID] Successfully identified bird');
                 showSuccess(`Bird identified: ${topPrediction.common_name}`);
             } else {
-                console.log('❌ [Audio ID] No predictions found');
+                console.log('[Audio ID] No predictions found');
                 showError('Could not identify bird from audio');
             }
         } catch (error) {
-            console.error('💥 [Audio ID] Identification error:', error);
-            console.error('💥 [Audio ID] Error details:', {
+            console.error('[Audio ID] Identification error:', error);
+            console.error('[Audio ID] Error details:', {
                 message: error instanceof Error ? error.message : 'Unknown error',
                 stack: error instanceof Error ? error.stack : undefined
             });
             showError(`Failed to identify bird: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setIsIdentifying(false);
-            console.log('🏁 [Audio ID] Audio identification completed');
+            console.log('[Audio ID] Audio identification completed');
         }
     }, [draft.audioUri, isIdentifying, update, showSuccess, showError]);
 
@@ -145,43 +145,43 @@ export default function ManualBirdEntry() {
     const handleGetLocation = useCallback(async () => {
         if (isLoadingLocation) return;
 
-        console.log('📍 [Location] Starting location request...');
+        console.log('[Location] Starting location request...');
         setIsLoadingLocation(true);
         try {
-            console.log('📍 [Location] Requesting permissions...');
+            console.log('[Location] Requesting permissions...');
             const { status } = await Location.requestForegroundPermissionsAsync();
-            console.log('📍 [Location] Permission status:', status);
+            console.log('[Location] Permission status:', status);
             
             if (status !== 'granted') {
-                console.log('❌ [Location] Permission denied');
+                console.log('[Location] Permission denied');
                 showError('Location permission denied');
                 return;
             }
 
-            console.log('📍 [Location] Getting current position...');
+            console.log('[Location] Getting current position...');
             const location = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.High,
                 timeInterval: 10000,
             });
             
-            console.log('📍 [Location] Location received:', location.coords);
+            console.log('[Location] Location received:', location.coords);
             update({
                 gpsLat: location.coords.latitude,
                 gpsLng: location.coords.longitude
             });
-            console.log('✅ [Location] Location updated in draft');
+            console.log('[Location] Location updated in draft');
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             showSuccess('Location added');
         } catch (error) {
-            console.error('💥 [Location] Location error:', error);
-            console.error('💥 [Location] Error details:', {
+            console.error('[Location] Location error:', error);
+            console.error('[Location] Error details:', {
                 message: error instanceof Error ? error.message : 'Unknown error',
                 stack: error instanceof Error ? error.stack : undefined
             });
             showError(`Failed to get location: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setIsLoadingLocation(false);
-            console.log('🏁 [Location] Location request completed');
+            console.log('[Location] Location request completed');
         }
     }, [isLoadingLocation, update, showSuccess, showError]);
 
@@ -208,7 +208,7 @@ export default function ManualBirdEntry() {
                 }
             });
         } catch (error) {
-            console.error('🎵 [Audio Playback] Error:', error);
+            console.error('[Audio Playback] Error:', error);
             showError('Failed to play audio');
         }
     }, [draft.audioUri, sound, showError]);
@@ -227,7 +227,7 @@ export default function ManualBirdEntry() {
         
         const hasContent = hasBirdType || hasNotes || hasMedia;
 
-        console.log('🔍 [Manual Save] Content check:', {
+        console.log('[Manual Save] Content check:', {
             hasBirdType,
             hasNotes, 
             hasMedia,
@@ -235,62 +235,62 @@ export default function ManualBirdEntry() {
         });
 
         if (!hasContent) {
-            console.log('❌ [Manual Save] Validation failed: No content at all');
+            console.log('[Manual Save] Validation failed: No content at all');
             showError('Please add at least bird name, notes, or media content');
             birdTypeRef.current?.focus();
             return;
         }
 
-        console.log('✅ [Manual Save] Validation passed - has content');
+        console.log('[Manual Save] Validation passed - has content');
 
         // Validate media URIs exist
-        console.log('🔍 [Manual Save] Validating media files...');
+        console.log('[Manual Save] Validating media files...');
         const mediaValidation = [];
         
         if (draft.imageUri) {
-            console.log('📸 [Manual Save] Checking image URI:', draft.imageUri);
+            console.log('[Manual Save] Checking image URI:', draft.imageUri);
             try {
                 const imageExists = await validateImageUri(draft.imageUri);
-                console.log('📸 [Manual Save] Image exists:', imageExists);
+                console.log('[Manual Save] Image exists:', imageExists);
                 if (!imageExists) {
                     mediaValidation.push('Image file not found');
                 }
             } catch (error) {
-                console.error('📸 [Manual Save] Image validation error:', error);
+                console.error('[Manual Save] Image validation error:', error);
                 mediaValidation.push('Image validation failed');
             }
         }
 
         if (draft.videoUri) {
-            console.log('🎥 [Manual Save] Checking video URI:', draft.videoUri);
+            console.log('[Manual Save] Checking video URI:', draft.videoUri);
             try {
                 const videoInfo = await FileSystem.getInfoAsync(draft.videoUri);
-                console.log('🎥 [Manual Save] Video info:', videoInfo);
+                console.log('[Manual Save] Video info:', videoInfo);
                 if (!videoInfo.exists) {
                     mediaValidation.push('Video file not found');
                 }
             } catch (error) {
-                console.error('🎥 [Manual Save] Video validation error:', error);
+                console.error('[Manual Save] Video validation error:', error);
                 mediaValidation.push('Video validation failed');
             }
         }
 
         if (draft.audioUri) {
-            console.log('🎵 [Manual Save] Checking audio URI:', draft.audioUri);
+            console.log('[Manual Save] Checking audio URI:', draft.audioUri);
             try {
                 const audioInfo = await FileSystem.getInfoAsync(draft.audioUri);
-                console.log('🎵 [Manual Save] Audio info:', audioInfo);
+                console.log('[Manual Save] Audio info:', audioInfo);
                 if (!audioInfo.exists) {
                     mediaValidation.push('Audio file not found');
                 }
             } catch (error) {
-                console.error('🎵 [Manual Save] Audio validation error:', error);
+                console.error('[Manual Save] Audio validation error:', error);
                 mediaValidation.push('Audio validation failed');
             }
         }
 
         if (mediaValidation.length > 0) {
-            console.log('❌ [Manual Save] Media validation failed:', mediaValidation);
+            console.log('[Manual Save] Media validation failed:', mediaValidation);
             showError(`Media validation failed: ${mediaValidation.join(', ')}`);
             return;
         }
@@ -311,22 +311,22 @@ export default function ManualBirdEntry() {
                 latinBirDex: draft.latinBirDex || null,
             };
 
-            console.log('💾 [Manual Save] Prepared spotting object:', JSON.stringify(spotting, null, 2));
-            console.log('💾 [Manual Save] Calling insertBirdSpotting...');
+            console.log('[Manual Save] Prepared spotting object:', JSON.stringify(spotting, null, 2));
+            console.log('[Manual Save] Calling insertBirdSpotting...');
             
             const result = await insertBirdSpotting(spotting);
-            console.log('✅ [Manual Save] Insert result:', result);
+            console.log('[Manual Save] Insert result:', result);
             
-            console.log('🗑️ [Manual Save] Clearing draft...');
+            console.log('[Manual Save] Clearing draft...');
             clear();
             
-            console.log('✅ [Manual Save] Save completed successfully!');
+            console.log('[Manual Save] Save completed successfully!');
             showSuccess('Bird spotting saved successfully!');
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             router.replace('/');
         } catch (error) {
-            console.error('💥 [Manual Save] Save error:', error);
-            console.error('💥 [Manual Save] Error details:', {
+            console.error('[Manual Save] Save error:', error);
+            console.error('[Manual Save] Error details:', {
                 message: error instanceof Error ? error.message : 'Unknown error',
                 stack: error instanceof Error ? error.stack : undefined,
                 name: error instanceof Error ? error.name : undefined
@@ -334,7 +334,7 @@ export default function ManualBirdEntry() {
             showError(`Failed to save bird spotting: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setIsSaving(false);
-            console.log('🏁 [Manual Save] Save process completed');
+            console.log('[Manual Save] Save process completed');
         }
     }, [draft, isSaving, clear, showSuccess, showError]);
 

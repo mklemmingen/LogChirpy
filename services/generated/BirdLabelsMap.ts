@@ -243,7 +243,7 @@ export async function loadAndParseLabels(language: string): Promise<{
       }
     }
     
-    console.log(`✅ Parsed ${commonNames.length} labels for language: ${language}`);
+    console.log(`[SUCCESS] Parsed ${commonNames.length} labels for language: ${language}`);
     
     return {
       commonNames,
@@ -252,7 +252,7 @@ export async function loadAndParseLabels(language: string): Promise<{
     };
     
   } catch (error) {
-    console.error(`❌ Failed to parse labels for language ${language}:`, error);
+    console.error(`[ERROR] Failed to parse labels for language ${language}:`, error);
     return null;
   }
 }

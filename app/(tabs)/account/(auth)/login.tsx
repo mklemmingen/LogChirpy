@@ -184,7 +184,7 @@ export default function LoginScreen() {
                                     )}
 
                                     <View style={styles.inputGroup}>
-                                        <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
+                                        <Text style={[typography.label, styles.inputLabel, { color: semanticColors.secondary }]}>
                                             {t('auth.email_label')}
                                         </Text>
                                         <ThemedTextInput
@@ -215,7 +215,7 @@ export default function LoginScreen() {
                                     </View>
 
                                     <View style={styles.inputGroup}>
-                                        <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
+                                        <Text style={[typography.label, styles.inputLabel, { color: semanticColors.secondary }]}>
                                             {t('auth.password_label')}
                                         </Text>
                                         <View style={styles.passwordContainer}>
