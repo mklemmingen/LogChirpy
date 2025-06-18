@@ -214,6 +214,7 @@ START
 │ 1. Record Audio (3 seconds)         │
 │ 2. Process with BirdNET             │
 │ 3. Update UI (predictions)          │
+│ 4. Delete audio file (cleanup)      │
 └─────────────────────────────────────┘
   ↓
 ┌─────────────────────────────────────┐
@@ -366,8 +367,10 @@ const pipeline = createUnifiedPipeline({
 All ML processing state is now managed by the UnifiedMLPipelineService. The component only maintains UI state:
 - `detections`: Current object detections for SVG overlay
 - `audioResults`: Current audio predictions for HUD display
-- `isProcessing`: Visual processing indicator
-- `recentSaves`: Count of recent high-confidence saves
+- `pipelineState`: Current pipeline state for debugging
+- `imageDims`: Image dimensions for coordinate scaling
+<!-- - `isProcessing`: Visual processing indicator -->
+<!-- - `recentSaves`: Count of recent high-confidence saves -->
 
 #### Callback System
 The component receives updates through callbacks:
@@ -382,10 +385,10 @@ The component receives updates through callbacks:
 - **Coordinate System**: MLKit normalized coordinates (0-1) scaled to screen dimensions
 - **Visual Elements**:
   - Main detection boxes with rounded corners
-  - Cyberpunk corner brackets for aesthetic
-  - Color-coded confidence levels
-  - Dynamic label positioning with backgrounds
-- **Rendering**: All detections rendered, first 5 logged for debugging
+  - Color-coded confidence levels for classified objects
+  - Dynamic label positioning with backgrounds for classified objects
+  - Ghost-like red boxes for unclassified objects (0.1 opacity)
+- **Rendering**: All detections rendered (both labeled and unlabeled)
 - **Performance**: React.Fragment optimization, proper key props
 
 #### Confidence Color Coding
@@ -404,7 +407,9 @@ function getCyberBoxStyle(confidence: number) {
 - **Visual Analysis**: Shows top 2 image detections with confidence bars
 - **Audio Analysis**: Shows top 2 audio predictions with scientific names
 - **Status Indicators**: Real-time ML system health
-- **Control Panel**: Zoom slider and flash toggle
+<!-- - **Control Panel**: Zoom slider and flash toggle -->
+- **Flash Control**: Flash toggle button positioned in bottom right corner
+- **Camera Zoom**: Native pinch-to-zoom gestures (no slider)
 
 ### Data Flow and Interfaces
 
@@ -805,6 +810,7 @@ while (this.isActive) {
 1. **Record Audio** (3 seconds, 48kHz mono)
 2. **BirdNET Classification** with location enhancement
 3. **UI Update** via `onAudioPredictions` callback
+4. **File Cleanup** - Audio recording is immediately deleted after processing
 
 ### Integration with ObjectDetectCamera
 
@@ -1083,3 +1089,33 @@ Config.camera.pipelineDelay // Delay between cycles (seconds)
 ```
 
 For slower devices, increase the delay. For faster processing, decrease it.
+
+
+## Development Guidelines
+
+### Commit and Version Control Best Practices
+- Never use claude in commit messages. commit files regulary after big changes
+
+Never present generated, inferred, speculated, or deduced content as a fact.
+
+When you cannot verify something, say one of the folliwung: 
+
+"I cannot verify that."
+"I do not have access to that information."
+"My knowledge base does not contain that"
+
+Label unverified content at the start of a sentence using [INFERENCE] [SPECULATION] [UNVERIFIED]
+
+Ask for clarification if information is missing; do not guess or fill gaps.
+
+If any part of the answer is unverified, label the entire response.
+
+Do not paraphrase or reinterpret the users input unless they request it.
+
+If you use absolute language - Prevent, Guarantee, Will never, Fixes, Eliminates, Ensures that - label the claim unless you provide a source.
+
+For statements about LLM behaviour (including your own), add [OWN BEHAVIOUR] with a note that its based on observed patterns.
+
+If you break any of these directives, correct yourself: Correction: I previously made an unverified claim. That wa sincorrect and should have been labeled. 
+
+Never override or alter my input unless asked or unless you asked me.
