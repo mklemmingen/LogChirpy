@@ -76,39 +76,13 @@ export class AudioDecoder {
    * Extract audio samples using recording API for accurate PCM data
    */
   private static async extractAudioSamples(audioUri: string, targetSampleRate: number): Promise<Float32Array> {
+    // IMPORTANT: Don't create Recording instances here!
+    // This was causing "Only one Recording object can be prepared at a given time" errors
+    // Instead, go directly to file-based extraction methods
+    
     try {
-      // Create a temporary recording to capture the audio in the correct format
-      const recording = new Audio.Recording();
-      
-      // Configure recording for high-quality PCM
-      await recording.prepareToRecordAsync({
-        android: {
-          extension: '.wav',
-          outputFormat: Audio.AndroidOutputFormat.DEFAULT,
-          audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
-          sampleRate: targetSampleRate,
-          numberOfChannels: 1,
-          bitRate: 128000,
-        },
-        ios: {
-          extension: '.wav',
-          outputFormat: Audio.IOSOutputFormat.LINEARPCM,
-          audioQuality: Audio.IOSAudioQuality.HIGH,
-          sampleRate: targetSampleRate,
-          numberOfChannels: 1,
-          bitRate: 128000,
-          linearPCMBitDepth: 16,
-          linearPCMIsBigEndian: false,
-          linearPCMIsFloat: false,
-        },
-        web: {
-          mimeType: 'audio/wav',
-          bitsPerSecond: 128000,
-        },
-      });
-
-      // For existing audio files, we'll use a different approach
-      // Read the file and extract PCM data based on format
+      // For existing audio files, use direct file extraction
+      // No need to create Recording instances for decoding existing files
       return await this.extractPCMFromFile(audioUri, targetSampleRate);
     } catch (error) {
       console.error('Failed to extract audio samples:', error);

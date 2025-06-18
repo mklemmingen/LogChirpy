@@ -20,7 +20,7 @@ import {
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { Audio } from 'expo-av';
 import * as Location from 'expo-location';
-import Svg, { Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Rect, Text as SvgText, Circle } from 'react-native-svg';
 import { useObjectDetection } from '@infinitered/react-native-mlkit-object-detection';
 import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling";
 
@@ -28,7 +28,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
-import { useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, withRepeat, withTiming, useAnimatedProps, interpolate, Easing } from 'react-native-reanimated';
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedPressable } from "@/components/ThemedPressable";
@@ -43,6 +43,9 @@ import {
 } from '@/services/unifiedMLPipelineService';
 
 const { width: W, height: H } = Dimensions.get('window');
+
+// Create animated SVG components
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 // Cyberpunk Color Palette
 const CYBER_COLORS = {
@@ -185,6 +188,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
 
     // Animation
     const pulseAnimation = useSharedValue(0);
+    const recordingProgress = useSharedValue(0);
     
     // Processing state
     const [isProcessing, setIsProcessing] = useState(false);
@@ -192,6 +196,21 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
 
     // Get current location for ML enhancement
     const [location, setLocation] = useState<{ latitude: number; longitude: number } | undefined>();
+    
+    // Create animated props for recording indicator
+    const recordingAnimatedProps = useAnimatedProps(() => {
+        const strokeDasharray = 2 * Math.PI * 45; // circumference of circle with radius 45
+        const strokeDashoffset = interpolate(
+            recordingProgress.value,
+            [0, 1],
+            [strokeDasharray, 0]
+        );
+        
+        return {
+            strokeDashoffset,
+            opacity: recordingProgress.value > 0 ? 1 : 0,
+        };
+    });
 
     useEffect(() => {
         if (hasLocationPermission) {
@@ -318,9 +337,17 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
             },
             onAudioProcessingStart: () => {
                 setDebugText('Recording audio...');
+                // Start 3-second recording animation
+                recordingProgress.value = 0;
+                recordingProgress.value = withTiming(1, {
+                    duration: 3000,
+                    easing: Easing.linear,
+                });
             },
             onAudioProcessingEnd: () => {
                 // Audio processing complete
+                // Reset animation
+                recordingProgress.value = withTiming(0, { duration: 300 });
             },
             
             // General callbacks
@@ -478,19 +505,74 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                 </Svg>
             </View>
 
+            {/* Recording Progress Indicator */}
+            <View style={styles.recordingIndicatorContainer}>
+                <Svg width={100} height={100} style={styles.recordingIndicator}>
+                    {/* Background circle */}
+                    <Circle
+                        cx={50}
+                        cy={50}
+                        r={45}
+                        stroke={CYBER_COLORS.border}
+                        strokeWidth={4}
+                        fill="none"
+                        opacity={pipelineState === 'recording_audio' ? 0.3 : 0}
+                    />
+                    {/* Progress circle */}
+                    <AnimatedCircle
+                        cx={50}
+                        cy={50}
+                        r={45}
+                        stroke={CYBER_COLORS.primary}
+                        strokeWidth={4}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeDasharray={2 * Math.PI * 45}
+                        animatedProps={recordingAnimatedProps}
+                        transform="rotate(-90 50 50)"
+                    />
+                    {/* Icon in center */}
+                    {pipelineState === 'recording_audio' && (
+                        <>
+                            <Circle
+                                cx={50}
+                                cy={50}
+                                r={25}
+                                fill={CYBER_COLORS.danger}
+                                opacity={0.8}
+                            />
+                            <SvgText
+                                x={50}
+                                y={55}
+                                fontSize={16}
+                                fontWeight="bold"
+                                fill="white"
+                                textAnchor="middle"
+                            >
+                                REC
+                            </SvgText>
+                        </>
+                    )}
+                </Svg>
+            </View>
+
             {/* Cyberpunk HUD */}
             <View style={styles.hud}>
 
-                {/* Detection Results Panel */}
+                {/* Header with status info */}
+                <View style={styles.header}>
+                    <ThemedText style={styles.statusText}>
+                        Status: {pipelineState.toUpperCase()} | Detections: {detections.length}
+                    </ThemedText>
+                    <ThemedText style={styles.debugText}>
+                        {debugText}
+                    </ThemedText>
+                </View>
+
+                {/* Detection Results Panel - Side by side */}
                 <View style={styles.resultsPanel}>
-
-                        <ThemedText style={styles.statusText}>
-                            Status: {pipelineState.toUpperCase()} | Detections: {detections.length}
-                        </ThemedText>
-                        <ThemedText style={styles.debugText}>
-                            {debugText}
-                        </ThemedText>
-
+                    {/* Visual Analysis - Left Side */}
+                    <View style={styles.analysisSection}>
                         <ThemedText style={styles.sectionTitle}>VISUAL ANALYSIS: </ThemedText>
                         {detections.slice(0, 2).map((detection, index) => {
                             const label = detection.labels[0];
@@ -514,9 +596,10 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                                 </View>
                             );
                         })}
+                    </View>
 
-
-
+                    {/* Audio Analysis - Right Side */}
+                    <View style={styles.analysisSection}>
                         <ThemedText style={styles.sectionTitle}>AUDIO ANALYSIS: </ThemedText>
                         {audioResults.slice(0, 2).map((result, index) => (
                             <View key={index} style={styles.resultItem}>
@@ -539,7 +622,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                                 </View>
                             </View>
                         ))}
-
+                    </View>
                 </View>
 
                 {/* Controls Panel */}
@@ -669,12 +752,23 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
 
+    // Header section
+    header: {
+        marginBottom: 10,
+    },
+    
     // Results panel
     resultsPanel: {
         flex: 1,
-        justifyContent: "flex-start",
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         marginHorizontal: 20,
-        maxWidth: 250,
+    },
+    
+    // Analysis sections (50% each)
+    analysisSection: {
+        flex: 1,
+        maxWidth: '48%',
     },
     sectionTitle: {
         color: CYBER_COLORS.text,
@@ -702,7 +796,7 @@ const styles = StyleSheet.create({
         backgroundColor: CYBER_COLORS.border,
         borderRadius: 2,
         marginBottom: 4,
-        maxWidth: 150,
+        width: '100%',
         overflow: 'hidden',
     },
     confidenceFill: {
@@ -751,5 +845,21 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginLeft: 6,
         letterSpacing: 1,
+    },
+    
+    // Recording indicator
+    recordingIndicatorContainer: {
+        position: 'absolute',
+        right: 20,
+        top: '50%',
+        marginTop: -50,
+        zIndex: 10,
+    },
+    recordingIndicator: {
+        shadowColor: CYBER_COLORS.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 5,
     },
 });
