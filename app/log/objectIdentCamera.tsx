@@ -432,9 +432,9 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         
                         let color, opacity;
                         if (isUnlabeled) {
-                            // Red, more opaque for unlabeled detections
+                            // Red, very opaque for unlabeled detections (almost unseeable)
                             color = CYBER_COLORS.danger; // Red
-                            opacity = 0.8; // More opaque
+                            opacity = 0.95; // Very high opacity, almost unseeable
                         } else {
                             const conf = labels[0]?.confidence ?? 0;
                             const style = getBoxStyle(conf);
@@ -507,42 +507,6 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                                         </React.Fragment>
                                     );
                                 })}
-                                {/* Render "OBJECT" label for unlabeled detections */}
-                                {isUnlabeled && (
-                                    <React.Fragment key={`unlabeled-${index}`}>
-                                        {(() => {
-                                            const labelText = "OBJECT";
-                                            const labelX = origin.x * scaleX;
-                                            const labelY = Math.max(origin.y * scaleY - 22, 0);
-                                            const labelWidth = labelText.length * 6.8 + 12;
-                                            const backgroundPadding = 4;
-
-                                            return (
-                                                <>
-                                                    <Rect
-                                                        x={labelX - backgroundPadding}
-                                                        y={labelY - 12}
-                                                        width={labelWidth}
-                                                        height={18}
-                                                        rx={4}
-                                                        ry={4}
-                                                        fill={CYBER_COLORS.danger}
-                                                        fillOpacity={0.8}
-                                                    />
-                                                    <SvgText
-                                                        x={labelX}
-                                                        y={labelY}
-                                                        fill="white"
-                                                        fontSize="12"
-                                                        fontWeight="bold"
-                                                    >
-                                                        {labelText}
-                                                    </SvgText>
-                                                </>
-                                            );
-                                        })()}
-                                    </React.Fragment>
-                                )}
                             </React.Fragment>
                         );
                     })}
