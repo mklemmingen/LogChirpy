@@ -1,13 +1,13 @@
 import React from 'react';
-import {Tabs} from 'expo-router';
-import {Platform} from 'react-native';
-import {useTranslation} from 'react-i18next';
+import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
-import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming, } from 'react-native-reanimated';
 
-import {useColors, useShadows, useTheme} from '@/hooks/useThemeColor';
-import {ThemedView} from '@/components/ThemedView';
-import {ThemedIcon} from '@/components/ThemedIcon';
+import { useTheme, useColors, useShadows } from '@/hooks/useThemeColor';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedIcon } from '@/components/ThemedIcon';
 
 /**
  * Tab icon component with animations
@@ -20,11 +20,11 @@ import {ThemedIcon} from '@/components/ThemedIcon';
  * @returns {JSX.Element} Animated tab icon with indicator
  */
 function EnhancedTabIcon({
-                             iconName,
-                             color,
-                             focused,
-                             size
-                         }: {
+    iconName,
+    color,
+    focused,
+    size
+}: {
     iconName: string;
     color: string;
     focused: boolean;
@@ -37,7 +37,7 @@ function EnhancedTabIcon({
     const scale = useSharedValue(focused ? 1 : 0.9);
     const indicatorWidth = useSharedValue(focused ? 24 : 4);
     const opacity = useSharedValue(focused ? 1 : 0.7);
-    
+
     // Responsive icon size
     const responsiveIconSize = Math.max(size * 1.1, 20);
 
@@ -238,7 +238,7 @@ export default function ModernTabLayout() {
                     tabBarBackground: () => <EnhancedTabBackground />,
                 }),
 
-                // Improved animations
+                // Hide tab bar on keyboard - provides better UX
                 tabBarHideOnKeyboard: true,
 
                 // Enhanced header styling with responsive colors

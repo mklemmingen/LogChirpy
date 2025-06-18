@@ -1,7 +1,10 @@
+import React from 'react';
 import { Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useSemanticColors } from '@/hooks/useThemeColor';
 
-export default function AccountLayout() {
+export default function AuthLayout() {
+    const { t } = useTranslation();
     const semanticColors = useSemanticColors();
 
     return (
@@ -14,23 +17,23 @@ export default function AccountLayout() {
             }}
         >
             <Stack.Screen
-                name="(auth)"
+                name="login"
                 options={{
-                    headerShown: false,
+                    title: t('auth.signin', 'Sign In'),
                 }}
             />
             <Stack.Screen
-                name="profile"
+                name="signup"
                 options={{
-                    headerShown: false,
+                    title: t('auth.signup', 'Sign Up'),
                 }}
             />
             <Stack.Screen
-                name="index"
+                name="forgot-password"
                 options={{
-                    headerShown: false,
+                    title: t('auth.forgot_password', 'Forgot Password'),
                 }}
             />
         </Stack>
     );
-}
+} 

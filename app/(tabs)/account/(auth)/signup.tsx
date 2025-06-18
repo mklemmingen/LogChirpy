@@ -1,473 +1,412 @@
-import React, {useRef, useState} from 'react';
-import {KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View,} from 'react-native';
-import {useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {ThemedIcon} from '@/components/ThemedIcon';
-import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import React, { useState } from 'react';
+import {
+    Alert,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+    KeyboardAvoidingView,
+    Platform,
+} from 'react-native';
+import { router, Link } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+} from 'react-native-reanimated';
 
-// Firebase imports
-import {createUserWithEmailAndPassword} from 'firebase/auth';
-import {auth} from '@/firebase/config';
-import {UserProfileService} from '@/services/userProfile';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { ThemedTextInput } from '@/components/ThemedTextInput';
+import { ModernCard } from '@/components/ModernCard';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import {
+    useTheme,
+    useTypography,
+    useSemanticColors,
+    useColorVariants,
+} from '@/hooks/useThemeColor';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ModernCard} from '@/components/ModernCard';
-import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {useSnackbar} from '@/components/ThemedSnackbar';
-import {useColorVariants, useMotionValues, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
-
-interface FormField {
-    value: string;
-    error: string;
-    focused: boolean;
-    valid: boolean;
-}
-
-interface FormState {
-    email: FormField;
-    password: FormField;
-    confirmPassword: FormField;
-}
-
+/**
+ * Signup screen component
+ * Handles user registration with email and password
+ */
 export default function SignupScreen() {
     const { t } = useTranslation();
-    const router = useRouter();
     const theme = useTheme();
+    const typography = useTypography();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
-    const typography = useTypography();
-    const motion = useMotionValues();
-    const { showError, showSuccess, SnackbarComponent } = useSnackbar();
+    const { signUp } = useAuth();
 
-    // Form state
-    const [formState, setFormState] = useState<FormState>({
-        email: { value: '', error: '', focused: false, valid: false },
-        password: { value: '', error: '', focused: false, valid: false },
-        confirmPassword: { value: '', error: '', focused: false, valid: false },
-    });
-
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-    const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
-
-    // Refs for input navigation
-    const emailRef = useRef<TextInput>(null);
-    const passwordRef = useRef<TextInput>(null);
-    const confirmPasswordRef = useRef<TextInput>(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [errors, setErrors] = useState<{
+        email?: string;
+        password?: string;
+        confirmPassword?: string;
+        general?: string;
+    }>({});
 
     // Animation values
-    const containerOpacity = useSharedValue(0);
-    const contentTranslateY = useSharedValue(30);
-    const headerScale = useSharedValue(0.9);
+    const signupButtonScale = useSharedValue(1);
+    const fadeInOpacity = useSharedValue(0);
 
     React.useEffect(() => {
-        // Entrance animation
-        containerOpacity.value = withTiming(1, { duration: 300 });
-        contentTranslateY.value = withSpring(0, { damping: 20, stiffness: 300 });
-        headerScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+        fadeInOpacity.value = withTiming(1, { duration: 600 });
     }, []);
 
-    // Validation functions
-    const validateEmail = (email: string): { valid: boolean; error: string } => {
-        if (!email) return { valid: false, error: t('errors.email_required') };
+    const fadeInStyle = useAnimatedStyle(() => ({
+        opacity: fadeInOpacity.value,
+        transform: [{ translateY: withTiming(fadeInOpacity.value === 1 ? 0 : 30) }],
+    }));
+
+    const signupButtonAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: signupButtonScale.value }],
+    }));
+
+    const validateEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) return { valid: false, error: t('errors.invalid_email') };
-        return { valid: true, error: '' };
+        return emailRegex.test(email);
     };
 
-    const validatePassword = (password: string): { valid: boolean; error: string } => {
-        if (!password) return { valid: false, error: t('errors.password_required') };
-        if (password.length < 6) return { valid: false, error: t('errors.weak_password') };
-        return { valid: true, error: '' };
+    const validatePassword = (password: string) => {
+        return password.length >= 6;
     };
 
-    const validateConfirmPassword = (password: string, confirmPassword: string): { valid: boolean; error: string } => {
-        if (!confirmPassword) return { valid: false, error: t('app_errors.confirm_password_required') };
-        if (password !== confirmPassword) return { valid: false, error: t('app_errors.passwords_do_not_match') };
-        return { valid: true, error: '' };
+    const getPasswordStrength = (password: string) => {
+        if (password.length === 0) return { strength: 0, label: '' };
+        if (password.length < 6) return { strength: 1, label: t('auth.passwordWeak') };
+        if (password.length < 8) return { strength: 2, label: t('auth.passwordFair') };
+        if (password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+            return { strength: 4, label: t('auth.passwordStrong') };
+        }
+        return { strength: 3, label: t('auth.passwordGood') };
     };
 
-    // Update form field
-    const updateField = (field: keyof FormState, value: string) => {
-        let validation = { valid: false, error: '' };
+    const passwordStrength = getPasswordStrength(password);
 
-        switch (field) {
-            case 'email':
-                validation = validateEmail(value);
-                break;
-            case 'password':
-                validation = validatePassword(value);
-                break;
-            case 'confirmPassword':
-                validation = validateConfirmPassword(formState.password.value, value);
-                break;
+    const clearErrors = () => {
+        setErrors({});
+    };
+
+    const handleSignup = async () => {
+        clearErrors();
+        const newErrors: {
+            email?: string;
+            password?: string;
+            confirmPassword?: string;
+            general?: string;
+        } = {};
+
+        // Always validate all fields
+        if (!email.trim()) {
+            newErrors.email = t('errors.email_required');
+        } else if (!validateEmail(email.trim())) {
+            newErrors.email = t('errors.invalid_email');
         }
 
-        setFormState(prev => ({
-            ...prev,
-            [field]: {
-                ...prev[field],
-                value,
-                ...validation,
-            }
-        }));
-    };
+        if (!password.trim()) {
+            newErrors.password = t('errors.password_required');
+        } else if (!validatePassword(password)) {
+            newErrors.password = t('auth.password_requirements');
+        }
 
-    // Handle field focus
-    const handleFocus = (field: keyof FormState) => {
-        Haptics.selectionAsync();
-        setFormState(prev => ({
-            ...prev,
-            [field]: { ...prev[field], focused: true }
-        }));
-    };
+        if (!confirmPassword.trim()) {
+            newErrors.confirmPassword = t('errors.confirm_password_required');
+        } else if (password !== confirmPassword) {
+            newErrors.confirmPassword = t('auth.passwords_dont_match');
+        }
 
-    const handleBlur = (field: keyof FormState) => {
-        setFormState(prev => ({
-            ...prev,
-            [field]: { ...prev[field], focused: false }
-        }));
-    };
-
-    // Handle signup with Firebase
-    const handleSignup = async () => {
-        // Validate all fields
-        const emailValidation = validateEmail(formState.email.value);
-        const passwordValidation = validatePassword(formState.password.value);
-        const confirmPasswordValidation = validateConfirmPassword(
-            formState.password.value,
-            formState.confirmPassword.value
-        );
-
-        if (!emailValidation.valid || !passwordValidation.valid || !confirmPasswordValidation.valid) {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            showError('Please fix the errors in the form');
+        // Show errors if any field is empty or invalid
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
         setIsLoading(true);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         try {
-            // Firebase signup
-            const userCredential = await createUserWithEmailAndPassword(
-                auth,
-                formState.email.value,
-                formState.password.value
-            );
+            await signUp(email, password);
+            router.replace('/(tabs)/account');
+        } catch (error: any) {
+            console.error('Signup error:', error);
 
-            console.log(t('app_errors.user_created'), userCredential.user);
-
-            // Create user profile in Firestore
-            await UserProfileService.createUserProfile(
-                userCredential.user.uid,
-                userCredential.user.email
-            );
-
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            showSuccess(t('app_errors.account_created_successfully'));
-
-            // Navigate to account tab instead of tabs root to avoid navigation conflicts
-            setTimeout(() => {
-                router.replace('/(tabs)/account');
-            }, 1000);
-
-        } catch (error: unknown) {
-            console.error(t('app_errors.signup_error'), error);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-            // Handle Firebase auth errors
-            let errorMessage = t('errors.signup_error');
-            
-            // Type check for Firebase auth error
-            if (error && typeof error === 'object' && 'code' in error) {
-                const firebaseError = error as { code: string; message?: string };
-                switch (firebaseError.code) {
+            switch (error.code) {
                 case 'auth/email-already-in-use':
-                    errorMessage = t('errors.signup_email_in_use');
-                    break;
-                case 'auth/weak-password':
-                    errorMessage = t('errors.weak_password');
-                    break;
-                case 'auth/operation-not-allowed':
-                    errorMessage = t('errors.operation_not_allowed');
-                    break;
-                case 'auth/network-request-failed':
-                    errorMessage = t('errors.network_error');
+                    setErrors({ email: t('errors.signup_email_in_use') });
                     break;
                 case 'auth/invalid-email':
-                    errorMessage = t('errors.invalid_email');
+                    setErrors({ email: t('errors.invalid_email') });
                     break;
-                case 'auth/too-many-requests':
-                    errorMessage = t('errors.too_many_requests');
+                case 'auth/operation-not-allowed':
+                    setErrors({ general: t('errors.operation_not_allowed') });
+                    break;
+                case 'auth/weak-password':
+                    setErrors({ password: t('errors.weak_password') });
+                    break;
+                case 'auth/network-request-failed':
+                    setErrors({ general: t('errors.network_error') });
                     break;
                 default:
-                    errorMessage = firebaseError.message || t('errors.signup_error');
-                }
-            } else {
-                errorMessage = error instanceof Error ? error.message : t('errors.signup_error');
+                    setErrors({ general: t('errors.signup_error') });
             }
-
-            showError(errorMessage);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Get input style based on state
-    const getInputStyle = (field: FormField) => {
-        if (field.error && !field.focused) {
-            return {
-                borderColor: semanticColors.error,
-                backgroundColor: variants.secondary.light,
-            };
-        }
-        if (field.focused) {
-            return {
-                borderColor: semanticColors.primary,
-                backgroundColor: semanticColors.surface,
-            };
-        }
-        if (field.valid) {
-            return {
-                borderColor: semanticColors.success,
-                backgroundColor: semanticColors.surface,
-            };
-        }
-        return {
-            borderColor: semanticColors.secondary,
-            backgroundColor: semanticColors.surface,
-        };
+    const handleSignupPressIn = () => {
+        signupButtonScale.value = withSpring(0.95);
     };
 
-    // Animated styles
-    const containerStyle = useAnimatedStyle(() => ({
-        opacity: containerOpacity.value,
-        transform: [{ translateY: contentTranslateY.value }],
-    }));
+    const handleSignupPressOut = () => {
+        signupButtonScale.value = withSpring(1);
+    };
 
-    const headerStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: headerScale.value }],
-    }));
+    const isFormValid =
+        email.trim().length > 0 &&
+        password.trim().length > 0 &&
+        confirmPassword.trim().length > 0 &&
+        !isLoading;
 
-    const isFormValid = formState.email.valid && formState.password.valid && formState.confirmPassword.valid;
+    const getPasswordStrengthColor = (strength: number) => {
+        switch (strength) {
+            case 1: return '#ff4444';
+            case 2: return '#ffaa00';
+            case 3: return '#00aa00';
+            case 4: return '#00cc00';
+            default: return semanticColors.secondary;
+        }
+    };
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
-            <KeyboardAvoidingView
-                style={styles.keyboardView}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            >
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
+        <ProtectedRoute requireAuth={false}>
+            <ThemedSafeAreaView style={styles.container}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.keyboardContainer}
                 >
-                    <Animated.View style={[styles.content, containerStyle]}>
-                        {/* Header Section */}
-                        <Animated.View style={[styles.header, headerStyle]}>
+                    <ScrollView
+                        style={styles.scrollView}
+                        contentContainerStyle={styles.scrollContent}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        <Animated.View style={fadeInStyle}>
+                            <View style={styles.header}>
+                                <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
+                                    <ThemedIcon name="user-plus" size={32} color="primary" />
+                                </View>
+                                <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
+                                    {t('auth.signup_title', 'Sign Up')}
+                                </Text>
+                                <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
+                                    {t('auth.signup_subtitle', 'Sign up to start using LogChirpy')}
+                                </Text>
+                            </View>
 
-                            <ThemedText variant="displayMedium" style={styles.title}>
-                                {t('auth.signup_title')}
-                            </ThemedText>
-
-                            <ThemedText
-                                variant="bodyLarge"
-                                color="secondary"
-                                style={styles.subtitle}
+                            <ModernCard
+                                elevated={true}
+                                bordered={false}
+                                style={{
+                                    ...styles.formCard,
+                                    backgroundColor: semanticColors.surface,
+                                    shadowColor: semanticColors.secondary,
+                                }}
                             >
-                                {t('auth.signup_subtitle')}
-                            </ThemedText>
-                        </Animated.View>
+                                <View style={styles.form}>
+                                    {errors.general && (
+                                        <View style={styles.errorContainer}>
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.general}
+                                            </Text>
+                                        </View>
+                                    )}
 
-                        {/* Form Card */}
-                        <ModernCard elevated={false} bordered={true} style={styles.formCard}>
-                            <View style={styles.form}>
-                                {/* Email Field */}
-                                <View style={styles.inputGroup}>
-                                    <ThemedText variant="label" style={styles.inputLabel}>
-                                        {t('auth.email_placeholder')}
-                                    </ThemedText>
-                                    <View style={[styles.inputContainer, getInputStyle(formState.email)]}>
-                                        <ThemedIcon
-                                            name="mail"
-                                            size={20}
-                                            color={formState.email.focused ? "accent" : "secondary"}
-                                        />
-                                        <AnimatedTextInput
-                                            ref={emailRef}
-                                            style={[styles.textInput, { color: semanticColors.primary }]}
-                                            placeholder={t('auth.email_placeholder')}
-                                            placeholderTextColor={semanticColors.secondary}
-                                            value={formState.email.value}
-                                            onChangeText={(text) => updateField('email', text)}
-                                            onFocus={() => handleFocus('email')}
-                                            onBlur={() => handleBlur('email')}
+                                    <View style={styles.inputGroup}>
+                                        <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
+                                            {t('auth.email_label', 'Email')}
+                                        </Text>
+                                        <ThemedTextInput
+                                            style={[
+                                                styles.textInput,
+                                                { borderRadius: 12 },
+                                                errors.email ? {
+                                                    borderColor: semanticColors.error,
+                                                    borderWidth: 1
+                                                } : undefined
+                                            ]}
+                                            placeholder={t('auth.email_placeholder', 'Enter your email')}
+                                            value={email}
+                                            onChangeText={(text) => {
+                                                setEmail(text);
+                                                if (errors.email) clearErrors();
+                                            }}
                                             keyboardType="email-address"
                                             autoCapitalize="none"
-                                            autoComplete="email"
-                                            returnKeyType="next"
-                                            onSubmitEditing={() => passwordRef.current?.focus()}
+                                            autoCorrect={false}
+                                            editable={!isLoading}
                                         />
-                                        {formState.email.valid && (
-                                            <ThemedIcon name="check" size={20} color="success" />
+                                        {errors.email && (
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.email}
+                                            </Text>
                                         )}
                                     </View>
-                                    {formState.email.error ? (
-                                        <ThemedText variant="caption" color="error" style={styles.errorText}>
-                                            {formState.email.error}
-                                        </ThemedText>
-                                    ) : null}
-                                </View>
 
-                                {/* Password Field */}
-                                <View style={styles.inputGroup}>
-                                    <ThemedText variant="label" style={styles.inputLabel}>
-                                        {t('auth.password_placeholder')}
-                                    </ThemedText>
-                                    <View style={[styles.inputContainer, getInputStyle(formState.password)]}>
-                                        <ThemedIcon
-                                            name="lock"
-                                            size={20}
-                                            color={formState.password.focused ? "accent" : "secondary"}
-                                        />
-                                        <AnimatedTextInput
-                                            ref={passwordRef}
-                                            style={[styles.textInput, { color: semanticColors.primary }]}
-                                            placeholder={t('auth.password_placeholder')}
-                                            placeholderTextColor={semanticColors.secondary}
-                                            value={formState.password.value}
-                                            onChangeText={(text) => updateField('password', text)}
-                                            onFocus={() => handleFocus('password')}
-                                            onBlur={() => handleBlur('password')}
-                                            secureTextEntry={!isPasswordVisible}
-                                            autoComplete="new-password"
-                                            returnKeyType="next"
-                                            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-                                        />
-                                        <Pressable
-                                            onPress={() => {
-                                                setIsPasswordVisible(!isPasswordVisible);
-                                                Haptics.selectionAsync();
-                                            }}
-                                            style={styles.eyeButton}
-                                        >
-                                            <ThemedIcon
-                                                name={isPasswordVisible ? "eye-off" : "eye"}
-                                                size={20}
-                                                color="secondary"
+                                    <View style={styles.inputGroup}>
+                                        <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
+                                            {t('auth.password_label', 'Password')}
+                                        </Text>
+                                        <View style={styles.passwordContainer}>
+                                            <ThemedTextInput
+                                                style={[
+                                                    styles.textInput,
+                                                    styles.passwordInput,
+                                                    { borderRadius: 12 },
+                                                    errors.password ? {
+                                                        borderColor: semanticColors.error,
+                                                        borderWidth: 1
+                                                    } : undefined
+                                                ]}
+                                                placeholder={t('auth.password_placeholder', 'Enter your password')}
+                                                value={password}
+                                                onChangeText={(text) => {
+                                                    setPassword(text);
+                                                    if (errors.password) clearErrors();
+                                                }}
+                                                secureTextEntry={!showPassword}
+                                                autoCapitalize="none"
+                                                autoCorrect={false}
+                                                editable={!isLoading}
                                             />
-                                        </Pressable>
+                                            <Pressable
+                                                style={[styles.passwordToggle, { right: 16 }]}
+                                                onPress={() => setShowPassword(!showPassword)}
+                                                disabled={isLoading}
+                                            >
+                                                <ThemedIcon name={showPassword ? 'eye-off' : 'eye'} size={20} color="secondary" />
+                                            </Pressable>
+                                        </View>
+                                        {errors.password && (
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.password}
+                                            </Text>
+                                        )}
                                     </View>
-                                    {formState.password.error ? (
-                                        <ThemedText variant="caption" color="error" style={styles.errorText}>
-                                            {formState.password.error}
-                                        </ThemedText>
-                                    ) : null}
-                                </View>
 
-                                {/* Confirm Password Field */}
-                                <View style={styles.inputGroup}>
-                                    <ThemedText variant="label" style={styles.inputLabel}>
-                                        Confirm Password
-                                    </ThemedText>
-                                    <View style={[styles.inputContainer, getInputStyle(formState.confirmPassword)]}>
-                                        <ThemedIcon
-                                            name="shield"
-                                            size={20}
-                                            color={formState.confirmPassword.focused ? "accent" : "secondary"}
-                                        />
-                                        <AnimatedTextInput
-                                            ref={confirmPasswordRef}
-                                            style={[styles.textInput, { color: semanticColors.primary }]}
-                                            placeholder={t('app_errors.confirm_password_placeholder')}
-                                            placeholderTextColor={semanticColors.secondary}
-                                            value={formState.confirmPassword.value}
-                                            onChangeText={(text) => updateField('confirmPassword', text)}
-                                            onFocus={() => handleFocus('confirmPassword')}
-                                            onBlur={() => handleBlur('confirmPassword')}
-                                            secureTextEntry={!isConfirmPasswordVisible}
-                                            autoComplete="new-password"
-                                            returnKeyType="done"
-                                            onSubmitEditing={handleSignup}
-                                        />
-                                        <Pressable
-                                            onPress={() => {
-                                                setIsConfirmPasswordVisible(!isConfirmPasswordVisible);
-                                                Haptics.selectionAsync();
-                                            }}
-                                            style={styles.eyeButton}
-                                        >
-                                            <ThemedIcon
-                                                name={isConfirmPasswordVisible ? "eye-off" : "eye"}
-                                                size={20}
-                                                color="secondary"
+                                    <View style={styles.inputGroup}>
+                                        <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
+                                            {t('auth.confirm_password_label', 'Confirm Password')}
+                                        </Text>
+                                        <View style={styles.passwordContainer}>
+                                            <ThemedTextInput
+                                                style={[
+                                                    styles.textInput,
+                                                    styles.passwordInput,
+                                                    { borderRadius: 12 },
+                                                    errors.confirmPassword ? {
+                                                        borderColor: semanticColors.error,
+                                                        borderWidth: 1
+                                                    } : undefined
+                                                ]}
+                                                placeholder={t('auth.confirm_password_placeholder', 'Confirm your password')}
+                                                value={confirmPassword}
+                                                onChangeText={(text) => {
+                                                    setConfirmPassword(text);
+                                                    if (errors.confirmPassword) clearErrors();
+                                                }}
+                                                secureTextEntry={!showConfirmPassword}
+                                                autoCapitalize="none"
+                                                autoCorrect={false}
+                                                editable={!isLoading}
                                             />
-                                        </Pressable>
+                                            <Pressable
+                                                style={[styles.passwordToggle, { right: 16 }]}
+                                                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                disabled={isLoading}
+                                            >
+                                                <ThemedIcon name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color="secondary" />
+                                            </Pressable>
+                                        </View>
+                                        {errors.confirmPassword && (
+                                            <Text style={[typography.caption, styles.errorText, { color: semanticColors.error }]}>
+                                                {errors.confirmPassword}
+                                            </Text>
+                                        )}
                                     </View>
-                                    {formState.confirmPassword.error ? (
-                                        <ThemedText variant="caption" color="error" style={styles.errorText}>
-                                            {formState.confirmPassword.error}
-                                        </ThemedText>
-                                    ) : null}
-                                </View>
 
-                                {/* Sign Up Button */}
-                                <ThemedPressable
-                                    variant="primary"
-                                    size="lg"
-                                    fullWidth
-                                    onPress={handleSignup}
-                                    disabled={!isFormValid || isLoading}
-                                    style={styles.signupButton}
-                                >
-                                    {isLoading ? (
-                                        <ThemedIcon name="loader" size={20} style={{ color: semanticColors.background }} />
-                                    ) : (
-                                        <ThemedIcon name="user-plus" size={20} style={{ color: semanticColors.background }} />
-                                    )}
-                                    <ThemedText variant="labelLarge" style={{ color: semanticColors.background }}>
-                                        {isLoading ? 'Creating Account...' : t('auth.signup')}
-                                    </ThemedText>
-                                </ThemedPressable>
+                                    <Animated.View style={[signupButtonAnimatedStyle, { marginTop: 16 }]}>
+                                        <AnimatedPressable
+                                            style={[
+                                                styles.signupButton,
+                                                {
+                                                    backgroundColor: semanticColors.primary,
+                                                    opacity: isFormValid ? 1 : 0.5,
+                                                    borderRadius: 12,
+                                                    paddingVertical: 14,
+                                                },
+                                            ]}
+                                            onPress={handleSignup}
+                                            onPressIn={handleSignupPressIn}
+                                            onPressOut={handleSignupPressOut}
+                                            android_ripple={{ color: theme.colors.surface + '33' }}
+                                        >
+                                            {isLoading ? (
+                                                <View style={styles.loadingContainer}>
+                                                    <Text style={[typography.body, styles.signupButtonText, { color: semanticColors.background }]}>
+                                                        {t('auth.creating_account')}
+                                                    </Text>
+                                                </View>
+                                            ) : (
+                                                <>
+                                                    <ThemedIcon name="user-plus" size={20} color="inverse" />
+                                                    <Text style={[typography.body, styles.signupButtonText, { color: semanticColors.background }]}>
+                                                        {t('auth.create_account')}
+                                                    </Text>
+                                                </>
+                                            )}
+                                        </AnimatedPressable>
+                                    </Animated.View>
+                                </View>
+                            </ModernCard>
+
+                            <View style={styles.signInContainer}>
+                                <Text style={[typography.body, { color: semanticColors.secondary }]}>
+                                    {t('auth.already_have_account', 'Already have an account?')}
+                                </Text>
+                                <Link href="/(tabs)/account/(auth)/login" asChild>
+                                    <Pressable disabled={isLoading}>
+                                        <Text style={[typography.body, styles.signInLink, { color: semanticColors.primary, marginLeft: 4 }]}>
+                                            {t('auth.signin', 'Sign In')}
+                                        </Text>
+                                    </Pressable>
+                                </Link>
                             </View>
-                        </ModernCard>
-
-                        {/* Footer Links */}
-                        <View style={styles.footer}>
-                            <ThemedPressable
-                                variant="ghost"
-                                onPress={() => {
-                                    Haptics.selectionAsync();
-                                    router.back();
-                                }}
-                                style={styles.footerButton}
-                            >
-                                <ThemedText variant="body" color="secondary">
-                                    {t('auth.already_have_account')}
-                                </ThemedText>
-                            </ThemedPressable>
-                        </View>
-                    </Animated.View>
-                </ScrollView>
-            </KeyboardAvoidingView>
-
-            <SnackbarComponent />
-        </ThemedSafeAreaView>
+                        </Animated.View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </ThemedSafeAreaView>
+        </ProtectedRoute>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 40,
     },
-    keyboardView: {
+    keyboardContainer: {
         flex: 1,
     },
     scrollView: {
@@ -475,79 +414,121 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: 24,
-        paddingVertical: 20,
+        padding: 24,
         justifyContent: 'center',
-    },
-    content: {
-        alignItems: 'center',
-        maxWidth: 400,
-        width: '100%',
-        alignSelf: 'center',
+        minHeight: '100%',
     },
 
     // Header
     header: {
         alignItems: 'center',
-        marginBottom: 16,
-        gap: 8,
+        marginBottom: 32,
+    },
+    logoContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
     },
     title: {
         textAlign: 'center',
+        marginBottom: 8,
+        fontWeight: '600',
     },
     subtitle: {
         textAlign: 'center',
-        lineHeight: 24,
+        lineHeight: 20,
     },
 
     // Form
     formCard: {
-        width: '100%',
-        marginBottom: 12,
+        marginBottom: 24,
+        borderRadius: 16,
+        padding: 24,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
     form: {
-        padding: 16,
-        gap: 12,
+        gap: 20,
     },
     inputGroup: {
         gap: 8,
     },
-    inputLabel: {
-        fontWeight: '600',
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        height: 48,
-        gap: 12,
+    label: {
+        fontWeight: '500',
+        marginBottom: 4,
     },
     textInput: {
-        flex: 1,
-        fontSize: 16,
-        fontWeight: '400',
+        minHeight: 48,
+        paddingHorizontal: 16,
     },
-    eyeButton: {
-        padding: 4,
+    passwordContainer: {
+        position: 'relative',
+    },
+    passwordInput: {
+        paddingRight: 48,
+    },
+    passwordToggle: {
+        position: 'absolute',
+        right: 16,
+        top: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 40,
+    },
+    errorContainer: {
+        marginBottom: 16,
     },
     errorText: {
-        color: '#F44336',
-        marginTop: 4,
-    },
-    signupButton: {
-        flexDirection: 'row',
-        gap: 8,
-        marginTop: 8,
+        fontWeight: '500',
     },
 
-    // Footer
-    footer: {
+    // Password Strength
+    passwordStrength: {
+        marginTop: 8,
+        gap: 6,
+    },
+    strengthBar: {
+        flexDirection: 'row',
+        gap: 4,
+    },
+    strengthSegment: {
+        flex: 1,
+        height: 3,
+        borderRadius: 2,
+    },
+    strengthLabel: {
+        fontSize: 12,
+        fontWeight: '500',
+    },
+
+    // Signup Button
+    signupButton: {
+        flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        justifyContent: 'center',
+        paddingHorizontal: 24,
+        gap: 8,
     },
-    footerButton: {
-        paddingVertical: 8,
+    signupButtonText: {
+        fontWeight: '600',
     },
-});
+    loadingContainer: {
+        alignItems: 'center',
+    },
+
+    // Sign In Link
+    signInContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    signInLink: {
+        fontWeight: '600',
+    },
+}); 
