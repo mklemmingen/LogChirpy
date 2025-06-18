@@ -130,6 +130,12 @@ export async function copyFileWithProperUri(
     // Ensure the source is a proper file path for FileSystem operations
     const sourcePath = uriToFilePath(sourceUri);
     
+    // Verify source file exists before attempting copy
+    const sourceInfo = await FileSystem.getInfoAsync(sourcePath);
+    if (!sourceInfo.exists) {
+      throw new Error(`Source file does not exist: ${sourcePath}`);
+    }
+    
     await FileSystem.copyAsync({
       from: sourcePath,
       to: destinationPath
@@ -140,6 +146,61 @@ export async function copyFileWithProperUri(
   } catch (error) {
     console.error('File copy failed:', error);
     throw error;
+  }
+}
+
+/**
+ * Safely saves a high-confidence detection image to gallery with proper URI handling
+ * @param sourceUri - Source image URI (can be temporary ImageManipulator file or stable file)
+ * @param label - Classification label with text and confidence
+ * @param type - Detection type ('bird' | 'full')
+ * @param confidenceThreshold - Minimum confidence threshold for saving
+ * @returns Promise that resolves to saved URI or null if not saved
+ */
+export async function saveHighConfidenceImage(
+  sourceUri: string,
+  label: { text: string; confidence: number },
+  type: 'bird' | 'full',
+  confidenceThreshold: number
+): Promise<string | null> {
+  try {
+    if (label.confidence < confidenceThreshold) {
+      console.log(`Confidence ${label.confidence} below threshold ${confidenceThreshold}, not saving`);
+      return null;
+    }
+
+    // Convert URI to file path
+    const sourcePath = uriToFilePath(sourceUri);
+    
+    // Verify source file exists
+    const sourceInfo = await FileSystem.getInfoAsync(sourcePath);
+    if (!sourceInfo.exists) {
+      console.warn(`Source file does not exist for saving: ${sourcePath}`);
+      return null;
+    }
+
+    // Generate filename for gallery
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const milliseconds = Date.now();
+    const safeLabel = label.text.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const confidenceStr = Math.round(label.confidence * 100).toString().padStart(3, '0');
+    const filename = `${type}_${safeLabel}_conf${confidenceStr}_${timestamp}_${milliseconds}.jpg`;
+
+    // Ensure gallery directory exists
+    const galleryDir = await ensureGalleryDirectory();
+    const destPath = `${galleryDir}${filename}`;
+
+    // Copy file to gallery
+    await FileSystem.copyAsync({
+      from: sourcePath,
+      to: destPath
+    });
+
+    console.log(`High-confidence ${type} image saved: ${filename}`);
+    return filePathToUri(destPath);
+  } catch (error) {
+    console.error('Failed to save high-confidence image:', error);
+    return null;
   }
 }
 

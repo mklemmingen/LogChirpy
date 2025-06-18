@@ -82,6 +82,58 @@ class PhotoStorageService {
     }
 
     /**
+     * Save high-confidence detection image with proper classification metadata
+     */
+    async saveDetectionImage(
+        sourceUri: string,
+        label: { text: string; confidence: number },
+        type: 'bird' | 'full',
+        confidenceThreshold: number
+    ): Promise<PhotoSaveResult> {
+        if (label.confidence < confidenceThreshold) {
+            return {
+                appUri: '',
+                filename: '',
+                size: 0,
+                success: false,
+                error: `Confidence ${label.confidence} below threshold ${confidenceThreshold}`
+            };
+        }
+
+        try {
+            // Generate specialized filename for detection
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const milliseconds = Date.now();
+            const safeLabel = label.text.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+            const confidenceStr = Math.round(label.confidence * 100).toString().padStart(3, '0');
+            const filename = `${type}_${safeLabel}_conf${confidenceStr}_${timestamp}_${milliseconds}.jpg`;
+
+            // Save to app directory with detection metadata
+            const result = await this.savePhoto(sourceUri, {
+                filename,
+                saveToDevice: false, // Don't auto-save detections to device gallery
+                addMetadata: false  // We'll add custom detection metadata
+            });
+
+            if (result.success) {
+                // Add detection-specific metadata
+                await this.addDetectionMetadata(result.appUri, label, type);
+            }
+
+            return result;
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            return {
+                appUri: '',
+                filename: '',
+                size: 0,
+                success: false,
+                error: errorMessage
+            };
+        }
+    }
+
+    /**
      * Complete photo save workflow - saves to both app and device gallery
      */
     async savePhoto(sourceUri: string, options: {
@@ -159,6 +211,35 @@ class PhotoStorageService {
     }
 
     /**
+     * Add detection-specific metadata to photo
+     */
+    private async addDetectionMetadata(
+        photoUri: string,
+        label: { text: string; confidence: number },
+        type: 'bird' | 'full'
+    ): Promise<void> {
+        try {
+            // Create metadata file alongside photo
+            const metadataPath = photoUri.replace('.jpg', '.meta.json');
+            
+            const metadata = {
+                timestamp: new Date().toISOString(),
+                type: 'detection',
+                detectionType: type,
+                source: 'ml_pipeline',
+                classification: label.text,
+                confidence: label.confidence,
+                processed: true
+            };
+
+            await FileSystem.writeAsStringAsync(metadataPath, JSON.stringify(metadata));
+        } catch (error) {
+            console.warn('Failed to add detection metadata:', error);
+            // Don't throw - metadata is optional
+        }
+    }
+
+    /**
      * Extract filename from URI
      */
     private extractFilename(uri: string): string {
@@ -225,6 +306,13 @@ export const photoStorageService = new PhotoStorageService();
 // Export convenience functions
 export const savePhoto = (sourceUri: string, options?: Parameters<typeof photoStorageService.savePhoto>[1]) => 
     photoStorageService.savePhoto(sourceUri, options);
+
+export const saveDetectionImage = (
+    sourceUri: string,
+    label: { text: string; confidence: number },
+    type: 'bird' | 'full',
+    confidenceThreshold: number
+) => photoStorageService.saveDetectionImage(sourceUri, label, type, confidenceThreshold);
 
 export const generatePhotoFilename = (prefix?: string) => 
     photoStorageService.generateFilename(prefix);
