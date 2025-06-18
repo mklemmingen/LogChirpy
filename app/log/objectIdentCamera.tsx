@@ -26,7 +26,6 @@ import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling
 
 import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import Animated, { useSharedValue, withRepeat, withTiming, useAnimatedProps, interpolate, Easing } from 'react-native-reanimated';
 
@@ -173,7 +172,6 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
 
     // Camera state
     const [isInitialized, setIsInitialized] = useState(false);
-    const [zoom, setZoom] = useState(1);
     const [flash, setFlash] = useState<'off' | 'on'>('off');
 
     // ML results from unified pipeline
@@ -412,9 +410,9 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                 device={device!}
                 isActive={isCameraActive}
                 onInitialized={() => setIsInitialized(true)}
-                zoom={zoom}
                 torch={flash}
                 photo={true}
+                enableZoomGesture={true}
             />
 
             {/* Dark overlay for better contrast */}
@@ -633,24 +631,6 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                     </View>
                 </View>
 
-                {/* Controls Panel - Zoom Only */}
-                <View style={styles.controlsPanel} pointerEvents="box-none">
-                    {/* Zoom Control */}
-                    <View style={styles.controlGroup} pointerEvents="auto">
-                        <ThemedText style={styles.controlLabel}>ZOOM</ThemedText>
-                        <Slider
-                            style={styles.slider}
-                            minimumValue={1}
-                            maximumValue={device?.neutralZoom || 4}
-                            value={zoom}
-                            onValueChange={setZoom}
-                            minimumTrackTintColor={CYBER_COLORS.primary}
-                            maximumTrackTintColor={CYBER_COLORS.surface}
-                            thumbTintColor={CYBER_COLORS.primary}
-                        />
-                        <ThemedText style={styles.zoomValue}>{zoom.toFixed(1)}x</ThemedText>
-                    </View>
-                </View>
 
             </View>
 
@@ -814,35 +794,6 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
 
-    // Controls
-    controlsPanel: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 20,
-    },
-    controlGroup: {
-        flex: 1,
-        maxWidth: 200,
-    },
-    controlLabel: {
-        color: CYBER_COLORS.textMuted,
-        fontSize: 10,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        letterSpacing: 1,
-        textAlign: 'center',
-    },
-    slider: {
-        height: 40,
-        width: '100%',
-    },
-    zoomValue: {
-        color: CYBER_COLORS.text,
-        fontSize: 12,
-        textAlign: 'center',
-        marginTop: 4,
-    },
     
     // Flash button container - bottom right corner
     flashButtonContainer: {
