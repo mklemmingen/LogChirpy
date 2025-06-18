@@ -432,9 +432,9 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         
                         let color, opacity;
                         if (isUnlabeled) {
-                            // Red, very opaque for unlabeled detections (almost unseeable)
+                            // Red, ghost-like for unlabeled detections (barely visible)
                             color = CYBER_COLORS.danger; // Red
-                            opacity = 0.95; // Very high opacity, almost unseeable
+                            opacity = 0.1; // Ghost-like transparency
                         } else {
                             const conf = labels[0]?.confidence ?? 0;
                             const style = getBoxStyle(conf);
