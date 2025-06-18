@@ -427,13 +427,20 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         const { origin, size } = item.frame;
                         const labels = item.labels;
                         
-                        if (!labels || labels.length === 0) {
-                            console.log(`[SVG] No labels for detection ${index}`);
-                            return null;
-                        }
+                        // Check if this is an unlabeled detection
+                        const isUnlabeled = !labels || labels.length === 0;
                         
-                        const conf = labels[0]?.confidence ?? 0;
-                        const { color, opacity } = getBoxStyle(conf);
+                        let color, opacity;
+                        if (isUnlabeled) {
+                            // Red, more opaque for unlabeled detections
+                            color = CYBER_COLORS.danger; // Red
+                            opacity = 0.8; // More opaque
+                        } else {
+                            const conf = labels[0]?.confidence ?? 0;
+                            const style = getBoxStyle(conf);
+                            color = style.color;
+                            opacity = style.opacity;
+                        }
                         
                         // Calculate scale for rendering detection bounding boxes (like old code)
                         const scaleX = imageDims.width ? W / imageDims.width : 1;
@@ -459,7 +466,8 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                                     fill="none"
                                     fillOpacity={opacity * 0.3}
                                 />
-                                {labels.slice(0, 3).map((label, idx) => {
+                                {/* Render labels for classified detections */}
+                                {!isUnlabeled && labels.slice(0, 3).map((label, idx) => {
                                     const conf = label.confidence;
                                     const labelText = `${label.text} ${(conf * 100).toFixed(0)}%`;
                                     const labelX = origin.x * scaleX;
@@ -499,6 +507,42 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                                         </React.Fragment>
                                     );
                                 })}
+                                {/* Render "OBJECT" label for unlabeled detections */}
+                                {isUnlabeled && (
+                                    <React.Fragment key={`unlabeled-${index}`}>
+                                        {(() => {
+                                            const labelText = "OBJECT";
+                                            const labelX = origin.x * scaleX;
+                                            const labelY = Math.max(origin.y * scaleY - 22, 0);
+                                            const labelWidth = labelText.length * 6.8 + 12;
+                                            const backgroundPadding = 4;
+
+                                            return (
+                                                <>
+                                                    <Rect
+                                                        x={labelX - backgroundPadding}
+                                                        y={labelY - 12}
+                                                        width={labelWidth}
+                                                        height={18}
+                                                        rx={4}
+                                                        ry={4}
+                                                        fill={CYBER_COLORS.danger}
+                                                        fillOpacity={0.8}
+                                                    />
+                                                    <SvgText
+                                                        x={labelX}
+                                                        y={labelY}
+                                                        fill="white"
+                                                        fontSize="12"
+                                                        fontWeight="bold"
+                                                    >
+                                                        {labelText}
+                                                    </SvgText>
+                                                </>
+                                            );
+                                        })()}
+                                    </React.Fragment>
+                                )}
                             </React.Fragment>
                         );
                     })}

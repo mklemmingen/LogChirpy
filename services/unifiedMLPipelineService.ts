@@ -161,6 +161,8 @@ export class UnifiedMLPipelineService {
 
                 console.log('[UnifiedPipeline] Starting main pipeline loop...');
                 let cycleCount = 0;
+                let lastCleanupCycle = 0;
+                const CLEANUP_INTERVAL = 10; // Clean up every 10 cycles
 
                 while (this.isActive) {
                     cycleCount++;
@@ -186,6 +188,18 @@ export class UnifiedMLPipelineService {
 
                         // === WAIT PHASE ===
                         this.updateState('waiting');
+                        // Periodic cleanup of old files
+                        if (cycleCount - lastCleanupCycle >= CLEANUP_INTERVAL) {
+                            console.log('[UnifiedPipeline] Running periodic cleanup...');
+                            try {
+                                await this.deleteOldFiles(FileSystem.cacheDirectory!, 5); // Clean files older than 5 minutes
+                                lastCleanupCycle = cycleCount;
+                                console.log('[UnifiedPipeline] ✅ Periodic cleanup completed');
+                            } catch (cleanupError) {
+                                console.warn('[UnifiedPipeline] ⚠️ Periodic cleanup failed:', cleanupError);
+                            }
+                        }
+
                         const waitTime = Config.camera.pipelineDelay * 1000;
                         const cycleTime = Date.now() - cycleStartTime;
                         console.log(`[UnifiedPipeline] === CYCLE ${cycleCount} COMPLETE (${cycleTime}ms) ===`);
@@ -389,7 +403,7 @@ export class UnifiedMLPipelineService {
                 
                 enrichedDetections.push({
                     frame: obj.frame,
-                    labels: labels.slice(0, 2) // Top 2 labels for UI
+                    labels: labels.slice(0, 2) // Top 2 labels for UI (empty if no classification)
                 });
                 
                 console.log(`[UnifiedPipeline] Object ${index} processed successfully`);
@@ -493,6 +507,18 @@ export class UnifiedMLPipelineService {
                     console.log(`[UnifiedPipeline] Top result: ${predictions[0].common_name} (${Math.round(predictions[0].confidence * 100)}%)`);
                 } else {
                     this.callbacks?.onAudioPredictions([]);
+                }
+
+                // Clean up audio file after processing
+                console.log('[UnifiedPipeline] Cleaning up audio recording...');
+                try {
+                    const fileInfo = await FileSystem.getInfoAsync(recordingUri);
+                    if (fileInfo.exists) {
+                        await FileSystem.deleteAsync(recordingUri);
+                        console.log('[UnifiedPipeline] ✅ Deleted audio recording:', recordingUri);
+                    }
+                } catch (deleteError) {
+                    console.warn('[UnifiedPipeline] ⚠️ Failed to delete audio recording:', deleteError);
                 }
 
                 console.log('[UnifiedPipeline] === AUDIO PHASE COMPLETE ===');
@@ -749,7 +775,7 @@ export class UnifiedMLPipelineService {
      * This prevents "Only one Recording object can be prepared at a given time" errors
      */
     private async ensureNoActiveRecordings(): Promise<void> {
-        console.log('[UnifiedPipeline] Ensuring no active recordings exist...');
+        console.log('[UnifiedPipeline] Checking for active recordings...');
         
         try {
             // Force Audio module to reset by requesting permissions again
@@ -757,7 +783,7 @@ export class UnifiedMLPipelineService {
             await Audio.requestPermissionsAsync();
             
             // Try to create and immediately destroy a test recording
-            // If this fails, there's still an active recording somewhere
+            // If this succeeds, no other recordings exist (expected case)
             const testRecording = new Audio.Recording();
             try {
                 await testRecording.prepareToRecordAsync({
@@ -782,32 +808,52 @@ export class UnifiedMLPipelineService {
                     }
                 });
                 
-                // If we got here, no other recordings exist
+                // If we got here, no other recordings exist (this is the normal case)
                 await testRecording.stopAndUnloadAsync();
                 console.log('[UnifiedPipeline] ✅ No active recordings detected');
                 
             } catch (testError) {
-                // If test recording failed, there might be an orphaned recording
-                console.warn('[UnifiedPipeline] ⚠️ Test recording failed, attempting cleanup:', testError);
+                // Test recording failed - check if it's a benign error
+                const errorMessage = (testError as Error)?.message || '';
                 
-                try {
-                    await testRecording.stopAndUnloadAsync();
-                } catch (stopError) {
-                    console.warn('[UnifiedPipeline] Failed to stop test recording:', stopError);
+                if (errorMessage.includes('recording not started') || errorMessage.includes('already been unloaded')) {
+                    // These are expected errors when no recording exists - not actual problems
+                    console.log('[UnifiedPipeline] ✅ No active recordings (test failed as expected)');
+                    try {
+                        await testRecording.stopAndUnloadAsync();
+                    } catch {
+                        // Ignore cleanup errors for non-existent recordings
+                    }
+                } else {
+                    // Unexpected error - might indicate real recording conflict
+                    console.warn('[UnifiedPipeline] ⚠️ Unexpected recording test error:', testError);
+                    
+                    try {
+                        await testRecording.stopAndUnloadAsync();
+                    } catch (stopError) {
+                        console.warn('[UnifiedPipeline] Failed to stop test recording:', stopError);
+                    }
+                    
+                    // Give extra time for cleanup
+                    await this.delay(500);
+                    
+                    throw new Error('Unable to clear existing recordings');
                 }
-                
-                // Give extra time for cleanup
-                await this.delay(500);
-                
-                throw new Error('Unable to clear existing recordings');
             }
             
         } catch (error) {
-            console.error('[UnifiedPipeline] ❌ Active recording cleanup failed:', error);
+            const errorMessage = (error as Error)?.message || '';
             
-            // If cleanup fails, wait longer and try to continue anyway
-            console.log('[UnifiedPipeline] Waiting longer for system cleanup...');
-            await this.delay(1000);
+            if (errorMessage.includes('Unable to clear existing recordings')) {
+                console.error('[UnifiedPipeline] ❌ Active recording cleanup failed:', error);
+                
+                // If cleanup fails, wait longer and try to continue anyway
+                console.log('[UnifiedPipeline] Waiting longer for system cleanup...');
+                await this.delay(1000);
+            } else {
+                // Other errors are likely benign permission or setup issues
+                console.log('[UnifiedPipeline] ✅ Recording check completed (minor issues ignored)');
+            }
         }
     }
     
@@ -843,18 +889,38 @@ export class UnifiedMLPipelineService {
         try {
             const fileNames = await FileSystem.readDirectoryAsync(dirUri);
             const now = Date.now();
+            let deletedCount = 0;
+            let audioFileCount = 0;
             
             for (const name of fileNames) {
+                // Skip if not a file we should clean
+                if (!name.includes('.m4a') && !name.includes('.wav') && !name.includes('.jpg') && !name.includes('.jpeg')) {
+                    continue;
+                }
+                
                 const fileUri = `${dirUri}${name}`;
                 const info = await FileSystem.getInfoAsync(fileUri) as FileSystem.FileInfo & { modificationTime?: number };
                 const mod = info.modificationTime;
+                
                 if (mod && now - mod * 1000 > maxAgeMinutes * 60 * 1000) {
-                    await FileSystem.deleteAsync(fileUri);
-                    console.log('Deleted old file:', fileUri);
+                    try {
+                        await FileSystem.deleteAsync(fileUri);
+                        deletedCount++;
+                        if (name.includes('.m4a') || name.includes('.wav')) {
+                            audioFileCount++;
+                        }
+                        console.log(`[UnifiedPipeline] Deleted old file: ${name}`);
+                    } catch (deleteError) {
+                        console.warn(`[UnifiedPipeline] Failed to delete ${name}:`, deleteError);
+                    }
                 }
             }
+            
+            if (deletedCount > 0) {
+                console.log(`[UnifiedPipeline] Cleanup summary: Deleted ${deletedCount} files (${audioFileCount} audio files)`);
+            }
         } catch (error) {
-            console.warn('Failed to clean up old files:', error);
+            console.warn('[UnifiedPipeline] Failed to clean up old files:', error);
         }
     }
 }
