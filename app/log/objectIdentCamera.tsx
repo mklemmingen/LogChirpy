@@ -633,10 +633,10 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                     </View>
                 </View>
 
-                {/* Controls Panel */}
-                <View style={styles.controlsPanel}>
+                {/* Controls Panel - Zoom Only */}
+                <View style={styles.controlsPanel} pointerEvents="box-none">
                     {/* Zoom Control */}
-                    <View style={styles.controlGroup}>
+                    <View style={styles.controlGroup} pointerEvents="auto">
                         <ThemedText style={styles.controlLabel}>ZOOM</ThemedText>
                         <Slider
                             style={styles.slider}
@@ -650,35 +650,37 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
                         />
                         <ThemedText style={styles.zoomValue}>{zoom.toFixed(1)}x</ThemedText>
                     </View>
-
-                    {/* Flash Toggle */}
-                    <ThemedPressable
-                        style={[
-                            styles.flashButton, 
-                            { 
-                                backgroundColor: flash === 'on' ? CYBER_COLORS.warning + '40' : CYBER_COLORS.surface,
-                                borderColor: flash === 'on' ? CYBER_COLORS.warning : CYBER_COLORS.border
-                            }
-                        ]}
-                        onPress={() => {
-                            setFlash(flash === 'off' ? 'on' : 'off');
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        }}
-                    >
-                        <ThemedIcon 
-                            name={flash === 'on' ? 'zap' : 'zap-off'} 
-                            size={18}
-                            color={flash === 'on' ? 'accent' : 'primary'}
-                        />
-                        <ThemedText style={[
-                            styles.flashText, 
-                            { color: flash === 'on' ? CYBER_COLORS.warning : CYBER_COLORS.text }
-                        ]}>
-                            FLASH
-                        </ThemedText>
-                    </ThemedPressable>
                 </View>
 
+            </View>
+
+            {/* Flash Button - Bottom Right Corner */}
+            <View style={styles.flashButtonContainer}>
+                <ThemedPressable
+                    style={[
+                        styles.flashButton, 
+                        { 
+                            backgroundColor: flash === 'on' ? CYBER_COLORS.warning + '40' : CYBER_COLORS.surface,
+                            borderColor: flash === 'on' ? CYBER_COLORS.warning : CYBER_COLORS.border
+                        }
+                    ]}
+                    onPress={() => {
+                        setFlash(flash === 'off' ? 'on' : 'off');
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                >
+                    <ThemedIcon 
+                        name={flash === 'on' ? 'zap' : 'zap-off'} 
+                        size={18}
+                        color={flash === 'on' ? 'accent' : 'primary'}
+                    />
+                    <ThemedText style={[
+                        styles.flashText, 
+                        { color: flash === 'on' ? CYBER_COLORS.warning : CYBER_COLORS.text }
+                    ]}>
+                        FLASH
+                    </ThemedText>
+                </ThemedPressable>
             </View>
         </View>
     );
@@ -816,12 +818,12 @@ const styles = StyleSheet.create({
     controlsPanel: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         marginBottom: 20,
     },
     controlGroup: {
         flex: 1,
-        marginRight: 20,
+        maxWidth: 200,
     },
     controlLabel: {
         color: CYBER_COLORS.textMuted,
@@ -829,15 +831,25 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 8,
         letterSpacing: 1,
+        textAlign: 'center',
     },
     slider: {
-        height: 30,
+        height: 40,
+        width: '100%',
     },
     zoomValue: {
         color: CYBER_COLORS.text,
         fontSize: 12,
         textAlign: 'center',
         marginTop: 4,
+    },
+    
+    // Flash button container - bottom right corner
+    flashButtonContainer: {
+        position: 'absolute',
+        bottom: 20,
+        right: 20,
+        zIndex: 10,
     },
     flashButton: {
         flexDirection: 'row',
