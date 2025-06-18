@@ -416,7 +416,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
             />
 
             {/* Dark overlay for better contrast */}
-            <View style={styles.overlay} />
+            <View style={styles.overlay} pointerEvents="none" />
 
             {/* Detection Overlays */}
             <View pointerEvents="none" style={styles.svgContainer}>
@@ -512,7 +512,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
             </View>
 
             {/* Recording Progress Indicator */}
-            <View style={styles.recordingIndicatorContainer}>
+            <View style={styles.recordingIndicatorContainer} pointerEvents="none">
                 <Svg width={100} height={100} style={styles.recordingIndicator}>
                     {/* Background circle */}
                     <Circle
@@ -563,7 +563,7 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
             </View>
 
             {/* Cyberpunk HUD */}
-            <View style={styles.hud}>
+            <View style={styles.hud} pointerEvents="box-none">
 
                 {/* Header with status info */}
                 <View style={styles.header}>
