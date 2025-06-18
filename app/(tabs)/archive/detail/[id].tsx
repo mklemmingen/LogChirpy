@@ -1,426 +1,387 @@
-import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, Alert, Image, Linking, Modal, Pressable, Share, StyleSheet, View,} from 'react-native';
-import {Audio} from 'expo-av';
-import {useLocalSearchParams, useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    Linking,
+    Pressable,
+    ScrollView,
+    Share,
+    StyleSheet,
+    View,
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Audio } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
-import Animated, {
-    FadeInDown,
-    FadeInUp,
-    Layout,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import {type BirdSpotting, getSpottingById} from '@/services/database';
-import {ModernCard} from '@/components/ModernCard';
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedView} from '@/components/ThemedView';
-import {ThemedScrollView} from '@/components/ThemedScrollView';
-import {ThemedIcon} from '@/components/ThemedIcon';
-import {useTheme} from '@/hooks/useThemeColor';
+import { type BirdSpotting, getSpottingById } from '@/services/database';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import { useColors } from '@/hooks/useThemeColor';
 
-type SpottingDetail = BirdSpotting | null;
+// Safe text rendering helper
+const safeText = (value: any, fallback: string = ' '): string => {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value === 'string' && value.trim() === '') return fallback;
+    try {
+        const result = String(value);
+        return typeof result === 'string' ? result : fallback;
+    } catch {
+        return fallback;
+    }
+};
 
-// Share Options Modal Component
-function ShareModal({
-                        visible,
-                        onClose,
-                        entry,
-                        onTextShare,
-                        onImageShare,
-                        onSaveImage
-                    }: {
-    visible: boolean;
-    onClose: () => void;
-    entry: BirdSpotting;
-    onTextShare: () => void;
-    onImageShare: () => void;
-    onSaveImage: () => void;
-}) {
-    const theme = useTheme();
-    const { t } = useTranslation();
+// Safe date formatting
+const safeDate = (dateString: any, fallback: string = 'Unknown date'): string => {
+    try {
+        if (!dateString) return fallback;
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return fallback;
+        return date.toLocaleDateString();
+    } catch {
+        return fallback;
+    }
+};
 
-    const shareOptions = [
-        {
-            id: 'text',
-            icon: 'message-circle',
-            title: t('archive.share_text'),
-            subtitle: t('archive.share_text_description'),
-            onPress: onTextShare
-        },
-        ...(entry.imageUri ? [
-            {
-                id: 'image',
-                icon: 'image',
-                title: t('archive.share_with_image'),
-                subtitle: t('archive.share_image_description'),
-                onPress: onImageShare
-            },
-            {
-                id: 'save',
-                icon: 'download',
-                title: t('archive.save_to_gallery'),
-                subtitle: t('archive.save_image_description'),
-                onPress: onSaveImage
-            }
-        ] : [])
-    ];
+// Safe number formatting
+const safeNumber = (num: any, decimals: number = 0, fallback: string = '0'): string => {
+    try {
+        if (num === null || num === undefined || isNaN(Number(num))) return fallback;
+        const result = Number(num).toFixed(decimals);
+        return result || fallback;
+    } catch {
+        return fallback;
+    }
+};
 
-    return (
-        <Modal
-            visible={visible}
-            transparent
-            animationType="slide"
-            onRequestClose={onClose}
-        >
-            <Pressable style={styles.modalOverlay} onPress={onClose}>
-                <Animated.View
-                    entering={FadeInUp.duration(300)}
-                    style={[styles.shareModal, { backgroundColor: theme.colors.background.primary }]}
-                >
-                    <Pressable onPress={(e) => e.stopPropagation()}>
-                        <View style={styles.modalHeader}>
-                            <ThemedText variant="h3" style={styles.modalTitle}>
-                                {t('archive.share_options')}
-                            </ThemedText>
-                            <ThemedPressable
-                                variant="ghost"
-                                size="sm"
-                                onPress={onClose}
-                                style={styles.modalCloseButton}
-                            >
-                                <ThemedIcon name="x" size={20} color="secondary" />
-                            </ThemedPressable>
-                        </View>
+// Safe translation helper
+const safeTranslate = (t: any, key: string, fallback: string): string => {
+    try {
+        const result = t(key);
+        if (typeof result === 'string' && result.trim() !== '') {
+            return result;
+        }
+        return fallback;
+    } catch {
+        return fallback;
+    }
+};
 
-                        <View style={styles.shareOptionsContainer}>
-                            {shareOptions.map((option) => (
-                                <ThemedPressable
-                                    key={option.id}
-                                    variant="ghost"
-                                    style={styles.shareOption}
-                                    onPress={() => {
-                                        option.onPress();
-                                        onClose();
-                                    }}
-                                >
-                                    <View style={[styles.shareIconContainer, { backgroundColor: theme.colors.background.secondary }]}>
-                                        <ThemedIcon name={option.icon as any} size={24} color="primary" />
-                                    </View>
-                                    <View style={styles.shareTextContainer}>
-                                        <ThemedText variant="body" style={styles.shareOptionTitle}>
-                                            {option.title}
-                                        </ThemedText>
-                                        <ThemedText variant="bodySmall" color="secondary" style={styles.shareOptionSubtitle}>
-                                            {option.subtitle}
-                                        </ThemedText>
-                                    </View>
-                                    <ThemedIcon name="chevron-right" size={16} color="tertiary" />
-                                </ThemedPressable>
-                            ))}
-                        </View>
-                    </Pressable>
-                </Animated.View>
-            </Pressable>
-        </Modal>
-    );
-}
-
-// Header Component
-function DetailHeader({
-                          entry,
-                          onBack,
-                          onShare
-                      }: {
-    entry: BirdSpotting;
-    onBack: () => void;
-    onShare: () => void;
-}) {
-    const theme = useTheme();
-    const insets = useSafeAreaInsets();
-    const { t } = useTranslation();
-
-    const scale = useSharedValue(1);
-
-    const handleBackPress = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        scale.value = withSpring(0.95, { damping: 15, stiffness: 300 }, () => {
-            scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-        });
-        onBack();
-    };
-
-    const backButtonStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
-    }));
-
-    return (
-        <Animated.View
-            entering={FadeInUp.springify()}
-            style={[styles.header, { marginTop: insets.top }]}
-        >
-            <Animated.View style={backButtonStyle}>
-                <ThemedPressable
-                    variant="secondary"
-                    size="md"
-                    onPress={handleBackPress}
-                    style={styles.backButton}
-                >
-                    <ThemedIcon name="arrow-left" size={20} color="primary" />
-                </ThemedPressable>
-            </Animated.View>
-
-            <ThemedView style={styles.headerInfo}>
-                <ThemedText
-                    variant="h2"
-                    style={styles.headerTitle}
-                    numberOfLines={2}
-                >
-                    {entry.birdType || t('archive.unknown_bird')}
-                </ThemedText>
-                <ThemedText
-                    variant="bodySmall"
-                    style={[styles.headerDate, { color: theme.colors.text.secondary }]}
-                >
-                    {entry.date ? new Date(entry.date).toLocaleDateString() : ''}
-                </ThemedText>
-            </ThemedView>
-
-            <ThemedPressable
-                variant="ghost"
-                size="md"
-                onPress={onShare}
-                style={styles.shareButton}
-            >
-                <ThemedIcon name="share" size={18} color="primary" />
-            </ThemedPressable>
-        </Animated.View>
-    );
-}
-
-// Media Section
-function MediaSection({
-                          entry,
-                          onImageSave,
-                          onAudioPlay,
-                          audioLoading,
-                          currentSound
-                      }: {
-    entry: BirdSpotting;
-    onImageSave: (uri: string) => void;
-    onAudioPlay: (uri: string) => void;
-    audioLoading: boolean;
-    currentSound: Audio.Sound | null;
-}) {
-    const theme = useTheme();
-    const { t } = useTranslation();
-
-    if (!entry.imageUri && !entry.videoUri && !entry.audioUri) return null;
-
-    return (
-        <Animated.View entering={FadeInDown.delay(100).springify()} layout={Layout.springify()}>
-            <ModernCard elevated={true} bordered={false} style={styles.section}>
-                <ThemedView style={styles.sectionHeader}>
-                    <ThemedIcon name="camera" size={20} color="primary" />
-                    <ThemedText variant="h3" style={styles.sectionTitle}>
-                        {t('archive.media')}
-                    </ThemedText>
-                </ThemedView>
-
-                <ThemedView style={styles.mediaContainer}>
-                    {/* Image */}
-                    {entry.imageUri && (
-                        <ThemedPressable
-                            variant="ghost"
-                            style={styles.mediaItem}
-                            onLongPress={() => onImageSave(entry.imageUri)}
-                        >
-                            <Image source={{ uri: entry.imageUri }} style={styles.mediaImage} />
-                            <ThemedView style={[styles.mediaOverlay, { backgroundColor: theme.colors.overlay.medium }]}>
-                                <ThemedIcon name="maximize-2" size={20} color="primary" />
-                            </ThemedView>
-                        </ThemedPressable>
-                    )}
-
-                    {/* Video */}
-                    {entry.videoUri && (
-                        <ThemedPressable variant="ghost" style={styles.mediaItem}>
-                            <Image source={{ uri: entry.videoUri }} style={styles.mediaImage} />
-                            <ThemedView style={[styles.mediaOverlay, { backgroundColor: theme.colors.overlay.medium }]}>
-                                <ThemedIcon name="play" size={24} color="primary" />
-                            </ThemedView>
-                        </ThemedPressable>
-                    )}
-
-                    {/* Audio */}
-                    {entry.audioUri && (
-                        <ThemedPressable
-                            variant="primary"
-                            onPress={() => onAudioPlay(entry.audioUri)}
-                            disabled={audioLoading}
-                            style={styles.audioButton}
-                        >
-                            {audioLoading ? (
-                                <ActivityIndicator size="small" color={theme.colors.text.inverse} />
-                            ) : (
-                                <ThemedIcon
-                                    name={currentSound ? "pause" : "play"}
-                                    size={18}
-                                    color="primary"
-                                />
-                            )}
-                            <ThemedText variant="button" style={{ color: theme.colors.text.inverse }}>
-                                {t('archive.play_audio')}
-                            </ThemedText>
-                        </ThemedPressable>
-                    )}
-                </ThemedView>
-            </ModernCard>
-        </Animated.View>
-    );
-}
-
-// Info Section
-function InfoSection({
-                         title,
-                         icon,
-                         children,
-                         delay = 0
-                     }: {
-    title: string;
-    icon: string;
-    children: React.ReactNode;
-    delay?: number;
-}) {
-    return (
-        <Animated.View
-            entering={FadeInDown.delay(delay).springify()}
-            layout={Layout.springify()}
-        >
-            <ModernCard elevated={true} bordered={false} style={styles.section}>
-                <ThemedView style={styles.sectionHeader}>
-                    <ThemedIcon name={icon as any} size={20} color="primary" />
-                    <ThemedText variant="h3" style={styles.sectionTitle}>
-                        {title}
-                    </ThemedText>
-                </ThemedView>
-                <ThemedView style={styles.sectionContent}>
-                    {children}
-                </ThemedView>
-            </ModernCard>
-        </Animated.View>
-    );
-}
-
-// Info Row Component
-function InfoRow({
-                     label,
-                     value,
-                     icon,
-                     onPress,
-                     style
-                 }: {
+// Info Row Component with complete null safety
+interface InfoRowProps {
     label: string;
-    value: string;
+    value: any;
     icon?: string;
     onPress?: () => void;
-    style?: object;
-}) {
-    const theme = useTheme();
+    style?: any;
+}
+
+function InfoRow({ label, value, icon, onPress, style }: InfoRowProps) {
+    const colors = useColors();
+    const displayValue = safeText(value, ' ');
+    const displayLabel = safeText(label, ' ');
+    
+    // Additional safety check
+    if (typeof displayValue !== 'string' || typeof displayLabel !== 'string') {
+        console.warn('InfoRow received non-string values:', { label, value, displayLabel, displayValue });
+        return null;
+    }
+
+    const content = (
+        <>
+            <ThemedText variant="caption" style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                {displayLabel}
+            </ThemedText>
+            <View style={styles.infoValueContainer}>
+                {icon && (
+                    <ThemedIcon name={icon as any} size={14} color="secondary" style={styles.infoIcon} />
+                )}
+                <ThemedText variant="body" style={[styles.infoValue, style]}>
+                    {displayValue}
+                </ThemedText>
+                {onPress && (
+                    <ThemedIcon name="external-link" size={12} color="tertiary" />
+                )}
+            </View>
+        </>
+    );
 
     if (onPress) {
         return (
             <ThemedPressable
                 variant="ghost"
-                style={[styles.infoRow, styles.pressableRow]}
+                style={styles.pressableInfoRow}
                 onPress={onPress}
             >
-                <ThemedText variant="label" style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
-                    {label || ''}
-                </ThemedText>
-                <ThemedView style={styles.infoValueContainer}>
-                    {icon && (
-                        <ThemedIcon name={icon as any} size={14} color="secondary" />
-                    )}
-                    <ThemedText variant="body" style={[styles.infoValue, style]}>
-                        {value || ''}
-                    </ThemedText>
-                    <ThemedIcon name="external-link" size={14} color="tertiary" />
-                </ThemedView>
+                {content}
             </ThemedPressable>
         );
     }
 
+    return <View style={styles.infoRow}>{content}</View>;
+}
+
+// Section Component
+interface SectionProps {
+    title: string;
+    icon: string;
+    children: React.ReactNode;
+}
+
+function Section({ title, icon, children }: SectionProps) {
+    const colors = useColors();
+    
+    // Debug logging for section rendering
+    console.log('[Section Debug] Rendering section:', { title, icon, hasChildren: !!children });
+    
+    const safeTitle = safeText(title, 'Section');
+    const safeIcon = safeText(icon, 'info');
+    
+    // Additional validation
+    if (typeof safeTitle !== 'string') {
+        console.error('[Section Error] Invalid title:', { title, safeTitle });
+        return null;
+    }
+
     return (
-        <ThemedView style={styles.infoRow}>
-            <ThemedText variant="label" style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
-                {label || ''}
-            </ThemedText>
-            <ThemedView style={styles.infoValueContainer}>
-                {icon && (
-                    <ThemedIcon name={icon as any} size={14} color="secondary" />
-                )}
-                <ThemedText variant="body" style={[styles.infoValue, style]}>
-                    {value || ''}
+        <View style={[styles.section, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <View style={styles.sectionHeader}>
+                <ThemedIcon name={safeIcon as any} size={20} color="primary" />
+                <ThemedText variant="h3" style={styles.sectionTitle}>
+                    {safeTitle}
                 </ThemedText>
-            </ThemedView>
-        </ThemedView>
+            </View>
+            <View style={styles.sectionContent}>
+                {children}
+            </View>
+        </View>
     );
 }
 
+// Media Component
+interface MediaSectionProps {
+    entry: BirdSpotting;
+    onImagePress?: (uri: string) => void;
+    onAudioPress?: (uri: string) => void;
+}
+
+function MediaSection({ entry, onImagePress, onAudioPress }: MediaSectionProps) {
+    const { t } = useTranslation();
+    const colors = useColors();
+    const [audioLoading, setAudioLoading] = useState(false);
+
+    const handleAudioPlay = useCallback(async () => {
+        if (!entry.audioUri || !onAudioPress) return;
+
+        try {
+            setAudioLoading(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onAudioPress(entry.audioUri);
+        } catch (error) {
+            console.error('Audio play error:', error);
+            Alert.alert(safeText(t('common.error') || 'Error'), 'Failed to play audio');
+        } finally {
+            setAudioLoading(false);
+        }
+    }, [entry.audioUri, onAudioPress, t]);
+
+    const hasMedia = !!(entry.imageUri || entry.videoUri || entry.audioUri);
+
+    if (!hasMedia) return null;
+
+    return (
+        <Section title={safeText(t('archive.media') || 'Media')} icon="camera">
+            <View style={styles.mediaContainer}>
+                {/* Image */}
+                {entry.imageUri && (
+                    <Pressable
+                        style={styles.mediaItem}
+                        onPress={() => onImagePress?.(entry.imageUri!)}
+                    >
+                        <Image
+                            source={{ uri: entry.imageUri }}
+                            style={styles.mediaImage}
+                            resizeMode="cover"
+                            onError={(error) => {
+                                console.warn('Image load error:', error);
+                            }}
+                        />
+                        <View style={[styles.mediaOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+                            <ThemedIcon name="maximize-2" size={20} color="primary" />
+                        </View>
+                    </Pressable>
+                )}
+
+                {/* Video */}
+                {entry.videoUri && (
+                    <Pressable style={styles.mediaItem}>
+                        <Image
+                            source={{ uri: entry.videoUri }}
+                            style={styles.mediaImage}
+                            resizeMode="cover"
+                        />
+                        <View style={[styles.mediaOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+                            <ThemedIcon name="play" size={24} color="primary" />
+                        </View>
+                    </Pressable>
+                )}
+
+                {/* Audio */}
+                {entry.audioUri && (
+                    <ThemedPressable
+                        variant="primary"
+                        style={styles.audioButton}
+                        onPress={handleAudioPlay}
+                        disabled={audioLoading}
+                    >
+                        {audioLoading ? (
+                            <ActivityIndicator size="small" color={colors.textInverse} />
+                        ) : (
+                            <ThemedIcon name="play" size={18} color="inverse" />
+                        )}
+                        <ThemedText variant="button" style={{ color: colors.textInverse }}>
+                            {safeText(t('archive.play_audio') || 'Play Audio')}
+                        </ThemedText>
+                    </ThemedPressable>
+                )}
+            </View>
+        </Section>
+    );
+}
+
+// Main Component
 export default function ArchiveDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const { t } = useTranslation();
     const router = useRouter();
-    const theme = useTheme();
+    const colors = useColors();
+    const insets = useSafeAreaInsets();
 
-    const [entry, setEntry] = useState<SpottingDetail>(null);
+    const [entry, setEntry] = useState<BirdSpotting | null>(null);
     const [loading, setLoading] = useState(true);
-    const [audioLoading, setAudioLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
-    const [shareModalVisible, setShareModalVisible] = useState(false);
 
     // Load spotting data
     useEffect(() => {
         const loadSpotting = async () => {
             try {
+                console.log('[Archive Detail] Loading spotting with ID:', id);
                 setLoading(true);
-                const data = getSpottingById(Number(id));
+                setError(null);
+
+                if (!id) {
+                    throw new Error('No ID provided');
+                }
+
+                const numericId = parseInt(id, 10);
+                if (isNaN(numericId)) {
+                    throw new Error('Invalid ID format');
+                }
+
+                console.log('[Archive Detail] Fetching data for ID:', numericId);
+                const data = getSpottingById(numericId);
+                if (!data) {
+                    throw new Error('Entry not found');
+                }
+
+                console.log('[Archive Detail] Loaded data:', {
+                    id: data.id,
+                    birdType: data.birdType,
+                    hasImageUri: !!data.imageUri,
+                    hasAudioUri: !!data.audioUri,
+                    hasTextNote: !!data.textNote,
+                    date: data.date,
+                    gpsLat: data.gpsLat,
+                    gpsLng: data.gpsLng,
+                    synced: data.synced
+                });
+
                 setEntry(data);
-            } catch (e) {
-                console.error(e);
-                Alert.alert(t('archive.error'), t('archive.load_detail_failed'));
-                router.back();
+            } catch (err) {
+                console.error('[Archive Detail] Load spotting error:', err);
+                const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+                setError(errorMessage);
             } finally {
                 setLoading(false);
             }
         };
 
-        if (id) {
-            loadSpotting();
-        }
-    }, [id, t, router]);
+        loadSpotting();
+    }, [id]);
 
     // Cleanup audio on unmount
     useEffect(() => {
         return () => {
             if (currentSound) {
-                currentSound.unloadAsync();
+                currentSound.unloadAsync().catch(console.warn);
             }
         };
     }, [currentSound]);
 
-    // Audio playback
-    const playAudio = useCallback(async (uri: string) => {
-        try {
-            setAudioLoading(true);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Navigation and actions
+    const handleBack = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.back();
+    }, [router]);
 
+    const handleShare = useCallback(async () => {
+        if (!entry) return;
+
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+            const message = [
+                `Bird Spotting: ${safeText(entry.birdType, 'Unknown bird')}`,
+                `Date: ${safeDate(entry.date)}`,
+                (entry.gpsLat !== null && entry.gpsLat !== undefined && entry.gpsLng !== null && entry.gpsLng !== undefined)
+                    ? `Location: ${safeNumber(entry.gpsLat, 6)}, ${safeNumber(entry.gpsLng, 6)}`
+                    : null,
+                entry.textNote ? `Notes: ${safeText(entry.textNote)}` : null
+            ].filter(Boolean).join('\n');
+
+            await Share.share({
+                message,
+                title: 'Bird Spotting Details'
+            });
+        } catch (error) {
+            console.error('Share error:', error);
+            Alert.alert(safeText(t('common.error') || 'Error'), 'Failed to share');
+        }
+    }, [entry, t]);
+
+    const handleLocationPress = useCallback(() => {
+        if (!entry?.gpsLat || !entry?.gpsLng) return;
+
+        const url = `https://maps.google.com/?q=${entry.gpsLat},${entry.gpsLng}`;
+        Linking.openURL(url).catch((error) => {
+            console.error('Failed to open maps:', error);
+        });
+    }, [entry]);
+
+    const handleImagePress = useCallback(async (uri: string) => {
+        try {
+            const { status } = await MediaLibrary.requestPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission needed', 'Permission required to save images');
+                return;
+            }
+
+            await MediaLibrary.saveToLibraryAsync(uri);
+            Alert.alert('Success', 'Image saved to gallery');
+        } catch (error) {
+            console.error('Save image error:', error);
+            Alert.alert('Error', 'Failed to save image');
+        }
+    }, []);
+
+    const handleAudioPress = useCallback(async (uri: string) => {
+        try {
             if (currentSound) {
                 await currentSound.unloadAsync();
             }
@@ -434,120 +395,69 @@ export default function ArchiveDetailScreen() {
 
             sound.setOnPlaybackStatusUpdate((status) => {
                 if (status.isLoaded && status.didJustFinish) {
-                    sound.unloadAsync();
+                    sound.unloadAsync().catch(console.warn);
                     setCurrentSound(null);
                 }
             });
         } catch (error) {
             console.error('Audio playback error:', error);
-            Alert.alert(t('archive.error'), t('archive.audio_play_failed'));
-        } finally {
-            setAudioLoading(false);
+            Alert.alert('Error', 'Failed to play audio');
         }
-    }, [currentSound, t]);
-
-    // Navigation and actions
-    const openLocation = useCallback(() => {
-        if (entry?.gpsLat && entry?.gpsLng) {
-            const url = `https://maps.google.com/?q=${entry.gpsLat},${entry.gpsLng}`;
-            Linking.openURL(url);
-        }
-    }, [entry]);
-
-    // Sharing functions
-    const shareText = useCallback(async () => {
-        if (!entry) return;
-
-        try {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            const message = t('archive.share_message', {
-                bird: entry.birdType || t('archive.unknown_bird'),
-                date: new Date(entry.date).toLocaleDateString(),
-                location: entry.gpsLat && entry.gpsLng
-                    ? `${entry.gpsLat.toFixed(6)}, ${entry.gpsLng.toFixed(6)}`
-                    : t('archive.location_unknown')
-            });
-
-            await Share.share({
-                message,
-                title: t('archive.share_title')
-            });
-        } catch (error) {
-            console.error('Share text error:', error);
-            Alert.alert(t('archive.error'), t('archive.share_failed'));
-        }
-    }, [entry, t]);
-
-    const shareWithImage = useCallback(async () => {
-        if (!entry?.imageUri) return;
-
-        try {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            
-            // Create message with image description
-            const message = t('archive.share_message', {
-                bird: entry.birdType || t('archive.unknown_bird'),
-                date: new Date(entry.date).toLocaleDateString(),
-                location: entry.gpsLat && entry.gpsLng
-                    ? `${entry.gpsLat.toFixed(6)}, ${entry.gpsLng.toFixed(6)}`
-                    : t('archive.location_unknown')
-            });
-
-            // On mobile platforms, we can share the image URI directly
-            // The Share API will handle the image sharing
-            await Share.share({
-                message,
-                url: entry.imageUri, // This works on iOS and some Android apps
-                title: t('archive.share_title')
-            });
-        } catch (error) {
-            console.error('Share image error:', error);
-            Alert.alert(t('archive.error'), t('archive.share_image_failed'));
-        }
-    }, [entry, t]);
-
-    const showShareModal = useCallback(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setShareModalVisible(true);
-    }, []);
-
-    const saveImageToLibrary = useCallback(async (uri: string) => {
-        try {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            const { status } = await MediaLibrary.requestPermissionsAsync();
-            if (status !== 'granted') {
-                Alert.alert(t('archive.permission_needed'), t('archive.media_permission_message'));
-                return;
-            }
-
-            await MediaLibrary.saveToLibraryAsync(uri);
-            Alert.alert(t('archive.success'), t('archive.image_saved'));
-        } catch (error) {
-            console.error('Save image error:', error);
-            Alert.alert(t('archive.error'), t('archive.save_failed'));
-        }
-    }, [t]);
+    }, [currentSound]);
 
     // Loading state
     if (loading) {
         return (
-            <ThemedView style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={theme.colors.text.primary} />
-                <ThemedText variant="body" style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
-                    {t('archive.loading_detail')}
+            <ThemedView style={styles.centerContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <ThemedText variant="body" style={styles.centerText}>
+                    {safeText(t('common.loading') || 'Loading...')}
                 </ThemedText>
             </ThemedView>
         );
     }
 
     // Error state
-    if (!entry) {
+    if (error || !entry) {
         return (
-            <ThemedView style={styles.loadingContainer}>
+            <ThemedView style={styles.centerContainer}>
                 <ThemedIcon name="alert-triangle" size={48} color="error" />
-                <ThemedText variant="h2" style={styles.errorText}>
-                    {t('archive.not_found')}
+                <ThemedText variant="h2" style={styles.centerText}>
+                    {safeText(error || t('common.error') || 'Entry not found')}
                 </ThemedText>
+                <ThemedPressable
+                    variant="primary"
+                    style={styles.backButton}
+                    onPress={handleBack}
+                >
+                    <ThemedText variant="button">
+                        {safeText(t('common.back') || 'Back')}
+                    </ThemedText>
+                </ThemedPressable>
+            </ThemedView>
+        );
+    }
+
+    // Additional validation before rendering
+    console.log('[Archive Detail] About to render entry:', entry);
+    
+    if (!entry) {
+        console.error('[Archive Detail] Entry is null/undefined');
+        return (
+            <ThemedView style={styles.centerContainer}>
+                <ThemedIcon name="alert-triangle" size={48} color="error" />
+                <ThemedText variant="h2" style={styles.centerText}>
+                    Entry not found
+                </ThemedText>
+                <ThemedPressable
+                    variant="primary"
+                    style={styles.backButton}
+                    onPress={handleBack}
+                >
+                    <ThemedText variant="button">
+                        Back
+                    </ThemedText>
+                </ThemedPressable>
             </ThemedView>
         );
     }
@@ -555,24 +465,37 @@ export default function ArchiveDetailScreen() {
     return (
         <ThemedView style={styles.container}>
             {/* Header */}
-            <DetailHeader
-                entry={entry}
-                onBack={() => router.back()}
-                onShare={showShareModal}
-            />
+            <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+                <ThemedPressable
+                    variant="secondary"
+                    size="sm"
+                    onPress={handleBack}
+                    style={styles.headerButton}
+                >
+                    <ThemedIcon name="arrow-left" size={20} color="primary" />
+                </ThemedPressable>
 
-            {/* Share Modal */}
-            <ShareModal
-                visible={shareModalVisible}
-                onClose={() => setShareModalVisible(false)}
-                entry={entry}
-                onTextShare={shareText}
-                onImageShare={shareWithImage}
-                onSaveImage={() => entry?.imageUri && saveImageToLibrary(entry.imageUri)}
-            />
+                <View style={styles.headerInfo}>
+                    <ThemedText variant="h2" style={styles.headerTitle} numberOfLines={2}>
+                        {safeText(entry.birdType, t('archive.unknown_bird') || 'Unknown Bird')}
+                    </ThemedText>
+                    <ThemedText variant="caption" style={styles.headerDate}>
+                        {safeDate(entry.date)}
+                    </ThemedText>
+                </View>
+
+                <ThemedPressable
+                    variant="ghost"
+                    size="sm"
+                    onPress={handleShare}
+                    style={styles.headerButton}
+                >
+                    <ThemedIcon name="share" size={18} color="primary" />
+                </ThemedPressable>
+            </View>
 
             {/* Content */}
-            <ThemedScrollView
+            <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
@@ -580,90 +503,88 @@ export default function ArchiveDetailScreen() {
                 {/* Media Section */}
                 <MediaSection
                     entry={entry}
-                    onImageSave={saveImageToLibrary}
-                    onAudioPlay={playAudio}
-                    audioLoading={audioLoading}
-                    currentSound={currentSound}
+                    onImagePress={handleImagePress}
+                    onAudioPress={handleAudioPress}
                 />
 
                 {/* Basic Information */}
-                <InfoSection title={t('archive.details')} icon="info" delay={200}>
+                <Section title={safeText(t('archive.details') || 'Details')} icon="info">
                     <InfoRow
-                        label={t('archive.species')}
-                        value={entry.birdType || t('archive.unknown_bird')}
+                        label={safeText(t('archive.species') || 'Species')}
+                        value={safeText(entry.birdType, t('archive.unknown_bird') || 'Unknown Bird')}
                     />
                     <InfoRow
-                        label={t('archive.date_time')}
-                        value={entry.date ? new Date(entry.date).toLocaleString() : t('archive.unknown')}
+                        label={safeText(t('archive.date_time') || 'Date & Time')}
+                        value={safeDate(entry.date)}
                     />
                     {entry.textNote && (
                         <InfoRow
-                            label={t('archive.notes')}
-                            value={entry.textNote}
+                            label={safeText(t('archive.notes') || 'Notes')}
+                            value={safeText(entry.textNote)}
                             style={styles.noteText}
                         />
                     )}
                     {entry.latinBirDex && (
                         <InfoRow
-                            label={t('archive.latin_name')}
-                            value={entry.latinBirDex}
-                            style={[styles.latinText, { color: theme.colors.text.secondary }]}
+                            label={safeText(t('archive.latin_name') || 'Latin Name')}
+                            value={safeText(entry.latinBirDex)}
+                            style={styles.latinText}
                         />
                     )}
-                </InfoSection>
+                </Section>
 
                 {/* Location Section */}
-                {(entry.gpsLat && entry.gpsLng) && (
-                    <InfoSection title={t('archive.location')} icon="map-pin" delay={300}>
+                {(entry.gpsLat !== null && entry.gpsLat !== undefined && entry.gpsLng !== null && entry.gpsLng !== undefined) && (
+                    <Section title={safeText(t('archive.location') || 'Location')} icon="map-pin">
                         <InfoRow
-                            label={t('archive.coordinates')}
-                            value={`${entry.gpsLat.toFixed(6)}, ${entry.gpsLng.toFixed(6)}`}
+                            label={safeText(t('archive.coordinates') || 'Coordinates')}
+                            value={`${safeNumber(entry.gpsLat, 6)}, ${safeNumber(entry.gpsLng, 6)}`}
                             icon="map-pin"
-                            onPress={openLocation}
+                            onPress={handleLocationPress}
                             style={styles.coordinatesText}
                         />
-                    </InfoSection>
+                    </Section>
                 )}
 
                 {/* AI Predictions */}
                 {(entry.imagePrediction || entry.audioPrediction) && (
-                    <InfoSection title={t('archive.ai_analysis')} icon="cpu" delay={400}>
+                    <Section title={safeText(t('archive.ai_analysis') || 'AI Analysis')} icon="cpu">
                         {entry.imagePrediction && (
                             <InfoRow
-                                label={t('archive.image_ai')}
-                                value={entry.imagePrediction}
+                                label={safeText(t('archive.image_ai') || 'Image AI')}
+                                value={safeText(entry.imagePrediction)}
                                 icon="camera"
                             />
                         )}
                         {entry.audioPrediction && (
                             <InfoRow
-                                label={t('archive.audio_ai')}
-                                value={entry.audioPrediction}
+                                label={safeText(t('archive.audio_ai') || 'Audio AI')}
+                                value={safeText(entry.audioPrediction)}
                                 icon="mic"
                             />
                         )}
-                    </InfoSection>
+                    </Section>
                 )}
 
                 {/* Technical Details */}
-                <InfoSection title={t('archive.technical')} icon="database" delay={500}>
+                <Section title={safeText(t('archive.technical') || 'Technical')} icon="database">
                     <InfoRow
-                        label={t('archive.entry_id')}
-                        value={`#${entry.id}`}
+                        label={safeText(t('archive.entry_id') || 'Entry ID')}
+                        value={`#${safeText(entry.id?.toString(), 'unknown')}`}
                         style={styles.technicalText}
                     />
                     <InfoRow
-                        label={t('archive.sync_status')}
-                        value={entry.synced ? t('archive.synced') : t('archive.local_only')}
+                        label={safeText(t('archive.sync_status') || 'Sync Status')}
+                        value={entry.synced ? safeText(t('archive.synced') || 'Synced') : safeText(t('archive.local_only') || 'Local Only')}
                         icon={entry.synced ? "check-circle" : "upload-cloud"}
                     />
                     <InfoRow
-                        label={t('archive.created')}
-                        value={entry.date ? new Date(entry.date).toLocaleDateString() : t('archive.unknown')}
+                        label={safeText(t('archive.created') || 'Created')}
+                        value={safeDate(entry.date)}
                         style={styles.technicalText}
                     />
-                </InfoSection>
-            </ThemedScrollView>
+                </Section>
+            </ScrollView>
         </ThemedView>
     );
 }
@@ -672,17 +593,17 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    loadingContainer: {
+    centerContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        padding: 20,
         gap: 16,
     },
-    loadingText: {
+    centerText: {
         textAlign: 'center',
     },
-    errorText: {
-        textAlign: 'center',
+    backButton: {
         marginTop: 16,
     },
 
@@ -691,11 +612,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-start',
         paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingBottom: 16,
         gap: 16,
     },
-    backButton: {
+    headerButton: {
         minWidth: 44,
+        minHeight: 44,
     },
     headerInfo: {
         flex: 1,
@@ -706,10 +628,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     headerDate: {
-        opacity: 0.8,
-    },
-    shareButton: {
-        minWidth: 44,
+        opacity: 0.7,
     },
 
     // Scroll View
@@ -724,7 +643,9 @@ const styles = StyleSheet.create({
 
     // Sections
     section: {
-        overflow: 'hidden',
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1,
     },
     sectionHeader: {
         flexDirection: 'row',
@@ -736,53 +657,26 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     sectionContent: {
-        gap: 16,
-    },
-
-    // Media
-    mediaContainer: {
-        gap: 16,
-    },
-    mediaItem: {
-        borderRadius: 12,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    mediaImage: {
-        width: '100%',
-        height: 200,
-        resizeMode: 'cover',
-    },
-    mediaOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    videoOverlay: {
-        // backgroundColor applied dynamically via theme.colors.overlay.medium
-    },
-    audioButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 16,
+        gap: 12,
     },
 
     // Info Rows
     infoRow: {
-        gap: 8,
+        gap: 4,
         paddingVertical: 8,
     },
-    pressableRow: {
-        borderRadius: 8,
-        marginHorizontal: -8,
+    pressableInfoRow: {
+        gap: 4,
+        paddingVertical: 8,
         paddingHorizontal: 8,
+        marginHorizontal: -8,
+        borderRadius: 8,
     },
     infoLabel: {
         textTransform: 'uppercase',
         fontWeight: '600',
         letterSpacing: 0.5,
+        fontSize: 11,
     },
     infoValueContainer: {
         flexDirection: 'row',
@@ -790,83 +684,54 @@ const styles = StyleSheet.create({
         gap: 8,
         flex: 1,
     },
+    infoIcon: {
+        marginRight: 4,
+    },
     infoValue: {
         flex: 1,
-        lineHeight: 22,
+        lineHeight: 20,
     },
     noteText: {
-        lineHeight: 24,
+        lineHeight: 22,
     },
     latinText: {
         fontStyle: 'italic',
+        opacity: 0.8,
     },
     technicalText: {
         fontFamily: 'monospace',
-        fontSize: 14,
+        fontSize: 13,
     },
     coordinatesText: {
         fontFamily: 'monospace',
+        fontSize: 13,
     },
 
-    // Share Modal
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
+    // Media
+    mediaContainer: {
+        gap: 12,
     },
-    shareModal: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        paddingBottom: 34, // Safe area padding
-        maxHeight: '70%',
+    mediaItem: {
+        borderRadius: 8,
+        overflow: 'hidden',
+        position: 'relative',
     },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    mediaImage: {
+        width: '100%',
+        height: 200,
+        backgroundColor: '#f0f0f0',
     },
-    modalTitle: {
-        fontWeight: '600',
-    },
-    modalCloseButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+    mediaOverlay: {
+        ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    shareOptionsContainer: {
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-    },
-    shareOption: {
+    audioButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        marginVertical: 4,
-    },
-    shareIconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
         justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    shareTextContainer: {
-        flex: 1,
-        gap: 2,
-    },
-    shareOptionTitle: {
-        fontWeight: '500',
-    },
-    shareOptionSubtitle: {
-        lineHeight: 18,
+        gap: 8,
+        paddingVertical: 12,
+        borderRadius: 8,
     },
 });

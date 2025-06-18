@@ -449,24 +449,21 @@ export default function ArchiveScreen() {
   const renderSpotting = useCallback(({item, index}: { item: BirdSpotting; index: number }) => {
     const hasMedia = !!(item.imageUri || item.videoUri);
     
-    // Enhanced debug logging for image handling
-    console.log(`[Archive Debug] Item ${index} complete data:`, {
-      id: item.id,
-      birdType: item.birdType,
-      hasMedia,
-      imageUri: item.imageUri,
-      videoUri: item.videoUri,
-      imageUriLength: item.imageUri?.length || 0,
-      imageUriType: typeof item.imageUri,
-      willShowMediaSection: hasMedia,
-      fullItem: item
-    });
+    // Basic debug logging for image handling
+    if (index < 2) {
+      console.log(`[Archive Debug] Item ${index}:`, {
+        id: item.id,
+        birdType: item.birdType,
+        hasMedia,
+        imageUri: item.imageUri ? 'present' : 'none'
+      });
+    }
     
     return (
       <Animated.View
           entering={FadeInDown.delay(index * 30).springify()}
           layout={Layout.springify()}
-          style={[styles.cardContainer, hasMedia ? styles.mediaCardContainer : styles.textCardContainer]}
+          style={styles.cardContainer}
       >
         <ThemedPressable
             variant="ghost"
@@ -474,61 +471,93 @@ export default function ArchiveScreen() {
             style={styles.spottingCard}
         >
           <Card style={styles.spottingCardInner}>
-            {/* Media Section */}
-            {hasMedia && (() => {
-              console.log(`[Archive Debug] Rendering Image component for item ${item.id}:`, {
-                sourceUri: item.imageUri || item.videoUri,
-                hasImageUri: !!item.imageUri,
-                hasVideoUri: !!item.videoUri,
-                mediaSection: 'will render'
-              });
+            {/* Media Section - Always present for consistent card heights */}
+            {(() => {
+              const imageUri = hasMedia ? (item.imageUri || item.videoUri) : null;
+              
+              // Calculate responsive dimensions
+              const screenWidth = Dimensions.get('window').width;
+              const cardMargin = 6;
+              const horizontalPadding = 12;
+              const cardsPerRow = 2;
+              const cardWidth = (screenWidth - (horizontalPadding * 2) - (cardMargin * (cardsPerRow + 1))) / cardsPerRow;
+              const imageHeight = cardWidth * 0.85;
+              
               return (
                 <View style={styles.mediaSection}>
-                  <Image 
-                  source={{uri: item.imageUri || item.videoUri}} 
-                  style={styles.spottingImage}
-                  resizeMode="cover"
-                  defaultSource={require('@/assets/images/avatar_placeholder.png')}
-                  onError={(error) => {
-                    console.error(`[Archive Error] Image load failed for item ${item.id}:`, {
-                      uri: item.imageUri || item.videoUri,
-                      error: error.nativeEvent,
-                      item: item
-                    });
-                  }}
-                  onLoad={(event) => {
-                    console.log(`[Archive Success] Image loaded for item ${item.id}:`, {
-                      uri: item.imageUri || item.videoUri,
-                      source: event.nativeEvent.source,
-                      dimensions: `${event.nativeEvent.source.width}x${event.nativeEvent.source.height}`
-                    });
-                  }}
-                  onLoadStart={() => {
-                    console.log(`[Archive Loading] Image load started for item ${item.id}:`, item.imageUri || item.videoUri);
-                  }}
-                  onLoadEnd={() => {
-                    console.log(`[Archive LoadEnd] Image load ended for item ${item.id}:`, item.imageUri || item.videoUri);
-                  }}
-                  />
-                  {/* Media overlay indicators */}
-                  <View style={styles.mediaOverlay}>
-                    {item.videoUri && (
-                      <View style={styles.videoIndicator}>
-                        <ThemedIcon name="play" size={12} color="inverse" />
+                  {hasMedia ? (
+                    <>
+                      <Image 
+                        source={{uri: imageUri!}} 
+                        style={[
+                          styles.spottingImage, 
+                          { 
+                            // Force explicit dimensions for proper display
+                            width: cardWidth,
+                            height: imageHeight,
+                            alignSelf: 'center'
+                          }
+                        ]}
+                        resizeMode="cover"
+                        onError={(error) => {
+                          console.error(`[Archive Error] Image load failed for item ${item.id}:`, {
+                            uri: item.imageUri || item.videoUri,
+                            error: error.nativeEvent,
+                            item: item
+                          });
+                        }}
+                        onLoad={(event) => {
+                          console.log(`[Archive Success] Image loaded for item ${item.id}:`, {
+                            uri: item.imageUri || item.videoUri,
+                            source: event.nativeEvent.source,
+                            dimensions: `${event.nativeEvent.source.width}x${event.nativeEvent.source.height}`
+                          });
+                        }}
+                        onLoadStart={() => {
+                          console.log(`[Archive Loading] Image load started for item ${item.id}:`, item.imageUri || item.videoUri);
+                        }}
+                        onLoadEnd={() => {
+                          console.log(`[Archive LoadEnd] Image load ended for item ${item.id}:`, item.imageUri || item.videoUri);
+                        }}
+                      />
+                      {/* Media overlay indicators */}
+                      <View style={styles.mediaOverlay}>
+                        {item.videoUri && (
+                          <View style={styles.videoIndicator}>
+                            <ThemedIcon name="play" size={12} color="inverse" />
+                          </View>
+                        )}
+                        {item.audioUri && (
+                          <View style={styles.audioIndicator}>
+                            <ThemedIcon name="mic" size={10} color="inverse" />
+                          </View>
+                        )}
                       </View>
-                    )}
-                    {item.audioUri && (
-                      <View style={styles.audioIndicator}>
-                        <ThemedIcon name="mic" size={10} color="inverse" />
-                      </View>
-                    )}
-                  </View>
+                    </>
+                  ) : (
+                    // Placeholder for cards without media to maintain consistent height
+                    <View 
+                      style={[
+                        styles.spottingImage, 
+                        { 
+                          width: cardWidth,
+                          height: imageHeight,
+                          alignSelf: 'center',
+                          backgroundColor: 'transparent',
+                          justifyContent: 'center',
+                          alignItems: 'center'
+                        }
+                      ]}
+                    >
+                      {/* Empty placeholder - could add an icon if desired */}
+                    </View>
+                  )}
                 </View>
               );
             })()}
             
             {/* Content Section */}
-            <View style={[styles.spottingContent, hasMedia ? styles.mediaContentPadding : styles.textContentPadding]}>
+            <View style={[styles.spottingContent, styles.mediaContentPadding]}>
               <ThemedText variant="bodySmall" numberOfLines={2} style={styles.birdName}>
                 {item.birdType || t('archive.unknown_bird')}
               </ThemedText>
@@ -847,16 +876,10 @@ function createStyles(colors?: any) {
       gap: cardMargin,
     },
     
-    // Card Containers - Different heights for variety
+    // Card Containers - Consistent height for all cards
     cardContainer: {
       width: cardWidth,
       marginBottom: cardMargin,
-    },
-    mediaCardContainer: {
-      // Media cards can be taller
-    },
-    textCardContainer: {
-      // Text-only cards are more compact
     },
     
     // Card Structure
@@ -882,9 +905,9 @@ function createStyles(colors?: any) {
     },
     spottingImage: {
       width: '100%',
-      height: cardWidth * 0.75, // Better ratio for consistent card heights
-      minHeight: 100,
-      maxHeight: cardWidth * 1.2,
+      height: cardWidth * 0.85, // Increased height for landscape images
+      minHeight: 120,
+      maxHeight: cardWidth * 1.4,
       backgroundColor: colors?.backgroundSecondary || '#f0f0f0', // Themed placeholder background
     },
     mediaOverlay: {
