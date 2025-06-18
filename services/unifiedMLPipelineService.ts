@@ -73,6 +73,7 @@ export class UnifiedMLPipelineService {
     private audioRecording: Audio.Recording | null = null;
     private isCapturing = false;
     private lastPhotoUri: string | null = null;
+    private isRecordingActive = false;
 
     private static isAnyRecordingActive = false; // Global state
 
@@ -109,7 +110,20 @@ export class UnifiedMLPipelineService {
         console.log('[UnifiedPipeline] Stopping unified ML pipeline...');
         this.isActive = false;
         
-        // Clean up any active recording
+        // Wait for active recording to complete to prevent race conditions
+        if (this.isRecordingActive) {
+            console.log('[UnifiedPipeline] Waiting for active recording to complete...');
+            let waitCount = 0;
+            while (this.isRecordingActive && waitCount < 50) { // Max 5 seconds wait
+                await this.delay(100);
+                waitCount++;
+            }
+            if (this.isRecordingActive) {
+                console.warn('[UnifiedPipeline] Recording still active after timeout, forcing cleanup');
+            }
+        }
+        
+        // Clean up any remaining recording
         if (this.audioRecording) {
             try {
                 const status = await this.audioRecording.getStatusAsync();
@@ -500,6 +514,13 @@ export class UnifiedMLPipelineService {
 
     private async recordAudio(durationMs: number): Promise<string> {
         console.log(`[UnifiedPipeline] Recording audio for ${durationMs}ms...`);
+        
+        // Set recording flag to prevent race conditions
+        this.isRecordingActive = true;
+        
+        try {
+            // ENHANCED CLEANUP: Ensure NO Recording instances exist anywhere
+            await this.ensureNoActiveRecordings();
 
         // Log the current recording instance status
         if (this.audioRecording) {
@@ -655,7 +676,8 @@ export class UnifiedMLPipelineService {
 
         // Stop and unload recording.
         console.log('[UnifiedPipeline] Stopping audio recording...');
-        try {
+        // Check if recording still exists (might be null due to stop() call)
+        if (this.audioRecording) {
             await this.audioRecording.stopAndUnloadAsync();
             const uri = this.audioRecording.getURI();
             console.log(`[UnifiedPipeline] Recording stopped, URI: ${uri}`);
@@ -665,8 +687,16 @@ export class UnifiedMLPipelineService {
             }
             console.log('[UnifiedPipeline] Audio recording completed successfully');
             return uri;
+        } else {
+            console.warn('[UnifiedPipeline] Recording was null during stop, likely due to cleanup');
+            throw new Error('Recording was interrupted during cleanup');
+        }
+        } catch (error) {
+            this.isRecordingActive = false;
+            throw error;
         } finally {
             this.audioRecording = null;
+            this.isRecordingActive = false;
             // Delay to ensure cleanup before next invocation.
             await this.delay(100);
         }
@@ -712,6 +742,73 @@ export class UnifiedMLPipelineService {
 
     private async delay(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    /**
+     * Ensure no active recordings exist anywhere in the app
+     * This prevents "Only one Recording object can be prepared at a given time" errors
+     */
+    private async ensureNoActiveRecordings(): Promise<void> {
+        console.log('[UnifiedPipeline] Ensuring no active recordings exist...');
+        
+        try {
+            // Force Audio module to reset by requesting permissions again
+            // This helps clear any orphaned Recording instances
+            await Audio.requestPermissionsAsync();
+            
+            // Try to create and immediately destroy a test recording
+            // If this fails, there's still an active recording somewhere
+            const testRecording = new Audio.Recording();
+            try {
+                await testRecording.prepareToRecordAsync({
+                    android: {
+                        extension: '.m4a',
+                        outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+                        audioEncoder: Audio.AndroidAudioEncoder.AAC,
+                    },
+                    ios: {
+                        extension: '.wav', 
+                        outputFormat: Audio.IOSOutputFormat.LINEARPCM,
+                        audioQuality: Audio.IOSAudioQuality.HIGH,
+                        sampleRate: 48000,
+                        numberOfChannels: 1,
+                        bitRate: 128000,
+                        linearPCMBitDepth: 16,
+                        linearPCMIsBigEndian: false,
+                        linearPCMIsFloat: false,
+                    },
+                    web: {
+                        mimeType: 'audio/wav',
+                    }
+                });
+                
+                // If we got here, no other recordings exist
+                await testRecording.stopAndUnloadAsync();
+                console.log('[UnifiedPipeline] ✅ No active recordings detected');
+                
+            } catch (testError) {
+                // If test recording failed, there might be an orphaned recording
+                console.warn('[UnifiedPipeline] ⚠️ Test recording failed, attempting cleanup:', testError);
+                
+                try {
+                    await testRecording.stopAndUnloadAsync();
+                } catch (stopError) {
+                    console.warn('[UnifiedPipeline] Failed to stop test recording:', stopError);
+                }
+                
+                // Give extra time for cleanup
+                await this.delay(500);
+                
+                throw new Error('Unable to clear existing recordings');
+            }
+            
+        } catch (error) {
+            console.error('[UnifiedPipeline] ❌ Active recording cleanup failed:', error);
+            
+            // If cleanup fails, wait longer and try to continue anyway
+            console.log('[UnifiedPipeline] Waiting longer for system cleanup...');
+            await this.delay(1000);
+        }
     }
     
     async cleanup(): Promise<void> {
