@@ -53,8 +53,8 @@ export class AudioDecoder {
       // Decode WAV/MP3 header to get basic info
       const audioInfo = await this.parseAudioHeader(base64Audio);
       
-      // For now, we'll extract audio samples from the recording
-      // In production, you might want to use a native module for better performance
+      // extract audio samples from the recording
+      // In production, we might want to use a native module for better performance
       const audioBuffer = await this.extractAudioSamples(audioUri, audioInfo.sampleRate || 48000);
       
       // Cleanup
