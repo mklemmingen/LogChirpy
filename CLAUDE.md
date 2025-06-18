@@ -961,15 +961,6 @@ console.log('[UnifiedPipeline] 🎤 Recording audio...');
 console.log('[UnifiedPipeline] 🧠 Processing audio...');
 ```
 
-### Future Enhancements
-
-#### Potential Improvements
-1. **Frame Processors**: Real-time 60fps processing (when iOS limitations resolved)
-2. **Background Processing**: Continue ML operations when app backgrounded
-3. **Adaptive Quality**: Dynamic photo quality based on device performance
-4. **Result Caching**: Cache recent results to reduce redundant processing
-5. **Advanced Overlays**: Real-time SVG animations and transitions
-
 #### Migration Path
 The unified pipeline maintains full backward compatibility:
 - Manual capture (manual.tsx) unchanged

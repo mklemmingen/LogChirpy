@@ -14,6 +14,7 @@ import {
     classifyBirdAudioForPipeline as classifyBirdAudio,
     initializeBirdClassifier as initAudioML
 } from './ultraSimpleBirdClassifier';
+import { saveClassifiedImage } from './cameraOperationsService';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 // Core interfaces
@@ -376,9 +377,23 @@ export class UnifiedMLPipelineService {
                     console.log(`[UnifiedPipeline] Classification completed in ${classifyObjTime}ms`);
                     console.log(`[UnifiedPipeline] Object ${index} labels:`, labels.slice(0, 2));
                     
-                    // Log high-confidence detections
+                    // Save and log high-confidence detections
                     if (labels.length > 0 && labels[0].confidence >= Config.camera.confidenceThreshold) {
                         console.log(`[UnifiedPipeline] High confidence detection! Object ${index}: ${labels[0].text} (${Math.round(labels[0].confidence * 100)}%)`);
+                        
+                        // Actually save the high-confidence image to gallery
+                        try {
+                            const imageToSave = croppedUri !== imagePath ? croppedUri : imagePath;
+                            const savedUri = await saveClassifiedImage(imageToSave, labels[0], 'bird');
+                            if (savedUri) {
+                                console.log(`[UnifiedPipeline] ✅ Saved high-confidence image: ${labels[0].text} -> ${savedUri}`);
+                            } else {
+                                console.log(`[UnifiedPipeline] ⚠️ High-confidence image not saved (below threshold)`);
+                            }
+                        } catch (saveError) {
+                            console.warn(`[UnifiedPipeline] ❌ Failed to save high-confidence image:`, saveError);
+                        }
+                        
                         // Trigger callback for UI feedback (haptic, etc.)
                         this.callbacks?.onHighConfidenceSave?.();
                     } else if (labels.length > 0) {
@@ -891,25 +906,42 @@ export class UnifiedMLPipelineService {
             const now = Date.now();
             let deletedCount = 0;
             let audioFileCount = 0;
+            let imageFileCount = 0;
+            
+            console.log(`[UnifiedPipeline] Scanning ${fileNames.length} files in ${dirUri} for cleanup...`);
             
             for (const name of fileNames) {
-                // Skip if not a file we should clean
-                if (!name.includes('.m4a') && !name.includes('.wav') && !name.includes('.jpg') && !name.includes('.jpeg')) {
+                // Skip directories (like 'gallery/') and non-target files
+                const fileUri = `${dirUri}${name}`;
+                const info = await FileSystem.getInfoAsync(fileUri);
+                
+                if (info.isDirectory) {
+                    console.log(`[UnifiedPipeline] Skipping directory: ${name}`);
                     continue;
                 }
                 
-                const fileUri = `${dirUri}${name}`;
-                const info = await FileSystem.getInfoAsync(fileUri) as FileSystem.FileInfo & { modificationTime?: number };
-                const mod = info.modificationTime;
+                // Only clean temporary ML processing files, not gallery images
+                const isAudioFile = name.includes('.m4a') || name.includes('.wav');
+                const isTemporaryImage = (name.includes('.jpg') || name.includes('.jpeg')) && 
+                                        name.startsWith('photo_'); // Only temp ML processing images
+                
+                if (!isAudioFile && !isTemporaryImage) {
+                    continue;
+                }
+                
+                const fileInfo = info as FileSystem.FileInfo & { modificationTime?: number };
+                const mod = fileInfo.modificationTime;
                 
                 if (mod && now - mod * 1000 > maxAgeMinutes * 60 * 1000) {
                     try {
                         await FileSystem.deleteAsync(fileUri);
                         deletedCount++;
-                        if (name.includes('.m4a') || name.includes('.wav')) {
+                        if (isAudioFile) {
                             audioFileCount++;
+                        } else if (isTemporaryImage) {
+                            imageFileCount++;
                         }
-                        console.log(`[UnifiedPipeline] Deleted old file: ${name}`);
+                        console.log(`[UnifiedPipeline] Deleted old ${isAudioFile ? 'audio' : 'image'} file: ${name}`);
                     } catch (deleteError) {
                         console.warn(`[UnifiedPipeline] Failed to delete ${name}:`, deleteError);
                     }
@@ -917,7 +949,10 @@ export class UnifiedMLPipelineService {
             }
             
             if (deletedCount > 0) {
-                console.log(`[UnifiedPipeline] Cleanup summary: Deleted ${deletedCount} files (${audioFileCount} audio files)`);
+                console.log(`[UnifiedPipeline] Cleanup summary: Deleted ${deletedCount} files (${audioFileCount} audio, ${imageFileCount} temp images)`);
+                console.log(`[UnifiedPipeline] Gallery images are protected and not cleaned up`);
+            } else {
+                console.log(`[UnifiedPipeline] No old files found for cleanup in ${dirUri}`);
             }
         } catch (error) {
             console.warn('[UnifiedPipeline] Failed to clean up old files:', error);
