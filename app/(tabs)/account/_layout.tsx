@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
-import { useSemanticColors } from '@/hooks/useThemeColor';
+import {Stack} from 'expo-router';
+import {useSemanticColors} from '@/hooks/useThemeColor';
 
 export default function AccountLayout() {
     const semanticColors = useSemanticColors();

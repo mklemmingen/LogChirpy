@@ -4,13 +4,13 @@ import {Pressable, StyleSheet, ViewStyle} from 'react-native';
 import {ThemedIcon} from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
-    FadeInDown,
-    FadeOutUp,
-    Layout,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
+  FadeInDown,
+  FadeOutUp,
+  Layout,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
 import {ThemedText} from '@/components/ThemedText';

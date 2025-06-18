@@ -1,26 +1,29 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  TextInput,
-  View,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    Linking,
+    Platform,
+    Pressable,
+    RefreshControl,
+    StyleSheet,
+    TextInput,
+    View,
 } from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import {Feather} from '@expo/vector-icons';
 import {router} from 'expo-router';
+import * as FileSystem from 'expo-file-system';
 import Animated, {
-  FadeInDown,
-  FadeOutUp,
-  Layout,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    FadeInDown,
+    FadeOutUp,
+    Layout,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -274,7 +277,7 @@ export default function ArchiveScreen() {
   const colors = useColors();
   const typography = useTypography();
   
-  const styles = createStyles();
+  const styles = createStyles(colors);
 
   // State management
   const [spottings, setSpottings] = useState<BirdSpotting[]>([]);
@@ -292,6 +295,41 @@ export default function ArchiveScreen() {
       else setLoading(true);
 
       const data = getBirdSpottings(100, sortOrder === 'oldest' ? 'ASC' : 'DESC');
+      
+      // Debug logging for loaded data
+      console.log(`[Archive Debug] Loaded ${data.length} spottings from database`);
+      
+      // Check each spotting's media URIs
+      for (let i = 0; i < Math.min(data.length, 3); i++) {
+        const spotting = data[i];
+        console.log(`[Archive Debug] Spotting ${i} (ID: ${spotting.id}):`, {
+          birdType: spotting.birdType,
+          imageUri: spotting.imageUri,
+          videoUri: spotting.videoUri,
+          hasImage: !!spotting.imageUri,
+          hasVideo: !!spotting.videoUri,
+          date: spotting.date
+        });
+        
+        // Check file existence for images
+        if (spotting.imageUri) {
+          try {
+            const fileInfo = await FileSystem.getInfoAsync(spotting.imageUri);
+            console.log(`[Archive Debug] File check for spotting ${spotting.id}:`, {
+              uri: spotting.imageUri,
+              exists: fileInfo.exists,
+              size: fileInfo.exists ? (fileInfo as any).size : 'N/A',
+              isDirectory: fileInfo.isDirectory
+            });
+          } catch (fileError) {
+            console.error(`[Archive Debug] File check failed for spotting ${spotting.id}:`, {
+              uri: spotting.imageUri,
+              error: fileError
+            });
+          }
+        }
+      }
+      
       setSpottings(data);
     } catch (error) {
       console.error('Failed to load spottings:', error);
@@ -411,6 +449,19 @@ export default function ArchiveScreen() {
   const renderSpotting = useCallback(({item, index}: { item: BirdSpotting; index: number }) => {
     const hasMedia = !!(item.imageUri || item.videoUri);
     
+    // Enhanced debug logging for image handling
+    console.log(`[Archive Debug] Item ${index} complete data:`, {
+      id: item.id,
+      birdType: item.birdType,
+      hasMedia,
+      imageUri: item.imageUri,
+      videoUri: item.videoUri,
+      imageUriLength: item.imageUri?.length || 0,
+      imageUriType: typeof item.imageUri,
+      willShowMediaSection: hasMedia,
+      fullItem: item
+    });
+    
     return (
       <Animated.View
           entering={FadeInDown.delay(index * 30).springify()}
@@ -424,28 +475,57 @@ export default function ArchiveScreen() {
         >
           <Card style={styles.spottingCardInner}>
             {/* Media Section */}
-            {hasMedia && (
-              <View style={styles.mediaSection}>
-                <Image 
+            {hasMedia && (() => {
+              console.log(`[Archive Debug] Rendering Image component for item ${item.id}:`, {
+                sourceUri: item.imageUri || item.videoUri,
+                hasImageUri: !!item.imageUri,
+                hasVideoUri: !!item.videoUri,
+                mediaSection: 'will render'
+              });
+              return (
+                <View style={styles.mediaSection}>
+                  <Image 
                   source={{uri: item.imageUri || item.videoUri}} 
                   style={styles.spottingImage}
                   resizeMode="cover"
-                />
-                {/* Media overlay indicators */}
-                <View style={styles.mediaOverlay}>
-                  {item.videoUri && (
-                    <View style={styles.videoIndicator}>
-                      <ThemedIcon name="play" size={12} color="inverse" />
-                    </View>
-                  )}
-                  {item.audioUri && (
-                    <View style={styles.audioIndicator}>
-                      <ThemedIcon name="mic" size={10} color="inverse" />
-                    </View>
-                  )}
+                  defaultSource={require('@/assets/images/avatar_placeholder.png')}
+                  onError={(error) => {
+                    console.error(`[Archive Error] Image load failed for item ${item.id}:`, {
+                      uri: item.imageUri || item.videoUri,
+                      error: error.nativeEvent,
+                      item: item
+                    });
+                  }}
+                  onLoad={(event) => {
+                    console.log(`[Archive Success] Image loaded for item ${item.id}:`, {
+                      uri: item.imageUri || item.videoUri,
+                      source: event.nativeEvent.source,
+                      dimensions: `${event.nativeEvent.source.width}x${event.nativeEvent.source.height}`
+                    });
+                  }}
+                  onLoadStart={() => {
+                    console.log(`[Archive Loading] Image load started for item ${item.id}:`, item.imageUri || item.videoUri);
+                  }}
+                  onLoadEnd={() => {
+                    console.log(`[Archive LoadEnd] Image load ended for item ${item.id}:`, item.imageUri || item.videoUri);
+                  }}
+                  />
+                  {/* Media overlay indicators */}
+                  <View style={styles.mediaOverlay}>
+                    {item.videoUri && (
+                      <View style={styles.videoIndicator}>
+                        <ThemedIcon name="play" size={12} color="inverse" />
+                      </View>
+                    )}
+                    {item.audioUri && (
+                      <View style={styles.audioIndicator}>
+                        <ThemedIcon name="mic" size={10} color="inverse" />
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </View>
-            )}
+              );
+            })()}
             
             {/* Content Section */}
             <View style={[styles.spottingContent, hasMedia ? styles.mediaContentPadding : styles.textContentPadding]}>
@@ -705,12 +785,24 @@ function createSearchStyles() {
 /**
  * Creates styles for main archive screen with Pinterest-like layout
  */
-function createStyles() {
+function createStyles(colors?: any) {
   const screenWidth = Dimensions.get('window').width;
   const cardMargin = 6;
   const horizontalPadding = 12;
   const cardsPerRow = 2;
   const cardWidth = (screenWidth - (horizontalPadding * 2) - (cardMargin * (cardsPerRow + 1))) / cardsPerRow;
+  
+  // Debug logging for style calculations
+  console.log('[Archive Debug] Style calculations:', {
+    screenWidth,
+    cardMargin,
+    horizontalPadding,
+    cardsPerRow,
+    cardWidth,
+    imageHeight: cardWidth * 0.75,
+    minHeight: 100,
+    maxHeight: cardWidth * 1.2
+  });
   
   return StyleSheet.create({
     container: {
@@ -790,8 +882,10 @@ function createStyles() {
     },
     spottingImage: {
       width: '100%',
-      height: cardWidth * 0.8, // Aspect ratio for Pinterest feel
-      minHeight: 120,
+      height: cardWidth * 0.75, // Better ratio for consistent card heights
+      minHeight: 100,
+      maxHeight: cardWidth * 1.2,
+      backgroundColor: colors?.backgroundSecondary || '#f0f0f0', // Themed placeholder background
     },
     mediaOverlay: {
       position: 'absolute',

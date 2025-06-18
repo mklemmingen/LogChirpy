@@ -1,13 +1,13 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import {Tabs} from 'expo-router';
+import {Platform} from 'react-native';
+import {useTranslation} from 'react-i18next';
 import * as Haptics from 'expo-haptics';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming, } from 'react-native-reanimated';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
-import { useTheme, useColors, useShadows } from '@/hooks/useThemeColor';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedIcon } from '@/components/ThemedIcon';
+import {useColors, useShadows, useTheme} from '@/hooks/useThemeColor';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedIcon} from '@/components/ThemedIcon';
 
 /**
  * Tab icon component with animations

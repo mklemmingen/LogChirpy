@@ -5,8 +5,8 @@
  * for seamless live bird identification from audio
  */
 
-import { useEffect, useState, useRef } from 'react';
-import { useAudioRecorder } from '@siteed/expo-audio-studio';
+import {useEffect, useRef, useState} from 'react';
+import {useAudioRecorder} from '@siteed/expo-audio-studio';
 // Note: Real-time audio services removed - this hook is deprecated
 // Use ultraSimpleBirdClassifier directly instead
 

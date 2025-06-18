@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
-import { router, Href } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import React, {useEffect} from 'react';
+import {Href, router} from 'expo-router';
+import {useAuth} from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

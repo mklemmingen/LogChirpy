@@ -9,6 +9,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
     ActivityIndicator,
     Dimensions,
+    Pressable,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -23,12 +24,15 @@ import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
+import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
+import Animated, {FadeInDown, FadeOutUp} from 'react-native-reanimated';
 
 // Context and Services
 import {useLogDraft} from '@/contexts/LogDraftContext';
 import {BirdSpotting, insertBirdSpotting} from '@/services/database';
 import {classifyBirdAudio} from '@/services/ultraSimpleBirdClassifier';
 import {validateImageUri} from '@/services/uriUtils';
+import {searchBirdsByName} from '@/services/databaseBirDex';
 
 // Components
 import {ThemedView} from '@/components/ThemedView';
@@ -36,6 +40,7 @@ import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
 import {ThemedIcon} from '@/components/ThemedIcon';
 import {useSnackbar} from '@/components/ThemedSnackbar';
+import {ModernCard} from '@/components/ModernCard';
 
 // Theme
 import {useColors, useSpacing} from '@/hooks/useThemeColor';
@@ -49,6 +54,12 @@ interface MediaItem {
     route: string;
     icon: string;
     label: string;
+}
+
+interface BirdPrediction {
+    text: string;
+    confidence: number;
+    index: number;
 }
 
 export default function ManualBirdEntry() {
@@ -70,6 +81,16 @@ export default function ManualBirdEntry() {
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [isIdentifying, setIsIdentifying] = useState(false);
+    
+    // Image AI state
+    const [isIdentifyingImage, setIsIdentifyingImage] = useState(false);
+    const [imagePredictions, setImagePredictions] = useState<BirdPrediction[]>([]);
+    const [showImagePredictions, setShowImagePredictions] = useState(false);
+    const [processingTime, setProcessingTime] = useState(0);
+    
+    // MLKit hook
+    const classifier = useImageLabeling('birdClassifier');
+    const mlReady = !!(classifier && typeof classifier.classifyImage === 'function');
 
     // Media items configuration
     const mediaItems: MediaItem[] = [
@@ -213,6 +234,199 @@ export default function ManualBirdEntry() {
         }
     }, [draft.audioUri, sound, showError]);
 
+    // String matching functions (same as gallery.tsx smart-search logic)
+    const calculateMatchScore = useCallback((query: string, target: string): number => {
+        if (!target) return 0;
+
+        const queryLower = query.toLowerCase().trim();
+        const targetLower = target.toLowerCase().trim();
+
+        // Exact match
+        if (queryLower === targetLower) return 100;
+
+        // Starts with query
+        if (targetLower.startsWith(queryLower)) return 90;
+
+        // Contains query
+        if (targetLower.includes(queryLower)) return 80;
+
+        // Word boundary matches
+        const queryWords = queryLower.split(' ');
+        const targetWords = targetLower.split(' ');
+
+        let wordMatches = 0;
+        let partialMatches = 0;
+
+        for (const queryWord of queryWords) {
+            for (const targetWord of targetWords) {
+                if (targetWord === queryWord) {
+                    wordMatches++;
+                } else if (targetWord.includes(queryWord) || queryWord.includes(targetWord)) {
+                    partialMatches++;
+                }
+            }
+        }
+
+        if (wordMatches > 0) return 70 + (wordMatches * 10);
+        if (partialMatches > 0) return 50 + (partialMatches * 5);
+
+        // Levenshtein distance for typos
+        const distance = levenshteinDistance(queryLower, targetLower);
+        const maxLength = Math.max(queryLower.length, targetLower.length);
+        const similarity = (maxLength - distance) / maxLength;
+
+        return Math.max(0, similarity * 60);
+    }, []);
+
+    const levenshteinDistance = (str1: string, str2: string): number => {
+        const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+
+        for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+        for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+
+        for (let j = 1; j <= str2.length; j++) {
+            for (let i = 1; i <= str1.length; i++) {
+                const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+                matrix[j][i] = Math.min(
+                    matrix[j][i - 1] + 1,     // deletion
+                    matrix[j - 1][i] + 1,     // insertion
+                    matrix[j - 1][i - 1] + indicator // substitution
+                );
+            }
+        }
+
+        return matrix[str2.length][str1.length];
+    };
+
+    const cleanBirdName = useCallback((rawName: string): string => {
+        // Remove leading numbers and whitespace (e.g., "308 Rainbow Lorikeet" -> "Rainbow Lorikeet")
+        const cleaned = rawName.replace(/^\d+\s+/, '').trim();
+        return cleaned;
+    }, []);
+
+    const findBestMatchingBirdCode = useCallback((birdName: string): string | null => {
+        try {
+            const cleanedName = cleanBirdName(birdName);
+            const dbResults = searchBirdsByName(cleanedName, 20);
+            
+            if (dbResults.length === 0) return null;
+            
+            let bestMatch = { score: 0, speciesCode: '', matchedName: '' };
+            
+            dbResults.forEach(bird => {
+                const nameFields = [
+                    { name: bird.english_name, label: 'english' },
+                    { name: bird.scientific_name, label: 'scientific' },
+                    { name: bird.de_name, label: 'german' },
+                    { name: bird.es_name, label: 'spanish' },
+                    { name: bird.ukrainian_name, label: 'ukrainian' },
+                    { name: bird.ar_name, label: 'arabic' }
+                ].filter(field => field.name);
+                
+                nameFields.forEach(field => {
+                    if (field.name) {
+                        const score = calculateMatchScore(cleanedName, field.name);
+                        if (score > bestMatch.score) {
+                            bestMatch = { score, speciesCode: bird.species_code, matchedName: field.name };
+                        }
+                    }
+                });
+            });
+            
+            // Return species code if confidence is above 30%
+            return bestMatch.score > 30 ? bestMatch.speciesCode : null;
+        } catch (error) {
+            console.error('Error finding matching bird code:', error);
+            return null;
+        }
+    }, [calculateMatchScore, cleanBirdName]);
+
+    // Image AI identification
+    const handleImageIdentification = useCallback(async () => {
+        if (!mlReady || isIdentifyingImage || !draft.imageUri) return;
+
+        setIsIdentifyingImage(true);
+        const startTime = Date.now();
+
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            
+            const results = await classifier?.classifyImage(draft.imageUri) || [];
+            const endTime = Date.now();
+            setProcessingTime((endTime - startTime) / 1000);
+
+            if (results && results.length > 0) {
+                const birdPredictions = results
+                    .filter((r: BirdPrediction) => r.confidence > 0.1)
+                    .sort((a: BirdPrediction, b: BirdPrediction) => b.confidence - a.confidence)
+                    .slice(0, 5);
+                
+                setImagePredictions(birdPredictions);
+                setShowImagePredictions(true);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                
+                // Auto-hide predictions after 15 seconds (longer than gallery since this is manual entry)
+                setTimeout(() => {
+                    setShowImagePredictions(false);
+                    setImagePredictions([]);
+                }, 15000);
+            } else {
+                showError('No bird detected in image');
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            }
+        } catch (error) {
+            console.error('ML identification error:', error);
+            showError('Failed to identify bird');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        } finally {
+            setIsIdentifyingImage(false);
+        }
+    }, [mlReady, isIdentifyingImage, draft.imageUri, classifier, showError]);
+
+    const handleSelectImagePrediction = useCallback((prediction: BirdPrediction) => {
+        const cleanedName = cleanBirdName(prediction.text);
+        
+        // Find matching bird in database to get scientific name
+        const speciesCode = findBestMatchingBirdCode(prediction.text);
+        let scientificName = '';
+        
+        if (speciesCode) {
+            try {
+                const dbResults = searchBirdsByName(cleanedName, 20);
+                const matchedBird = dbResults.find(bird => bird.species_code === speciesCode);
+                if (matchedBird) {
+                    scientificName = matchedBird.scientific_name || '';
+                }
+            } catch (error) {
+                console.error('Error getting scientific name:', error);
+            }
+        }
+        
+        // Create AI identification note
+        const confidencePercent = (prediction.confidence * 100).toFixed(1);
+        const aiNote = `AI Image Identification: ${cleanedName} (${confidencePercent}% confidence)`;
+        
+        // Append to existing notes
+        const existingNotes = draft.textNote?.trim() || '';
+        const updatedNotes = existingNotes 
+            ? `${existingNotes}\n\n${aiNote}`
+            : aiNote;
+        
+        // Update form fields
+        update({ 
+            imagePrediction: prediction.text,
+            birdType: cleanedName,
+            latinBirDex: scientificName, // Fill scientific name field
+            textNote: updatedNotes // Add AI identification info to notes
+        });
+        
+        setShowImagePredictions(false);
+        setImagePredictions([]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        
+        // Don't navigate - let user complete the manual entry form
+    }, [update, findBestMatchingBirdCode, cleanBirdName, draft.textNote]);
+
     // Save entry
     const handleSave = useCallback(async () => {
         if (isSaving) return;
@@ -250,10 +464,20 @@ export default function ManualBirdEntry() {
         if (draft.imageUri) {
             console.log('[Manual Save] Checking image URI:', draft.imageUri);
             try {
-                const imageExists = await validateImageUri(draft.imageUri);
-                console.log('[Manual Save] Image exists:', imageExists);
-                if (!imageExists) {
-                    mediaValidation.push('Image file not found');
+                // Skip validation for AI pipeline saved images (they include classification info in filename)
+                const isAIPipelineImage = draft.imageUri.includes('/gallery/bird_') || 
+                                        draft.imageUri.includes('/gallery/full_') ||
+                                        draft.imageUri.includes('_conf');
+                
+                if (isAIPipelineImage) {
+                    console.log('[Manual Save] Skipping validation for AI pipeline image');
+                } else {
+                    // Only validate manually captured images
+                    const imageExists = await validateImageUri(draft.imageUri);
+                    console.log('[Manual Save] Image exists:', imageExists);
+                    if (!imageExists) {
+                        mediaValidation.push('Image file not found');
+                    }
                 }
             } catch (error) {
                 console.error('[Manual Save] Image validation error:', error);
@@ -323,7 +547,7 @@ export default function ManualBirdEntry() {
             console.log('[Manual Save] Save completed successfully!');
             showSuccess('Bird spotting saved successfully!');
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            router.replace('/');
+            router.replace('/(tabs)/archive');
         } catch (error) {
             console.error('[Manual Save] Save error:', error);
             console.error('[Manual Save] Error details:', {
@@ -455,23 +679,43 @@ export default function ManualBirdEntry() {
                     </View>
 
                     {/* AI Identification */}
-                    {draft.audioUri && (
-                        <ThemedPressable
-                            variant="secondary"
-                            onPress={handleAudioIdentification}
-                            disabled={isIdentifying}
-                            style={styles.aiButton}
-                        >
-                            {isIdentifying ? (
-                                <ActivityIndicator size="small" color={colors.primary} />
-                            ) : (
-                                <ThemedIcon name="zap" size={20} color="primary" />
-                            )}
-                            <ThemedText variant="button" color="primary">
-                                {isIdentifying ? 'Identifying...' : 'AI Identify Bird'}
-                            </ThemedText>
-                        </ThemedPressable>
-                    )}
+                    <View style={styles.aiButtonsContainer}>
+                        {draft.audioUri && (
+                            <ThemedPressable
+                                variant="secondary"
+                                onPress={handleAudioIdentification}
+                                disabled={isIdentifying}
+                                style={styles.aiButton}
+                            >
+                                {isIdentifying ? (
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                ) : (
+                                    <ThemedIcon name="mic" size={20} color="primary" />
+                                )}
+                                <ThemedText variant="button" color="primary">
+                                    {isIdentifying ? 'Identifying...' : 'AI Audio ID'}
+                                </ThemedText>
+                            </ThemedPressable>
+                        )}
+                        
+                        {draft.imageUri && mlReady && (
+                            <ThemedPressable
+                                variant="secondary"
+                                onPress={handleImageIdentification}
+                                disabled={isIdentifyingImage}
+                                style={styles.aiButton}
+                            >
+                                {isIdentifyingImage ? (
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                ) : (
+                                    <ThemedIcon name="camera" size={20} color="primary" />
+                                )}
+                                <ThemedText variant="button" color="primary">
+                                    {isIdentifyingImage ? 'Identifying...' : 'AI Image ID'}
+                                </ThemedText>
+                            </ThemedPressable>
+                        )}
+                    </View>
                 </View>
 
                 {/* Bird Information */}
@@ -591,6 +835,75 @@ export default function ManualBirdEntry() {
                 {/* Bottom spacing for save button */}
                 <View style={{ height: 100 }} />
             </ScrollView>
+
+            {/* Image AI Predictions Overlay */}
+            {showImagePredictions && imagePredictions.length > 0 && (
+                <Animated.View
+                    entering={FadeInDown.duration(300)}
+                    exiting={FadeOutUp.duration(250)}
+                    style={styles.predictionsOverlay}
+                >
+                    {/* Touchable background that closes modal */}
+                    <Pressable
+                        style={styles.overlayBackground}
+                        onPress={() => {
+                            setShowImagePredictions(false);
+                            setImagePredictions([]);
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }}
+                    >
+                        {/* Modal card that prevents event bubbling */}
+                        <Pressable onPress={(e) => e.stopPropagation()}>
+                            <ModernCard style={styles.predictionsCard}>
+                                <View style={styles.predictionsHeader}>
+                                    <ThemedIcon name="camera" size={20} color="primary" />
+                                    <ThemedText variant="h3" style={styles.predictionsTitle}>
+                                        AI Image Identification
+                                    </ThemedText>
+                                    <ThemedText variant="caption" color="secondary">
+                                        Processing time: {processingTime.toFixed(1)}s
+                                    </ThemedText>
+                                </View>
+                                
+                                <ThemedText variant="caption" color="tertiary" style={styles.helpText}>
+                                    Tap a result to auto-fill, or tap outside to close
+                                </ThemedText>
+                                
+                                <ScrollView 
+                                    style={styles.predictionsList}
+                                    showsVerticalScrollIndicator={false}
+                                    bounces={false}
+                                >
+                                    {imagePredictions.map((prediction, index) => (
+                                        <ThemedPressable
+                                            key={index}
+                                            variant="ghost"
+                                            style={styles.predictionItem}
+                                            onPress={() => handleSelectImagePrediction(prediction)}
+                                        >
+                                            <View style={styles.predictionContent}>
+                                                <ThemedText variant="body" style={styles.predictionText}>
+                                                    {cleanBirdName(prediction.text)}
+                                                </ThemedText>
+                                                <View style={styles.confidenceContainer}>
+                                                    <View style={[
+                                                        styles.confidenceBar,
+                                                        { width: `${prediction.confidence * 100}%`, backgroundColor: colors.primary }
+                                                    ]} />
+                                                </View>
+                                                <ThemedText variant="caption" color="secondary">
+                                                    {(prediction.confidence * 100).toFixed(1)}% confidence
+                                                </ThemedText>
+                                            </View>
+                                            <ThemedIcon name="chevron-right" size={16} color="tertiary" />
+                                        </ThemedPressable>
+                                    ))}
+                                </ScrollView>
+                            </ModernCard>
+                        </Pressable>
+                    </Pressable>
+                </Animated.View>
+            )}
 
             {/* Save Button */}
             <View style={[styles.saveContainer, { paddingBottom: insets.bottom + spacing.md }]}>
@@ -739,14 +1052,17 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
 
-    // AI Button
+    // AI Buttons
+    aiButtonsContainer: {
+        gap: 8,
+        marginTop: 8,
+    },
     aiButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
         paddingVertical: 12,
-        marginTop: 8,
     },
 
     // Form Inputs
@@ -811,5 +1127,76 @@ const styles = StyleSheet.create({
     },
     saveButtonDisabled: {
         opacity: 0.5,
+    },
+
+    // Predictions Overlay
+    predictionsOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1000,
+    },
+    overlayBackground: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    predictionsCard: {
+        width: '100%',
+        maxWidth: 400,
+        maxHeight: '75%',
+        padding: 20,
+        alignSelf: 'center',
+    },
+    predictionsHeader: {
+        alignItems: 'center',
+        marginBottom: 20,
+        gap: 8,
+    },
+    predictionsTitle: {
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    predictionsList: {
+        flexGrow: 0,
+        flexShrink: 1,
+        marginBottom: 16,
+        maxHeight: 350,
+        minHeight: 200,
+    },
+    predictionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 8,
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+        marginBottom: 12,
+    },
+    predictionContent: {
+        flex: 1,
+        gap: 4,
+    },
+    predictionText: {
+        fontWeight: '500',
+    },
+    confidenceContainer: {
+        height: 4,
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        borderRadius: 2,
+        overflow: 'hidden',
+    },
+    confidenceBar: {
+        height: '100%',
+        borderRadius: 2,
+    },
+    helpText: {
+        textAlign: 'center',
+        fontStyle: 'italic',
+        marginBottom: 16,
+        paddingHorizontal: 8,
     },
 });

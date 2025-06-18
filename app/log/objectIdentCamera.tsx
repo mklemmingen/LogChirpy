@@ -9,36 +9,37 @@
  * - Camera controls (zoom, flash)
  */
 
-import React, { useEffect, useRef, useState } from 'react';
-import {
-    ActivityIndicator,
-    Dimensions,
-    StyleSheet,
-    View,
-    StatusBar,
-} from 'react-native';
-import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
-import { Audio } from 'expo-av';
+import React, {useEffect, useRef, useState} from 'react';
+import {ActivityIndicator, Dimensions, StatusBar, StyleSheet, View,} from 'react-native';
+import {Camera, useCameraDevice, useCameraPermission} from 'react-native-vision-camera';
+import {Audio} from 'expo-av';
 import * as Location from 'expo-location';
-import Svg, { Rect, Text as SvgText, Circle } from 'react-native-svg';
-import { useObjectDetection } from '@infinitered/react-native-mlkit-object-detection';
-import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling";
+import Svg, {Circle, Rect, Text as SvgText} from 'react-native-svg';
+import {useObjectDetection} from '@infinitered/react-native-mlkit-object-detection';
+import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
 
-import { useIsFocused } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
+import {useIsFocused} from '@react-navigation/native';
+import {useTranslation} from 'react-i18next';
 import * as Haptics from 'expo-haptics';
-import Animated, { useSharedValue, withRepeat, withTiming, useAnimatedProps, interpolate, Easing } from 'react-native-reanimated';
+import Animated, {
+    Easing,
+    interpolate,
+    useAnimatedProps,
+    useSharedValue,
+    withRepeat,
+    withTiming
+} from 'react-native-reanimated';
 
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedPressable } from "@/components/ThemedPressable";
-import { ThemedIcon } from "@/components/ThemedIcon";
+import {ThemedText} from "@/components/ThemedText";
+import {ThemedPressable} from "@/components/ThemedPressable";
+import {ThemedIcon} from "@/components/ThemedIcon";
 
-import { 
-    createUnifiedPipeline,
-    type UnifiedMLPipelineService,
-    type Detection,
+import {
     type AudioPrediction,
-    type PipelineState
+    createUnifiedPipeline,
+    type Detection,
+    type PipelineState,
+    type UnifiedMLPipelineService
 } from '@/services/unifiedMLPipelineService';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -119,10 +120,18 @@ export default function ObjectIdentCameraWrapper() {
     useEffect(() => {
         const requestLocationPermission = async () => {
             try {
+                console.log('[Location] Requesting location permission...');
                 const { status } = await Location.requestForegroundPermissionsAsync();
+                console.log('[Location] Permission status:', status);
                 setHasLocationPermission(status === 'granted');
+                
+                if (status === 'granted') {
+                    console.log('[Location] Permission granted - audio ML will use location data');
+                } else {
+                    console.log('[Location] Permission denied - audio ML will work without location enhancement');
+                }
             } catch (error) {
-                console.error('Location permission request failed:', error);
+                console.error('[Location] Permission request failed:', error);
                 setHasLocationPermission(false);
             }
         };
@@ -212,12 +221,21 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
 
     useEffect(() => {
         if (hasLocationPermission) {
+            console.log('[Location] Getting current position...');
             Location.getCurrentPositionAsync({})
-                .then(pos => setLocation({
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude
-                }))
-                .catch(console.warn);
+                .then(pos => {
+                    const location = {
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude
+                    };
+                    console.log('[Location] Current position:', location);
+                    setLocation(location);
+                })
+                .catch(error => {
+                    console.warn('[Location] Failed to get current position:', error);
+                });
+        } else {
+            console.log('[Location] No location permission - audio ML will work without location enhancement');
         }
     }, [hasLocationPermission]);
 
@@ -255,6 +273,11 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
         }
 
         console.log('[UnifiedPipeline] Initializing...');
+        console.log('[UnifiedPipeline] Permissions:', {
+            hasAudioPermission,
+            hasLocationPermission,
+            location
+        });
 
         const pipeline = createUnifiedPipeline({
             cameraRef,

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { useSemanticColors } from '@/hooks/useThemeColor';
+import {Stack} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {useSemanticColors} from '@/hooks/useThemeColor';
 
 export default function AuthLayout() {
     const { t } = useTranslation();

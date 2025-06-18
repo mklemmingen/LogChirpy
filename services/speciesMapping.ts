@@ -5,7 +5,7 @@
  * enabling rich species metadata lookup and cross-referencing between systems.
  */
 
-import { BirdDexRecord, searchBirdsByName, queryBirdDexPage } from './databaseBirDex';
+import {BirdDexRecord, searchBirdsByName} from './databaseBirDex';
 
 // Audio prediction interfaces from ultraSimpleBirdClassifier
 export interface AudioPrediction {

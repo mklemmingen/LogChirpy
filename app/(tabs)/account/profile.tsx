@@ -1,15 +1,15 @@
-import React, { useEffect } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
-import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { ModernCard } from '@/components/ModernCard';
-import { useTheme, useTypography, useSemanticColors, useColorVariants } from '@/hooks/useThemeColor';
-import { useAuth } from '@/contexts/AuthContext';
-import { Feather } from '@expo/vector-icons';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import React, {useEffect} from 'react';
+import {Alert, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {router, useFocusEffect} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming} from 'react-native-reanimated';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import {ModernCard} from '@/components/ModernCard';
+import {useColorVariants, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
+import {useAuth} from '@/contexts/AuthContext';
+import {Feather} from '@expo/vector-icons';
+import {ProtectedRoute} from '@/components/ProtectedRoute';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

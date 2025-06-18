@@ -429,11 +429,11 @@ export const useSnackbar = () => {
         }
         
         setSnackbarState({ visible: true, message, variant, action });
-        console.log('🍞 [Snackbar] Showing:', variant, message);
+        console.log('[Snackbar] Showing:', variant, message);
     }, []);
 
     const hide = React.useCallback(() => {
-        console.log('🍞 [Snackbar] Hiding...');
+        console.log('[Snackbar] Hiding...');
         
         // Clear any existing timeout
         if (hideTimeoutRef.current) {
@@ -444,7 +444,7 @@ export const useSnackbar = () => {
         // Add a small delay to prevent rapid hide/show cycles
         hideTimeoutRef.current = setTimeout(() => {
             setSnackbarState(prev => ({ ...prev, visible: false }));
-            console.log('🍞 [Snackbar] Hidden');
+            console.log('[Snackbar] Hidden');
         }, 100);
     }, []);
 

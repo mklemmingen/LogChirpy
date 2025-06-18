@@ -6,11 +6,11 @@
  * Just one hardcoded two-model architecture that works.
  */
 
-import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
-import { AudioDecoder } from './audioDecoder';
-import { birdLabelsMap, getLabelsForLanguage } from './generated/BirdLabelsMap';
-import { AudioWindowManager } from './audioWindowManager';
-import { Asset } from 'expo-asset';
+import {loadTensorflowModel, TensorflowModel} from 'react-native-fast-tflite';
+import {AudioDecoder} from './audioDecoder';
+import {getLabelsForLanguage} from './generated/BirdLabelsMap';
+import {AudioWindowManager} from './audioWindowManager';
+import {Asset} from 'expo-asset';
 
 interface BirdPrediction {
   commonName: string;

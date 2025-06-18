@@ -5,27 +5,27 @@
  * Minimal UI focused on recording experience
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StatusBar, StyleSheet } from 'react-native';
-import { Audio } from 'expo-av';
-import { router, Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {ActivityIndicator, Alert, StatusBar, StyleSheet} from 'react-native';
+import {Audio} from 'expo-av';
+import {router, Stack} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 
 // Components
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedPressable } from '@/components/ThemedPressable';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { BackButton } from '@/components/BackButton';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import {BackButton} from '@/components/BackButton';
 
 // Context
-import { useLogDraft } from '@/contexts/LogDraftContext';
+import {useLogDraft} from '@/contexts/LogDraftContext';
 
 // Hooks
-import { useColors } from '@/hooks/useThemeColor';
+import {useColors} from '@/hooks/useThemeColor';
 
 type RecordingState = 'idle' | 'recording' | 'stopping' | 'recorded';
 

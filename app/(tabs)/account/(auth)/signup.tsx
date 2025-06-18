@@ -1,35 +1,16 @@
-import React, { useState } from 'react';
-import {
-    Alert,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-    KeyboardAvoidingView,
-    Platform,
-} from 'react-native';
-import { router, Link } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
+import React, {useState} from 'react';
+import {KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View,} from 'react-native';
+import {Link, router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
-import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { ThemedTextInput } from '@/components/ThemedTextInput';
-import { ModernCard } from '@/components/ModernCard';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import {
-    useTheme,
-    useTypography,
-    useSemanticColors,
-    useColorVariants,
-} from '@/hooks/useThemeColor';
-import { useAuth } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import {ThemedTextInput} from '@/components/ThemedTextInput';
+import {ModernCard} from '@/components/ModernCard';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {useColorVariants, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {useAuth} from '@/contexts/AuthContext';
+import {ProtectedRoute} from '@/components/ProtectedRoute';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

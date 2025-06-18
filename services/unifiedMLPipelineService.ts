@@ -6,16 +6,15 @@
  * Provides callbacks for UI updates at each stage.
  */
 
-import { Camera } from 'react-native-vision-camera';
-import { Audio } from 'expo-av';
+import {Camera} from 'react-native-vision-camera';
+import {Audio} from 'expo-av';
 import * as FileSystem from 'expo-file-system';
-import { Config } from '@/constants/config';
-import { 
+import {Config} from '@/constants/config';
+import {
     classifyBirdAudioForPipeline as classifyBirdAudio,
     initializeBirdClassifier as initAudioML
 } from './ultraSimpleBirdClassifier';
-import { saveClassifiedImage } from './cameraOperationsService';
-import { photoStorageService } from './photoStorageService';
+import {photoStorageService} from './photoStorageService';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 // Core interfaces
