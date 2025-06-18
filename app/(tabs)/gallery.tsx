@@ -5,6 +5,8 @@ import {router, useLocalSearchParams, useFocusEffect} from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
+import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
+import Animated, {FadeInDown, FadeOutUp} from 'react-native-reanimated';
 
 // Components
 import {ThemedView} from '@/components/ThemedView';
@@ -24,6 +26,9 @@ import {useColors} from '@/hooks/useThemeColor';
 // URI utilities
 import {filePathToUri, uriToFilePath} from '@/services/uriUtils';
 
+// Database utilities
+import {searchBirdsByName} from '@/services/databaseBirDex';
+
 interface PhotoItem {
     uri: string;
     filename: string;
@@ -32,6 +37,12 @@ interface PhotoItem {
     classification?: string;
     confidence?: number;
     detectionType?: 'bird' | 'full';
+}
+
+interface BirdPrediction {
+    text: string;
+    confidence: number;
+    index: number;
 }
 
 export default function GalleryManagementScreen() {
@@ -47,6 +58,16 @@ export default function GalleryManagementScreen() {
     const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
     const [selectionMode, setSelectionMode] = useState(false);
     const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
+    
+    // AI Identification state
+    const [isIdentifying, setIsIdentifying] = useState(false);
+    const [predictions, setPredictions] = useState<BirdPrediction[]>([]);
+    const [showPredictions, setShowPredictions] = useState(false);
+    const [processingTime, setProcessingTime] = useState(0);
+    
+    // MLKit hook
+    const classifier = useImageLabeling('birdClassifier');
+    const mlReady = !!(classifier && typeof classifier.classifyImage === 'function');
 
     // Load photos from document storage gallery directory
     const loadPhotos = useCallback(async () => {
@@ -262,6 +283,198 @@ export default function GalleryManagementScreen() {
         }
     }, [selectedPhotos, update, showSuccess, showError]);
 
+    // AI Identification function
+    const handleIdentifyBird = useCallback(async () => {
+        if (!mlReady || isIdentifying || selectedPhotos.size !== 1) return;
+
+        const selectedPhotoUri = Array.from(selectedPhotos)[0];
+        setIsIdentifying(true);
+        const startTime = Date.now();
+
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            
+            const results = await classifier?.classifyImage(selectedPhotoUri) || [];
+            const endTime = Date.now();
+            setProcessingTime((endTime - startTime) / 1000);
+
+            if (results && results.length > 0) {
+                const birdPredictions = results
+                    .filter((r: BirdPrediction) => r.confidence > 0.1)
+                    .sort((a: BirdPrediction, b: BirdPrediction) => b.confidence - a.confidence)
+                    .slice(0, 5);
+                
+                setPredictions(birdPredictions);
+                setShowPredictions(true);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                
+                // Auto-hide predictions after 8 seconds
+                setTimeout(() => {
+                    setShowPredictions(false);
+                    setPredictions([]);
+                }, 8000);
+            } else {
+                showError('No bird detected in image');
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            }
+        } catch (error) {
+            console.error('ML identification error:', error);
+            showError('Failed to identify bird');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        } finally {
+            setIsIdentifying(false);
+        }
+    }, [mlReady, isIdentifying, selectedPhotos, classifier, showError]);
+
+    // Calculate string similarity score (same algorithm as smart-search)
+    const calculateMatchScore = useCallback((query: string, target: string): number => {
+        if (!target) return 0;
+
+        const queryLower = query.toLowerCase().trim();
+        const targetLower = target.toLowerCase().trim();
+
+        // Exact match
+        if (queryLower === targetLower) return 100;
+
+        // Starts with query
+        if (targetLower.startsWith(queryLower)) return 90;
+
+        // Contains query
+        if (targetLower.includes(queryLower)) return 80;
+
+        // Word boundary matches
+        const queryWords = queryLower.split(' ');
+        const targetWords = targetLower.split(' ');
+
+        let wordMatches = 0;
+        let partialMatches = 0;
+
+        for (const queryWord of queryWords) {
+            for (const targetWord of targetWords) {
+                if (targetWord === queryWord) {
+                    wordMatches++;
+                } else if (targetWord.includes(queryWord) || queryWord.includes(targetWord)) {
+                    partialMatches++;
+                }
+            }
+        }
+
+        if (wordMatches > 0) return 70 + (wordMatches * 10);
+        if (partialMatches > 0) return 50 + (partialMatches * 5);
+
+        // Levenshtein distance for typos
+        const distance = levenshteinDistance(queryLower, targetLower);
+        const maxLength = Math.max(queryLower.length, targetLower.length);
+        const similarity = (maxLength - distance) / maxLength;
+
+        return Math.max(0, similarity * 60);
+    }, []);
+
+    // Levenshtein distance implementation
+    const levenshteinDistance = (str1: string, str2: string): number => {
+        const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+
+        for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+        for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+
+        for (let j = 1; j <= str2.length; j++) {
+            for (let i = 1; i <= str1.length; i++) {
+                const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+                matrix[j][i] = Math.min(
+                    matrix[j][i - 1] + 1,     // deletion
+                    matrix[j - 1][i] + 1,     // insertion
+                    matrix[j - 1][i - 1] + indicator // substitution
+                );
+            }
+        }
+
+        return matrix[str2.length][str1.length];
+    };
+
+    // Clean ML prediction text (remove class numbers, extra spaces, etc.)
+    const cleanBirdName = useCallback((rawName: string): string => {
+        // Remove leading numbers and whitespace (e.g., "308 Rainbow Lorikeet" -> "Rainbow Lorikeet")
+        const cleaned = rawName.replace(/^\d+\s+/, '').trim();
+        console.log(`Cleaned "${rawName}" -> "${cleaned}"`);
+        return cleaned;
+    }, []);
+
+    // Find best matching bird code using smart-search logic
+    const findBestMatchingBirdCode = useCallback((birdName: string): string | null => {
+        try {
+            // Clean the bird name first
+            const cleanedName = cleanBirdName(birdName);
+            console.log('Searching database for:', cleanedName);
+            
+            // Get search results from database
+            const dbResults = searchBirdsByName(cleanedName, 20);
+            console.log('Database returned', dbResults.length, 'results:', dbResults.slice(0, 5).map(r => r.english_name));
+            
+            if (dbResults.length === 0) {
+                console.log('No database results found');
+                return null;
+            }
+            
+            // Score each result across all name fields
+            let bestMatch = { score: 0, speciesCode: '', matchedName: '' };
+            
+            dbResults.forEach(bird => {
+                const nameFields = [
+                    { name: bird.english_name, label: 'english' },
+                    { name: bird.scientific_name, label: 'scientific' },
+                    { name: bird.de_name, label: 'german' },
+                    { name: bird.es_name, label: 'spanish' },
+                    { name: bird.ukrainian_name, label: 'ukrainian' },
+                    { name: bird.ar_name, label: 'arabic' }
+                ].filter(field => field.name); // Remove null/undefined values
+                
+                nameFields.forEach(field => {
+                    if (field.name) {
+                        const score = calculateMatchScore(cleanedName, field.name);
+                        if (score > bestMatch.score) {
+                            bestMatch = { score, speciesCode: bird.species_code, matchedName: field.name };
+                            console.log(`New best: "${cleanedName}" vs "${field.name}" (${field.label}): ${score}%`);
+                        }
+                    }
+                });
+            });
+            
+            console.log('Best match:', bestMatch);
+            
+            // Lower threshold to 30% since you said it doesn't have to be 100%
+            return bestMatch.score > 30 ? bestMatch.speciesCode : null;
+        } catch (error) {
+            console.error('Error finding matching bird code:', error);
+            return null;
+        }
+    }, [calculateMatchScore, cleanBirdName]);
+
+    const handleSelectPrediction = useCallback((prediction: BirdPrediction) => {
+        console.log('handleSelectPrediction called with:', prediction.text);
+        
+        update({ 
+            imagePrediction: prediction.text,
+            birdType: prediction.text 
+        });
+        setShowPredictions(false);
+        setPredictions([]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        
+        // Find and navigate to best matching bird code
+        console.log('Searching for matching bird code for:', prediction.text);
+        const speciesCode = findBestMatchingBirdCode(prediction.text);
+        console.log('Found species code:', speciesCode);
+        
+        if (speciesCode) {
+            console.log('Navigating to:', `/birdex/details/${speciesCode}`);
+            // Navigate to bird details page with the matched species code
+            router.push(`/birdex/details/${speciesCode}`);
+        } else {
+            console.log('No matching species code found for:', prediction.text);
+            showError(`No bird found in database matching: ${prediction.text}`);
+        }
+    }, [update, showSuccess, findBestMatchingBirdCode]);
+
     const renderPhoto = ({ item }: { item: PhotoItem }) => {
         const isSelected = selectedPhotos.has(item.uri);
         const isBroken = brokenImages.has(item.uri);
@@ -386,6 +599,25 @@ export default function GalleryManagementScreen() {
                                 </ThemedText>
                             </ThemedPressable>
 
+                            {/* AI Identify button - only when one photo is selected */}
+                            {selectedPhotos.size === 1 && mlReady && (
+                                <ThemedPressable
+                                    variant="secondary"
+                                    size="sm"
+                                    onPress={handleIdentifyBird}
+                                    disabled={isIdentifying}
+                                    style={[
+                                        styles.actionButton,
+                                        ...(isIdentifying ? [{ opacity: 0.5 }] : [])
+                                    ]}
+                                >
+                                    <ThemedIcon name="cpu" size={16} color="primary" />
+                                    <ThemedText variant="labelMedium" color="primary">
+                                        {isIdentifying ? 'Identifying...' : 'AI Identify'}
+                                    </ThemedText>
+                                </ThemedPressable>
+                            )}
+
                             {/* Standard gallery actions - always available */}
                             <ThemedPressable
                                 variant="secondary"
@@ -452,6 +684,58 @@ export default function GalleryManagementScreen() {
                         </View>
                     </ModernCard>
                 </View>
+            )}
+
+            {/* AI Predictions Overlay */}
+            {showPredictions && predictions.length > 0 && (
+                <Animated.View
+                    entering={FadeInDown.duration(300)}
+                    exiting={FadeOutUp.duration(250)}
+                    style={styles.predictionsOverlay}
+                >
+                    <ModernCard style={styles.predictionsCard}>
+                        <View style={styles.predictionsHeader}>
+                            <ThemedIcon name="cpu" size={20} color="primary" />
+                            <ThemedText variant="h3" style={styles.predictionsTitle}>
+                                AI Bird Identification
+                            </ThemedText>
+                            <ThemedText variant="caption" color="secondary">
+                                Processing time: {processingTime.toFixed(1)}s
+                            </ThemedText>
+                        </View>
+                        
+                        <View style={styles.predictionsList}>
+                            {predictions.map((prediction, index) => (
+                                <ThemedPressable
+                                    key={index}
+                                    variant="ghost"
+                                    style={styles.predictionItem}
+                                    onPress={() => handleSelectPrediction(prediction)}
+                                >
+                                    <View style={styles.predictionContent}>
+                                        <ThemedText variant="body" style={styles.predictionText}>
+                                            {prediction.text}
+                                        </ThemedText>
+                                        <View style={styles.confidenceContainer}>
+                                            <View style={[
+                                                styles.confidenceBar,
+                                                { width: `${prediction.confidence * 100}%`, backgroundColor: colors.primary }
+                                            ]} />
+                                        </View>
+                                        <ThemedText variant="caption" color="secondary">
+                                            {(prediction.confidence * 100).toFixed(1)}% confidence
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedIcon name="chevron-right" size={16} color="tertiary" />
+                                </ThemedPressable>
+                            ))}
+                        </View>
+                        
+                        <ThemedText variant="caption" color="tertiary" style={styles.autoHideText}>
+                            Tap a result to select, or wait for auto-hide
+                        </ThemedText>
+                    </ModernCard>
+                </Animated.View>
             )}
 
             {/* Photo Grid */}
@@ -621,6 +905,67 @@ function createStyles() {
             textAlign: 'center',
             lineHeight: 20,
             maxWidth: 280,
+        },
+
+        // AI Predictions Overlay
+        predictionsOverlay: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 20,
+            zIndex: 1000,
+        },
+        predictionsCard: {
+            width: '100%',
+            maxWidth: 400,
+            maxHeight: '70%',
+            padding: 20,
+        },
+        predictionsHeader: {
+            alignItems: 'center',
+            marginBottom: 20,
+            gap: 8,
+        },
+        predictionsTitle: {
+            fontWeight: '600',
+            textAlign: 'center',
+        },
+        predictionsList: {
+            gap: 12,
+            marginBottom: 16,
+        },
+        predictionItem: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 12,
+            borderRadius: 8,
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+        },
+        predictionContent: {
+            flex: 1,
+            gap: 4,
+        },
+        predictionText: {
+            fontWeight: '500',
+        },
+        confidenceContainer: {
+            height: 4,
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            borderRadius: 2,
+            overflow: 'hidden',
+        },
+        confidenceBar: {
+            height: '100%',
+            borderRadius: 2,
+        },
+        autoHideText: {
+            textAlign: 'center',
+            fontStyle: 'italic',
         },
     });
 }

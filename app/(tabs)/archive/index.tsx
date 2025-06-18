@@ -179,7 +179,11 @@ function SearchHeader({
                   style={styles.filterButton}
                   onPress={() => onBirdTypeFilterChange(birdType)}
                 >
-                  <ThemedText variant="bodySmall" numberOfLines={1}>
+                  <ThemedText 
+                    variant="bodySmall" 
+                    numberOfLines={1}
+                    color={birdTypeFilter === birdType ? "inverse" : "primary"}
+                  >
                     {birdType || 'All Birds'}
                   </ThemedText>
                 </ThemedPressable>

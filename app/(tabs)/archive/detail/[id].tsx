@@ -187,7 +187,7 @@ function DetailHeader({
                     variant="bodySmall"
                     style={[styles.headerDate, { color: theme.colors.text.secondary }]}
                 >
-                    {new Date(entry.date).toLocaleDateString()}
+                    {entry.date ? new Date(entry.date).toLocaleDateString() : ''}
                 </ThemedText>
             </ThemedView>
 
@@ -341,14 +341,14 @@ function InfoRow({
                 onPress={onPress}
             >
                 <ThemedText variant="label" style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
-                    {label}
+                    {label || ''}
                 </ThemedText>
                 <ThemedView style={styles.infoValueContainer}>
                     {icon && (
                         <ThemedIcon name={icon as any} size={14} color="secondary" />
                     )}
                     <ThemedText variant="body" style={[styles.infoValue, style]}>
-                        {value}
+                        {value || ''}
                     </ThemedText>
                     <ThemedIcon name="external-link" size={14} color="tertiary" />
                 </ThemedView>
@@ -359,14 +359,14 @@ function InfoRow({
     return (
         <ThemedView style={styles.infoRow}>
             <ThemedText variant="label" style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
-                {label}
+                {label || ''}
             </ThemedText>
             <ThemedView style={styles.infoValueContainer}>
                 {icon && (
                     <ThemedIcon name={icon as any} size={14} color="secondary" />
                 )}
                 <ThemedText variant="body" style={[styles.infoValue, style]}>
-                    {value}
+                    {value || ''}
                 </ThemedText>
             </ThemedView>
         </ThemedView>
@@ -594,7 +594,7 @@ export default function ArchiveDetailScreen() {
                     />
                     <InfoRow
                         label={t('archive.date_time')}
-                        value={new Date(entry.date).toLocaleString()}
+                        value={entry.date ? new Date(entry.date).toLocaleString() : t('archive.unknown')}
                     />
                     {entry.textNote && (
                         <InfoRow
@@ -659,7 +659,7 @@ export default function ArchiveDetailScreen() {
                     />
                     <InfoRow
                         label={t('archive.created')}
-                        value={new Date(entry.date).toLocaleDateString()}
+                        value={entry.date ? new Date(entry.date).toLocaleDateString() : t('archive.unknown')}
                         style={styles.technicalText}
                     />
                 </InfoSection>
