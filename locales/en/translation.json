@@ -272,10 +272,20 @@
     "send_reset": "Send Reset",
     "forgot_password_link": "Forgot Password?",
     "signup_link": "Sign up",
-    "already_have_account": "Sign in",
+    "already_have_account": "Alrady have an account?",
     "email_sent_title": "Email Sent",
     "email_sent_message": "Check {{email}} for reset instructions",
-    "back_to_login": "Back"
+    "back_to_login": "Back",
+    "confirm_password_label": "Confirm Password",
+    "confirm_password_placeholder": "Confirm your password",
+    "passwords_dont_match": "Passwords do not match",
+    "creating_account": "Creating Account...",
+    "create_account": "Create Account",
+    "password_requirements": "Password must be at least 6 characters",
+    "passwordWeak": "Weak",
+    "passwordFair": "Fair",
+    "passwordGood": "Good",
+    "passwordStrong": "Strong"
   },
   "errors": {
     "email_required": "Email required",
@@ -306,7 +316,8 @@
     "database_error_title": "Database Error",
     "nest_build_failed": "Setup Failed",
     "database_setup_problem": "Database setup error",
-    "check_storage_network": "Check storage and network"
+    "check_storage_network": "Check storage and network",
+    "confirm_password_required": "Please confirm your password"
   },
   "account": {
     "title": "Account",

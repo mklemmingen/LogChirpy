@@ -30,6 +30,7 @@ export default {
       versionCode: 1,
       compileSdkVersion: 34,
       targetSdkVersion: 34,
+      softwareKeyboardLayoutMode: "pan",
       permissions: [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

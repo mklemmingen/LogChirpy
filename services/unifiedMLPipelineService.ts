@@ -15,6 +15,7 @@ import {
     initializeBirdClassifier as initAudioML
 } from './ultraSimpleBirdClassifier';
 import { saveClassifiedImage } from './cameraOperationsService';
+import { photoStorageService } from './photoStorageService';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 // Core interfaces
@@ -74,6 +75,7 @@ export class UnifiedMLPipelineService {
     private audioRecording: Audio.Recording | null = null;
     private isCapturing = false;
     private lastPhotoUri: string | null = null;
+    private previousPhotoUri: string | null = null;
     private isRecordingActive = false;
 
     private static isAnyRecordingActive = false; // Global state
@@ -195,9 +197,9 @@ export class UnifiedMLPipelineService {
                             try {
                                 await this.deleteOldFiles(FileSystem.cacheDirectory!, 5); // Clean files older than 5 minutes
                                 lastCleanupCycle = cycleCount;
-                                console.log('[UnifiedPipeline] ✅ Periodic cleanup completed');
+                                console.log('[UnifiedPipeline] Periodic cleanup completed');
                             } catch (cleanupError) {
-                                console.warn('[UnifiedPipeline] ⚠️ Periodic cleanup failed:', cleanupError);
+                                console.warn('[UnifiedPipeline] Periodic cleanup failed:', cleanupError);
                             }
                         }
 
@@ -208,7 +210,7 @@ export class UnifiedMLPipelineService {
                         await this.delay(waitTime);
 
                     } catch (error) {
-                        console.error(`[UnifiedPipeline] ❌ Cycle ${cycleCount} error:`, error);
+                        console.error(`[UnifiedPipeline] Cycle ${cycleCount} error:`, error);
                         console.error('[UnifiedPipeline] Loop error stack:', (error as Error)?.stack);
                         // Continue the loop even on error
                         console.log('[UnifiedPipeline] Recovering from error, waiting 1s...');
@@ -228,22 +230,22 @@ export class UnifiedMLPipelineService {
         console.log('[UnifiedPipeline] === IMAGE PHASE START ===');
         
         if (!this.config.cameraRef.current) {
-            console.log('[UnifiedPipeline] ❌ Camera ref not available');
+            console.log('[UnifiedPipeline] Camera ref not available');
             return;
         }
         
         if (!this.config.detector) {
-            console.log('[UnifiedPipeline] ❌ Object detector not available');
+            console.log('[UnifiedPipeline] Object detector not available');
             return;
         }
         
         if (!this.config.classifier) {
-            console.log('[UnifiedPipeline] ❌ Image classifier not available');
+            console.log('[UnifiedPipeline] Image classifier not available');
             return;
         }
 
         if (this.isCapturing) {
-            console.log('[UnifiedPipeline] ⏸Already capturing, skipping image phase');
+            console.log('[UnifiedPipeline] Already capturing, skipping image phase');
             return;
         }
 
@@ -294,19 +296,9 @@ export class UnifiedMLPipelineService {
                 console.log('Photo saved to document directory:', destPath);
                 savedPhotoPath = destPath;
                 
-                // Delete previous photo file (cleanup) if it exists
-                if (this.lastPhotoUri) {
-                    try {
-                        const fileInfo = await FileSystem.getInfoAsync(this.lastPhotoUri);
-                        if (fileInfo.exists) {
-                            await FileSystem.deleteAsync(this.lastPhotoUri);
-                            console.log('Deleted previous photo:', this.lastPhotoUri);
-                        }
-                    } catch (deleteError) {
-                        console.warn('Error deleting previous photo:', deleteError);
-                    }
-                }
-                
+                // Store current photo URI for later cleanup (don't delete previous yet)
+                // We'll clean up after ML processing is complete to avoid file access issues
+                this.previousPhotoUri = this.lastPhotoUri;
                 this.lastPhotoUri = savedPhotoPath;
                 
             } catch (copyError: unknown) {
@@ -320,11 +312,11 @@ export class UnifiedMLPipelineService {
 
             // Step 2: Detect Objects
             this.updateState('detecting_objects');
-            console.log('[UnifiedPipeline] 🔍 Step 2: Starting object detection...');
+            console.log('[UnifiedPipeline] Step 2: Starting object detection...');
             const detectStartTime = Date.now();
             
             const imagePath = savedPhotoPath;
-            console.log(`[UnifiedPipeline] 🔍 Detection input: ${imagePath}`);
+            console.log(`[UnifiedPipeline] Detection input: ${imagePath}`);
             
             const objects = await this.config.detector.detectObjects(imagePath);
             const detectTime = Date.now() - detectStartTime;
@@ -343,7 +335,7 @@ export class UnifiedMLPipelineService {
                 console.log(`[UnifiedPipeline] Processing object ${index + 1}/${objects.length}`);
                 
                 if (!obj.frame || !obj.frame.origin || !obj.frame.size) {
-                    console.warn(`[UnifiedPipeline] ❌ Invalid frame for object ${index}:`, obj);
+                    console.warn(`[UnifiedPipeline] Invalid frame for object ${index}:`, obj);
                     continue;
                 }
                 
@@ -381,39 +373,56 @@ export class UnifiedMLPipelineService {
                     if (labels.length > 0 && labels[0].confidence >= Config.camera.confidenceThreshold) {
                         console.log(`[UnifiedPipeline] High confidence detection! Object ${index}: ${labels[0].text} (${Math.round(labels[0].confidence * 100)}%)`);
                         
-                        // Actually save the high-confidence image to gallery
+                        // Actually save the high-confidence image to gallery using photoStorageService
                         try {
-                            const imageToSave = croppedUri !== imagePath ? croppedUri : imagePath;
-                            const savedUri = await saveClassifiedImage(imageToSave, labels[0], 'bird');
-                            if (savedUri) {
-                                console.log(`[UnifiedPipeline] ✅ Saved high-confidence image: ${labels[0].text} -> ${savedUri}`);
+                            // Try to save the cropped image first (if available), fall back to full image
+                            let saveResult: any = null;
+                            
+                            // Prefer cropped image if it exists and is accessible
+                            if (croppedUri !== imagePath) {
+                                saveResult = await photoStorageService.saveDetectionImage(
+                                    croppedUri, 
+                                    labels[0], 
+                                    'bird', 
+                                    Config.camera.confidenceThreshold
+                                );
+                            }
+                            
+                            // If cropped save failed or wasn't attempted, try full image
+                            if (!saveResult || !saveResult.success) {
+                                saveResult = await photoStorageService.saveDetectionImage(
+                                    imagePath, 
+                                    labels[0], 
+                                    'bird', 
+                                    Config.camera.confidenceThreshold
+                                );
+                            }
+                            
+                            if (saveResult && saveResult.success) {
+                                console.log(`[UnifiedPipeline] Saved high-confidence image: ${labels[0].text} -> ${saveResult.filename}`);
+                                // Clean up temp files after successful save
+                                if (croppedUri !== imagePath) {
+                                    await photoStorageService.cleanupTempFile(croppedUri);
+                                }
                             } else {
-                                console.log(`[UnifiedPipeline] ⚠️ High-confidence image not saved (below threshold)`);
+                                console.log(`[UnifiedPipeline] High-confidence image not saved: ${saveResult?.error || 'Unknown error'}`);
                             }
                         } catch (saveError) {
-                            console.warn(`[UnifiedPipeline] ❌ Failed to save high-confidence image:`, saveError);
+                            console.error(`[UnifiedPipeline] Failed to save high-confidence image:`, saveError);
                         }
                         
                         // Trigger callback for UI feedback (haptic, etc.)
                         this.callbacks?.onHighConfidenceSave?.();
                     } else if (labels.length > 0) {
-                        console.log(`[UnifiedPipeline] 📊 Low confidence detection: ${labels[0].text} (${Math.round(labels[0].confidence * 100)}%) < ${Math.round(Config.camera.confidenceThreshold * 100)}%`);
+                        console.log(`[UnifiedPipeline] Low confidence detection: ${labels[0].text} (${Math.round(labels[0].confidence * 100)}%) < ${Math.round(Config.camera.confidenceThreshold * 100)}%`);
                     }
                 } catch (classifyError) {
-                    console.error(`[UnifiedPipeline] ❌ Classification failed for object ${index}:`, classifyError);
+                    console.error(`[UnifiedPipeline] Classification failed for object ${index}:`, classifyError);
                 }
                 
-                // Cleanup crop file
+                // Cleanup crop file (if we haven't already cleaned it up after saving)
                 if (croppedUri !== imagePath) {
-                    try {
-                        const fileInfo = await FileSystem.getInfoAsync(croppedUri);
-                        if (fileInfo.exists) {
-                            await FileSystem.deleteAsync(croppedUri);
-                            console.log('Deleted crop:', croppedUri);
-                        }
-                    } catch (err) {
-                        console.warn('Could not delete crop file:', err);
-                    }
+                    await photoStorageService.cleanupTempFile(croppedUri);
                 }
                 
                 enrichedDetections.push({
@@ -439,10 +448,18 @@ export class UnifiedMLPipelineService {
             // Update UI with detections
             console.log('[UnifiedPipeline] Updating UI with detections...');
             this.callbacks?.onImageDetections(enrichedDetections, imageDims);
+            
+            // Clean up old temporary photos now that processing is complete
+            try {
+                await this.cleanupOldTempPhotos();
+            } catch (cleanupError) {
+                console.warn('[UnifiedPipeline] Temp photo cleanup warning:', cleanupError);
+            }
+            
             console.log('[UnifiedPipeline] === IMAGE PHASE COMPLETE ===');
             
         } catch (error) {
-            console.error('[UnifiedPipeline] ❌ Image phase error:', error);
+            console.error('[UnifiedPipeline] Image phase error:', error);
             console.error('[UnifiedPipeline] Error stack:', (error as Error)?.stack);
             this.callbacks?.onError('image', error as Error);
             // Clear detections on error
@@ -468,7 +485,7 @@ export class UnifiedMLPipelineService {
             console.log('[UnifiedPipeline] === AUDIO PHASE START ===');
 
             if (!this.config.hasAudioPermission) {
-                console.log('[UnifiedPipeline] ❌ No audio permission, skipping audio phase');
+                console.log('[UnifiedPipeline] No audio permission, skipping audio phase');
                 return;
             }
 
@@ -530,16 +547,16 @@ export class UnifiedMLPipelineService {
                     const fileInfo = await FileSystem.getInfoAsync(recordingUri);
                     if (fileInfo.exists) {
                         await FileSystem.deleteAsync(recordingUri);
-                        console.log('[UnifiedPipeline] ✅ Deleted audio recording:', recordingUri);
+                        console.log('[UnifiedPipeline] Deleted audio recording:', recordingUri);
                     }
                 } catch (deleteError) {
-                    console.warn('[UnifiedPipeline] ⚠️ Failed to delete audio recording:', deleteError);
+                    console.warn('[UnifiedPipeline] Failed to delete audio recording:', deleteError);
                 }
 
                 console.log('[UnifiedPipeline] === AUDIO PHASE COMPLETE ===');
 
             } catch (error) {
-                console.error('[UnifiedPipeline] ❌ Audio phase error:', error);
+                console.error('[UnifiedPipeline] Audio phase error:', error);
                 console.error('[UnifiedPipeline] Audio error stack:', (error as Error)?.stack);
                 this.callbacks?.onError('audio', error as Error);
                 // Clear predictions on error
@@ -825,7 +842,7 @@ export class UnifiedMLPipelineService {
                 
                 // If we got here, no other recordings exist (this is the normal case)
                 await testRecording.stopAndUnloadAsync();
-                console.log('[UnifiedPipeline] ✅ No active recordings detected');
+                console.log('[UnifiedPipeline] No active recordings detected');
                 
             } catch (testError) {
                 // Test recording failed - check if it's a benign error
@@ -833,7 +850,7 @@ export class UnifiedMLPipelineService {
                 
                 if (errorMessage.includes('recording not started') || errorMessage.includes('already been unloaded')) {
                     // These are expected errors when no recording exists - not actual problems
-                    console.log('[UnifiedPipeline] ✅ No active recordings (test failed as expected)');
+                    console.log('[UnifiedPipeline] No active recordings (test failed as expected)');
                     try {
                         await testRecording.stopAndUnloadAsync();
                     } catch {
@@ -841,7 +858,7 @@ export class UnifiedMLPipelineService {
                     }
                 } else {
                     // Unexpected error - might indicate real recording conflict
-                    console.warn('[UnifiedPipeline] ⚠️ Unexpected recording test error:', testError);
+                    console.warn('[UnifiedPipeline] Unexpected recording test error:', testError);
                     
                     try {
                         await testRecording.stopAndUnloadAsync();
@@ -860,14 +877,14 @@ export class UnifiedMLPipelineService {
             const errorMessage = (error as Error)?.message || '';
             
             if (errorMessage.includes('Unable to clear existing recordings')) {
-                console.error('[UnifiedPipeline] ❌ Active recording cleanup failed:', error);
+                console.error('[UnifiedPipeline] Active recording cleanup failed:', error);
                 
                 // If cleanup fails, wait longer and try to continue anyway
                 console.log('[UnifiedPipeline] Waiting longer for system cleanup...');
                 await this.delay(1000);
             } else {
                 // Other errors are likely benign permission or setup issues
-                console.log('[UnifiedPipeline] ✅ Recording check completed (minor issues ignored)');
+                console.log('[UnifiedPipeline] Recording check completed (minor issues ignored)');
             }
         }
     }
@@ -879,7 +896,7 @@ export class UnifiedMLPipelineService {
         // Clean up any cached data
         this.callbacks = null;
         
-        // Clean up last photo if it exists
+        // Clean up temp photos if they exist
         if (this.lastPhotoUri) {
             try {
                 const fileInfo = await FileSystem.getInfoAsync(this.lastPhotoUri);
@@ -891,6 +908,19 @@ export class UnifiedMLPipelineService {
                 console.warn('Failed to delete last photo during cleanup:', error);
             }
             this.lastPhotoUri = null;
+        }
+        
+        if (this.previousPhotoUri) {
+            try {
+                const fileInfo = await FileSystem.getInfoAsync(this.previousPhotoUri);
+                if (fileInfo.exists) {
+                    await FileSystem.deleteAsync(this.previousPhotoUri);
+                    console.log('Deleted previous photo during cleanup:', this.previousPhotoUri);
+                }
+            } catch (error) {
+                console.warn('Failed to delete previous photo during cleanup:', error);
+            }
+            this.previousPhotoUri = null;
         }
         
         // Clean up old files in document and cache directories
@@ -956,6 +986,24 @@ export class UnifiedMLPipelineService {
             }
         } catch (error) {
             console.warn('[UnifiedPipeline] Failed to clean up old files:', error);
+        }
+    }
+    
+    /**
+     * Clean up old temporary photos that are no longer needed
+     */
+    private async cleanupOldTempPhotos(): Promise<void> {
+        if (this.previousPhotoUri) {
+            try {
+                const fileInfo = await FileSystem.getInfoAsync(this.previousPhotoUri);
+                if (fileInfo.exists) {
+                    await FileSystem.deleteAsync(this.previousPhotoUri);
+                    console.log('[UnifiedPipeline] Deleted previous temp photo:', this.previousPhotoUri);
+                }
+            } catch (deleteError) {
+                console.warn('[UnifiedPipeline] Error deleting previous temp photo:', deleteError);
+            }
+            this.previousPhotoUri = null;
         }
     }
 }

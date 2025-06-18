@@ -215,7 +215,7 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                     </View>
 
                     <Text style={[typography.h2, { color: colors.text }]}>
-                       {t('errors.database_error_title')}
+                        {t('errors.database_error_title')}
                     </Text>
 
                     <Text style={[typography.body, { color: colors.textSecondary, textAlign: 'center' }]}>
@@ -238,7 +238,7 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                     >
                         <ThemedIcon name="refresh-cw" size={16} color="secondary" />
                         <Text style={[typography.label, { color: colors.textInverse }]}>
-                             {t('common.retry_loading')}
+                            {t('common.retry_loading')}
                         </Text>
                     </Pressable>
                 </View>
@@ -311,7 +311,7 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                                 </Text>
                                 {loadedRecords > 0 && (
                                     <Text style={[typography.label, { color: colors.textSecondary }]}>
-                                        {t('loading_messages.species_loaded', {count: loadedRecords})}
+                                        {t('loading_messages.species_loaded', { count: loadedRecords })}
                                     </Text>
                                 )}
                             </View>
@@ -488,13 +488,13 @@ export default function RootLayout() {
                 console.log('[Database] Starting local database initialization...');
                 await initDB();
                 console.log('[Database] Local database initialized successfully (bird_spottings table created)');
-                
+
                 // Add a small delay for Android to ensure database is fully ready
                 if (Platform.OS === 'android') {
                     console.log('[Database] Android detected - adding 100ms delay for database stability');
                     await new Promise(resolve => setTimeout(resolve, 100));
                 }
-                
+
                 setLocalDbReady(true);
                 setLocalDbError(null);
             } catch (error) {
@@ -507,7 +507,7 @@ export default function RootLayout() {
                     });
                 }
                 setLocalDbError(error instanceof Error ? error.message : t('loading_messages.failed_initialize_local_database'));
-                
+
                 // On Android, retry once after a delay
                 if (Platform.OS === 'android' && retryCount === 0) {
                     console.log('[Database] Android: Retrying database initialization in 500ms...');
@@ -567,16 +567,18 @@ export default function RootLayout() {
         }
 
         return (
-            <ImageLabelingModelProvider>
-                <ObjectDetectionProvider>
-                    <AppInitializationScreen
-                        message={message}
-                        error={localDbError || undefined}
-                        onRetry={localDbError ? handleRetry : undefined}
-                    />
-                    <StatusBar style="auto" />
-                </ObjectDetectionProvider>
-            </ImageLabelingModelProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+                <ImageLabelingModelProvider>
+                    <ObjectDetectionProvider>
+                        <AppInitializationScreen
+                            message={message}
+                            error={localDbError || undefined}
+                            onRetry={localDbError ? handleRetry : undefined}
+                        />
+                        <StatusBar style="auto" />
+                    </ObjectDetectionProvider>
+                </ImageLabelingModelProvider>
+            </GestureHandlerRootView>
         );
     }
 
@@ -585,8 +587,8 @@ export default function RootLayout() {
         return (
             <ImageLabelingModelProvider>
                 <ObjectDetectionProvider>
-                    <DatabaseLoadingScreen 
-                        onReady={() => setBirdDexReady(true)} 
+                    <DatabaseLoadingScreen
+                        onReady={() => setBirdDexReady(true)}
                         localDbReady={localDbReady}
                     />
                     <StatusBar style="auto" />
