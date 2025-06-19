@@ -442,6 +442,7 @@
     "no_permission": "Permission denied",
     "permission_required": "Camera Required",
     "permission_message": "Camera access required",
+    "video_permission_message": "Camera and microphone access required for video recording",
     "permission_error": "Permission error",
     "take_photo_error": "Capture failed",
     "not_ready": "Not ready",
@@ -661,7 +662,9 @@
     "no_photos": "No Photos",
     "take_at_least_one": "Take at least one photo",
     "photos_taken": "{{count}} taken",
-    "continue_with_photos": "Continue ({{count}})"
+    "continue_with_photos": "Continue ({{count}})",
+    "photo_saved": "Photo saved",
+    "capture_failed": "Failed to save photo"
   },
   "video": {
     "recording_failed": "Failed",
@@ -671,7 +674,11 @@
     "processing": "Processing...",
     "preview_title": "Preview",
     "recording_status_rec": "REC",
-    "recording_status_stopped": "STOPPED"
+    "recording_status_stopped": "STOPPED",
+    "video_saved": "Video saved",
+    "use_this_video": "Use this video?",
+    "accept": "Accept",
+    "save_failed": "Failed to save video"
   },
   "location": {
     "success": "Updated",
