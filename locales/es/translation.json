@@ -86,8 +86,19 @@
     "cancel": "Cancelar",
     "save": "Guardar",
     "confirm": "Confirmar",
-    "try_again": "Intentar de nuevo"
+    "try_again": "Intentar de nuevo",
+    "checkAnswer": "Comprobar respuesta",
+    "nextQuestion": "Siguiente pregunta",
+    "finish": "Terminar",
+    "yes": "Sí",
+    "no": "No"
   },
+  "questions": {
+    "birdName": "¿Cómo se llama este pájaro?",
+    "birdRange": "¿En qué área vive este pájaro?",
+    "birdExtinct": "¿Está este pájaro extinguido?"
+  },
+  
   "auth": {
     "welcome_back": "Bienvenido de nuevo",
     "email_label": "Correo electrónico",

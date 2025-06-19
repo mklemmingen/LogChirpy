@@ -86,8 +86,19 @@
     "cancel": "إلغاء",
     "save": "حفظ",
     "confirm": "تأكيد",
-    "try_again": "حاول مرة أخرى"
+    "try_again": "حاول مرة أخرى",
+    "checkAnswer": "تحقق من الإجابة",
+    "nextQuestion": "السؤال التالي",
+    "finish": "إنهاء",
+    "yes": "نعم",
+    "no": "لا"
   },
+  "questions": {
+    "birdName": "ما اسم هذا الطائر؟",
+    "birdRange": "في أي منطقة يعيش هذا الطائر؟",
+    "birdExtinct": "هل هذا الطائر منقرض؟"
+  },
+  
   "auth": {
     "welcome_back": "مرحباً بعودتك",
     "email_label": "البريد الإلكتروني",

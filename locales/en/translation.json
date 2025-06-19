@@ -251,8 +251,19 @@
     "close": "Close",
     "delete": "Delete",
     "share": "Share",
-    "try_again": "Retry"
+    "try_again": "Retry",
+    "checkAnswer": "Check Answer",
+    "nextQuestion": "Next Question",
+    "finish": "Finish",
+    "yes": "Yes",
+    "no": "No"
   },
+  "questions": {
+    "birdName": "What is the name of this bird?",
+    "birdRange": "In which area does this bird live?",
+    "birdExtinct": "Is this bird extinct?"
+  }, 
+  
   "auth": {
     "welcome_back": "Welcome Back",
     "email_label": "Email",

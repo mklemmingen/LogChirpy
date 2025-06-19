@@ -19,6 +19,7 @@ export default function BirdQuiz() {
     const { primaryButton } = useSafeColorCombinations();
     const [questionIndex, setQuestionIndex] = useState(1);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+    const [isAnswered, setIsAnswered] = useState(false);
 
     useEffect(() => {
         const birds = queryBirdDexPage('', 'english_name', true, 100, 1, 'all');
@@ -34,6 +35,7 @@ export default function BirdQuiz() {
 
     const checkAnswer = () => {
         if (!bird) return;
+        let answeredCorrectly = false;
         const answer = bird.english_name?.toLowerCase().trim() ?? '';
         const guess = input.toLowerCase().trim();
 
@@ -41,36 +43,38 @@ export default function BirdQuiz() {
 
         const distance = levenshtein.get(answer, guess);
         if (questionIndex === 1) {
-            if (distance <= 2 || guess === answer) {
-                setCorrect(true);
+            if (guess === answer || answer.includes(guess) || guess.includes(answer)) {
+                answeredCorrectly = true;
                 Alert.alert('Richtig!', `Das war ${correctName}`);
             } else {
                 Alert.alert('Leider falsch', `Richtige Antwort: ${correctName}`);
             }
         }
 
-        if (questionIndex === 2) {
+        else if (questionIndex === 2) {
             const answer = bird.range.toLowerCase().trim();
             const guess = input.toLowerCase().trim();
             if (answer.includes(guess) || guess.includes(answer)) {
-                setCorrect(true);
+                answeredCorrectly = true;
                 Alert.alert('Richtig!', `Verbreitungsgebiet: ${bird.range}`);
             } else {
                 Alert.alert('Leider falsch', `Richtiges Verbreitungsgebiet: ${bird.range}`);
             }
         }
 
-        if (questionIndex === 3) {
+        else if (questionIndex === 3) {
             const extinct = bird.extinct && bird.extinct.trim() !== '';
             const correctAnswer = extinct ? 'Ja' : 'Nein';
 
             if (selectedAnswer === correctAnswer) {
-                setCorrect(true);
+                answeredCorrectly = true;
                 Alert.alert('Richtig!', `Status: ${correctAnswer}`);
             } else {
                 Alert.alert('Leider falsch', `Richtiger Status: ${correctAnswer}`);
             }
         }
+        setIsAnswered(true);
+        setCorrect(answeredCorrectly);
     };
 
     if (!bird) return null;
@@ -133,14 +137,19 @@ export default function BirdQuiz() {
                     <Button
                         size="md"
                         variant="secondary"
-                        title="Nächste Frage"
                         onPress={() => {
-                            // Nächste Frage
-                            setQuestionIndex(prev => (prev === 3 ? 1 : prev + 1));
-                            setInput('');
-                            setSelectedAnswer(null);
-                            setCorrect(false);
+                            if (questionIndex === 3) {
+                                navigation.goBack();  // Zurück zur vorherigen Seite
+                            } else {
+                                setQuestionIndex(prev => prev + 1);
+                                setInput('');
+                                setSelectedAnswer(null);
+                                setIsAnswered(false);
+                                setCorrect(false);
+                            }
                         }}
+                        title={questionIndex === 3 ? 'Beenden' : 'Nächste Frage'}
+                        disabled={!isAnswered}
                     />
                 </View>
             </ScrollView>
