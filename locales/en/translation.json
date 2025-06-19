@@ -356,7 +356,9 @@
       "show_camera_controls": "Show Camera Controls",
       "display_advanced_controls": "Display advanced controls overlay in camera view",
       "location_data_settings": "Location data settings",
-      "record_coordinates_description": "Record precise coordinates with your bird sightings for mapping and analysis"
+      "record_coordinates_description": "Record precise coordinates with your bird sightings for mapping and analysis",
+      "gps_location_logging": "GPS Location Logging",
+      "language_setting_description": "Choose your preferred language for the app interface"
     },
     "about": {
       "title": "About LogChirpy",

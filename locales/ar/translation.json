@@ -178,7 +178,9 @@
       "show_camera_controls": "إظهار عناصر تحكم الكاميرا",
       "display_advanced_controls": "عرض عناصر التحكم المتقدمة في عرض الكاميرا",
       "location_data_settings": "إعدادات بيانات الموقع",
-      "record_coordinates_description": "سجل الإحداثيات الدقيقة لمشاهدات الطيور لأغراض الخريطة والتحليل"
+      "record_coordinates_description": "سجل الإحداثيات الدقيقة لمشاهدات الطيور لأغراض الخريطة والتحليل",
+      "gps_location_logging": "تسجيل الموقع عبر نظام GPS",
+      "language_setting_description": "اختر لغتك المفضلة لواجهة التطبيق"
     },
     "about": {
       "title": "حول LogChirpy",

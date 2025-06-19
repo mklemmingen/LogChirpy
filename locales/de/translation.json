@@ -186,7 +186,9 @@
     "show_camera_controls": "Kamerasteuerung anzeigen",
     "display_advanced_controls": "Erweiterte Steuerung im Kamerabild anzeigen",
     "location_data_settings": "Einstellungen für Standortdaten",
-    "record_coordinates_description": "Präzise Koordinaten zu Vogelbeobachtungen für Kartierung und Analyse speichern"
+    "record_coordinates_description": "Präzise Koordinaten zu Vogelbeobachtungen für Kartierung und Analyse speichern",
+    "gps_location_logging": "GPS-Standortprotokollierung",
+    "language_setting_description": "Wähle deine bevorzugte Sprache für die App-Oberfläche"
   },
   "audio": {
     "start": "Aufnahme starten",

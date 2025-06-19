@@ -178,7 +178,9 @@
       "show_camera_controls": "Mostrar controles de cámara",
       "display_advanced_controls": "Mostrar controles avanzados en la vista de la cámara",
       "location_data_settings": "Configuración de datos de ubicación",
-      "record_coordinates_description": "Registrar coordenadas precisas con tus avistamientos para mapeo y análisis"
+      "record_coordinates_description": "Registrar coordenadas precisas con tus avistamientos para mapeo y análisis",
+      "gps_location_logging": "Registro de ubicación GPS",
+      "language_setting_description": "Elige tu idioma preferido para la interfaz de la aplicación"
     },
     "about": {
       "title": "Acerca de LogChirpy",

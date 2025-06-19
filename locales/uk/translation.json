@@ -177,7 +177,9 @@
       "show_camera_controls": "Показати елементи керування камерою",
       "display_advanced_controls": "Показати розширені елементи керування у вікні камери",
       "location_data_settings": "Налаштування даних про місцезнаходження",
-      "record_coordinates_description": "Записуйте точні координати для картування та аналізу спостережень за птахами"
+      "record_coordinates_description": "Записуйте точні координати для картування та аналізу спостережень за птахами",
+      "gps_location_logging": "Запис розташування через GPS",
+      "language_setting_description": "Виберіть бажану мову інтерфейсу застосунку"
     },
     "about": {
       "title": "Про LogChirpy",

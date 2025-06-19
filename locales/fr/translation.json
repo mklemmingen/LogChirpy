@@ -306,7 +306,9 @@
       "show_camera_controls": "Afficher les contrôles de la caméra",
       "display_advanced_controls": "Afficher les commandes avancées dans la vue de la caméra",
       "location_data_settings": "Paramètres des données de localisation",
-      "record_coordinates_description": "Enregistrer des coordonnées précises pour la cartographie et l'analyse"
+      "record_coordinates_description": "Enregistrer des coordonnées précises pour la cartographie et l'analyse",
+      "gps_location_logging": "Journalisation de la position GPS",
+      "language_setting_description": "Choisissez votre langue préférée pour l'interface de l'app"
     },
     "about": {
       "title": "À propos de LogChirpy",

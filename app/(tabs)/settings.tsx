@@ -262,7 +262,7 @@ function GPSToggleCard({
                                 variant="bodyLarge"
                                 style={styles.gpsTitle}
                             >
-                                GPS Location Logging
+                                {t("settings.gps_location_logging")}
                             </ThemedText>
 
                             <ThemedText
@@ -512,7 +512,7 @@ export default function SettingsScreen() {
                         {t("settings.language")}
                     </ThemedText>
                     <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
-                        Choose your preferred language for the app interface
+                        {t("settings.language_setting_description")}
                     </ThemedText>
                     <View style={styles.languageGrid}>
                         {Object.entries(languages).map(([langKey, langName], index) => {
