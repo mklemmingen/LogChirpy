@@ -1,0 +1,95 @@
+%Schriftgroesse, Layout, Papierformat, Art des Dokumentes
+\documentclass[listof=totoc, 12pt, oneside, bibliography=totoc, a4paper, parskip=full+, final]{scrreprt} 
+
+%Einstellungen der Seitenraender, Zeilenabstand
+\usepackage[left=4cm,right=3cm,top=3cm,bottom=2cm,bindingoffset=0cm]{geometry}
+\usepackage{setspace} 
+\setlength{\footskip}{0.8cm}
+
+%Deutsche Rechtschreibung
+\usepackage[ngerman]{babel}
+\usepackage[babel,german=quotes]{csquotes}
+\usepackage{mathptmx}
+
+%BiblatexStyle
+\bibliographystyle{unsrt}
+
+%Umlaute ermoeglichen
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+
+%Fuer Grafiken
+\usepackage{graphicx} 
+\usepackage{subfigure}
+\usepackage{wrapfig}
+
+%Fuer Tabellen
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+
+%Mathematische Zeichen
+\usepackage{amsmath, amsthm, amssymb}
+\usepackage{mathtools}
+
+%Bildunterschriften
+\usepackage{caption}
+\addto\captionsngerman
+{
+	\renewcommand{\figurename}{Abb.}
+	\renewcommand{\tablename}{Tab.} 
+}
+
+%Für Quellcode
+\usepackage{listings}
+\usepackage{color}
+\definecolor{darkblue}{rgb}{0,0,.6}
+\definecolor{darkred}{rgb}{.6,0,0}
+\definecolor{darkgreen}{rgb}{0,.6,0}
+\definecolor{lightblue}{rgb}{0.97,0.99,1}
+
+\renewcommand{\lstlistingname}{Codeauszug}
+\lstset
+{
+	basicstyle=\ttfamily\small,
+	commentstyle=\color{darkgreen},
+	keywordstyle=\bfseries\color{darkblue},
+	stringstyle=\color{darkred},
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	columns=fixed,
+	frame=single,
+	frameround=ffff,
+	numbers=left,
+	numberstyle=\tiny,
+	numbersep=5pt,
+	breaklines=true,
+	backgroundcolor=\color{lightblue},
+	captionpos=b
+}
+
+%lädt das Paket zum erzwingen der Grafikposition
+\usepackage{here} 
+
+%Um Links im Dokument zu aktivieren
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks=false,
+	pdfborder={0 0 0},
+}
+
+%Header and Footer - simplified
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{Mobile Computing Final Report - LogChirpy \quad \thepage}
+\fancyhead[C]{\leftmark}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+%Autor und Titel
+\author{Martin Lauterbach, Luis Wehrberger, Youmna Samouneh}
+\title{LogChirpy - Ornithological Archival App}

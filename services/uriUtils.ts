@@ -8,6 +8,18 @@
 import * as FileSystem from 'expo-file-system';
 
 /**
+ * Generates a unique filename with timestamp
+ * @param prefix - The prefix for the filename
+ * @param extension - The file extension (including the dot)
+ * @returns A unique filename
+ */
+export function generateUniqueFileName(prefix: string, extension: string): string {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const milliseconds = Date.now();
+  return `${prefix}_${timestamp}_${milliseconds}${extension}`;
+}
+
+/**
  * Converts a file system path to a proper URI for React Native Image component
  * @param filePath - The file system path (e.g., "/data/user/0/app/files/photo.jpg")
  * @returns Properly formatted URI (e.g., "file:///data/user/0/app/files/photo.jpg")
