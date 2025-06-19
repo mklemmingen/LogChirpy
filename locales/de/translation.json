@@ -108,7 +108,6 @@
     "correctRangeMessage": "Verbreitungsgebiet: {{range}}",
     "incorrectRangeMessage": "Richtiges Verbreitungsgebiet: {{range}}"
   },
-  
   "auth": {
     "welcome_back": "Willkommen zurück",
     "email_label": "E-Mail",
@@ -181,7 +180,7 @@
       },
       "image_processing": {
         "title": "Was passiert mit Ihren Bildern",
-        "description": "Fotos werden lokal auf Ihrem Gerät mit KI-Modellen für die Vogelidentifikation verarbeitet. Bilder werden temporär im Dokumentenordner Ihres Geräts gespeichert und können über die Galerie-Seite manuell in Ihre Fotogalerie gespeichert werden. Keine Bilder werden automatisch auf externe Server hochgeladen."
+        "description": "Sobald Sie die Bilder fotografiert haben, werden sie temporär im Dokumentenordner Ihres Geräts gespeichert und können über die Galerie-Seite manuell in Ihre Fotogalerie übernommen werden. Keine Bilder werden automatisch auf externe Server hochgeladen. Bitte halten Sie das Handy ruhig, damit es nicht verwackelt."
       },
       "ai_models": {
         "title": "Wie KI-Modelle funktionieren",
@@ -190,7 +189,11 @@
       "data_privacy": {
         "title": "Firebase & Datenschutz",
         "description": "Ihre Vogelbeobachtungsprotokolle werden sicher in Firebase Firestore mit Ende-zu-Ende-Verschlüsselung gespeichert. Nur wesentliche Daten wie Vogelart, Standort (falls aktiviert), Datum und Notizen werden synchronisiert. Die Authentifizierung wird sicher über Firebase Auth abgewickelt. Keine persönlichen Bilder oder Audioaufnahmen werden zu Firebase hochgeladen - sie bleiben auf Ihrem Gerät."
-      }
+      },
+      "audio_recording": "Man kann Audio aufnehmen, indem man auf das Mikrofon klickt. Wenn man die Aufnahme erneut anhören möchte, kann man das tun oder sie erneut aufnehmen und anschließend manuell speichern.",
+      "record_audio": "Audio aufnehmen",
+      "manual_entry_description": "Sie können manuell Ihre Vogelbeobachtung eingeben: Geben Sie den Vogeltyp, Datum und Standort an, fügen Sie Notizen hinzu und laden Sie Fotos, Videos oder Audioaufnahmen hoch. Sie können auch eine automatische KI-basierte Vogelidentifikation über Ihre Audioaufnahme nutzen.",
+      "manual_entry": "Eigene Vogelbeobachtungen eingeben"
     },
     "about": {
       "title": "Über LogChirpy",

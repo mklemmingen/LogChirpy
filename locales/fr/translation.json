@@ -307,7 +307,7 @@
       },
       "image_processing": {
         "title": "Traitement de vos images",
-        "description": "Les photos sont traitées localement sur votre appareil en utilisant des modèles IA pour l'identification des oiseaux. Les images sont temporairement stockées dans le dossier documents de votre appareil et peuvent être sauvegardées manuellement dans votre galerie photo via la page Galerie. Aucune image n'est automatiquement envoyée vers des serveurs externes."
+        "description": "Une fois les photos prises, elles sont temporairement stockées dans le dossier documents de votre appareil et peuvent être enregistrées manuellement dans votre galerie photo via la page galerie. Aucune image n'est automatiquement téléchargée sur des serveurs externes. Veuillez tenir votre téléphone stable pour éviter le flou."
       },
       "ai_models": {
         "title": "Fonctionnement des modèles IA",
@@ -330,7 +330,11 @@
       "gps_location_logging": "Journalisation de la position GPS",
       "language_setting_description": "Choisissez votre langue préférée pour l'interface de l'app",
       "tutorial_welcome_title": "Bienvenue sur LogChirpy",
-      "tutorial_welcome_description": "Découvrez, identifiez et enregistrez les oiseaux grâce à des outils basés sur l'IA – même hors ligne !"
+      "tutorial_welcome_description": "Découvrez, identifiez et enregistrez les oiseaux grâce à des outils basés sur l'IA – même hors ligne !",
+      "audio_recording": "Vous pouvez enregistrer de l’audio en appuyant sur le microphone. Si vous souhaitez réécouter l’enregistrement, vous pouvez le faire ou le réenregistrer puis le sauvegarder manuellement.",
+      "record_audio": "Enregistrer l’audio",
+      "manual_entry_description": "Vous pouvez saisir manuellement votre observation d'oiseau : indiquez le type d'oiseau, la date et le lieu, ajoutez des notes et téléchargez des photos, des vidéos ou des enregistrements audio. Vous pouvez également utiliser l'identification automatique des oiseaux basée sur l'IA via votre enregistrement audio.",
+      "manual_entry": "Saisissez vos propres observations d’oiseaux"
     },
     "about": {
       "title": "À propos de LogChirpy",

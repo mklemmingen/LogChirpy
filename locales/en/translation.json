@@ -357,7 +357,7 @@
       },
       "image_processing": {
         "title": "Image Storage",
-        "description": "Photos processed locally. Save to gallery manually. No automatic uploads."
+        "description": "Once you have taken the photos, they are temporarily stored in your device's documents folder and can be manually saved to your photo gallery via the gallery page. No images are automatically uploaded to external servers. Please hold your phone steady to avoid blurring."
       },
       "ai_models": {
         "title": "AI Models",
@@ -365,7 +365,7 @@
       },
       "data_privacy": {
         "title": "Privacy",
-        "description": "Logs sync to Firebase. Photos and audio stay on device. End-to-end encrypted."
+        "description": "Your bird sighting logs are securely stored in Firebase Firestore with end-to-end encryption. Only essential data such as bird species, location (if enabled), date, and notes are synchronized. Authentication is securely handled through Firebase Auth. No personal images or audio recordings are uploaded to Firebase—they remain on your device."
       },
       "adjust_detection_settings": "Adjust bird detection settings",
       "camera_ai_settings": "Camera AI Settings",
@@ -380,7 +380,11 @@
       "gps_location_logging": "GPS Location Logging",
       "language_setting_description": "Choose your preferred language for the app interface",
       "tutorial_welcome_title": "Welcome to LogChirpy",
-      "tutorial_welcome_description": "Discover, identify, and log birds using AI-powered tools – even offline!"
+      "tutorial_welcome_description": "Discover, identify, and log birds using AI-powered tools – even offline!",
+      "audio_recording": "You can record audio by tapping on the microphone. If you want to listen to the recording again, you can do so or record it again and then save it manually.",
+      "record_audio": "Record Audio",
+      "manual_entry_description": "You can manually enter your bird sighting: specify the bird type, date, and location, add notes, and upload photos, videos, or audio recordings. You can also use automatic AI-based bird identification through your audio recording.",
+      "manual_entry": "Enter your own bird sightings"
     },
     "about": {
       "title": "About LogChirpy",

@@ -179,7 +179,7 @@
       },
       "image_processing": {
         "title": "Qué sucede con tus imágenes",
-        "description": "Las fotos se procesan localmente en tu dispositivo usando modelos de IA para identificación de aves. Las imágenes se almacenan temporalmente en la carpeta de documentos de tu dispositivo y pueden guardarse en tu galería de fotos manualmente a través de la página de Galería. Ninguna imagen se sube automáticamente a servidores externos."
+        "description": "Una vez que hayas tomado las fotos, se almacenan temporalmente en la carpeta de documentos de tu dispositivo y pueden guardarse manualmente en tu galería de fotos a través de la página de la galería. Ninguna imagen se sube automáticamente a servidores externos. Por favor, sostiene el teléfono con firmeza para evitar que las fotos salgan movidas."
       },
       "ai_models": {
         "title": "Cómo funcionan los modelos de IA",
@@ -202,7 +202,11 @@
       "gps_location_logging": "Registro de ubicación GPS",
       "language_setting_description": "Elige tu idioma preferido para la interfaz de la aplicación",
       "tutorial_welcome_title": "Bienvenido a LogChirpy",
-      "tutorial_welcome_description": "Descubre, identifica y registra aves con herramientas impulsadas por IA, ¡incluso sin conexión!"
+      "tutorial_welcome_description": "Descubre, identifica y registra aves con herramientas impulsadas por IA, ¡incluso sin conexión!",
+      "audio_recording": "Puedes grabar audio tocando el micrófono. Si quieres escuchar la grabación nuevamente, puedes hacerlo o grabarla otra vez y luego guardarla manualmente.",
+      "record_audio": "Grabar audio",
+      "manual_entry_description": "Puede ingresar manualmente su avistamiento de aves: especifique el tipo de ave, la fecha y la ubicación, agregue notas y cargue fotos, videos o grabaciones de audio. También puede utilizar la identificación automática de aves basada en IA a través de su grabación de audio.",
+      "manual_entry": "Ingrese sus propias observaciones de aves"
     },
     "about": {
       "title": "Acerca de LogChirpy",

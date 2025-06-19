@@ -42,10 +42,10 @@ export default function TutorialScreen() {
                                 style={{ width: 300, height: 300, alignSelf: 'center' }}
                             />
                             <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                {t("settings.tutorial_welcome_title")}
+                                {t("settings.tutorial.tutorial_welcome_title")}
                             </ThemedText>
                             <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                {t("settings.tutorial_welcome_description")}
+                                {t("settings.tutorial.tutorial_welcome_description")}
                             </ThemedText>
                         </View>
                     ),
@@ -95,6 +95,49 @@ export default function TutorialScreen() {
                     title: '',
                     subtitle: '',
                 },
+                {
+                    backgroundColor: '#fff',
+                    image: (
+                        <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
+                            <LottieView
+                                source={require('@/assets/tutorial/audio-animation.json')}
+                                autoPlay
+                                loop
+                                style={{ width: 200, height: 210 }}
+                            />
+                            <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                {t('settings.tutorial.record_audio')}
+                            </ThemedText>
+                            <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                {t('settings.tutorial.audio_recording')}
+                            </ThemedText>
+                        </View>
+                    ),
+                    title: '',
+                    subtitle: '',
+                },
+                {
+                    backgroundColor: '#fff',
+                    image: (
+                        <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
+                            <LottieView
+                                source={require('@/assets/tutorial/manual-animation.json')}
+                                autoPlay
+                                loop
+                                style={{ width: 200, height: 210 }}
+                            />
+                            <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                {t('settings.tutorial.manual_entry')}
+                            </ThemedText>
+                            <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                {t('settings.tutorial.manual_entry_description')}
+                            </ThemedText>
+                        </View>
+                    ),
+                    title: '',
+                    subtitle: '',
+                },
+
                 {
                     backgroundColor: '#fff',
                     image: (
