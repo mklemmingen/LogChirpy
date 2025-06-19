@@ -1,33 +1,33 @@
-import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, Alert, FlatList, Image, Pressable, Share, StyleSheet, View,} from 'react-native';
-import {useTranslation} from 'react-i18next';
-import {router, useFocusEffect, useLocalSearchParams} from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, Pressable, Share, StyleSheet, View, } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
-import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
-import Animated, {FadeInDown, FadeOutUp} from 'react-native-reanimated';
+import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling";
+import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 
 // Components
-import {ThemedView} from '@/components/ThemedView';
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedIcon} from '@/components/ThemedIcon';
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {ModernCard} from '@/components/ModernCard';
-import {useSnackbar} from '@/components/ThemedSnackbar';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { ModernCard } from '@/components/ModernCard';
+import { useSnackbar } from '@/components/ThemedSnackbar';
 
 // Context
-import {useLogDraft} from '@/contexts/LogDraftContext';
+import { useLogDraft } from '@/contexts/LogDraftContext';
 
 // Hooks
-import {useColors} from '@/hooks/useThemeColor';
+import { useColors } from '@/hooks/useThemeColor';
 
 // URI utilities
-import {filePathToUri, uriToFilePath} from '@/services/uriUtils';
+import { filePathToUri, uriToFilePath } from '@/services/uriUtils';
 
 // Database utilities
-import {searchBirdsByName} from '@/services/databaseBirDex';
+import { searchBirdsByName } from '@/services/databaseBirDex';
 
 interface PhotoItem {
     uri: string;
@@ -58,13 +58,13 @@ export default function GalleryManagementScreen() {
     const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
     const [selectionMode, setSelectionMode] = useState(false);
     const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
-    
+
     // AI Identification state
     const [isIdentifying, setIsIdentifying] = useState(false);
     const [predictions, setPredictions] = useState<BirdPrediction[]>([]);
     const [showPredictions, setShowPredictions] = useState(false);
     const [processingTime, setProcessingTime] = useState(0);
-    
+
     // MLKit hook
     const classifier = useImageLabeling('birdClassifier');
     const mlReady = !!(classifier && typeof classifier.classifyImage === 'function');
@@ -74,7 +74,7 @@ export default function GalleryManagementScreen() {
         try {
             setLoading(true);
             const galleryDir = `${FileSystem.documentDirectory}gallery/`;
-            
+
             // Check if gallery directory exists
             const dirInfo = await FileSystem.getInfoAsync(galleryDir);
             if (!dirInfo.exists) {
@@ -83,8 +83,8 @@ export default function GalleryManagementScreen() {
             }
 
             const files = await FileSystem.readDirectoryAsync(galleryDir);
-            const photoFiles = files.filter(filename => 
-                (filename.startsWith('bird_') || filename.startsWith('full_') || filename.startsWith('logchirpy_photo_')) && 
+            const photoFiles = files.filter(filename =>
+                (filename.startsWith('bird_') || filename.startsWith('full_') || filename.startsWith('logchirpy_photo_')) &&
                 (filename.endsWith('.jpg') || filename.endsWith('.jpeg') || filename.endsWith('.png'))
             );
 
@@ -93,7 +93,7 @@ export default function GalleryManagementScreen() {
                     const filePath = `${galleryDir}${filename}`;
                     const info = await FileSystem.getInfoAsync(filePath) as FileSystem.FileInfo & { modificationTime?: number };
                     const { classification, confidence, detectionType } = extractDataFromFilename(filename);
-                    
+
                     return {
                         uri: filePathToUri(filePath), // Convert to proper URI for Image component
                         filename: filename,
@@ -131,9 +131,9 @@ export default function GalleryManagementScreen() {
     );
 
     // Extract classification data from filename patterns like "bird_house_finch_conf085_timestamp_milliseconds.jpg"
-    const extractDataFromFilename = (filename: string): { 
-        classification?: string; 
-        confidence?: number; 
+    const extractDataFromFilename = (filename: string): {
+        classification?: string;
+        confidence?: number;
         detectionType?: 'bird' | 'full';
     } => {
         const patterns = [
@@ -164,7 +164,7 @@ export default function GalleryManagementScreen() {
             newSelection.add(uri);
         }
         setSelectedPhotos(newSelection);
-        
+
         if (newSelection.size === 0) {
             setSelectionMode(false);
         }
@@ -184,10 +184,10 @@ export default function GalleryManagementScreen() {
 
                     // Convert URI to file path for MediaLibrary
                     const filePath = uriToFilePath(uri);
-                    
+
                     // Create asset
                     const asset = await MediaLibrary.createAssetAsync(filePath);
-                    
+
                     // Add to LogChirpy album
                     let album = await MediaLibrary.getAlbumAsync("LogChirpy");
                     if (album) {
@@ -195,7 +195,7 @@ export default function GalleryManagementScreen() {
                     } else {
                         await MediaLibrary.createAlbumAsync("LogChirpy", asset, false);
                     }
-                    
+
                     savedCount++;
                 } catch (error) {
                     console.error('Failed to save photo:', uri, error);
@@ -228,21 +228,60 @@ export default function GalleryManagementScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
+                            let deletedCount = 0;
+                            let errors = [];
+
                             for (const uri of photoUris) {
-                                // Convert URI to file path for FileSystem operations
-                                const filePath = uriToFilePath(uri);
-                                const fileInfo = await FileSystem.getInfoAsync(filePath);
-                                if (fileInfo.exists) {
-                                    await FileSystem.deleteAsync(filePath);
+                                try {
+                                    // Get the file path relative to the app's document directory
+                                    const galleryDir = `${FileSystem.documentDirectory}gallery/`;
+                                    const filename = uri.split('/').pop(); // Get the filename from the URI
+                                    if (!filename) {
+                                        throw new Error('Invalid file URI');
+                                    }
+
+                                    const filePath = `${galleryDir}${filename}`;
+                                    console.log('[Gallery] Processing delete:', {
+                                        uri,
+                                        galleryDir,
+                                        filename,
+                                        filePath
+                                    });
+
+                                    const fileInfo = await FileSystem.getInfoAsync(filePath);
+                                    if (fileInfo.exists) {
+                                        await FileSystem.deleteAsync(filePath, { idempotent: true });
+                                        deletedCount++;
+                                        console.log('[Gallery] Successfully deleted file:', filePath);
+                                    } else {
+                                        console.warn('[Gallery] File does not exist:', filePath);
+                                        errors.push(`File not found: ${filename}`);
+                                    }
+                                } catch (error) {
+                                    console.error('[Gallery] Failed to delete file:', uri, error);
+                                    errors.push(error instanceof Error ? error.message : String(error));
                                 }
                             }
+
+                            // Clear selection and refresh list regardless of errors
                             setSelectedPhotos(new Set());
                             setSelectionMode(false);
                             await loadPhotos(); // Refresh the list
-                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+                            // Show appropriate feedback
+                            if (deletedCount > 0) {
+                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                showSuccess(t('gallery.delete_success', 'Successfully deleted {{count}} photos', { count: deletedCount }));
+                            }
+
+                            if (errors.length > 0) {
+                                console.error('[Gallery] Deletion errors:', errors);
+                                showError(t('gallery.delete_partial_fail', 'Failed to delete some photos. Please try again.'));
+                            }
                         } catch (error) {
-                            console.error('Delete failed:', error);
-                            Alert.alert(t('gallery.delete_failed'), error instanceof Error ? error.message : String(error));
+                            console.error('[Gallery] Delete operation failed:', error);
+                            showError(t('gallery.delete_failed', 'Failed to delete photos'));
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                         }
                     }
                 }
@@ -274,7 +313,7 @@ export default function GalleryManagementScreen() {
             update({ imageUri: selectedPhotoUri });
             showSuccess('Photo selected for bird log');
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            
+
             // Navigate to the manual entry screen
             router.push('/log/manual');
         } catch (error) {
@@ -293,7 +332,7 @@ export default function GalleryManagementScreen() {
 
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            
+
             const results = await classifier?.classifyImage(selectedPhotoUri) || [];
             const endTime = Date.now();
             setProcessingTime((endTime - startTime) / 1000);
@@ -303,11 +342,11 @@ export default function GalleryManagementScreen() {
                     .filter((r: BirdPrediction) => r.confidence > 0.1)
                     .sort((a: BirdPrediction, b: BirdPrediction) => b.confidence - a.confidence)
                     .slice(0, 5);
-                
+
                 setPredictions(birdPredictions);
                 setShowPredictions(true);
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                
+
                 // Auto-hide predictions after 8 seconds
                 setTimeout(() => {
                     setShowPredictions(false);
@@ -405,19 +444,19 @@ export default function GalleryManagementScreen() {
             // Clean the bird name first
             const cleanedName = cleanBirdName(birdName);
             console.log('Searching database for:', cleanedName);
-            
+
             // Get search results from database
             const dbResults = searchBirdsByName(cleanedName, 20);
             console.log('Database returned', dbResults.length, 'results:', dbResults.slice(0, 5).map(r => r.english_name));
-            
+
             if (dbResults.length === 0) {
                 console.log('No database results found');
                 return null;
             }
-            
+
             // Score each result across all name fields
             let bestMatch = { score: 0, speciesCode: '', matchedName: '' };
-            
+
             dbResults.forEach(bird => {
                 const nameFields = [
                     { name: bird.english_name, label: 'english' },
@@ -427,7 +466,7 @@ export default function GalleryManagementScreen() {
                     { name: bird.ukrainian_name, label: 'ukrainian' },
                     { name: bird.ar_name, label: 'arabic' }
                 ].filter(field => field.name); // Remove null/undefined values
-                
+
                 nameFields.forEach(field => {
                     if (field.name) {
                         const score = calculateMatchScore(cleanedName, field.name);
@@ -438,9 +477,9 @@ export default function GalleryManagementScreen() {
                     }
                 });
             });
-            
+
             console.log('Best match:', bestMatch);
-            
+
             // Lower threshold to 30% since you said it doesn't have to be 100%
             return bestMatch.score > 30 ? bestMatch.speciesCode : null;
         } catch (error) {
@@ -451,20 +490,20 @@ export default function GalleryManagementScreen() {
 
     const handleSelectPrediction = useCallback((prediction: BirdPrediction) => {
         console.log('handleSelectPrediction called with:', prediction.text);
-        
-        update({ 
+
+        update({
             imagePrediction: prediction.text,
-            birdType: prediction.text 
+            birdType: prediction.text
         });
         setShowPredictions(false);
         setPredictions([]);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        
+
         // Find and navigate to best matching bird code
         console.log('Searching for matching bird code for:', prediction.text);
         const speciesCode = findBestMatchingBirdCode(prediction.text);
         console.log('Found species code:', speciesCode);
-        
+
         if (speciesCode) {
             console.log('Navigating to:', `/birdex/details/${speciesCode}`);
             // Navigate to bird details page with the matched species code
@@ -478,7 +517,7 @@ export default function GalleryManagementScreen() {
     const renderPhoto = ({ item }: { item: PhotoItem }) => {
         const isSelected = selectedPhotos.has(item.uri);
         const isBroken = brokenImages.has(item.uri);
-        
+
         return (
             <View style={styles.photoContainer}>
                 <Pressable
@@ -507,8 +546,8 @@ export default function GalleryManagementScreen() {
                             </ThemedText>
                         </View>
                     ) : (
-                        <Image 
-                            source={{ uri: item.uri }} 
+                        <Image
+                            source={{ uri: item.uri }}
                             style={styles.photo}
                             onError={() => {
                                 console.warn('Failed to load image:', item.uri);
@@ -516,7 +555,7 @@ export default function GalleryManagementScreen() {
                             }}
                         />
                     )}
-                    
+
                     {/* Selection indicator */}
                     {selectionMode && (
                         <View style={[
@@ -528,7 +567,7 @@ export default function GalleryManagementScreen() {
                             )}
                         </View>
                     )}
-                    
+
                     {/* Classification label */}
                     {item.classification && (
                         <View style={[styles.classificationBadge, { backgroundColor: colors.backgroundSecondary }]}>
@@ -538,7 +577,7 @@ export default function GalleryManagementScreen() {
                         </View>
                     )}
                 </Pressable>
-                
+
                 {/* Photo info */}
                 <View style={styles.photoInfo}>
                     <ThemedText variant="caption" color="secondary" numberOfLines={1}>
@@ -703,7 +742,7 @@ export default function GalleryManagementScreen() {
                                 Processing time: {processingTime.toFixed(1)}s
                             </ThemedText>
                         </View>
-                        
+
                         <View style={styles.predictionsList}>
                             {predictions.map((prediction, index) => (
                                 <ThemedPressable
@@ -730,7 +769,7 @@ export default function GalleryManagementScreen() {
                                 </ThemedPressable>
                             ))}
                         </View>
-                        
+
                         <ThemedText variant="caption" color="tertiary" style={styles.autoHideText}>
                             Tap a result to select, or wait for auto-hide
                         </ThemedText>
@@ -775,7 +814,7 @@ function createStyles() {
             flex: 1,
             paddingTop: 32,
         },
-        
+
         // Header
         header: {
             paddingHorizontal: 16,
@@ -833,7 +872,7 @@ function createStyles() {
         gridRow: {
             justifyContent: 'space-between',
         },
-        
+
         // Photo Items
         photoContainer: {
             width: '48%',

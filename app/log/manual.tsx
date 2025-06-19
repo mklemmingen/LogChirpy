@@ -5,7 +5,7 @@
  * Focus on essential functionality with a clean, accessible design.
  */
 
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -17,33 +17,33 @@ import {
     useColorScheme,
     View,
 } from 'react-native';
-import {router, Stack} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {Audio} from 'expo-av';
+import { router, Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { Audio } from 'expo-av';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
-import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
-import Animated, {FadeInDown, FadeOutUp} from 'react-native-reanimated';
+import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling";
+import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 
 // Context and Services
-import {useLogDraft} from '@/contexts/LogDraftContext';
-import {BirdSpotting, insertBirdSpotting} from '@/services/database';
-import {classifyBirdAudio} from '@/services/ultraSimpleBirdClassifier';
-import {validateImageUri} from '@/services/uriUtils';
-import {searchBirdsByName} from '@/services/databaseBirDex';
+import { useLogDraft } from '@/contexts/LogDraftContext';
+import { BirdSpotting, insertBirdSpotting } from '@/services/database';
+import { classifyBirdAudio } from '@/services/ultraSimpleBirdClassifier';
+import { validateImageUri } from '@/services/uriUtils';
+import { searchBirdsByName } from '@/services/databaseBirDex';
 
 // Components
-import {ThemedView} from '@/components/ThemedView';
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ThemedIcon} from '@/components/ThemedIcon';
-import {useSnackbar} from '@/components/ThemedSnackbar';
-import {ModernCard} from '@/components/ModernCard';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import { useSnackbar } from '@/components/ThemedSnackbar';
+import { ModernCard } from '@/components/ModernCard';
 
 // Theme
-import {useColors, useSpacing} from '@/hooks/useThemeColor';
+import { useColors, useSpacing } from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -81,13 +81,13 @@ export default function ManualBirdEntry() {
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [isIdentifying, setIsIdentifying] = useState(false);
-    
+
     // Image AI state
     const [isIdentifyingImage, setIsIdentifyingImage] = useState(false);
     const [imagePredictions, setImagePredictions] = useState<BirdPrediction[]>([]);
     const [showImagePredictions, setShowImagePredictions] = useState(false);
     const [processingTime, setProcessingTime] = useState(0);
-    
+
     // MLKit hook
     const classifier = useImageLabeling('birdClassifier');
     const mlReady = !!(classifier && typeof classifier.classifyImage === 'function');
@@ -135,13 +135,13 @@ export default function ManualBirdEntry() {
                 confidence: pred.confidence
             })) : [];
             console.log('🤖 [Audio ID] Predictions received:', predictions);
-            
+
             if (predictions && predictions.length > 0) {
                 const topPrediction = predictions[0];
                 console.log('🤖 [Audio ID] Top prediction:', topPrediction);
-                update({ 
+                update({
                     audioPrediction: topPrediction.common_name,
-                    birdType: topPrediction.common_name 
+                    birdType: topPrediction.common_name
                 });
                 console.log('[Audio ID] Successfully identified bird');
                 showSuccess(`Bird identified: ${topPrediction.common_name}`);
@@ -172,7 +172,7 @@ export default function ManualBirdEntry() {
             console.log('[Location] Requesting permissions...');
             const { status } = await Location.requestForegroundPermissionsAsync();
             console.log('[Location] Permission status:', status);
-            
+
             if (status !== 'granted') {
                 console.log('[Location] Permission denied');
                 showError('Location permission denied');
@@ -184,7 +184,7 @@ export default function ManualBirdEntry() {
                 accuracy: Location.Accuracy.High,
                 timeInterval: 10000,
             });
-            
+
             console.log('[Location] Location received:', location.coords);
             update({
                 gpsLat: location.coords.latitude,
@@ -308,11 +308,11 @@ export default function ManualBirdEntry() {
         try {
             const cleanedName = cleanBirdName(birdName);
             const dbResults = searchBirdsByName(cleanedName, 20);
-            
+
             if (dbResults.length === 0) return null;
-            
+
             let bestMatch = { score: 0, speciesCode: '', matchedName: '' };
-            
+
             dbResults.forEach(bird => {
                 const nameFields = [
                     { name: bird.english_name, label: 'english' },
@@ -322,7 +322,7 @@ export default function ManualBirdEntry() {
                     { name: bird.ukrainian_name, label: 'ukrainian' },
                     { name: bird.ar_name, label: 'arabic' }
                 ].filter(field => field.name);
-                
+
                 nameFields.forEach(field => {
                     if (field.name) {
                         const score = calculateMatchScore(cleanedName, field.name);
@@ -332,7 +332,7 @@ export default function ManualBirdEntry() {
                     }
                 });
             });
-            
+
             // Return species code if confidence is above 30%
             return bestMatch.score > 30 ? bestMatch.speciesCode : null;
         } catch (error) {
@@ -350,7 +350,7 @@ export default function ManualBirdEntry() {
 
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            
+
             const results = await classifier?.classifyImage(draft.imageUri) || [];
             const endTime = Date.now();
             setProcessingTime((endTime - startTime) / 1000);
@@ -360,11 +360,11 @@ export default function ManualBirdEntry() {
                     .filter((r: BirdPrediction) => r.confidence > 0.1)
                     .sort((a: BirdPrediction, b: BirdPrediction) => b.confidence - a.confidence)
                     .slice(0, 5);
-                
+
                 setImagePredictions(birdPredictions);
                 setShowImagePredictions(true);
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                
+
                 // Auto-hide predictions after 15 seconds (longer than gallery since this is manual entry)
                 setTimeout(() => {
                     setShowImagePredictions(false);
@@ -385,11 +385,11 @@ export default function ManualBirdEntry() {
 
     const handleSelectImagePrediction = useCallback((prediction: BirdPrediction) => {
         const cleanedName = cleanBirdName(prediction.text);
-        
+
         // Find matching bird in database to get scientific name
         const speciesCode = findBestMatchingBirdCode(prediction.text);
         let scientificName = '';
-        
+
         if (speciesCode) {
             try {
                 const dbResults = searchBirdsByName(cleanedName, 20);
@@ -401,29 +401,29 @@ export default function ManualBirdEntry() {
                 console.error('Error getting scientific name:', error);
             }
         }
-        
+
         // Create AI identification note
         const confidencePercent = (prediction.confidence * 100).toFixed(1);
         const aiNote = `AI Image Identification: ${cleanedName} (${confidencePercent}% confidence)`;
-        
+
         // Append to existing notes
         const existingNotes = draft.textNote?.trim() || '';
-        const updatedNotes = existingNotes 
+        const updatedNotes = existingNotes
             ? `${existingNotes}\n\n${aiNote}`
             : aiNote;
-        
+
         // Update form fields
-        update({ 
+        update({
             imagePrediction: prediction.text,
             birdType: cleanedName,
             latinBirDex: scientificName, // Fill scientific name field
             textNote: updatedNotes // Add AI identification info to notes
         });
-        
+
         setShowImagePredictions(false);
         setImagePredictions([]);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        
+
         // Don't navigate - let user complete the manual entry form
     }, [update, findBestMatchingBirdCode, cleanBirdName, draft.textNote]);
 
@@ -438,12 +438,12 @@ export default function ManualBirdEntry() {
         const hasBirdType = !!draft.birdType?.trim();
         const hasNotes = !!draft.textNote?.trim();
         const hasMedia = !!(draft.imageUri || draft.videoUri || draft.audioUri);
-        
+
         const hasContent = hasBirdType || hasNotes || hasMedia;
 
         console.log('[Manual Save] Content check:', {
             hasBirdType,
-            hasNotes, 
+            hasNotes,
             hasMedia,
             hasContent
         });
@@ -460,28 +460,29 @@ export default function ManualBirdEntry() {
         // Validate media URIs exist
         console.log('[Manual Save] Validating media files...');
         const mediaValidation = [];
-        
+
         if (draft.imageUri) {
             console.log('[Manual Save] Checking image URI:', draft.imageUri);
             try {
-                // Skip validation for AI pipeline saved images (they include classification info in filename)
-                const isAIPipelineImage = draft.imageUri.includes('/gallery/bird_') || 
-                                        draft.imageUri.includes('/gallery/full_') ||
-                                        draft.imageUri.includes('_conf');
-                
-                if (isAIPipelineImage) {
-                    console.log('[Manual Save] Skipping validation for AI pipeline image');
+                // Skip validation for AI pipeline and gallery images
+                const isAIPipelineImage = draft.imageUri.includes('/gallery/bird_') ||
+                    draft.imageUri.includes('/gallery/full_') ||
+                    draft.imageUri.includes('_conf');
+                const isGalleryImage = draft.imageUri.includes('/gallery/logchirpy_photo_');
+
+                if (isAIPipelineImage || isGalleryImage) {
+                    console.log('[Manual Save] Skipping validation for AI pipeline/gallery image');
                 } else {
                     // Only validate manually captured images
                     const imageExists = await validateImageUri(draft.imageUri);
                     console.log('[Manual Save] Image exists:', imageExists);
                     if (!imageExists) {
-                        mediaValidation.push('Image file not found');
+                        mediaValidation.push('Image file not found - please retake or select a new photo');
                     }
                 }
             } catch (error) {
                 console.error('[Manual Save] Image validation error:', error);
-                mediaValidation.push('Image validation failed');
+                mediaValidation.push('Image validation failed - please try selecting the photo again');
             }
         }
 
@@ -537,13 +538,13 @@ export default function ManualBirdEntry() {
 
             console.log('[Manual Save] Prepared spotting object:', JSON.stringify(spotting, null, 2));
             console.log('[Manual Save] Calling insertBirdSpotting...');
-            
+
             const result = await insertBirdSpotting(spotting);
             console.log('[Manual Save] Insert result:', result);
-            
+
             console.log('[Manual Save] Clearing draft...');
             clear();
-            
+
             console.log('[Manual Save] Save completed successfully!');
             showSuccess('Bird spotting saved successfully!');
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -609,7 +610,7 @@ export default function ManualBirdEntry() {
                 >
                     <ThemedIcon name="arrow-left" size={20} color="primary" />
                 </ThemedPressable>
-                
+
                 <View style={styles.headerContent}>
                     <ThemedText variant="h2" style={styles.headerTitle}>
                         {t('log.manual_entry', 'New Bird Spotting')}
@@ -697,7 +698,7 @@ export default function ManualBirdEntry() {
                                 </ThemedText>
                             </ThemedPressable>
                         )}
-                        
+
                         {draft.imageUri && mlReady && (
                             <ThemedPressable
                                 variant="secondary"
@@ -822,7 +823,7 @@ export default function ManualBirdEntry() {
                                     Date & Time
                                 </ThemedText>
                                 <ThemedText variant="body">
-                                    {draft.date 
+                                    {draft.date
                                         ? new Date(draft.date).toLocaleString()
                                         : new Date().toLocaleString()
                                     }
@@ -864,12 +865,12 @@ export default function ManualBirdEntry() {
                                         Processing time: {processingTime.toFixed(1)}s
                                     </ThemedText>
                                 </View>
-                                
+
                                 <ThemedText variant="caption" color="tertiary" style={styles.helpText}>
                                     Tap a result to auto-fill, or tap outside to close
                                 </ThemedText>
-                                
-                                <ScrollView 
+
+                                <ScrollView
                                     style={styles.predictionsList}
                                     showsVerticalScrollIndicator={false}
                                     bounces={false}
