@@ -7,7 +7,8 @@ import levenshtein from 'fast-levenshtein';
 import { Button } from '@/components/Button';
 import { useUnifiedColors, useSafeColorCombinations } from '@/hooks/useUnifiedColors';
 import { useNavigation } from 'expo-router';
-
+import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { Text } from 'react-native';
 
 export default function BirdQuiz() {
     const [bird, setBird] = useState<BirdDexRecord | null>(null);
@@ -16,6 +17,8 @@ export default function BirdQuiz() {
     const navigation = useNavigation();
     const colors = useUnifiedColors();
     const { primaryButton } = useSafeColorCombinations();
+    const [questionIndex, setQuestionIndex] = useState(1);
+    const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
 
     useEffect(() => {
         const birds = queryBirdDexPage('', 'english_name', true, 100, 1, 'all');
@@ -31,52 +34,117 @@ export default function BirdQuiz() {
 
     const checkAnswer = () => {
         if (!bird) return;
-        const answer = bird.english_name.toLowerCase().trim();
+        const answer = bird.english_name?.toLowerCase().trim() ?? '';
         const guess = input.toLowerCase().trim();
 
+        const correctName = bird.english_name || bird.de_name || bird.scientific_name;
+
         const distance = levenshtein.get(answer, guess);
-        if (distance <= 2 || guess === answer) {
-            setCorrect(true);
-            Alert.alert('Richtig!', `Das war ${bird.english_name}`);
-        } else {
-            Alert.alert('Leider falsch', `Richtige Antwort: ${bird.english_name}`);
+        if (questionIndex === 1) {
+            if (distance <= 2 || guess === answer) {
+                setCorrect(true);
+                Alert.alert('Richtig!', `Das war ${correctName}`);
+            } else {
+                Alert.alert('Leider falsch', `Richtige Antwort: ${correctName}`);
+            }
+        }
+
+        if (questionIndex === 2) {
+            const answer = bird.range.toLowerCase().trim();
+            const guess = input.toLowerCase().trim();
+            if (answer.includes(guess) || guess.includes(answer)) {
+                setCorrect(true);
+                Alert.alert('Richtig!', `Verbreitungsgebiet: ${bird.range}`);
+            } else {
+                Alert.alert('Leider falsch', `Richtiges Verbreitungsgebiet: ${bird.range}`);
+            }
+        }
+
+        if (questionIndex === 3) {
+            const extinct = bird.extinct && bird.extinct.trim() !== '';
+            const correctAnswer = extinct ? 'Ja' : 'Nein';
+
+            if (selectedAnswer === correctAnswer) {
+                setCorrect(true);
+                Alert.alert('Richtig!', `Status: ${correctAnswer}`);
+            } else {
+                Alert.alert('Leider falsch', `Richtiger Status: ${correctAnswer}`);
+            }
         }
     };
 
     if (!bird) return null;
 
     return (
-        <View style={styles.container}>
-            <Image
-                source={getBirdImageSource(bird.scientific_name)}
-                style={styles.image}
-                resizeMode="cover"
-            />
-            <TextInput
-                style={[
-                    styles.input,
-                    {
-                        backgroundColor: colors.background.secondary,
-                        borderColor: colors.border.primary,
-                        color: colors.text.primary,
-                    }
-                ]}
-                placeholder="Wie heißt dieser Vogel?"
-                placeholderTextColor={colors.text.tertiary}
-                value={input}
-                onChangeText={setInput}
-            />
-
-            <View style={{ marginTop: 10 }}>
-                <Button
-                    size="md"
-                    variant="primary"
-                    onPress={checkAnswer}
-                    title="Antwort prüfen"
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+        >
+            <ScrollView
+                contentContainerStyle={styles.container}
+                keyboardShouldPersistTaps="handled"
+            >
+                <Image
+                    source={getBirdImageSource(bird.scientific_name)}
+                    style={styles.image}
+                    resizeMode="cover"
                 />
-            </View>
-
-        </View >
+                <Text style={{ fontSize: 18, marginBottom: 10, color: colors.text.primary }}>
+                    {questionIndex === 3 && 'Ist dieser Vogel ausgestorben?'}
+                </Text>
+                {questionIndex === 3 ? (
+                    // Für die 3. Frage 
+                    <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+                        <Button
+                            title="Ja"
+                            variant={selectedAnswer === 'Ja' ? 'primary' : 'secondary'}
+                            onPress={() => setSelectedAnswer('Ja')}
+                        />
+                        <Button
+                            title="Nein"
+                            variant={selectedAnswer === 'Nein' ? 'primary' : 'secondary'}
+                            onPress={() => setSelectedAnswer('Nein')}
+                        />
+                    </View>
+                ) : (
+                    // Für Frage 1 und 2 das TextInput
+                    <TextInput
+                        style={[styles.input, {
+                            backgroundColor: colors.background.secondary,
+                            borderColor: colors.border.primary,
+                            color: colors.text.primary,
+                        }]}
+                        placeholder={questionIndex === 1 ? "Wie heißt dieser Vogel?" : "In welchem Gebiet lebt dieser Vogel?"}
+                        placeholderTextColor={colors.text.tertiary}
+                        value={input}
+                        onChangeText={setInput}
+                    />
+                )}
+                <View style={{ marginTop: 10 }}>
+                    <Button
+                        size="md"
+                        variant="primary"
+                        onPress={checkAnswer}
+                        title="Antwort prüfen"
+                    />
+                </View>
+                <View style={{ marginTop: 10 }}>
+                    <Button
+                        size="md"
+                        variant="secondary"
+                        title="Nächste Frage"
+                        onPress={() => {
+                            // Nächste Frage
+                            setQuestionIndex(prev => (prev === 3 ? 1 : prev + 1));
+                            setInput('');
+                            setSelectedAnswer(null);
+                            setCorrect(false);
+                        }}
+                    />
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
