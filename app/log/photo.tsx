@@ -6,34 +6,34 @@
  * Integrates with app gallery system and device storage.
  */
 
-import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, Alert, Dimensions, Image, ScrollView, StatusBar, StyleSheet, View,} from 'react-native';
-import {router, Stack} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {ImageLibraryOptions, ImagePickerResponse, launchImageLibrary} from 'react-native-image-picker';
-import {CameraType, CameraView, FlashMode, useCameraPermissions} from 'expo-camera';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, StatusBar, StyleSheet, View, } from 'react-native';
+import { router, Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { ImageLibraryOptions, ImagePickerResponse, launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { CameraType, CameraView, FlashMode, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
-import {BlurView} from 'expo-blur';
-import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
-import Animated, {useAnimatedStyle, useSharedValue, withTiming,} from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
+import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, } from 'react-native-reanimated';
 
 // Components
-import {ThemedView} from '@/components/ThemedView';
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ThemedIcon} from '@/components/ThemedIcon';
-import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {ModernCard} from '@/components/ModernCard';
-import {useSnackbar} from '@/components/ThemedSnackbar';
-import {BackButton} from '@/components/BackButton';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { ModernCard } from '@/components/ModernCard';
+import { useSnackbar } from '@/components/ThemedSnackbar';
+import { BackButton } from '@/components/BackButton';
 
 // Context and Services
-import {useLogDraft} from '@/contexts/LogDraftContext';
-import {photoStorageService} from '@/services/photoStorageService';
-import {filePathToUri} from '@/services/uriUtils';
+import { useLogDraft } from '@/contexts/LogDraftContext';
+import { photoStorageService } from '@/services/photoStorageService';
+import { filePathToUri } from '@/services/uriUtils';
 
 // Theme
-import {useColors, useTheme} from '@/hooks/useThemeColor';
+import { useColors, useTheme } from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AnimatedPressable = Animated.createAnimatedComponent(ThemedPressable);
@@ -47,12 +47,12 @@ interface BirdPrediction {
 }
 
 // Photo Selection Screen Component
-function PhotoSelectionScreen({ 
-    onCamera, 
-    onGallery, 
-    onAppGallery 
-}: { 
-    onCamera: () => void; 
+function PhotoSelectionScreen({
+    onCamera,
+    onGallery,
+    onAppGallery
+}: {
+    onCamera: () => void;
     onGallery: () => void;
     onAppGallery: () => void;
 }) {
@@ -76,7 +76,7 @@ function PhotoSelectionScreen({
     return (
         <ThemedSafeAreaView style={styles.container}>
             <StatusBar barStyle={colors.isDark ? 'light-content' : 'dark-content'} />
-            
+
             {/* Header */}
             <ThemedView style={styles.selectionHeader}>
                 <BackButton variant="inline" />
@@ -109,7 +109,7 @@ function PhotoSelectionScreen({
                     >
                         <ThemedIcon name="camera" size={24} color="inverse" />
                         <ThemedText variant="button" color="inverse">
-                            {t('photo.professional_camera', 'Professional Camera')}
+                            {t('photo.open_camera', 'Open Camera')}
                         </ThemedText>
                     </AnimatedPressable>
 
@@ -143,11 +143,11 @@ function PhotoSelectionScreen({
 }
 
 // Professional Camera Interface Component
-function CameraInterface({ 
-    onPhotoCapture, 
-    onBack 
-}: { 
-    onPhotoCapture: (photoUri: string) => void; 
+function CameraInterface({
+    onPhotoCapture,
+    onBack
+}: {
+    onPhotoCapture: (photoUri: string) => void;
     onBack: () => void;
 }) {
     const { t } = useTranslation();
@@ -278,7 +278,7 @@ function CameraInterface({
             {/* Top Controls */}
             <View style={styles.cameraTopControls}>
                 <BackButton variant="floating" onPress={onBack} />
-                
+
                 <View style={styles.cameraTopRight}>
                     <ThemedPressable
                         variant="ghost"
@@ -315,26 +315,26 @@ function CameraInterface({
                 >
                     <ThemedIcon name="minus" size={16} color="primary" />
                 </ThemedPressable>
-                
+
                 <View style={[styles.zoomSliderContainer, { backgroundColor: colors.background + 'CC' }]}>
                     <View style={styles.zoomSlider}>
                         <View style={[styles.zoomTrack, { backgroundColor: colors.backgroundSecondary }]} />
-                        <View 
+                        <View
                             style={[
-                                styles.zoomFill, 
-                                { 
+                                styles.zoomFill,
+                                {
                                     backgroundColor: colors.primary,
-                                    width: `${zoom * 100}%` 
+                                    width: `${zoom * 100}%`
                                 }
-                            ]} 
+                            ]}
                         />
                         <ThemedPressable
                             variant="ghost"
                             style={[
                                 styles.zoomThumb,
-                                { 
+                                {
                                     backgroundColor: colors.primary,
-                                    left: `${zoom * 100}%` 
+                                    left: `${zoom * 100}%`
                                 }
                             ]}
                             onPressIn={() => {
@@ -347,7 +347,7 @@ function CameraInterface({
                         {Math.round(zoom * 100)}%
                     </ThemedText>
                 </View>
-                
+
                 <ThemedPressable
                     variant="ghost"
                     onPress={() => setZoom(Math.min(1, zoom + 0.1))}
@@ -418,13 +418,13 @@ function PhotoPreview({
     const theme = useTheme();
     const { update } = useLogDraft();
     const { SnackbarComponent, showSuccess, showError } = useSnackbar();
-    
+
     // ML State
     const [isIdentifying, setIsIdentifying] = useState(false);
     const [predictions, setPredictions] = useState<BirdPrediction[]>([]);
     const [showPredictions, setShowPredictions] = useState(false);
     const [processingTime, setProcessingTime] = useState(0);
-    
+
     // MLKit hooks
     const classifier = useImageLabeling('birdClassifier');
     const mlReady = !!(classifier && typeof classifier.classifyImage === 'function');
@@ -438,7 +438,7 @@ function PhotoPreview({
 
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            
+
             const results = await classifier?.classifyImage(photoUri) || [];
             const endTime = Date.now();
             setProcessingTime((endTime - startTime) / 1000);
@@ -448,7 +448,7 @@ function PhotoPreview({
                     .filter((r: BirdPrediction) => r.confidence > 0.1)
                     .sort((a: BirdPrediction, b: BirdPrediction) => b.confidence - a.confidence)
                     .slice(0, 5);
-                
+
                 setPredictions(birdPredictions);
                 setShowPredictions(true);
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -465,9 +465,9 @@ function PhotoPreview({
     }, [mlReady, isIdentifying, classifier, photoUri, showError, t]);
 
     const handleSelectPrediction = useCallback((prediction: BirdPrediction) => {
-        update({ 
+        update({
             imagePrediction: prediction.text,
-            birdType: prediction.text 
+            birdType: prediction.text
         });
         setShowPredictions(false);
         showSuccess(t('photo.bird_identified', 'Bird identified: {{bird}}', { bird: prediction.text }));
@@ -551,7 +551,7 @@ function PhotoPreview({
             {showPredictions && (
                 <View style={styles.predictionsOverlay}>
                     <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFillObject} />
-                    
+
                     <ModernCard elevated={true} style={styles.predictionsCard}>
                         <View style={styles.predictionsHeader}>
                             <ThemedText variant="h3">
@@ -627,10 +627,67 @@ export default function PhotoScreen() {
     const [isSaving, setIsSaving] = useState(false);
 
     // Handle camera capture
-    const handleCameraCapture = useCallback((photoUri: string) => {
-        setCapturedPhoto(photoUri);
-        setState('preview');
-    }, []);
+    const handleCameraCapture = useCallback(async () => {
+        try {
+            const options = {
+                mediaType: 'photo' as const,
+                maxWidth: 2048,
+                maxHeight: 2048,
+                includeBase64: false,
+                saveToPhotos: true,
+                quality: 0.8 as const,
+            };
+
+            launchCamera(options, async (response: ImagePickerResponse) => {
+                if (response.didCancel) {
+                    return;
+                }
+
+                if (response.errorMessage) {
+                    console.error('Camera error:', response.errorMessage);
+                    showError(t('photo.camera_error', 'Failed to capture photo'));
+                    return;
+                }
+
+                if (response.assets?.[0]?.uri) {
+                    setIsSaving(true);
+                    setState('processing');
+                    try {
+                        const formattedUri = filePathToUri(response.assets[0].uri);
+
+                        // Save photo using the storage service
+                        const result = await photoStorageService.savePhoto(formattedUri, {
+                            saveToDevice: true,
+                            filename: undefined,
+                            addMetadata: true
+                        });
+
+                        if (result.success) {
+                            // Update draft with the photo URI
+                            update({
+                                imageUri: result.appUri
+                            });
+
+                            showSuccess(t('photo.saved_successfully', 'Photo saved successfully'));
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                            router.replace('/log/manual');
+                        } else {
+                            throw new Error(result.error || 'Save failed');
+                        }
+                    } catch (error) {
+                        console.error('Photo save failed:', error);
+                        showError(t('photo.save_failed', 'Failed to save photo'));
+                        setState('selection');
+                    } finally {
+                        setIsSaving(false);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Camera error:', error);
+            showError(t('photo.camera_error', 'Failed to capture photo'));
+        }
+    }, [update, showSuccess, showError, t]);
 
     // Handle gallery selection
     const handleGalleryPick = useCallback(async () => {
@@ -692,10 +749,10 @@ export default function PhotoScreen() {
             if (result.success) {
                 // Update draft with the app directory URI
                 update({ imageUri: result.appUri });
-                
+
                 showSuccess(t('photo.saved_successfully', 'Photo saved successfully'));
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                
+
                 // Navigate back to manual screen
                 router.back();
             } else {
@@ -756,7 +813,7 @@ export default function PhotoScreen() {
             default:
                 return (
                     <PhotoSelectionScreen
-                        onCamera={() => setState('camera')}
+                        onCamera={handleCameraCapture}
                         onGallery={handleGalleryPick}
                         onAppGallery={handleAppGallery}
                     />
