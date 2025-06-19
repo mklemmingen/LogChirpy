@@ -295,7 +295,9 @@
     "settings": "Configuración",
     "continue": "Continuar",
     "close": "Cerrar",
-    "retry_loading": "Volver a cargar"
+    "retry_loading": "Volver a cargar",
+    "skip": "Saltar",
+    "next": "Siguiente"
   },
   "birdnet": {
     "identify_button": "Identificar ave (IA)",

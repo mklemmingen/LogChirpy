@@ -296,7 +296,9 @@
     "settings": "Einstellungen",
     "continue": "Fortfahren",
     "close": "Schließen",
-    "retry_loading": "Erneut laden"
+    "retry_loading": "Erneut laden",
+    "skip": "Überspringen",
+    "next": "Weiter"
   },
   "birdnet": {
     "identify_button": "Vogel identifizieren (KI)",

@@ -428,7 +428,9 @@
     "settings": "Paramètres",
     "continue": "Continuer",
     "close": "Fermer",
-    "retry_loading": "Recharger"
+    "retry_loading": "Recharger",
+    "skip": "Passer",
+    "next": "Suivant"
   },
   "warnings": {
     "media_permission_required": "Accès média requis. Activez dans les paramètres."

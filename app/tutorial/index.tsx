@@ -46,6 +46,8 @@ export default function TutorialScreen() {
         <Onboarding
             onDone={() => router.back()}
             onSkip={() => router.back()}
+            skipLabel={t("common.skip")}       
+            nextLabel={t("common.next")}       
             pages={[
                 {
                     backgroundColor: '#fff',

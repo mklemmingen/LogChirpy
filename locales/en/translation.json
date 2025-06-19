@@ -484,7 +484,9 @@
     "settings": "Settings",
     "continue": "Continue",
     "close": "Close",
-    "retry_loading": "Retry"
+    "retry_loading": "Retry",
+    "skip": "Skip",
+    "next": "Next"
   },
   "warnings": {
     "media_permission_required": "Media access required"

@@ -272,7 +272,9 @@
     "settings": "الإعدادات",
     "continue": "متابعة",
     "close": "إغلاق",
-    "retry_loading": "إعادة التحميل"
+    "retry_loading": "إعادة التحميل",
+    "skip": "تخطي",
+    "next": "التالي"
   },
   "birdnet": {
     "identify_button": "تحديد هوية الطائر (ذكاء اصطناعي)",
