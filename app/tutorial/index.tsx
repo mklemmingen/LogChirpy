@@ -7,48 +7,51 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView'
 import { Card } from '@/components/ThemedView'
 import LottieView from 'lottie-react-native';
+import { useNavigation } from 'expo-router';
+import { useEffect } from 'react';
 
 export default function TutorialScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { t } = useTranslation();
 
+    useEffect(() => {
+    navigation.setOptions({
+      title: 'Tutorial',
+      headerLeft: () => null,
+    });
+  }, [navigation]);
 
-    const InfoCard = () => (
-        <Card style={styles.tutorialCard}>
-            <View style={styles.tutorialContent}>
-                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                    {t("settings.tutorial.how_to_use.title")}
-                </ThemedText>
-                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                    {t("settings.tutorial.how_to_use.description")}
-                </ThemedText>
-
-
-
-                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                    {t("settings.tutorial.ai_models.title")}
-                </ThemedText>
-                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                    {t("settings.tutorial.ai_models.description")}
-                </ThemedText>
-
-                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                    {t("settings.tutorial.data_privacy.title")}
-                </ThemedText>
-                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                    {t("settings.tutorial.data_privacy.description")}
-                </ThemedText>
-            </View>
-        </Card>
-    );
 
     return (
         <Onboarding
             onDone={() => router.back()}
             onSkip={() => router.back()}
-            skipLabel={t("common.skip")}       
-            nextLabel={t("common.next")}       
+            skipLabel={t("common.skip")}
+            nextLabel={t("common.next")}
             pages={[
+                {
+                    backgroundColor: '#fff',
+                    image: (
+                        <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
+                           <Image
+                                source={require('@/assets/images/LogChirpy_Logo.png')}
+                                resizeMode="contain"
+                                style={{ width: 160, height: 160, alignSelf: 'center' }}
+                            />
+                            <ThemedText variant="bodyLarge" style={[styles.tutorialSectionTitle]}>
+                                {t("settings.tutorial.how_to_use.title")}
+                            </ThemedText>
+                            <ThemedText variant="body" color="secondary" style={[styles.tutorialText]}>
+                                {t("settings.tutorial.how_to_use.description")}
+                            </ThemedText>
+                        </View>
+                    ),
+                    title: '',
+                    subtitle: '',
+
+
+                },
                 {
                     backgroundColor: '#fff',
                     image: (
@@ -71,36 +74,47 @@ export default function TutorialScreen() {
                     subtitle: '',
                 },
                 {
-                    backgroundColor: '#e6f7ff',
+                    backgroundColor: '#fff',
                     image: (
-                        <LottieView
-                            source={require('@/assets/tutorial/map-animation.json')}
-                            autoPlay
-                            loop
-                            style={{ width: 200, height: 200 }}
-                        />
+                        <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
+                            <LottieView
+                                source={require('@/assets/tutorial/Datenschutz-animation.json')}
+                                autoPlay
+                                loop
+                                style={{ width: 200, height: 210 }}
+                            />
+                            <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                {t("settings.tutorial.data_privacy.title")}
+                            </ThemedText>
+                            <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                {t("settings.tutorial.data_privacy.description")}
+                            </ThemedText>
+                        </View>
                     ),
-                    title: '🗺️ Standort & Karte',
-                    subtitle: 'Speichere Beobachtungen mit GPS und sieh sie auf der Karte.',
+                    title: '',
+                    subtitle: '',
                 },
                 {
                     backgroundColor: '#f0f0f0',
                     image: (
-                        <LottieView
-                            source={require('@/assets/tutorial/AI-animation.json')}
-                            autoPlay
-                            loop
-                            style={{ width: 200, height: 200 }}
-                        />
-                    ), title: '🤖 KI-Erkennung',
-                    subtitle: 'Automatische Artenerkennung durch Kamera und Tonaufnahme.',
-                },
-                {
-                    backgroundColor: '#fefefe',
-                    image: <ScrollView style={{ maxHeight: 300 }}>{InfoCard()}</ScrollView>,
-                    title: t("settings.tutorial.title"),
-                    subtitle: t("settings.tutorial.subtitle"),
-                },
+                        <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
+                            <LottieView
+                                source={require('@/assets/tutorial/AI-animation.json')}
+                                autoPlay
+                                loop
+                                style={{ width: 200, height: 200 }}
+                            />
+                            <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                {t("settings.tutorial.ai_models.title")}
+                            </ThemedText>
+                            <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                {t("settings.tutorial.ai_models.description")}
+                            </ThemedText>
+                        </View>
+                    ),
+                    title: '',
+                    subtitle: '',
+                }
             ]}
         />
     );
