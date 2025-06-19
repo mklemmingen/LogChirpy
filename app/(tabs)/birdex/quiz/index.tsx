@@ -9,6 +9,7 @@ import { useUnifiedColors, useSafeColorCombinations } from '@/hooks/useUnifiedCo
 import { useNavigation } from 'expo-router';
 import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 export default function BirdQuiz() {
     const [bird, setBird] = useState<BirdDexRecord | null>(null);
@@ -20,7 +21,7 @@ export default function BirdQuiz() {
     const [questionIndex, setQuestionIndex] = useState(1);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
-
+    const { t } = useTranslation();
     useEffect(() => {
         const birds = queryBirdDexPage('', 'english_name', true, 100, 1, 'all');
         const random = birds[Math.floor(Math.random() * birds.length)];
@@ -45,9 +46,13 @@ export default function BirdQuiz() {
         if (questionIndex === 1) {
             if (guess === answer || answer.includes(guess) || guess.includes(answer)) {
                 answeredCorrectly = true;
-                Alert.alert('Richtig!', `Das war ${correctName}`);
+                Alert.alert(t('alerts.correctTitle'), t('alerts.correctMessage', { name: correctName }),
+                    [
+                        { text: t('common.ok'), onPress: () => console.log('OK pressed') }
+                    ]
+                );
             } else {
-                Alert.alert('Leider falsch', `Richtige Antwort: ${correctName}`);
+                Alert.alert(t('alerts.incorrectTitle'), t('alerts.incorrectMessage', { name: correctName }));
             }
         }
 
@@ -56,21 +61,25 @@ export default function BirdQuiz() {
             const guess = input.toLowerCase().trim();
             if (answer.includes(guess) || guess.includes(answer)) {
                 answeredCorrectly = true;
-                Alert.alert('Richtig!', `Verbreitungsgebiet: ${bird.range}`);
+                Alert.alert(t('alerts.correctTitle'), t('alerts.correctRangeMessage', { range: bird.range }));
             } else {
-                Alert.alert('Leider falsch', `Richtiges Verbreitungsgebiet: ${bird.range}`);
+                Alert.alert(t('alerts.incorrectTitle'), t('alerts.incorrectRangeMessage', { range: bird.range }));
             }
         }
 
         else if (questionIndex === 3) {
             const extinct = bird.extinct && bird.extinct.trim() !== '';
-            const correctAnswer = extinct ? 'Ja' : 'Nein';
+            const correctAnswer = extinct ? "t('buttons.yes')" : t('buttons.no');
 
             if (selectedAnswer === correctAnswer) {
                 answeredCorrectly = true;
-                Alert.alert('Richtig!', `Status: ${correctAnswer}`);
+                Alert.alert(t('alerts.correctTitle'), t('alerts.correctStatusMessage', { status: correctAnswer }),
+                    [
+                        { text: t('common.ok'), onPress: () => console.log('OK pressed') }
+                    ]
+                );
             } else {
-                Alert.alert('Leider falsch', `Richtiger Status: ${correctAnswer}`);
+                Alert.alert(t('alerts.incorrectTitle'), t('alerts.incorrectStatusMessage', { status: correctAnswer }));
             }
         }
         setIsAnswered(true);
@@ -95,20 +104,20 @@ export default function BirdQuiz() {
                     resizeMode="cover"
                 />
                 <Text style={{ fontSize: 18, marginBottom: 10, color: colors.text.primary }}>
-                    {questionIndex === 3 && 'Ist dieser Vogel ausgestorben?'}
+                    {questionIndex === 3 && t('questions.birdExtinct')}
                 </Text>
                 {questionIndex === 3 ? (
                     // Für die 3. Frage 
                     <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
                         <Button
-                            title="Ja"
-                            variant={selectedAnswer === 'Ja' ? 'primary' : 'secondary'}
-                            onPress={() => setSelectedAnswer('Ja')}
+                            title={t('buttons.yes')}
+                            variant={selectedAnswer === t('buttons.yes') ? 'primary' : 'secondary'}
+                            onPress={() => setSelectedAnswer(t('buttons.yes'))}
                         />
                         <Button
-                            title="Nein"
-                            variant={selectedAnswer === 'Nein' ? 'primary' : 'secondary'}
-                            onPress={() => setSelectedAnswer('Nein')}
+                            title={t('buttons.no')}
+                            variant={selectedAnswer === t('buttons.no') ? 'primary' : 'secondary'}
+                            onPress={() => setSelectedAnswer(t('buttons.no'))}
                         />
                     </View>
                 ) : (
@@ -119,7 +128,7 @@ export default function BirdQuiz() {
                             borderColor: colors.border.primary,
                             color: colors.text.primary,
                         }]}
-                        placeholder={questionIndex === 1 ? "Wie heißt dieser Vogel?" : "In welchem Gebiet lebt dieser Vogel?"}
+                        placeholder={questionIndex === 1 ? t('questions.birdName') : t('questions.birdRange')}
                         placeholderTextColor={colors.text.tertiary}
                         value={input}
                         onChangeText={setInput}
@@ -130,7 +139,7 @@ export default function BirdQuiz() {
                         size="md"
                         variant="primary"
                         onPress={checkAnswer}
-                        title="Antwort prüfen"
+                        title={t('buttons.checkAnswer')}
                     />
                 </View>
                 <View style={{ marginTop: 10 }}>
@@ -148,7 +157,7 @@ export default function BirdQuiz() {
                                 setCorrect(false);
                             }
                         }}
-                        title={questionIndex === 3 ? 'Beenden' : 'Nächste Frage'}
+                        title={questionIndex === 3 ? t('buttons.finish') : t('buttons.nextQuestion')}
                         disabled={!isAnswered}
                     />
                 </View>

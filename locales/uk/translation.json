@@ -98,7 +98,16 @@
     "birdRange": "У якій місцевості живе цей птах?",
     "birdExtinct": "Чи цей птах вимерлий?"
   },
-  
+  "alerts": {
+    "correctTitle": "Правильно!",
+    "correctMessage": "Це був {{name}}",
+    "incorrectTitle": "Неправильно",
+    "incorrectMessage": "Правильна відповідь: {{name}}",
+    "correctStatusMessage": "Статус: {{status}}",
+    "incorrectStatusMessage": "Правильний статус: {{status}}",
+    "correctRangeMessage": "Поширення: {{range}}",
+    "incorrectRangeMessage": "Правильна область: {{range}}"
+  },
   "auth": {
     "welcome_back": "Ласкаво просимо",
     "email_label": "Електронна пошта",

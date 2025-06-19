@@ -98,7 +98,16 @@
     "birdRange": "¿En qué área vive este pájaro?",
     "birdExtinct": "¿Está este pájaro extinguido?"
   },
-  
+  "alerts": {
+    "correctTitle": "¡Correcto!",
+    "correctMessage": "Era {{name}}",
+    "incorrectTitle": "Incorrecto",
+    "incorrectMessage": "Respuesta correcta: {{name}}",
+    "correctStatusMessage": "Estado: {{status}}",
+    "incorrectStatusMessage": "Estado correcto: {{status}}",
+    "correctRangeMessage": "Área de distribución: {{range}}",
+    "incorrectRangeMessage": "Área correcta: {{range}}"
+  },
   "auth": {
     "welcome_back": "Bienvenido de nuevo",
     "email_label": "Correo electrónico",

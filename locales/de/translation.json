@@ -98,6 +98,16 @@
     "birdRange": "In welchem Gebiet lebt dieser Vogel?",
     "birdExtinct": "Ist dieser Vogel ausgestorben?"
   },
+  "alerts": {
+    "correctTitle": "Richtig!",
+    "correctMessage": "Das war {{name}}",
+    "incorrectTitle": "Leider falsch",
+    "incorrectMessage": "Richtige Antwort: {{name}}",
+    "correctStatusMessage": "Status: {{status}}",
+    "incorrectStatusMessage": "Richtiger Status: {{status}}",
+    "correctRangeMessage": "Verbreitungsgebiet: {{range}}",
+    "incorrectRangeMessage": "Richtiges Verbreitungsgebiet: {{range}}"
+  },
   
   "auth": {
     "welcome_back": "Willkommen zurück",

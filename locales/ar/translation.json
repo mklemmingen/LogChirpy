@@ -98,7 +98,16 @@
     "birdRange": "في أي منطقة يعيش هذا الطائر؟",
     "birdExtinct": "هل هذا الطائر منقرض؟"
   },
-  
+  "alerts": {
+    "correctTitle": "صحيح!",
+    "correctMessage": "كان هذا {{name}}",
+    "incorrectTitle": "خطأ",
+    "incorrectMessage": "الإجابة الصحيحة: {{name}}",
+    "correctStatusMessage": "الحالة: {{status}}",
+    "incorrectStatusMessage": "الحالة الصحيحة: {{status}}",
+    "correctRangeMessage": "منطقة الانتشار: {{range}}",
+    "incorrectRangeMessage": "النطاق الصحيح: {{range}}"
+  },
   "auth": {
     "welcome_back": "مرحباً بعودتك",
     "email_label": "البريد الإلكتروني",
