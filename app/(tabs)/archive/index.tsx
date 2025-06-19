@@ -15,7 +15,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ThemedIcon } from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import Animated, {
   FadeInDown,
@@ -335,6 +335,7 @@ export default function ArchiveScreen() {
   const { t } = useTranslation();
   const colors = useColors();
   const typography = useTypography();
+  const { refresh } = useLocalSearchParams<{ refresh?: string }>();
 
   const styles = createStyles(colors);
 
@@ -472,7 +473,7 @@ export default function ArchiveScreen() {
     router.push('/');
   }, []);
 
-  // Load data on mount and when sort changes
+  // Load data on mount, when sort changes, or when refresh parameter changes
   useEffect(() => {
     loadSpottings();
 
@@ -483,7 +484,7 @@ export default function ArchiveScreen() {
       setRefreshing(false);
       setSyncing(false);
     };
-  }, [loadSpottings]);
+  }, [loadSpottings, refresh]);
 
   // Format date helper
   const formatDate = (dateString: string) => {

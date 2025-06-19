@@ -17,12 +17,15 @@ import { Audio } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
 
-import { type BirdSpotting, getSpottingById } from '@/services/database';
+import { type BirdSpotting, getSpottingById, deleteSpotting } from '@/services/database';
+import { deleteRemoteSpotting } from '@/services/sync_layer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedPressable } from '@/components/ThemedPressable';
 import { ThemedIcon } from '@/components/ThemedIcon';
+import { ThemedSnackbar, useSnackbar } from '@/components/ThemedSnackbar';
 import { useColors } from '@/hooks/useThemeColor';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Safe text rendering helper
 const safeText = (value: any, fallback: string = ' '): string => {
@@ -85,7 +88,7 @@ function InfoRow({ label, value, icon, onPress, style }: InfoRowProps) {
     const colors = useColors();
     const displayValue = safeText(value, ' ');
     const displayLabel = safeText(label, ' ');
-    
+
     // Additional safety check
     if (typeof displayValue !== 'string' || typeof displayLabel !== 'string') {
         console.warn('InfoRow received non-string values:', { label, value, displayLabel, displayValue });
@@ -135,13 +138,13 @@ interface SectionProps {
 
 function Section({ title, icon, children }: SectionProps) {
     const colors = useColors();
-    
+
     // Debug logging for section rendering
     console.log('[Section Debug] Rendering section:', { title, icon, hasChildren: !!children });
-    
+
     const safeTitle = safeText(title, 'Section');
     const safeIcon = safeText(icon, 'info');
-    
+
     // Additional validation
     if (typeof safeTitle !== 'string') {
         console.error('[Section Error] Invalid title:', { title, safeTitle });
@@ -261,6 +264,8 @@ export default function ArchiveDetailScreen() {
     const router = useRouter();
     const colors = useColors();
     const insets = useSafeAreaInsets();
+    const { isAuthenticated } = useAuth();
+    const snackbar = useSnackbar();
 
     const [entry, setEntry] = useState<BirdSpotting | null>(null);
     const [loading, setLoading] = useState(true);
@@ -405,6 +410,85 @@ export default function ArchiveDetailScreen() {
         }
     }, [currentSound]);
 
+    const handleDelete = useCallback(async () => {
+        if (!entry) return;
+
+        const confirmDelete = () => {
+            Alert.alert(
+                t('archive.delete_title', 'Delete Spotting'),
+                t('archive.delete_message', 'Are you sure you want to delete this spotting? This action cannot be undone.'),
+                [
+                    {
+                        text: t('common.cancel', 'Cancel'),
+                        style: 'cancel'
+                    },
+                    {
+                        text: t('common.delete', 'Delete'),
+                        style: 'destructive',
+                        onPress: async () => {
+                            try {
+                                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+                                // Stop any playing audio before deletion
+                                if (currentSound) {
+                                    await currentSound.unloadAsync();
+                                    setCurrentSound(null);
+                                }
+
+                                // If spotting is synced and user is not authenticated, show login prompt
+                                if (entry.synced && !isAuthenticated) {
+                                    Alert.alert(
+                                        t('archive.login_required', 'Login Required'),
+                                        t('archive.login_to_delete', 'This spotting is synced to the cloud. Please log in to delete it.'),
+                                        [
+                                            {
+                                                text: t('common.cancel', 'Cancel'),
+                                                style: 'cancel'
+                                            },
+                                            {
+                                                text: t('common.login', 'Login'),
+                                                onPress: () => router.push('/(tabs)/account/(auth)/login')
+                                            }
+                                        ]
+                                    );
+                                    return;
+                                }
+
+                                // Delete locally
+                                const localDeleted = deleteSpotting(entry.id);
+                                if (!localDeleted) {
+                                    throw new Error('Failed to delete spotting locally');
+                                }
+
+                                // Delete remotely if synced and authenticated
+                                if (entry.synced && isAuthenticated) {
+                                    await deleteRemoteSpotting(entry.id.toString());
+                                }
+
+                                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                snackbar.showSuccess(t('archive.delete_success', 'Spotting deleted'));
+
+                                // Add a small delay to ensure the snackbar and haptic are noticeable
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                                router.replace({
+                                    pathname: '/(tabs)/archive',
+                                    params: { refresh: Date.now().toString() }
+                                });
+                            } catch (error) {
+                                console.error('[Delete Spotting] Error:', error);
+                                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                                snackbar.showError(t('archive.delete_error', 'Failed to delete spotting'));
+                            }
+                        }
+                    }
+                ]
+            );
+        };
+
+        confirmDelete();
+    }, [entry, currentSound, isAuthenticated, t, router, snackbar]);
+
     // Loading state
     if (loading) {
         return (
@@ -440,7 +524,7 @@ export default function ArchiveDetailScreen() {
 
     // Additional validation before rendering
     console.log('[Archive Detail] About to render entry:', entry);
-    
+
     if (!entry) {
         console.error('[Archive Detail] Entry is null/undefined');
         return (
@@ -487,10 +571,10 @@ export default function ArchiveDetailScreen() {
                 <ThemedPressable
                     variant="ghost"
                     size="sm"
-                    onPress={handleShare}
+                    onPress={handleDelete}
                     style={styles.headerButton}
                 >
-                    <ThemedIcon name="share" size={18} color="primary" />
+                    <ThemedIcon name="trash-2" size={18} color="error" />
                 </ThemedPressable>
             </View>
 
@@ -585,6 +669,7 @@ export default function ArchiveDetailScreen() {
                     />
                 </Section>
             </ScrollView>
+            <snackbar.SnackbarComponent />
         </ThemedView>
     );
 }
