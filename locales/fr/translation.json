@@ -296,7 +296,10 @@
       "data_privacy": {
         "title": "Firebase et confidentialité des données",
         "description": "Vos journaux d'observations d'oiseaux sont stockés de manière sécurisée dans Firebase Firestore avec chiffrement de bout en bout. Seules les données essentielles comme le type d'oiseau, la localisation (si activée), la date et les notes sont synchronisées. L'authentification est gérée de manière sécurisée via Firebase Auth. Aucune image personnelle ou enregistrement audio n'est envoyé vers Firebase - ils restent sur votre appareil."
-      }
+      },
+      "adjust_bird_detection": "Ajuster les paramètres de détection des oiseaux",
+      "camera_ai_settings": "Paramètres IA de la caméra",
+      "detection_speed": "Vitesse de détection"
     },
     "about": {
       "title": "À propos de LogChirpy",

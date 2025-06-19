@@ -176,7 +176,10 @@
       "subtitle": "Lernen Sie das Team hinter Ihrem Vogelbeobachtungsbegleiter kennen",
       "app_description": "Eine moderne, KI-gestützte Vogelbeobachtungs- und Protokollierungsanwendung für Naturliebhaber und Vogelbeobachter aller Erfahrungsstufen.",
       "created_by": "Erstellt von"
-    }
+    },
+    "adjust_bird_detection": "Einstellungen zur Vogelerkennung anpassen",
+    "camera_ai_settings": "Kamera-KI-Einstellungen",
+    "detection_speed": "Erkennungsgeschwindigkeit"
   },
   "audio": {
     "start": "Aufnahme starten",

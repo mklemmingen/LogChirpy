@@ -557,10 +557,10 @@ export default function SettingsScreen() {
                 {/* Camera AI Settings Section */}
                 <ThemedView style={styles.section}>
                     <ThemedText variant="h3" style={styles.sectionTitle}>
-                        Camera AI Settings
+                          {t("settings.camera_ai_settings")}
                     </ThemedText>
                     <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
-                        Adjust bird detection settings
+                        {t("settings.adjust_bird_detection")}
                     </ThemedText>
 
                     <Animated.View
@@ -573,7 +573,7 @@ export default function SettingsScreen() {
                                 <View style={styles.settingRow}>
                                     <View style={styles.settingInfo}>
                                         <ThemedText variant="bodyLarge" style={styles.settingTitle}>
-                                            Detection Speed
+                                            {t("settings.detection_speed")}
                                         </ThemedText>
                                         <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
                                             How frequently the AI analyzes camera feed

@@ -168,7 +168,11 @@
       "data_privacy": {
         "title": "Firebase y Privacidad de Datos",
         "description": "Tus registros de avistamientos de aves se almacenan de forma segura en Firebase Firestore con cifrado de extremo a extremo. Solo se sincronizan datos esenciales como tipo de ave, ubicación (si está habilitada), fecha y notas. La autenticación se maneja de forma segura a través de Firebase Auth. Ninguna imagen personal o grabación de audio se sube a Firebase - permanecen en tu dispositivo."
-      }
+      },
+      "adjust_bird_detection": "Ajustar la configuración de detección de aves",
+      "camera_ai_settings": "Configuración de IA de cámara",
+      "detection_speed": "Velocidad de detección"
+
     },
     "about": {
       "title": "Acerca de LogChirpy",
