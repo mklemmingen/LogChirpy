@@ -4,7 +4,7 @@ import {Asset} from "expo-asset";
 
 /**
  * A single bird‐spotting record in SQLite.
- * We’ve added an optional latinBirDex column to hold
+ * We've added an optional latinBirDex column to hold
  * the BirDex (Latin) name when the user assigns it.
  */
 export interface BirdSpotting {
@@ -38,7 +38,7 @@ export function DB(): SQLiteDatabase {
 
 /**
  * Initialize (or migrate) the bird_spottings table.
- * Adds the latinBirDex column if it doesn’t already exist.
+ * Adds the latinBirDex column if it doesn't already exist.
  */
 export async function initDB(): Promise<void> {
   const database = DB();
@@ -287,4 +287,20 @@ export async function insertTestSpotting(): Promise<void> {
     audioPrediction: "Robin",
     latinBirDex: "Erithacus rubecula",
   });
+}
+
+/**
+ * Delete a spotting by ID. Returns true if the spotting was deleted, false if it didn't exist.
+ */
+export function deleteSpotting(id: number): boolean {
+  const stmt = DB().prepareSync(`
+    DELETE FROM bird_spottings
+    WHERE id = ?;
+  `);
+  try {
+    const result = stmt.executeSync([id]);
+    return result.changes > 0;
+  } finally {
+    stmt.finalizeSync();
+  }
 }

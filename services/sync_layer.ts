@@ -1,7 +1,7 @@
 import {firestore} from "@/firebase/config";
 import {getAuth} from "firebase/auth";
-import {addDoc, collection, getDocs, query, where} from "firebase/firestore";
-import {getDownloadURL, getStorage, ref, uploadBytes} from "firebase/storage";
+import {addDoc, collection, getDocs, query, where, deleteDoc, doc} from "firebase/firestore";
+import {getDownloadURL, getStorage, ref, uploadBytes, deleteObject} from "firebase/storage";
 import {DB} from "./database";
 import * as FileSystem from "expo-file-system";
 
@@ -240,5 +240,45 @@ async function uploadLocal(
   } catch (error) {
     console.error("Error uploading file:", error);
     throw error;
+  }
+}
+
+/**
+ * Delete a spotting from remote storage (Firestore and Storage)
+ * @param spottingId - The ID of the spotting to delete
+ */
+export async function deleteRemoteSpotting(spottingId: string): Promise<void> {
+  const user = getAuth().currentUser;
+  if (!user) {
+    throw new Error("Remote deletion is only possible when logged in");
+  }
+
+  // Get the spotting document from Firestore
+  const spottingRef = doc(firestore, "bird_spottings", spottingId);
+  const spottingDoc = await getDocs(query(
+    collection(firestore, "bird_spottings"),
+    where("id", "==", spottingId),
+    where("userId", "==", user.uid)
+  ));
+
+  if (!spottingDoc.empty) {
+    const spotting = spottingDoc.docs[0].data();
+    const storage = getStorage();
+
+    // Delete media files from Storage if they exist
+    const filesToDelete = [
+      spotting.imageUrl && ref(storage, spotting.imageUrl),
+      spotting.videoUrl && ref(storage, spotting.videoUrl),
+      spotting.audioUrl && ref(storage, spotting.audioUrl)
+    ].filter(Boolean);
+
+    await Promise.all(filesToDelete.map(fileRef => 
+      deleteObject(fileRef).catch(error => 
+        console.warn(`Failed to delete file ${fileRef.fullPath}:`, error)
+      )
+    ));
+
+    // Delete the Firestore document
+    await deleteDoc(spottingDoc.docs[0].ref);
   }
 }
