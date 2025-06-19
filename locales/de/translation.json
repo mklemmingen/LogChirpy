@@ -188,7 +188,9 @@
     "location_data_settings": "Einstellungen für Standortdaten",
     "record_coordinates_description": "Präzise Koordinaten zu Vogelbeobachtungen für Kartierung und Analyse speichern",
     "gps_location_logging": "GPS-Standortprotokollierung",
-    "language_setting_description": "Wähle deine bevorzugte Sprache für die App-Oberfläche"
+    "language_setting_description": "Wähle deine bevorzugte Sprache für die App-Oberfläche",
+    "tutorial_welcome_title": "Willkommen bei LogChirpy",
+    "tutorial_welcome_description": "Entdecke, bestimme und protokolliere Vögel mit KI-gestützten Tools – sogar offline!"
   },
   "audio": {
     "start": "Aufnahme starten",

@@ -179,7 +179,9 @@
       "location_data_settings": "Налаштування даних про місцезнаходження",
       "record_coordinates_description": "Записуйте точні координати для картування та аналізу спостережень за птахами",
       "gps_location_logging": "Запис розташування через GPS",
-      "language_setting_description": "Виберіть бажану мову інтерфейсу застосунку"
+      "language_setting_description": "Виберіть бажану мову інтерфейсу застосунку",
+      "tutorial_welcome_title": "Ласкаво просимо до LogChirpy",
+      "tutorial_welcome_description": "Відкривайте, визначайте та записуйте птахів за допомогою інструментів на базі ШІ — навіть офлайн!"
     },
     "about": {
       "title": "Про LogChirpy",

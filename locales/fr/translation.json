@@ -308,7 +308,9 @@
       "location_data_settings": "Paramètres des données de localisation",
       "record_coordinates_description": "Enregistrer des coordonnées précises pour la cartographie et l'analyse",
       "gps_location_logging": "Journalisation de la position GPS",
-      "language_setting_description": "Choisissez votre langue préférée pour l'interface de l'app"
+      "language_setting_description": "Choisissez votre langue préférée pour l'interface de l'app",
+      "tutorial_welcome_title": "Bienvenue sur LogChirpy",
+      "tutorial_welcome_description": "Découvrez, identifiez et enregistrez les oiseaux grâce à des outils basés sur l'IA – même hors ligne !"
     },
     "about": {
       "title": "À propos de LogChirpy",

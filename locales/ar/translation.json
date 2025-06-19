@@ -180,7 +180,9 @@
       "location_data_settings": "إعدادات بيانات الموقع",
       "record_coordinates_description": "سجل الإحداثيات الدقيقة لمشاهدات الطيور لأغراض الخريطة والتحليل",
       "gps_location_logging": "تسجيل الموقع عبر نظام GPS",
-      "language_setting_description": "اختر لغتك المفضلة لواجهة التطبيق"
+      "language_setting_description": "اختر لغتك المفضلة لواجهة التطبيق",
+      "tutorial_welcome_title": "مرحبًا بك في LogChirpy",
+      "tutorial_welcome_description": "اكتشف وحدد وسجل الطيور باستخدام أدوات مدعومة بالذكاء الاصطناعي – حتى بدون اتصال!"
     },
     "about": {
       "title": "حول LogChirpy",

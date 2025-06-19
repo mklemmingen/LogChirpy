@@ -16,11 +16,11 @@ export default function TutorialScreen() {
     const { t } = useTranslation();
 
     useEffect(() => {
-    navigation.setOptions({
-      title: 'Tutorial',
-      headerLeft: () => null,
-    });
-  }, [navigation]);
+        navigation.setOptions({
+            title: 'Tutorial',
+            headerLeft: () => null,
+        });
+    }, [navigation]);
 
 
     return (
@@ -31,10 +31,32 @@ export default function TutorialScreen() {
             nextLabel={t("common.next")}
             pages={[
                 {
+
                     backgroundColor: '#fff',
                     image: (
                         <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
-                           <Image
+                            <LottieView
+                                source={require('@/assets/tutorial/willkommen-animation.json')}
+                                autoPlay
+                                loop
+                                style={{ width: 300, height: 300, alignSelf: 'center' }}
+                            />
+                            <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                {t("settings.tutorial_welcome_title")}
+                            </ThemedText>
+                            <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                {t("settings.tutorial_welcome_description")}
+                            </ThemedText>
+                        </View>
+                    ),
+                    title: '',
+                    subtitle: '',
+                },
+                {
+                    backgroundColor: '#fff',
+                    image: (
+                        <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
+                            <Image
                                 source={require('@/assets/images/LogChirpy_Logo.png')}
                                 resizeMode="contain"
                                 style={{ width: 160, height: 160, alignSelf: 'center' }}

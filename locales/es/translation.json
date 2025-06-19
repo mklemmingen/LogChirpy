@@ -180,7 +180,9 @@
       "location_data_settings": "Configuración de datos de ubicación",
       "record_coordinates_description": "Registrar coordenadas precisas con tus avistamientos para mapeo y análisis",
       "gps_location_logging": "Registro de ubicación GPS",
-      "language_setting_description": "Elige tu idioma preferido para la interfaz de la aplicación"
+      "language_setting_description": "Elige tu idioma preferido para la interfaz de la aplicación",
+      "tutorial_welcome_title": "Bienvenido a LogChirpy",
+      "tutorial_welcome_description": "Descubre, identifica y registra aves con herramientas impulsadas por IA, ¡incluso sin conexión!"
     },
     "about": {
       "title": "Acerca de LogChirpy",

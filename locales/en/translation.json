@@ -358,7 +358,9 @@
       "location_data_settings": "Location data settings",
       "record_coordinates_description": "Record precise coordinates with your bird sightings for mapping and analysis",
       "gps_location_logging": "GPS Location Logging",
-      "language_setting_description": "Choose your preferred language for the app interface"
+      "language_setting_description": "Choose your preferred language for the app interface",
+      "tutorial_welcome_title": "Welcome to LogChirpy",
+      "tutorial_welcome_description": "Discover, identify, and log birds using AI-powered tools – even offline!"
     },
     "about": {
       "title": "About LogChirpy",
