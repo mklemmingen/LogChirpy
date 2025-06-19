@@ -349,7 +349,14 @@
       },
       "adjust_detection_settings": "Adjust bird detection settings",
       "camera_ai_settings": "Camera AI Settings",
-      "detection_speed": "Detection Speed"
+      "detection_speed": "Detection Speed",
+      "camera_analysis_frequency": "How frequently the AI analyzes camera feed",
+      "detection_confidence": "Detection Confidence",
+      "min_confidence_description": "Minimum confidence required to save bird detections",
+      "show_camera_controls": "Show Camera Controls",
+      "display_advanced_controls": "Display advanced controls overlay in camera view",
+      "location_data_settings": "Location data settings",
+      "record_coordinates_description": "Record precise coordinates with your bird sightings for mapping and analysis"
     },
     "about": {
       "title": "About LogChirpy",

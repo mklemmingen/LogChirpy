@@ -198,6 +198,7 @@ function GPSToggleCard({
     onToggle: () => void;
     styles: any;
 }) {
+    const {t} = useTranslation();
     const colors = useColors();
     const theme = useTheme();
     const typography = useTypography();
@@ -269,7 +270,7 @@ function GPSToggleCard({
                                 color="secondary"
                                 style={styles.gpsDescription}
                             >
-                                Record precise coordinates with your bird sightings for mapping and analysis
+                                 {t("settings.record_coordinates_description")}
                             </ThemedText>
 
                             <View style={styles.gpsStatus}>
@@ -545,7 +546,7 @@ export default function SettingsScreen() {
                         {t("settings.logging") || "Location Settings"}
                     </ThemedText>
                     <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
-                        Location data settings
+                         {t("settings.location_data_settings")}
                     </ThemedText>
                     <GPSToggleCard
                         enabled={gpsEnabled}
@@ -576,7 +577,7 @@ export default function SettingsScreen() {
                                             {t("settings.detection_speed")}
                                         </ThemedText>
                                         <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
-                                            How frequently the AI analyzes camera feed
+                                            {t("settings.camera_analysis_frequency")}
                                         </ThemedText>
                                         <ThemedText variant="labelSmall" color="primary" style={styles.settingPreset}>
                                             {getDelayPresetLabel(cameraSettings.pipelineDelay)}
@@ -604,10 +605,10 @@ export default function SettingsScreen() {
                                 <View style={styles.settingRow}>
                                     <View style={styles.settingInfo}>
                                         <ThemedText variant="bodyLarge" style={styles.settingTitle}>
-                                            Detection Confidence
+                                            {t("settings.detection_confidence")}
                                         </ThemedText>
                                         <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
-                                            Minimum confidence required to save bird detections
+                                            {t("settings.min_confidence_description")}
                                         </ThemedText>
                                         <ThemedText variant="labelSmall" color="primary" style={styles.settingPreset}>
                                             {getConfidencePresetLabel(cameraSettings.confidenceThreshold)}
@@ -635,10 +636,10 @@ export default function SettingsScreen() {
                                 <View style={styles.settingRow}>
                                     <View style={styles.settingInfo}>
                                         <ThemedText variant="bodyLarge" style={styles.settingTitle}>
-                                            Show Camera Controls
+                                             {t("settings.show_camera_controls")}
                                         </ThemedText>
                                         <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
-                                            Display advanced controls overlay in camera view
+                                            {t("settings.display_advanced_controls")}
                                         </ThemedText>
                                     </View>
                                     <Switch

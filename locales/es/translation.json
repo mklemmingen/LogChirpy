@@ -171,8 +171,14 @@
       },
       "adjust_bird_detection": "Ajustar la configuración de detección de aves",
       "camera_ai_settings": "Configuración de IA de cámara",
-      "detection_speed": "Velocidad de detección"
-
+      "detection_speed": "Velocidad de detección",
+      "camera_analysis_frequency": "Con qué frecuencia la IA analiza la transmisión de la cámara",
+      "detection_confidence": "Confianza en la detección",
+      "min_confidence_description": "Confianza mínima requerida para guardar detecciones de aves",
+      "show_camera_controls": "Mostrar controles de cámara",
+      "display_advanced_controls": "Mostrar controles avanzados en la vista de la cámara",
+      "location_data_settings": "Configuración de datos de ubicación",
+      "record_coordinates_description": "Registrar coordenadas precisas con tus avistamientos para mapeo y análisis"
     },
     "about": {
       "title": "Acerca de LogChirpy",

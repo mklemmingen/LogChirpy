@@ -179,7 +179,14 @@
     },
     "adjust_bird_detection": "Einstellungen zur Vogelerkennung anpassen",
     "camera_ai_settings": "Kamera-KI-Einstellungen",
-    "detection_speed": "Erkennungsgeschwindigkeit"
+    "detection_speed": "Erkennungsgeschwindigkeit",
+    "camera_analysis_frequency": "Wie häufig die KI den Kamerafeed analysiert",
+    "detection_confidence": "Erkennungszuverlässigkeit",
+    "min_confidence_description": "Mindestzuverlässigkeit zum Speichern von Vogel-Erkennungen",
+    "show_camera_controls": "Kamerasteuerung anzeigen",
+    "display_advanced_controls": "Erweiterte Steuerung im Kamerabild anzeigen",
+    "location_data_settings": "Einstellungen für Standortdaten",
+    "record_coordinates_description": "Präzise Koordinaten zu Vogelbeobachtungen für Kartierung und Analyse speichern"
   },
   "audio": {
     "start": "Aufnahme starten",

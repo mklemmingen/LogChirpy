@@ -170,7 +170,14 @@
       },
       "adjust_bird_detection": "Налаштувати параметри виявлення птахів",
       "camera_ai_settings": "Налаштування камери з ШІ",
-      "detection_speed": "Швидкість виявлення"
+      "detection_speed": "Швидкість виявлення",
+      "camera_analysis_frequency": "Як часто ШІ аналізує зображення з камери",
+      "detection_confidence": "Надійність виявлення",
+      "min_confidence_description": "Мінімальна впевненість для збереження виявлень птахів",
+      "show_camera_controls": "Показати елементи керування камерою",
+      "display_advanced_controls": "Показати розширені елементи керування у вікні камери",
+      "location_data_settings": "Налаштування даних про місцезнаходження",
+      "record_coordinates_description": "Записуйте точні координати для картування та аналізу спостережень за птахами"
     },
     "about": {
       "title": "Про LogChirpy",

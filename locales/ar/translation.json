@@ -171,7 +171,14 @@
       },
       "adjust_bird_detection": "ضبط إعدادات اكتشاف الطيور",
       "camera_ai_settings": "إعدادات الكاميرا بالذكاء الاصطناعي",
-      "detection_speed": "سرعة الاكتشاف"
+      "detection_speed": "سرعة الاكتشاف",
+      "camera_analysis_frequency": "عدد مرات تحليل الذكاء الاصطناعي لتغذية الكاميرا",
+      "detection_confidence": "دقة الاكتشاف",
+      "min_confidence_description": "الحد الأدنى من الدقة المطلوبة لحفظ اكتشافات الطيور",
+      "show_camera_controls": "إظهار عناصر تحكم الكاميرا",
+      "display_advanced_controls": "عرض عناصر التحكم المتقدمة في عرض الكاميرا",
+      "location_data_settings": "إعدادات بيانات الموقع",
+      "record_coordinates_description": "سجل الإحداثيات الدقيقة لمشاهدات الطيور لأغراض الخريطة والتحليل"
     },
     "about": {
       "title": "حول LogChirpy",
