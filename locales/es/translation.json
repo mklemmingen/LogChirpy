@@ -130,7 +130,8 @@
     "already_have_account": "¿Ya tienes cuenta? Inicia sesión",
     "email_sent_title": "¡Correo enviado!",
     "email_sent_message": "Hemos enviado instrucciones para restablecer la contraseña a {{email}}.",
-    "back_to_login": "Volver a iniciar sesión"
+    "back_to_login": "Volver a iniciar sesión",
+    "forgot_password_link": "¿Olvidaste tu contraseña?"
   },
   "errors": {
     "email_required": "El correo es obligatorio",

@@ -292,10 +292,20 @@
     "send_reset": "Send Reset",
     "forgot_password_link": "Forgot Password?",
     "signup_link": "Sign up",
-    "already_have_account": "Sign in",
+    "already_have_account": "Alrady have an account?",
     "email_sent_title": "Email Sent",
     "email_sent_message": "Check {{email}} for reset instructions",
-    "back_to_login": "Back"
+    "back_to_login": "Back",
+    "confirm_password_label": "Confirm Password",
+    "confirm_password_placeholder": "Confirm your password",
+    "passwords_dont_match": "Passwords do not match",
+    "creating_account": "Creating Account...",
+    "create_account": "Create Account",
+    "password_requirements": "Password must be at least 6 characters",
+    "passwordWeak": "Weak",
+    "passwordFair": "Fair",
+    "passwordGood": "Good",
+    "passwordStrong": "Strong"
   },
   "errors": {
     "email_required": "Email required",
@@ -326,7 +336,8 @@
     "database_error_title": "Database Error",
     "nest_build_failed": "Setup Failed",
     "database_setup_problem": "Database setup error",
-    "check_storage_network": "Check storage and network"
+    "check_storage_network": "Check storage and network",
+    "confirm_password_required": "Please confirm your password"
   },
   "account": {
     "title": "Account",
@@ -425,7 +436,8 @@
     "audio_system_unavailable": "Audio system unavailable",
     "listening": "Listening...",
     "audio_ready": "Audio Ready",
-    "audio_error": "Audio Error"
+    "audio_error": "Audio Error",
+    "instructions": "Record bird sounds for identification and logging. Keep the device steady and minimize background noise."
   },
   "log": {
     "save_success": "Saved",
@@ -468,6 +480,7 @@
     "no_permission": "Permission denied",
     "permission_required": "Camera Required",
     "permission_message": "Camera access required",
+    "video_permission_message": "Camera and microphone access required for video recording",
     "permission_error": "Permission error",
     "take_photo_error": "Capture failed",
     "not_ready": "Not ready",
@@ -524,7 +537,10 @@
     "close": "Close",
     "retry_loading": "Retry",
     "skip": "Skip",
-    "next": "Next"
+    "next": "Next",
+    "loading": "Loading...",
+    "back": "Back"
+
   },
   "warnings": {
     "media_permission_required": "Media access required"
@@ -687,7 +703,9 @@
     "no_photos": "No Photos",
     "take_at_least_one": "Take at least one photo",
     "photos_taken": "{{count}} taken",
-    "continue_with_photos": "Continue ({{count}})"
+    "continue_with_photos": "Continue ({{count}})",
+    "photo_saved": "Photo saved",
+    "capture_failed": "Failed to save photo"
   },
   "video": {
     "recording_failed": "Failed",
@@ -697,7 +715,11 @@
     "processing": "Processing...",
     "preview_title": "Preview",
     "recording_status_rec": "REC",
-    "recording_status_stopped": "STOPPED"
+    "recording_status_stopped": "STOPPED",
+    "video_saved": "Video saved",
+    "use_this_video": "Use this video?",
+    "accept": "Accept",
+    "save_failed": "Failed to save video"
   },
   "location": {
     "success": "Updated",

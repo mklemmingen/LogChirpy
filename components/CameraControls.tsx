@@ -1,22 +1,17 @@
 import React from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { ThemedIcon } from './ThemedIcon';
+import {Pressable, StyleSheet, View} from 'react-native';
+import {BlurView} from 'expo-blur';
+import {ThemedIcon} from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
+    interpolate,
     useAnimatedStyle,
     useSharedValue,
     withSpring,
     withTiming,
-    interpolate,
 } from 'react-native-reanimated';
 
-import {
-    useTheme,
-    useSemanticColors,
-    useColorVariants,
-    useMotionValues,
-} from '@/hooks/useThemeColor';
+import {useColorVariants, useMotionValues, useSemanticColors, useTheme,} from '@/hooks/useThemeColor';
 
 interface EnhancedCameraControlsProps {
     onCapture: () => void;

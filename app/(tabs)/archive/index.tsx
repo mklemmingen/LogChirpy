@@ -1,18 +1,22 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Dimensions,
   FlatList,
   Image,
+  Linking,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
-import {useTranslation} from 'react-i18next';
-import {ThemedIcon} from '@/components/ThemedIcon';
+import { useTranslation } from 'react-i18next';
+import { ThemedIcon } from '@/components/ThemedIcon';
 import { Feather } from '@expo/vector-icons';
-import {router} from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import * as FileSystem from 'expo-file-system';
 import Animated, {
   FadeInDown,
   FadeOutUp,
@@ -20,16 +24,21 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+  Easing,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import {Card} from '@/components/ThemedView';
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {ThemedText} from '@/components/ThemedText';
-import {useColors, useShadows, useTypography} from '@/hooks/useThemeColor';
-import {type BirdSpotting, getBirdSpottings} from '@/services/database';
-import {syncDatabase} from '@/services/sync_layer';
+import { Card } from '@/components/ThemedView';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { ThemedText } from '@/components/ThemedText';
+import { useColors, useTypography } from '@/hooks/useThemeColor';
+import { type BirdSpotting, getBirdSpottings } from '@/services/database';
+import { syncDatabase } from '@/services/sync_layer';
 
 // These will be calculated in the styles function based on responsive dimensions
 
@@ -60,35 +69,35 @@ function EmptyState({ onStartLogging }: { onStartLogging: () => void }) {
   }));
 
   return (
-      <Animated.View style={[styles.emptyState, animatedStyle]}>
-        <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-          <ThemedIcon name="archive" size={48} color="primary" />
-        </View>
+    <Animated.View style={[styles.emptyState, animatedStyle]}>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
+        <ThemedIcon name="archive" size={48} color="primary" />
+      </View>
 
-        <ThemedText variant="h2" style={styles.emptyTitle}>
-          {t('archive.empty')}
+      <ThemedText variant="h2" style={styles.emptyTitle}>
+        {t('archive.empty')}
+      </ThemedText>
+
+      <ThemedText
+        variant="body"
+        color="secondary"
+        style={styles.emptyDescription}
+      >
+        Start your birding journey by logging your first sighting
+      </ThemedText>
+
+      <ThemedPressable
+        variant="primary"
+        size="lg"
+        onPress={onStartLogging}
+        style={[styles.startButton, { backgroundColor: colors.primary }]}
+      >
+        <ThemedIcon name="plus" size={20} color="inverse" />
+        <ThemedText variant="label" style={{ color: colors.textInverse }}>
+          {t('archive.start_logging')}
         </ThemedText>
-
-        <ThemedText
-            variant="body"
-            color="secondary"
-            style={styles.emptyDescription}
-        >
-          Start your birding journey by logging your first sighting
-        </ThemedText>
-
-        <ThemedPressable
-            variant="primary"
-            size="lg"
-            onPress={onStartLogging}
-            style={[styles.startButton, { backgroundColor: colors.primary }]}
-        >
-          <ThemedIcon name="plus" size={20} color="inverse" />
-          <ThemedText variant="label" style={{ color: colors.textInverse }}>
-            {t('archive.start_logging')}
-          </ThemedText>
-        </ThemedPressable>
-      </Animated.View>
+      </ThemedPressable>
+    </Animated.View>
   );
 }
 
@@ -100,16 +109,16 @@ function EmptyState({ onStartLogging }: { onStartLogging: () => void }) {
  * @returns {JSX.Element} Complete search and control interface
  */
 function SearchHeader({
-                        searchQuery,
-                        onSearchChange,
-                        sortOrder,
-                        onSortChange,
-                        birdTypeFilter,
-                        onBirdTypeFilterChange,
-                        uniqueBirdTypes,
-                        onSync,
-                        isLoading
-                      }: {
+  searchQuery,
+  onSearchChange,
+  sortOrder,
+  onSortChange,
+  birdTypeFilter,
+  onBirdTypeFilterChange,
+  uniqueBirdTypes,
+  onSync,
+  isLoading
+}: {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   sortOrder: 'newest' | 'oldest' | 'alphabetical';
@@ -123,10 +132,62 @@ function SearchHeader({
   const colors = useColors();
   const typography = useTypography();
   const { t } = useTranslation();
-  
+
   const styles = createSearchStyles();
 
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Animation values
+  const rotation = useSharedValue(0);
+  const scale = useSharedValue(1);
+
+  // Handle sync animation
+  useEffect(() => {
+    if (isLoading) {
+      setShowSuccess(false);
+      // Start rotation animation
+      rotation.value = withRepeat(
+        withTiming(360, {
+          duration: 1500,
+          easing: Easing.linear
+        }),
+        -1 // Infinite repeat
+      );
+    } else {
+      // Stop rotation
+      cancelAnimation(rotation);
+      rotation.value = 0;
+
+      // Show success animation with spring physics (matching app's animation style)
+      scale.value = withSequence(
+        withSpring(1.15, {
+          damping: 12,
+          stiffness: 200
+        }),
+        withSpring(1, {
+          damping: 15,
+          stiffness: 200
+        })
+      );
+
+      // Show success icon briefly
+      setShowSuccess(true);
+      const timer = setTimeout(() => {
+        scale.value = withSpring(1);
+        setShowSuccess(false);
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { rotate: `${rotation.value}deg` },
+      { scale: scale.value }
+    ]
+  }));
 
   const getSortIcon = () => {
     switch (sortOrder) {
@@ -147,114 +208,120 @@ function SearchHeader({
   };
 
   return (
-      <View style={styles.searchHeader}>
-        {/* Search Bar */}
-        <Card style={styles.searchContainer}>
-          <ThemedIcon name="search" size={20} color="secondary" />
-          <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
-              placeholder={t('archive.search_placeholder')}
-              placeholderTextColor={colors.textSecondary}
-              value={searchQuery}
-              onChangeText={onSearchChange}
-          />
-          {searchQuery.length > 0 && (
-              <Pressable onPress={() => onSearchChange('')}>
-                <ThemedIcon name="x" size={16} color="secondary" />
-              </Pressable>
-          )}
-        </Card>
+    <View style={styles.searchHeader}>
+      {/* Search Bar */}
+      <Card style={styles.searchContainer}>
+        <ThemedIcon name="search" size={20} color="secondary" />
+        <TextInput
+          style={[styles.searchInput, { color: colors.text }]}
+          placeholder={t('archive.search_placeholder')}
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={onSearchChange}
+        />
+        {searchQuery.length > 0 && (
+          <Pressable onPress={() => onSearchChange('')}>
+            <ThemedIcon name="x" size={16} color="secondary" />
+          </Pressable>
+        )}
+      </Card>
 
-        {/* Bird Type Filter */}
-        {uniqueBirdTypes.length > 1 && (
-          <Card style={styles.filterContainer}>
-            <ThemedIcon name="filter" size={16} color="secondary" />
-            <View style={styles.filterButtons}>
-              {uniqueBirdTypes.slice(0, 4).map((birdType, index) => (
-                <ThemedPressable
-                  key={index}
-                  variant={birdTypeFilter === birdType ? "primary" : "ghost"}
-                  size="sm"
-                  style={styles.filterButton}
-                  onPress={() => onBirdTypeFilterChange(birdType)}
+      {/* Bird Type Filter */}
+      {uniqueBirdTypes.length > 1 && (
+        <Card style={styles.filterContainer}>
+          <ThemedIcon name="filter" size={16} color="secondary" />
+          <View style={styles.filterButtons}>
+            {uniqueBirdTypes.slice(0, 4).map((birdType, index) => (
+              <ThemedPressable
+                key={index}
+                variant={birdTypeFilter === birdType ? "primary" : "ghost"}
+                size="sm"
+                style={styles.filterButton}
+                onPress={() => onBirdTypeFilterChange(birdType)}
+              >
+                <ThemedText
+                  variant="bodySmall"
+                  numberOfLines={1}
+                  color={birdTypeFilter === birdType ? "inverse" : "primary"}
                 >
-                  <ThemedText variant="bodySmall" numberOfLines={1}>
-                    {birdType || 'All Birds'}
-                  </ThemedText>
-                </ThemedPressable>
-              ))}
-            </View>
-          </Card>
-        )}
+                  {birdType || 'All Birds'}
+                </ThemedText>
+              </ThemedPressable>
+            ))}
+          </View>
+        </Card>
+      )}
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          {/* Sort Button */}
-          <ThemedPressable
-              variant="ghost"
-              style={styles.actionButton}
-              onPress={() => setShowSortMenu(!showSortMenu)}
-          >
-            <ThemedIcon name={getSortIcon()} size={16} color="primary" />
-          </ThemedPressable>
+      {/* Action Buttons */}
+      <View style={styles.actionButtons}>
+        {/* Sort Button */}
+        <ThemedPressable
+          variant="ghost"
+          style={styles.actionButton}
+          onPress={() => setShowSortMenu(!showSortMenu)}
+        >
+          <ThemedIcon name={getSortIcon()} size={16} color="primary" />
+        </ThemedPressable>
 
-          {/* Sync Button */}
-          <ThemedPressable
-              variant="ghost"
-              style={styles.actionButton}
-              onPress={onSync}
-              disabled={isLoading}
-          >
+        {/* Sync Button */}
+        <ThemedPressable
+          variant="ghost"
+          style={styles.actionButton}
+          onPress={onSync}
+          disabled={isLoading}
+        >
+          <Animated.View style={animatedStyle}>
             <ThemedIcon
-                name="refresh-cw"
-                size={16}
-                color={isLoading ? 'secondary' : 'primary'}
+              name={showSuccess ? "check-circle" : isLoading ? "loader" : "refresh-cw"}
+              size={16}
+              color={showSuccess ? 'success' : isLoading ? 'secondary' : 'primary'}
             />
-          </ThemedPressable>
-        </View>
-
-        {/* Sort Menu */}
-        {showSortMenu && (
-            <Animated.View
-                entering={FadeInDown.duration(200)}
-                exiting={FadeOutUp.duration(150)}
-                style={styles.sortMenu}
-            >
-              <Card style={styles.sortMenuContent}>
-                {[
-                  { key: 'newest', label: t('archive.sort_newest'), icon: 'arrow-down' as keyof typeof Feather.glyphMap },
-                  { key: 'oldest', label: t('archive.sort_oldest'), icon: 'arrow-up' as keyof typeof Feather.glyphMap },
-                  { key: 'alphabetical', label: t('archive.sort_alphabetical'), icon: 'type' as keyof typeof Feather.glyphMap },
-                ].map((option) => (
-                    <Pressable
-                        key={option.key}
-                        style={[
-                          styles.sortOption,
-                          sortOrder === option.key && { backgroundColor: colors.backgroundSecondary }
-                        ]}
-                        onPress={() => {
-                          onSortChange(option.key as any);
-                          setShowSortMenu(false);
-                          Haptics.selectionAsync();
-                        }}
-                    >
-                      <ThemedIcon
-                          name={option.icon}
-                          size={16}
-                          color={sortOrder === option.key ? 'primary' : 'secondary'}
-                      />
-                      <ThemedText
-                          variant="body"
-                          color={sortOrder === option.key ? 'primary' : 'secondary'}
-                      >
-                        {option.label}
-                      </ThemedText>
-                    </Pressable>
-                ))}
-              </Card>
-            </Animated.View>
-        )}
+          </Animated.View>
+        </ThemedPressable>
       </View>
+
+      {/* Sort Menu */}
+      {showSortMenu && (
+        <Animated.View
+          entering={FadeInDown.duration(200)}
+          exiting={FadeOutUp.duration(150)}
+          style={styles.sortMenu}
+        >
+          <Card style={styles.sortMenuContent}>
+            {[
+              { key: 'newest', label: t('archive.sort_newest'), icon: 'arrow-down' as keyof typeof Feather.glyphMap },
+              { key: 'oldest', label: t('archive.sort_oldest'), icon: 'arrow-up' as keyof typeof Feather.glyphMap },
+              { key: 'alphabetical', label: t('archive.sort_alphabetical'), icon: 'type' as keyof typeof Feather.glyphMap },
+            ].map((option) => (
+              <Pressable
+                key={option.key}
+                style={[
+                  styles.sortOption,
+                  sortOrder === option.key && { backgroundColor: colors.backgroundSecondary }
+                ]}
+                onPress={() => {
+                  onSortChange(option.key as any);
+                  setShowSortMenu(false);
+                  Haptics.selectionAsync();
+                }}
+              >
+                <ThemedIcon
+                  name={option.icon}
+                  size={16}
+                  color={sortOrder === option.key ? 'primary' : 'secondary'}
+                />
+                <ThemedText
+                  variant="body"
+                  color={sortOrder === option.key ? 'primary' : 'secondary'}
+                >
+                  {option.label}
+                </ThemedText>
+              </Pressable>
+            ))}
+          </Card>
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
@@ -265,11 +332,12 @@ function SearchHeader({
  * @returns {JSX.Element} Complete archive screen with bird sighting grid
  */
 export default function ArchiveScreen() {
-  const {t} = useTranslation();
+  const { t } = useTranslation();
   const colors = useColors();
   const typography = useTypography();
-  
-  const styles = createStyles();
+  const { refresh } = useLocalSearchParams<{ refresh?: string }>();
+
+  const styles = createStyles(colors);
 
   // State management
   const [spottings, setSpottings] = useState<BirdSpotting[]>([]);
@@ -287,6 +355,41 @@ export default function ArchiveScreen() {
       else setLoading(true);
 
       const data = getBirdSpottings(100, sortOrder === 'oldest' ? 'ASC' : 'DESC');
+
+      // Debug logging for loaded data
+      console.log(`[Archive Debug] Loaded ${data.length} spottings from database`);
+
+      // Check each spotting's media URIs
+      for (let i = 0; i < Math.min(data.length, 3); i++) {
+        const spotting = data[i];
+        console.log(`[Archive Debug] Spotting ${i} (ID: ${spotting.id}):`, {
+          birdType: spotting.birdType,
+          imageUri: spotting.imageUri,
+          videoUri: spotting.videoUri,
+          hasImage: !!spotting.imageUri,
+          hasVideo: !!spotting.videoUri,
+          date: spotting.date
+        });
+
+        // Check file existence for images
+        if (spotting.imageUri) {
+          try {
+            const fileInfo = await FileSystem.getInfoAsync(spotting.imageUri);
+            console.log(`[Archive Debug] File check for spotting ${spotting.id}:`, {
+              uri: spotting.imageUri,
+              exists: fileInfo.exists,
+              size: fileInfo.exists ? (fileInfo as any).size : 'N/A',
+              isDirectory: fileInfo.isDirectory
+            });
+          } catch (fileError) {
+            console.error(`[Archive Debug] File check failed for spotting ${spotting.id}:`, {
+              uri: spotting.imageUri,
+              error: fileError
+            });
+          }
+        }
+      }
+
       setSpottings(data);
     } catch (error) {
       console.error('Failed to load spottings:', error);
@@ -314,7 +417,7 @@ export default function ArchiveScreen() {
     // Apply bird type filter
     if (birdTypeFilter.trim()) {
       filtered = filtered.filter(spotting =>
-          spotting.birdType?.toLowerCase() === birdTypeFilter.toLowerCase()
+        spotting.birdType?.toLowerCase() === birdTypeFilter.toLowerCase()
       );
     }
 
@@ -322,9 +425,9 @@ export default function ArchiveScreen() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(spotting =>
-          spotting.birdType?.toLowerCase().includes(query) ||
-          spotting.textNote?.toLowerCase().includes(query) ||
-          spotting.date?.toLowerCase().includes(query)
+        spotting.birdType?.toLowerCase().includes(query) ||
+        spotting.textNote?.toLowerCase().includes(query) ||
+        spotting.date?.toLowerCase().includes(query)
       );
     }
 
@@ -370,10 +473,10 @@ export default function ArchiveScreen() {
     router.push('/');
   }, []);
 
-  // Load data on mount and when sort changes
+  // Load data on mount, when sort changes, or when refresh parameter changes
   useEffect(() => {
     loadSpottings();
-    
+
     // Cleanup function to prevent memory leaks
     return () => {
       // Cancel any pending operations if needed
@@ -381,7 +484,7 @@ export default function ArchiveScreen() {
       setRefreshing(false);
       setSyncing(false);
     };
-  }, [loadSpottings]);
+  }, [loadSpottings, refresh]);
 
   // Format date helper
   const formatDate = (dateString: string) => {
@@ -402,143 +505,249 @@ export default function ArchiveScreen() {
     return `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
   };
 
-  // Render spotting card
-  const renderSpotting = useCallback(({item, index}: { item: BirdSpotting; index: number }) => (
+  // Render spotting card with Pinterest-like layout
+  const renderSpotting = useCallback(({ item, index }: { item: BirdSpotting; index: number }) => {
+    const hasMedia = !!(item.imageUri || item.videoUri);
+
+    // Basic debug logging for image handling
+    if (index < 2) {
+      console.log(`[Archive Debug] Item ${index}:`, {
+        id: item.id,
+        birdType: item.birdType,
+        hasMedia,
+        imageUri: item.imageUri ? 'present' : 'none'
+      });
+    }
+
+    return (
       <Animated.View
-          entering={FadeInDown.delay(index * 50).springify()}
-          layout={Layout.springify()}
-          style={styles.cardContainer}
+        entering={FadeInDown.delay(index * 30).springify()}
+        layout={Layout.springify()}
+        style={styles.cardContainer}
       >
         <ThemedPressable
-            variant="ghost"
-            onPress={() => handleSpottingPress(item)}
-            style={styles.spottingCard}
+          variant="ghost"
+          onPress={() => handleSpottingPress(item)}
+          style={styles.spottingCard}
         >
           <Card style={styles.spottingCardInner}>
-            {item.imageUri && (
-              <Image source={{uri: item.imageUri}} style={styles.spottingImage} />
-            )}
-            <View style={styles.spottingContent}>
-              <ThemedText variant="body" numberOfLines={1} style={styles.birdName}>
+            {/* Media Section - Always present for consistent card heights */}
+            {(() => {
+              const imageUri = hasMedia ? (item.imageUri || item.videoUri) : null;
+
+              // Calculate responsive dimensions
+              const screenWidth = Dimensions.get('window').width;
+              const cardMargin = 6;
+              const horizontalPadding = 12;
+              const cardsPerRow = 2;
+              const cardWidth = (screenWidth - (horizontalPadding * 2) - (cardMargin * (cardsPerRow + 1))) / cardsPerRow;
+              const imageHeight = cardWidth * 0.85;
+
+              return (
+                <View style={styles.mediaSection}>
+                  {hasMedia ? (
+                    <>
+                      <Image
+                        source={{ uri: imageUri! }}
+                        style={[
+                          styles.spottingImage,
+                          {
+                            // Force explicit dimensions for proper display
+                            width: cardWidth,
+                            height: imageHeight,
+                            alignSelf: 'center'
+                          }
+                        ]}
+                        resizeMode="cover"
+                        onError={(error) => {
+                          console.error(`[Archive Error] Image load failed for item ${item.id}:`, {
+                            uri: item.imageUri || item.videoUri,
+                            error: error.nativeEvent,
+                            item: item
+                          });
+                        }}
+                        onLoad={(event) => {
+                          console.log(`[Archive Success] Image loaded for item ${item.id}:`, {
+                            uri: item.imageUri || item.videoUri,
+                            source: event.nativeEvent.source,
+                            dimensions: `${event.nativeEvent.source.width}x${event.nativeEvent.source.height}`
+                          });
+                        }}
+                        onLoadStart={() => {
+                          console.log(`[Archive Loading] Image load started for item ${item.id}:`, item.imageUri || item.videoUri);
+                        }}
+                        onLoadEnd={() => {
+                          console.log(`[Archive LoadEnd] Image load ended for item ${item.id}:`, item.imageUri || item.videoUri);
+                        }}
+                      />
+                      {/* Media overlay indicators */}
+                      <View style={styles.mediaOverlay}>
+                        {item.videoUri && (
+                          <View style={styles.videoIndicator}>
+                            <ThemedIcon name="play" size={12} color="inverse" />
+                          </View>
+                        )}
+                        {item.audioUri && (
+                          <View style={styles.audioIndicator}>
+                            <ThemedIcon name="mic" size={10} color="inverse" />
+                          </View>
+                        )}
+                      </View>
+                    </>
+                  ) : (
+                    // Placeholder for cards without media to maintain consistent height
+                    <View
+                      style={[
+                        styles.spottingImage,
+                        {
+                          width: cardWidth,
+                          height: imageHeight,
+                          alignSelf: 'center',
+                          backgroundColor: 'transparent',
+                          justifyContent: 'center',
+                          alignItems: 'center'
+                        }
+                      ]}
+                    >
+                      {/* Empty placeholder - could add an icon if desired */}
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
+
+            {/* Content Section */}
+            <View style={[styles.spottingContent, styles.mediaContentPadding]}>
+              <ThemedText variant="bodySmall" numberOfLines={2} style={styles.birdName}>
                 {item.birdType || t('archive.unknown_bird')}
               </ThemedText>
+
               {item.latinBirDex && (
-                <ThemedText variant="bodySmall" color="secondary" numberOfLines={1}>
+                <ThemedText variant="caption" color="secondary" numberOfLines={1} style={styles.latinName}>
                   {item.latinBirDex}
                 </ThemedText>
               )}
-              <ThemedText variant="caption" color="secondary">
-                {formatDate(item.date)}
-              </ThemedText>
-              {formatLocation(item.gpsLat, item.gpsLng) && (
-                <ThemedText variant="caption" color="secondary" numberOfLines={1}>
-                  {formatLocation(item.gpsLat, item.gpsLng)}
+
+              <View style={styles.metaInfo}>
+                <ThemedText variant="caption" color="tertiary" style={styles.dateText}>
+                  {formatDate(item.date)}
                 </ThemedText>
-              )}
-              <View style={styles.mediaIndicators}>
-                {item.audioUri && <ThemedIcon name="mic" size={16} color="primary" />}
-                {item.videoUri && <ThemedIcon name="video" size={16} color="primary" />}
+                {formatLocation(item.gpsLat, item.gpsLng) && (
+                  <View style={styles.locationRow}>
+                    <ThemedIcon name="map-pin" size={8} color="tertiary" />
+                    <ThemedText variant="caption" color="tertiary" numberOfLines={1} style={styles.locationText}>
+                      {formatLocation(item.gpsLat, item.gpsLng)}
+                    </ThemedText>
+                  </View>
+                )}
               </View>
+
+              {/* Text-only cards get audio indicator */}
+              {!hasMedia && item.audioUri && (
+                <View style={styles.audioOnlyIndicator}>
+                  <ThemedIcon name="mic" size={12} color="primary" />
+                </View>
+              )}
             </View>
           </Card>
         </ThemedPressable>
       </Animated.View>
-  ), [handleSpottingPress, t, colors]);
+    );
+  }, [handleSpottingPress, t, formatDate, formatLocation]);
 
   // Loading state
   if (loading) {
     return (
-        <ThemedSafeAreaView style={styles.container}>
-          <View style={styles.loadingContainer}>
-            <ThemedIcon name="archive" size={48} color="primary"/>
-            <ThemedText variant="body" color="secondary" style={styles.loadingText}>
-              {t('archive.loading')}
-            </ThemedText>
-          </View>
-        </ThemedSafeAreaView>
+      <ThemedSafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ThemedIcon name="archive" size={48} color="primary" />
+          <ThemedText variant="body" color="secondary" style={styles.loadingText}>
+            {t('archive.loading')}
+          </ThemedText>
+        </View>
+      </ThemedSafeAreaView>
     );
   }
 
   return (
-      <ThemedSafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <View style={styles.headerText}>
-              <ThemedText variant="h2" style={styles.title}>
-                {t('archive.title')}
-              </ThemedText>
-              <ThemedText variant="body" color="secondary" style={styles.subtitle}>
-                {t('archive.subtitle', {count: filteredSpottings.length})}
-              </ThemedText>
-            </View>
-            <ThemedPressable
-              variant="secondary"
-              size="sm"
-              onPress={() => {
-                Haptics.selectionAsync();
-                router.push('/(tabs)/gallery');
-              }}
-              style={styles.galleryButton}
-            >
-              <ThemedIcon name="image" size={16} color="secondary" />
-              <ThemedText variant="labelMedium" color="secondary">
-                {t('archive.gallery')}
-              </ThemedText>
-            </ThemedPressable>
+    <ThemedSafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerText}>
+            <ThemedText variant="h2" style={styles.title}>
+              {t('archive.title')}
+            </ThemedText>
+            <ThemedText variant="body" color="secondary" style={styles.subtitle}>
+              {t('archive.subtitle', { count: filteredSpottings.length })}
+            </ThemedText>
           </View>
+          <ThemedPressable
+            variant="secondary"
+            size="sm"
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push('/(tabs)/gallery');
+            }}
+            style={styles.galleryButton}
+          >
+            <ThemedIcon name="image" size={16} color="secondary" />
+            <ThemedText variant="labelMedium" color="secondary">
+              {t('archive.gallery')}
+            </ThemedText>
+          </ThemedPressable>
         </View>
+      </View>
 
-        {/* Search and Actions */}
-        <SearchHeader
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            sortOrder={sortOrder}
-            onSortChange={setSortOrder}
-            birdTypeFilter={birdTypeFilter}
-            onBirdTypeFilterChange={setBirdTypeFilter}
-            uniqueBirdTypes={uniqueBirdTypes}
-            onSync={handleSync}
-            isLoading={syncing}
-        />
+      {/* Search and Actions */}
+      <SearchHeader
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortOrder={sortOrder}
+        onSortChange={setSortOrder}
+        birdTypeFilter={birdTypeFilter}
+        onBirdTypeFilterChange={setBirdTypeFilter}
+        uniqueBirdTypes={uniqueBirdTypes}
+        onSync={handleSync}
+        isLoading={syncing}
+      />
 
-        {/* Content */}
-        {filteredSpottings.length === 0 ? (
-            searchQuery ? (
-                <View style={styles.noResultsContainer}>
-                  <ThemedIcon name="search" size={48} color="secondary"/>
-                  <ThemedText variant="h3" color="secondary">
-                    {t('archive.no_search_results')}
-                  </ThemedText>
-                  <ThemedText variant="body" color="secondary">
-                    {t('archive.try_different_search')}
-                  </ThemedText>
-                </View>
-            ) : (
-                <EmptyState onStartLogging={handleStartLogging}/>
-            )
+      {/* Content */}
+      {filteredSpottings.length === 0 ? (
+        searchQuery ? (
+          <View style={styles.noResultsContainer}>
+            <ThemedIcon name="search" size={48} color="secondary" />
+            <ThemedText variant="h3" color="secondary">
+              {t('archive.no_search_results')}
+            </ThemedText>
+            <ThemedText variant="body" color="secondary">
+              {t('archive.try_different_search')}
+            </ThemedText>
+          </View>
         ) : (
-            <FlatList
-                data={filteredSpottings}
-                renderItem={renderSpotting}
-                keyExtractor={(item, index) => `${item.id}-${index}`}
-                numColumns={2}
-                removeClippedSubviews={false}
-                contentContainerStyle={styles.listContent}
-                columnWrapperStyle={styles.row}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                  <RefreshControl
-                      refreshing={refreshing}
-                      onRefresh={() => loadSpottings(true)}
-                      tintColor={colors.primary}
-                      colors={[colors.primary]}
-                  />
-                }
-                ItemSeparatorComponent={() => <View style={styles.separator}/>}
+          <EmptyState onStartLogging={handleStartLogging} />
+        )
+      ) : (
+        <FlatList
+          data={filteredSpottings}
+          renderItem={renderSpotting}
+          keyExtractor={(item, index) => `${item.id}-${index}`}
+          numColumns={2}
+          removeClippedSubviews={false}
+          contentContainerStyle={styles.listContent}
+          columnWrapperStyle={styles.row}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadSpottings(true)}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
             />
-        )}
-      </ThemedSafeAreaView>
+          }
+        />
+      )}
+    </ThemedSafeAreaView>
   );
 }
 
@@ -584,6 +793,9 @@ function createEmptyStateStyles() {
  */
 function createSearchStyles() {
   return StyleSheet.create({
+    actionIcon: {
+      margin: -2
+    },
     searchHeader: {
       paddingHorizontal: 20,
       marginBottom: 16,
@@ -606,11 +818,12 @@ function createSearchStyles() {
     },
     actionButtons: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 25,
+      overflow: 'visible',
     },
     actionButton: {
-      width: 44,
-      height: 44,
+      width: 50,
+      height: 50,
       borderRadius: 22,
       justifyContent: 'center',
       alignItems: 'center',
@@ -659,13 +872,27 @@ function createSearchStyles() {
 }
 
 /**
- * Creates styles for main archive screen
+ * Creates styles for main archive screen with Pinterest-like layout
  */
-function createStyles() {
-  const cardMargin = 16;
+function createStyles(colors?: any) {
+  const screenWidth = Dimensions.get('window').width;
+  const cardMargin = 6;
+  const horizontalPadding = 12;
   const cardsPerRow = 2;
-  const cardWidth = (350 - (cardMargin * 3)) / cardsPerRow; // Assuming reasonable screen width
-  
+  const cardWidth = (screenWidth - (horizontalPadding * 2) - (cardMargin * (cardsPerRow + 1))) / cardsPerRow;
+
+  // Debug logging for style calculations
+  console.log('[Archive Debug] Style calculations:', {
+    screenWidth,
+    cardMargin,
+    horizontalPadding,
+    cardsPerRow,
+    cardWidth,
+    imageHeight: cardWidth * 0.75,
+    minHeight: 100,
+    maxHeight: cardWidth * 1.2
+  });
+
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -676,7 +903,7 @@ function createStyles() {
     header: {
       paddingHorizontal: 20,
       paddingTop: 16,
-      paddingBottom: 32,
+      paddingBottom: 24,
     },
     headerContent: {
       flexDirection: 'row',
@@ -699,45 +926,133 @@ function createStyles() {
       gap: 4,
     },
 
-    // List
+    // Pinterest-style List
     listContent: {
-      paddingHorizontal: 16,
+      paddingHorizontal: horizontalPadding,
       paddingBottom: 32,
     },
     row: {
       justifyContent: 'space-between',
-      paddingHorizontal: 8,
+      gap: cardMargin,
     },
+
+    // Card Containers - Consistent height for all cards
     cardContainer: {
-      marginBottom: 16,
       width: cardWidth,
+      marginBottom: cardMargin,
     },
+
+    // Card Structure
     spottingCard: {
-      borderRadius: 8,
+      borderRadius: 12,
+      overflow: 'hidden',
     },
     spottingCardInner: {
       overflow: 'hidden',
       padding: 0,
+      borderRadius: 12,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+    },
+
+    // Media Section
+    mediaSection: {
+      position: 'relative',
+      width: '100%',
     },
     spottingImage: {
       width: '100%',
-      height: 80,
-      resizeMode: 'cover',
+      height: cardWidth * 0.85, // Increased height for landscape images
+      minHeight: 120,
+      maxHeight: cardWidth * 1.4,
+      backgroundColor: colors?.backgroundSecondary || '#f0f0f0', // Themed placeholder background
     },
-    spottingContent: {
-      padding: 12,
+    mediaOverlay: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      flexDirection: 'row',
       gap: 4,
     },
+    videoIndicator: {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      borderRadius: 10,
+      width: 20,
+      height: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    audioIndicator: {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      borderRadius: 8,
+      width: 16,
+      height: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    // Content Section
+    spottingContent: {
+      gap: 3,
+    },
+    mediaContentPadding: {
+      padding: 8,
+    },
+    textContentPadding: {
+      padding: 12,
+    },
+
+    // Text Styles
     birdName: {
       fontWeight: '600',
+      fontSize: 13,
+      lineHeight: 16,
     },
-    mediaIndicators: {
-      flexDirection: 'row',
-      gap: 8,
+    latinName: {
+      fontSize: 11,
+      fontStyle: 'italic',
+      opacity: 0.8,
+    },
+
+    // Meta Information
+    metaInfo: {
       marginTop: 4,
+      gap: 2,
     },
-    separator: {
-      height: 8,
+    dateText: {
+      fontSize: 10,
+      opacity: 0.7,
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    locationText: {
+      fontSize: 10,
+      opacity: 0.7,
+      flex: 1,
+    },
+
+    // Audio-only indicator
+    audioOnlyIndicator: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      borderRadius: 12,
+      width: 24,
+      height: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 2,
+      elevation: 2,
     },
 
     // Empty States

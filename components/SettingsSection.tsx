@@ -1,22 +1,15 @@
-import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { ReactNode } from 'react';
-import { BlurView } from 'expo-blur';
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-    // interpolate,
-} from 'react-native-reanimated';
+import React, {ReactNode} from 'react';
+import {StyleSheet, Text, View, ViewStyle} from 'react-native';
+import {BlurView} from 'expo-blur';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
 import {
-    useSemanticColors,
-    useColorVariants,
-    useTypography,
-    useTheme,
-    useMotionValues,
     useColors,
+    useColorVariants,
+    useMotionValues,
+    useSemanticColors,
+    useTheme,
+    useTypography,
 } from '../hooks/useThemeColor';
 
 interface SettingsSectionProps {

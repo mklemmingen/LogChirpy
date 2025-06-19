@@ -1,5 +1,5 @@
-import { useColorScheme } from 'react-native';
-import { useTheme } from './useThemeColor';
+import {useColorScheme} from 'react-native';
+import {useTheme} from './useThemeColor';
 
 /**
  * Unified Color Hook - Provides conflict-safe color combinations

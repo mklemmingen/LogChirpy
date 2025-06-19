@@ -1,26 +1,26 @@
 import React from 'react';
-import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import { Feather } from '@expo/vector-icons';
+import {Dimensions, ScrollView, StyleSheet, View} from 'react-native';
+import {router} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {Feather} from '@expo/vector-icons';
 import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
+    Easing,
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { HelloWave } from '@/components/HelloWave';
+import {HelloWave} from '@/components/HelloWave';
 import BirdAnimation from '@/components/BirdAnimationJS';
-import { ModernCard } from '@/components/ModernCard';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
-import { useColors } from '@/hooks/useThemeColor';
+import {ModernCard} from '@/components/ModernCard';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedView} from '@/components/ThemedView';
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import {useColors} from '@/hooks/useThemeColor';
 
 const { width, height } = Dimensions.get('window');
 
@@ -188,7 +188,7 @@ export default function HomeScreen() {
       <ThemedSafeAreaView style={styles.safeArea}>
 
         {/* Bird Animation */}
-        <BirdAnimation numberOfBirds={7} />
+        <BirdAnimation numberOfBirds={5} />
 
         <ScrollView
           style={styles.scrollView}

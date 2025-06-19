@@ -133,7 +133,11 @@
     "confirm_password_placeholder": "Passwort bestätigen",
     "email_sent_title": "E-Mail gesendet!",
     "email_sent_message": "Wir haben Anweisungen zum Zurücksetzen des Passworts an {{email}} gesendet. Bitte prüfen Sie Ihren Posteingang und folgen Sie den Anweisungen.",
-    "back_to_login": "Zurück zur Anmeldung"
+    "back_to_login": "Zurück zum Login",
+    "forgot_password_link": "Passwort vergessen?",
+    "signup_link": "Registrieren",
+    "already_have_account": "Bereits ein Konto?",
+    "password_placeholder": "Passwort"
   },
   "errors": {
     "email_required": "E-Mail ist erforderlich",
@@ -248,7 +252,8 @@
     "audio_system_unavailable": "Audiosystem nicht verfügbar",
     "listening": "Lauschen...",
     "audio_ready": "Audio bereit",
-    "audio_error": "Audio-Fehler"
+    "audio_error": "Audio-Fehler",
+    "instructions": "Nimm Vogelgeräusche zur Identifikation und zum Speichern auf. Halte das Gerät ruhig und vermeide Hintergrundgeräusche."
   },
   "log": {
     "add_audio": "Audio hinzufügen",

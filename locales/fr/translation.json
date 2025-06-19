@@ -240,9 +240,9 @@
     "signin": "Se connecter",
     "signup": "S'inscrire",
     "send_reset": "Envoyer le lien",
-    "forgot_password_link": "Mot de passe oublié ?",
-    "signup_link": "Pas de compte ? Inscrivez-vous",
-    "already_have_account": "Déjà un compte ? Connectez-vous",
+    "forgot_password_link": "Mot de passe oublié?",
+    "signup_link": "S'inscrire",
+    "already_have_account": "Vous avez déjà un compte ? Connectez-vous",
     "email_sent_title": "Email envoyé !",
     "email_sent_message": "Instructions envoyées à {{email}}. Vérifiez votre boîte mail.",
     "back_to_login": "Retour à la connexion"
@@ -369,8 +369,9 @@
     "audio_processing_failed": "Échec du traitement audio",
     "listening": "À l'écoute...",
     "audio_ready": "Audio prêt",
-    "audio_error": "Erreur audio"
-  },
+    "audio_error": "Erreur audio",
+   "instructions": "Enregistrez les chants d'oiseaux pour l'identification et la journalisation. Gardez l'appareil stable et minimisez les bruits de fond."
+},
   "log": {
     "save_success": "Entrée enregistrée",
     "entry_saved_success": "Votre entrée a été enregistrée.",
@@ -529,7 +530,7 @@
     "loading_fonts_assets": "Chargement des polices...",
     "initializing_local_db": "Initialisation base locale...",
     "loading_ai_models": "Chargement modèles IA...",
-    "preparing_bird_database": "Préparation de votre base de données d’oiseaux",
+    "preparing_bird_database": "Préparation de votre base de données d'oiseaux",
     "loading_species_data": "Chargement des données d'espèces",
     "species_loaded": "{{count}} espèces chargées",
     "building_database2": "Création de votre base de données d'oiseaux",

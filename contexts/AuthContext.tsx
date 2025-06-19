@@ -1,14 +1,25 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import {
+  User,
+  onAuthStateChanged,
+  signOut as firebaseSignOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail
+} from 'firebase/auth';
 import { auth } from '@/firebase/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+import { UserProfileService } from '@/services/userProfile';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -34,14 +45,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         setUser(firebaseUser);
-        
+
         // Store auth state for persistence
         if (firebaseUser) {
           await AsyncStorage.setItem('auth:hasUser', 'true');
         } else {
           await AsyncStorage.removeItem('auth:hasUser');
         }
-        
+
         setIsLoading(false);
       });
 
@@ -57,7 +68,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.warn('[Auth] Cannot sign out - Firebase auth not available');
       return;
     }
-    
+
     try {
       await firebaseSignOut(auth);
       await AsyncStorage.removeItem('auth:hasUser');
@@ -67,12 +78,58 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const signIn = async (email: string, password: string) => {
+    if (!auth) {
+      throw new Error(t('app_errors.firebase_not_available', 'Authentication service is not available'));
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+    } catch (error) {
+      console.error('[Auth] Sign in error:', error);
+      throw error;
+    }
+  };
+
+  const signUp = async (email: string, password: string) => {
+    if (!auth) {
+      throw new Error(t('app_errors.firebase_not_available', 'Authentication service is not available'));
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const user = userCredential.user;
+
+      try {
+        await UserProfileService.createUserProfile(user.uid, user.email);
+      } catch (profileError) {
+        console.warn('[Auth] Failed to create user profile:', profileError);
+      }
+    } catch (error) {
+      console.error('[Auth] Sign up error:', error);
+      throw error;
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    if (!auth) {
+      throw new Error(t('app_errors.firebase_not_available', 'Authentication service is not available'));
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+    } catch (error) {
+      console.error('[Auth] Password reset error:', error);
+      throw error;
+    }
+  };
+
   const refreshUser = async () => {
     if (!auth) {
       console.warn('[Auth] Cannot refresh user - Firebase auth not available');
       return;
     }
-    
+
     const currentUser = auth.currentUser;
     if (currentUser) {
       await currentUser.reload();
@@ -85,6 +142,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isLoading,
     isAuthenticated: !!user,
     signOut,
+    signIn,
+    signUp,
+    resetPassword,
     refreshUser,
   };
 

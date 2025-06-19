@@ -30,8 +30,10 @@ export default {
       versionCode: 1,
       compileSdkVersion: 34,
       targetSdkVersion: 34,
+      softwareKeyboardLayoutMode: "pan",
       permissions: [
         "CAMERA",
+        "RECORD_AUDIO",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "READ_MEDIA_IMAGES",
@@ -54,7 +56,8 @@ export default {
         NSPhotoLibraryAddUsageDescription: "LogChirpy needs permission to save captured bird photos to your photo library.",
         NSCameraUsageDescription: "LogChirpy needs camera access to take photos of birds for identification and logging.",
         NSLocationWhenInUseUsageDescription: "LogChirpy uses your location to record where you spotted birds and suggest nearby birding locations.",
-        NSLocationAlwaysAndWhenInUseUsageDescription: "LogChirpy uses your location to record where you spotted birds and suggest nearby birding locations."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "LogChirpy uses your location to record where you spotted birds and suggest nearby birding locations.",
+        NSMicrophoneUsageDescription: "LogChirpy needs microphone access to record bird sounds and videos for identification."
       }
     },
     platforms: ["android", "ios"],
@@ -67,13 +70,6 @@ export default {
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff"
-        }
-      ],
-      [
-        "react-native-vision-camera",
-        {
-          cameraPermissionText: "LogChirpy needs camera access to help you photograph and identify birds",
-          enableMicrophonePermission: false
         }
       ],
       [

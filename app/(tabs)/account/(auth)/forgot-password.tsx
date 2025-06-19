@@ -1,342 +1,318 @@
-import React, {useRef, useState} from 'react';
-import {KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View,} from 'react-native';
-import {router} from 'expo-router';
+import React, {useState} from 'react';
+import {Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View,} from 'react-native';
+import {Link, router} from 'expo-router';
 import {useTranslation} from 'react-i18next';
-import * as Haptics from 'expo-haptics';
-import Animated, {
-    FadeInDown,
-    FadeOutUp,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
-
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedIcon} from '@/components/ThemedIcon';
-import {ModernCard} from '@/components/ModernCard';
-import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {useSnackbar} from '@/components/ThemedSnackbar';
-import {useTheme, useSemanticColors, useColorVariants} from '@/hooks/useThemeColor';
 import {sendPasswordResetEmail} from 'firebase/auth';
 import {auth} from '@/firebase/config';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
 
-// Validation helper
-const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-};
+import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import {ThemedTextInput} from '@/components/ThemedTextInput';
+import {ModernCard} from '@/components/ModernCard';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {useColorVariants, useSemanticColors, useTheme, useTypography,} from '@/hooks/useThemeColor';
+import {ProtectedRoute} from '@/components/ProtectedRoute';
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+/**
+ * Forgot Password screen component
+ * Handles password reset email sending
+ */
 export default function ForgotPasswordScreen() {
     const { t } = useTranslation();
     const theme = useTheme();
+    const typography = useTypography();
     const semanticColors = useSemanticColors();
     const variants = useColorVariants();
-    const snackbar = useSnackbar();
 
-    // Form state
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
-    const [errors, setErrors] = useState<{ email?: string }>({});
-
-    // Refs
-    const emailInputRef = useRef<TextInput>(null);
 
     // Animation values
-    const cardScale = useSharedValue(0.95);
-    const cardOpacity = useSharedValue(0);
-    const formOpacity = useSharedValue(1);
+    const resetButtonScale = useSharedValue(1);
+    const fadeInOpacity = useSharedValue(0);
 
     React.useEffect(() => {
-        // Entrance animation
-        cardScale.value = withSpring(1, { damping: 20, stiffness: 300 });
-        cardOpacity.value = withTiming(1, { duration: theme.motion.duration.normal });
-    }, [cardOpacity, cardScale, theme.motion.duration.normal]);
+        fadeInOpacity.value = withTiming(1, { duration: 600 });
+    }, []);
 
-    // Form validation
-    const validateForm = (): boolean => {
-        const newErrors: { email?: string } = {};
+    const fadeInStyle = useAnimatedStyle(() => ({
+        opacity: fadeInOpacity.value,
+        transform: [{ translateY: withTiming(fadeInOpacity.value === 1 ? 0 : 30) }],
+    }));
 
-        if (!email.trim()) {
-            newErrors.email = t('errors.email_required');
-        } else if (!validateEmail(email.trim())) {
-            newErrors.email = t('errors.invalid_email');
-        }
+    const resetButtonAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: resetButtonScale.value }],
+    }));
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+    const validateEmail = (email: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
     };
 
-    // Handle form submission
-    const handleSubmit = async () => {
-        if (!validateForm()) {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    const handlePasswordReset = async () => {
+        if (!email.trim()) {
+            Alert.alert(
+                t('auth.error', 'Error'),
+                t('auth.email_required', 'Please enter your email address')
+            );
+            return;
+        }
+
+        if (!validateEmail(email.trim())) {
+            Alert.alert(
+                t('auth.error', 'Error'),
+                t('auth.invalid_email', 'Please enter a valid email address')
+            );
+            return;
+        }
+
+        if (!auth) {
+            Alert.alert(
+                t('auth.error', 'Error'),
+                t('auth.firebase_unavailable', 'Authentication service is not available')
+            );
             return;
         }
 
         setIsLoading(true);
-        setErrors({});
 
         try {
-            // Send password reset email via Firebase
             await sendPasswordResetEmail(auth, email.trim());
-
-            // Success animation
-            formOpacity.value = withTiming(0, { duration: theme.motion.duration.fast });
-
-            setTimeout(() => {
-                setEmailSent(true);
-                formOpacity.value = withTiming(1, { duration: theme.motion.duration.normal });
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            }, theme.motion.duration.fast);
-
-        } catch (error: unknown) {
+            setEmailSent(true);
+        } catch (error: any) {
             console.error('Password reset error:', error);
 
-            // Handle Firebase Auth specific error codes
-            let errorMessage = t('errors.sending_reset_error');
-            if (error && typeof error === 'object' && 'code' in error) {
-                switch ((error as { code: string }).code) {
+            let errorMessage = t('auth.reset_error', 'Failed to send reset email. Please try again.');
+
+            switch (error.code) {
                 case 'auth/user-not-found':
-                    errorMessage = t('errors.user_not_found');
+                    errorMessage = t('auth.email_not_found', 'No account found with this email address');
                     break;
                 case 'auth/invalid-email':
-                    errorMessage = t('errors.invalid_email');
+                    errorMessage = t('auth.invalid_email', 'Please enter a valid email address');
                     break;
                 case 'auth/too-many-requests':
-                    errorMessage = t('errors.too_many_requests');
+                    errorMessage = t('auth.too_many_reset_requests', 'Too many reset requests. Please try again later');
                     break;
                 case 'auth/network-request-failed':
-                    errorMessage = t('errors.network_error');
+                    errorMessage = t('auth.network_error', 'Network error. Please check your connection');
                     break;
-                default:
-                    errorMessage = t('errors.sending_reset_error');
-                }
-            } else {
-                errorMessage = error instanceof Error ? error.message : t('errors.sending_reset_error');
             }
 
-            snackbar.showError(errorMessage);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            Alert.alert(t('auth.error', 'Error'), errorMessage);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Handle back navigation
-    const handleBack = () => {
-        Haptics.selectionAsync();
-        router.back();
+    const handleResetPressIn = () => {
+        resetButtonScale.value = withSpring(0.95);
     };
 
-    // Animated styles
-    const cardAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: cardScale.value }],
-        opacity: cardOpacity.value,
-    }));
+    const handleResetPressOut = () => {
+        resetButtonScale.value = withSpring(1);
+    };
 
-    const formAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: formOpacity.value,
-    }));
+    const handleBackToLogin = () => {
+        router.replace('/(tabs)/account/(auth)/login');
+    };
 
-    // Success screen content
-    const renderSuccessScreen = () => (
-        <Animated.View
-            entering={FadeInDown.duration(theme.motion.duration.normal)}
-            style={styles.successContainer}
-        >
-            <View style={[styles.successIcon, { backgroundColor: theme.colors.text.primary, opacity: 0.1 }]}>
-                <ThemedIcon name="mail" size={48} color="primary" />
-            </View>
+    const handleResendEmail = () => {
+        setEmailSent(false);
+        handlePasswordReset();
+    };
 
-            <ThemedText variant="headlineLarge" style={styles.successTitle}>
-                {t('auth.email_sent_title')}
-            </ThemedText>
+    const isFormValid = email.trim() && validateEmail(email.trim()) && !isLoading;
 
-            <ThemedText
-                variant="bodyLarge"
-                color="secondary"
-                style={styles.successMessage}
-            >
-                {t('auth.email_sent_message', { email })}
-            </ThemedText>
-
-            <ThemedPressable
-                variant="primary"
-                size="lg"
-                onPress={handleBack}
-                style={styles.backButton}
-            >
-                <ThemedText variant="labelLarge" style={{ color: semanticColors.background }}>
-                    {t('auth.back_to_login')}
-                </ThemedText>
-            </ThemedPressable>
-        </Animated.View>
-    );
-
-    // Form screen content
-    const renderFormScreen = () => (
-        <Animated.View style={formAnimatedStyle}>
-            {/* Header */}
-            <View style={styles.header}>
-                <ThemedText variant="displaySmall" style={styles.title}>
-                    {t('auth.forgot_password_title')}
-                </ThemedText>
-
-                <ThemedText
-                    variant="bodyLarge"
-                    color="secondary"
-                    style={styles.instructions}
-                >
-                    {t('auth.forgot_password_instructions')}
-                </ThemedText>
-            </View>
-
-            {/* Form */}
-            <View style={styles.form}>
-                {/* Email Input */}
-                <View style={styles.inputContainer}>
-                    <ThemedText variant="labelLarge" style={styles.inputLabel}>
-                        {t('auth.email_placeholder')}
-                    </ThemedText>
-
-                    <View style={[
-                        styles.inputWrapper,
-                        {
-                            borderColor: errors.email
-                                ? theme.colors.status.error
-                                : theme.colors.border.primary,
-                            backgroundColor: theme.colors.background.secondary,
-                        }
-                    ]}>
-                        <ThemedIcon
-                            name="mail"
-                            size={20}
-                            color={errors.email ? 'error' : 'tertiary'}
-                        />
-                        <TextInput
-                            ref={emailInputRef}
-                            style={[styles.textInput, { color: theme.colors.text.primary }]}
-                            placeholder={t('auth.email_placeholder')}
-                            placeholderTextColor={theme.colors.text.tertiary}
-                            value={email}
-                            onChangeText={(text) => {
-                                setEmail(text);
-                                if (errors.email) {
-                                    setErrors(prev => ({ ...prev, email: undefined }));
-                                }
-                            }}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            autoComplete="email"
-                            textContentType="emailAddress"
-                            returnKeyType="send"
-                            onSubmitEditing={handleSubmit}
-                            editable={!isLoading}
-                        />
-                    </View>
-
-                    {errors.email && (
-                        <Animated.View
-                            entering={FadeInDown.duration(200)}
-                            exiting={FadeOutUp.duration(200)}
-                            style={styles.errorContainer}
+    if (emailSent) {
+        return (
+            <ProtectedRoute requireAuth={false}>
+                <ThemedSafeAreaView style={styles.container}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.keyboardContainer}
+                    >
+                        <ScrollView
+                            style={styles.scrollView}
+                            contentContainerStyle={styles.scrollContent}
+                            showsVerticalScrollIndicator={false}
                         >
-                            <ThemedIcon name="alert-circle" size={14} color="error" />
-                            <ThemedText variant="labelSmall" color="error" style={styles.errorText}>
-                                {errors.email}
-                            </ThemedText>
-                        </Animated.View>
-                    )}
-                </View>
+                            <Animated.View style={fadeInStyle}>
+                                <View style={styles.header}>
+                                    <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
+                                        <ThemedIcon name="mail" size={32} color="primary" />
+                                    </View>
+                                    <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
+                                        {t('auth.email_sent', 'Email Sent')}
+                                    </Text>
+                                    <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
+                                        {t('auth.reset_email_sent_message', 'We have sent a password reset link to your email address')}
+                                    </Text>
+                                </View>
 
-                {/* Submit Button */}
-                <ThemedPressable
-                    variant="primary"
-                    size="lg"
-                    onPress={handleSubmit}
-                    disabled={isLoading || !email.trim()}
-                    style={styles.submitButton}
-                >
-                    <ThemedText variant="labelLarge" style={{ color: semanticColors.background }}>
-                        {t('auth.send_reset')}
-                    </ThemedText>
-                </ThemedPressable>
+                                <ModernCard elevated={true} bordered={false} style={styles.successCard}>
+                                    <View style={styles.successContent}>
+                                        <View style={[styles.emailIconContainer, { backgroundColor: variants.primary.light }]}>
+                                            <ThemedIcon name="check-circle" size={24} color="primary" />
+                                        </View>
+                                        <View style={styles.successText}>
+                                            <Text style={[typography.body, { color: semanticColors.primary }]}>
+                                                {t('auth.check_your_email', 'Check your email')}
+                                            </Text>
+                                            <Text style={[typography.label, { color: semanticColors.secondary }]}>
+                                                {email}
+                                            </Text>
+                                        </View>
+                                    </View>
 
-                {/* Back to Login */}
-                <ThemedPressable
-                    variant="ghost"
-                    onPress={handleBack}
-                    disabled={isLoading}
-                    style={styles.backToLoginButton}
-                >
-                    <ThemedIcon name="arrow-left" size={16} color="primary" />
-                    <ThemedText variant="labelMedium" color="accent">
-                        {t('auth.back_to_login')}
-                    </ThemedText>
-                </ThemedPressable>
-            </View>
-        </Animated.View>
-    );
+                                    <View style={styles.instructions}>
+                                        <Text style={[typography.body, { color: semanticColors.secondary }]}>
+                                            {t('auth.reset_instructions', 'Click the link in the email to reset your password. If you don\'t see the email, check your spam folder.')}
+                                        </Text>
+                                    </View>
+
+                                    <Pressable
+                                        style={[styles.resendButton, { backgroundColor: variants.secondary.light }]}
+                                        onPress={handleResendEmail}
+                                        android_ripple={{ color: variants.secondary.main + '33' }}
+                                    >
+                                        <ThemedIcon name="refresh-cw" size={18} color="secondary" />
+                                        <Text style={[typography.body, { color: semanticColors.secondary, fontWeight: '500' }]}>
+                                            {t('auth.resend_email', 'Resend Email')}
+                                        </Text>
+                                    </Pressable>
+                                </ModernCard>
+
+                                <View style={styles.backContainer}>
+                                    <Pressable onPress={handleBackToLogin}>
+                                        <Text style={[typography.body, styles.backLink, { color: semanticColors.primary }]}>
+                                            ← {t('auth.back_to_login', 'Back to Login')}
+                                        </Text>
+                                    </Pressable>
+                                </View>
+                            </Animated.View>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
+                </ThemedSafeAreaView>
+            </ProtectedRoute>
+        );
+    }
 
     return (
-        <ThemedSafeAreaView style={styles.container}>
-            <KeyboardAvoidingView
-                style={styles.keyboardView}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-            >
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
+        <ProtectedRoute requireAuth={false}>
+            <ThemedSafeAreaView style={styles.container}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.keyboardContainer}
                 >
-                    {/* Background Elements */}
-                    <View style={StyleSheet.absoluteFillObject}>
-                        <View style={[
-                            styles.backgroundCircle,
-                            { backgroundColor: variants.primary.light }
-                        ]} />
-                        <View style={[
-                            styles.backgroundCircle2,
-                            { backgroundColor: variants.secondary.light }
-                        ]} />
-                    </View>
-
-                    {/* Main Card */}
-                    <Animated.View style={[styles.cardContainer, cardAnimatedStyle]}>
-                        <ModernCard
-                            elevated={false}
-                            bordered={true}
-                            style={{
-                                borderColor: variants.primary.light,
-                                ...theme.shadows.lg,
-                            }}
-                        >
-                            <View style={styles.cardContent}>
-                                {emailSent ? renderSuccessScreen() : renderFormScreen()}
+                    <ScrollView
+                        style={styles.scrollView}
+                        contentContainerStyle={styles.scrollContent}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        <Animated.View style={fadeInStyle}>
+                            <View style={styles.header}>
+                                <View style={[styles.logoContainer, { backgroundColor: variants.primary.light }]}>
+                                    <ThemedIcon name="key" size={32} color="primary" />
+                                </View>
+                                <Text style={[typography.h2, styles.title, { color: semanticColors.primary }]}>
+                                    {t('auth.forgot_password_title', 'Forgot Password')}
+                                </Text>
+                                <Text style={[typography.body, styles.subtitle, { color: semanticColors.secondary }]}>
+                                    {t('auth.forgot_password_subtitle', 'Enter your email to reset your password')}
+                                </Text>
                             </View>
-                        </ModernCard>
-                    </Animated.View>
-                </ScrollView>
-            </KeyboardAvoidingView>
 
-            {/* Snackbar */}
-            <snackbar.SnackbarComponent />
-        </ThemedSafeAreaView>
+                            <ModernCard
+                                elevated={true}
+                                bordered={false}
+                                style={{
+                                    ...styles.formCard,
+                                    backgroundColor: semanticColors.surface,
+                                    shadowColor: semanticColors.secondary,
+                                }}
+                            >
+                                <View style={styles.form}>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={[typography.label, styles.label, { color: semanticColors.secondary }]}>
+                                            {t('auth.email_label', 'Email')}
+                                        </Text>
+                                        <ThemedTextInput
+                                            style={[styles.textInput, { borderRadius: 12 }]}
+                                            placeholder={t('auth.email_placeholder', 'Enter your email')}
+                                            value={email}
+                                            onChangeText={setEmail}
+                                            keyboardType="email-address"
+                                            autoCapitalize="none"
+                                            autoCorrect={false}
+                                            editable={!isLoading}
+                                        />
+                                    </View>
+
+                                    <Animated.View style={[resetButtonAnimatedStyle, { marginTop: 16 }]}>
+                                        <AnimatedPressable
+                                            style={[
+                                                styles.resetButton,
+                                                {
+                                                    backgroundColor: isFormValid ? semanticColors.primary : semanticColors.secondary,
+                                                    borderRadius: 12,
+                                                    paddingVertical: 14,
+                                                },
+                                            ]}
+                                            onPress={handlePasswordReset}
+                                            onPressIn={handleResetPressIn}
+                                            onPressOut={handleResetPressOut}
+                                            disabled={!isFormValid}
+                                            android_ripple={{ color: theme.colors.surface + '33' }}
+                                        >
+                                            {isLoading ? (
+                                                <View style={styles.loadingContainer}>
+                                                    <Text style={[typography.body, styles.resetButtonText, { color: semanticColors.background }]}>
+                                                        {t('auth.sending_reset', 'Sending Reset Link...')}
+                                                    </Text>
+                                                </View>
+                                            ) : (
+                                                <>
+                                                    <ThemedIcon name="send" size={20} color="inverse" />
+                                                    <Text style={[typography.body, styles.resetButtonText, { color: semanticColors.background }]}>
+                                                        {t('auth.send_reset', 'Send Reset')}
+                                                    </Text>
+                                                </>
+                                            )}
+                                        </AnimatedPressable>
+                                    </Animated.View>
+                                </View>
+                            </ModernCard>
+
+                            <View style={[styles.signInContainer, { marginTop: 16 }]}>
+                                <Text style={[typography.body, { color: semanticColors.secondary }]}>
+                                    {t('auth.already_have_account', 'Already have an account?')}
+                                </Text>
+                                <Link href="/(tabs)/account/(auth)/login" asChild>
+                                    <Pressable disabled={isLoading}>
+                                        <Text style={[typography.body, styles.signInLink, { color: semanticColors.primary, marginLeft: 4 }]}>
+                                            {t('auth.signin', 'Sign In')}
+                                        </Text>
+                                    </Pressable>
+                                </Link>
+                            </View>
+                        </Animated.View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </ThemedSafeAreaView>
+        </ProtectedRoute>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 40,
     },
-    keyboardView: {
+    keyboardContainer: {
         flex: 1,
     },
     scrollView: {
@@ -346,123 +322,123 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         padding: 24,
         justifyContent: 'center',
-    },
-
-    // Background
-    backgroundCircle: {
-        position: 'absolute',
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        top: -150,
-        right: -150,
-        opacity: 0.03,
-    },
-    backgroundCircle2: {
-        position: 'absolute',
-        width: 200,
-        height: 200,
-        borderRadius: 100,
-        bottom: -100,
-        left: -100,
-        opacity: 0.02,
-    },
-
-    // Card
-    cardContainer: {
-        maxWidth: 400,
-        width: '100%',
-        alignSelf: 'center',
-    },
-    cardContent: {
-        padding: 20,
+        minHeight: '100%',
     },
 
     // Header
     header: {
-        marginBottom: 16,
         alignItems: 'center',
+        marginBottom: 32,
+    },
+    logoContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
     },
     title: {
         textAlign: 'center',
-        marginBottom: 12,
-        fontWeight: '700',
+        marginBottom: 8,
+        fontWeight: '600',
     },
-    instructions: {
+    subtitle: {
         textAlign: 'center',
-        lineHeight: 24,
+        lineHeight: 20,
     },
 
     // Form
+    formCard: {
+        marginBottom: 24,
+        borderRadius: 16,
+        padding: 24,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
     form: {
         gap: 16,
     },
-    inputContainer: {
+    inputGroup: {
         gap: 8,
     },
-    inputLabel: {
-        fontWeight: '600',
-    },
-    inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        gap: 12,
+    label: {
+        fontWeight: '500',
+        marginBottom: 4,
     },
     textInput: {
-        flex: 1,
-        fontSize: 16,
-        lineHeight: 20,
-    },
-    errorContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginTop: 4,
+        minHeight: 48,
+        paddingHorizontal: 16,
     },
     errorText: {
         fontSize: 12,
-        lineHeight: 16,
+        marginTop: 4,
     },
 
-    // Buttons
-    submitButton: {
-        marginTop: 8,
-    },
-    backToLoginButton: {
+    // Reset Button
+    resetButton: {
         flexDirection: 'row',
-        gap: 8,
+        alignItems: 'center',
         justifyContent: 'center',
+        paddingHorizontal: 24,
+        gap: 8,
+    },
+    resetButtonText: {
+        fontWeight: '600',
+    },
+    loadingContainer: {
         alignItems: 'center',
     },
 
-    // Success State
-    successContainer: {
-        alignItems: 'center',
-        gap: 20,
+    // Success Screen
+    successCard: {
+        marginBottom: 24,
     },
-    successIcon: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
+    successContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        marginBottom: 20,
+    },
+    emailIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8,
     },
-    successTitle: {
-        textAlign: 'center',
-        fontWeight: '700',
+    successText: {
+        flex: 1,
+        gap: 4,
     },
-    successMessage: {
-        textAlign: 'center',
-        lineHeight: 24,
-        maxWidth: 280,
+    instructions: {
+        marginBottom: 20,
     },
-    backButton: {
-        marginTop: 16,
-        minWidth: 160,
+    resendButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        gap: 8,
     },
-});
+
+    // Navigation
+    signInContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    signInLink: {
+        fontWeight: '600',
+    },
+    backContainer: {
+        alignItems: 'center',
+    },
+    backLink: {
+        fontWeight: '500',
+    },
+}); 

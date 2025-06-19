@@ -12,6 +12,7 @@ export interface BirdSpotting {
   birdType?: string;
   audioPrediction?: string;
   imagePrediction?: string;
+  latinBirDex?: string | null;
 }
 
 type LogAction =
@@ -25,11 +26,15 @@ function logReducer(state: BirdSpotting, action: LogAction): BirdSpotting {
   switch (action.type) {
     case 'UPDATE':
       const newState = { ...state, ...action.payload };
-      // Auto-save to storage
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+      // Auto-save to storage with error handling
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newState)).catch(error => {
+        console.error('Failed to save draft:', error);
+      });
       return newState;
     case 'CLEAR':
-      AsyncStorage.removeItem(STORAGE_KEY);
+      AsyncStorage.removeItem(STORAGE_KEY).catch(error => {
+        console.error('Failed to clear draft:', error);
+      });
       return {};
     case 'LOAD':
       return action.payload;
@@ -61,19 +66,57 @@ export function LogDraftProvider({ children }: { children: ReactNode }) {
 
   // Load persisted draft on mount
   useEffect(() => {
+    let mounted = true;
+    let timeoutId: NodeJS.Timeout;
+
     const loadDraft = async () => {
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          dispatch({ type: 'LOAD', payload: JSON.parse(stored) });
+        // Set a shorter timeout for AsyncStorage operations
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('AsyncStorage timeout')), 2000);
+        });
+
+        const storagePromise = AsyncStorage.getItem(STORAGE_KEY);
+        
+        // Race between AsyncStorage and timeout
+        const stored = await Promise.race([storagePromise, timeoutPromise]) as string | null;
+        
+        if (mounted && stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            dispatch({ type: 'LOAD', payload: parsed });
+          } catch (parseError) {
+            console.error('Failed to parse stored draft:', parseError);
+            // Clear corrupted data
+            AsyncStorage.removeItem(STORAGE_KEY);
+          }
         }
       } catch (error) {
-        console.error('Failed to load draft:', error);
+        if (mounted) {
+          if (error instanceof Error && error.message === 'AsyncStorage timeout') {
+            console.warn('LogDraftContext: AsyncStorage read timeout after 2s');
+          } else {
+            console.error('Failed to load draft:', error);
+          }
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
       }
     };
+
     loadDraft();
+
+    return () => {
+      mounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   const update = useCallback((partialDraft: Partial<BirdSpotting>) => {
@@ -84,8 +127,16 @@ export function LogDraftProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CLEAR' });
   }, []);
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = React.useMemo(() => ({
+    draft,
+    update,
+    clear,
+    isLoading
+  }), [draft, update, clear, isLoading]);
+
   return (
-      <LogDraftContext.Provider value={{ draft, update, clear, isLoading }}>
+      <LogDraftContext.Provider value={contextValue}>
         {children}
       </LogDraftContext.Provider>
   );

@@ -6,7 +6,7 @@
  */
 
 import birdManifest from '../assets/images/birds/bird_images_manifest.json';
-import { birdImageMap } from './generated/BirdImageMap';
+import {birdImageMap} from './generated/BirdImageMap';
 
 export interface BirdImageInfo {
   latinName: string;

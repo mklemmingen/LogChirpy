@@ -1,5 +1,5 @@
-import { useWindowDimensions } from 'react-native';
-import { useTheme } from './useThemeColor';
+import {useWindowDimensions} from 'react-native';
+import {useTheme} from './useThemeColor';
 
 /**
  * Responsive Dimensions Hook - Provides screen-aware sizing and spacing

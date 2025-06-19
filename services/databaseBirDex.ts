@@ -1,9 +1,10 @@
-import { Asset } from 'expo-asset';
+import {Asset} from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
 import * as Papa from 'papaparse';
-import { Platform } from 'react-native';
+import {Platform} from 'react-native';
 
 import * as SQLite from 'expo-sqlite';
+
 type SQLiteDatabase = SQLite.SQLiteDatabase;
 
 const ASSET_CSV = require('../assets/data/birds_fully_translated.csv');

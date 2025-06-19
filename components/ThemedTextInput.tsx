@@ -1,7 +1,7 @@
 import React from 'react';
-import { TextInput, TextInputProps, StyleSheet, View } from 'react-native';
-import { useTheme } from '@/hooks/useThemeColor';
-import { ThemedText } from './ThemedText';
+import {StyleSheet, TextInput, TextInputProps, View} from 'react-native';
+import {useTheme} from '@/hooks/useThemeColor';
+import {ThemedText} from './ThemedText';
 
 interface ThemedTextInputProps extends Omit<TextInputProps, 'placeholderTextColor'> {
   label?: string;

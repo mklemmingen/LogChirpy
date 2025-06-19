@@ -1,0 +1,73 @@
+\include{preambel_simple}
+
+\begin{document}
+\pagestyle{plain}
+
+\pagenumbering{gobble}
+%Deckblatt
+\include{src/title}
+
+%Inhaltsverzeichnis
+\cleardoublepage
+\tableofcontents
+
+%Abbildungsverzeichnis
+\cleardoublepage
+\listoffigures
+
+%Tabellenverzeichnis
+\cleardoublepage
+\listoftables
+
+\pagenumbering{arabic}
+\pagestyle{fancy}
+\cleardoublepage
+
+%Kapitel 1 - Einf�hrung und Motivation
+\cleardoublepage
+\include{src/chapters/introduction}
+
+%Kapitel 2 - Ziele des Projekts
+\cleardoublepage
+\include{src/chapters/goals}
+
+%Kapitel 3 - Anforderungsanalyse
+\cleardoublepage
+\include{src/chapters/requirements}
+
+%Kapitel 4 - Konzeptionelles Modell
+\cleardoublepage
+\include{src/chapters/architecture}
+
+%Kapitel 5 - Design-Entscheidungen
+\cleardoublepage
+\include{src/chapters/design}
+
+%Kapitel 6 - Ergebnisse
+\cleardoublepage
+\include{src/chapters/results}
+
+%Kapitel 7 - Fazit
+\cleardoublepage
+\include{src/chapters/conclusion}
+
+%Anhang
+\pagenumbering{gobble}
+\cleardoublepage 
+
+%Quellenverzeichnis
+\bibliography{src/bibliography}
+
+%Anhang
+\cleardoublepage
+\renewcommand{\thesection}{\Alph{section}}
+\pagenumbering{arabic}
+\setcounter{section}{0}
+\setcounter{page}{1}
+\include{src/appendix}
+
+%Gruppendokumentation
+\cleardoublepage
+\include{src/groupDocu/responsibilities}
+
+\end{document}

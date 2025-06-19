@@ -1,18 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-    View,
-    FlatList,
-    Image,
-    StyleSheet,
-    Alert,
-    Pressable,
-    Share,
-    ActivityIndicator,
-} from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, Pressable, Share, StyleSheet, View, } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
+import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling";
+import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 
 // Components
 import { ThemedView } from '@/components/ThemedView';
@@ -21,12 +15,19 @@ import { ThemedIcon } from '@/components/ThemedIcon';
 import { ThemedPressable } from '@/components/ThemedPressable';
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 import { ModernCard } from '@/components/ModernCard';
+import { useSnackbar } from '@/components/ThemedSnackbar';
+
+// Context
+import { useLogDraft } from '@/contexts/LogDraftContext';
 
 // Hooks
 import { useColors } from '@/hooks/useThemeColor';
 
 // URI utilities
-import { filePathToUri, uriToFilePath, validateImageUri } from '@/services/uriUtils';
+import { filePathToUri, uriToFilePath } from '@/services/uriUtils';
+
+// Database utilities
+import { searchBirdsByName } from '@/services/databaseBirDex';
 
 interface PhotoItem {
     uri: string;
@@ -38,10 +39,19 @@ interface PhotoItem {
     detectionType?: 'bird' | 'full';
 }
 
+interface BirdPrediction {
+    text: string;
+    confidence: number;
+    index: number;
+}
+
 export default function GalleryManagementScreen() {
     const { t } = useTranslation();
     const colors = useColors();
     const styles = createStyles();
+    const { selectMode } = useLocalSearchParams();
+    const { update } = useLogDraft();
+    const { SnackbarComponent, showSuccess, showError } = useSnackbar();
 
     const [photos, setPhotos] = useState<PhotoItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -49,12 +59,22 @@ export default function GalleryManagementScreen() {
     const [selectionMode, setSelectionMode] = useState(false);
     const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
 
+    // AI Identification state
+    const [isIdentifying, setIsIdentifying] = useState(false);
+    const [predictions, setPredictions] = useState<BirdPrediction[]>([]);
+    const [showPredictions, setShowPredictions] = useState(false);
+    const [processingTime, setProcessingTime] = useState(0);
+
+    // MLKit hook
+    const classifier = useImageLabeling('birdClassifier');
+    const mlReady = !!(classifier && typeof classifier.classifyImage === 'function');
+
     // Load photos from document storage gallery directory
     const loadPhotos = useCallback(async () => {
         try {
             setLoading(true);
             const galleryDir = `${FileSystem.documentDirectory}gallery/`;
-            
+
             // Check if gallery directory exists
             const dirInfo = await FileSystem.getInfoAsync(galleryDir);
             if (!dirInfo.exists) {
@@ -63,8 +83,9 @@ export default function GalleryManagementScreen() {
             }
 
             const files = await FileSystem.readDirectoryAsync(galleryDir);
-            const photoFiles = files.filter(filename => 
-                (filename.startsWith('bird_') || filename.startsWith('full_')) && filename.endsWith('.jpg')
+            const photoFiles = files.filter(filename =>
+                (filename.startsWith('bird_') || filename.startsWith('full_') || filename.startsWith('logchirpy_photo_')) &&
+                (filename.endsWith('.jpg') || filename.endsWith('.jpeg') || filename.endsWith('.png'))
             );
 
             const photoItems: PhotoItem[] = await Promise.all(
@@ -72,7 +93,7 @@ export default function GalleryManagementScreen() {
                     const filePath = `${galleryDir}${filename}`;
                     const info = await FileSystem.getInfoAsync(filePath) as FileSystem.FileInfo & { modificationTime?: number };
                     const { classification, confidence, detectionType } = extractDataFromFilename(filename);
-                    
+
                     return {
                         uri: filePathToUri(filePath), // Convert to proper URI for Image component
                         filename: filename,
@@ -100,10 +121,19 @@ export default function GalleryManagementScreen() {
         loadPhotos();
     }, [loadPhotos]);
 
+    // Reset selection state when screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            // Always reset selection state when returning to gallery
+            setSelectionMode(false);
+            setSelectedPhotos(new Set());
+        }, [])
+    );
+
     // Extract classification data from filename patterns like "bird_house_finch_conf085_timestamp_milliseconds.jpg"
-    const extractDataFromFilename = (filename: string): { 
-        classification?: string; 
-        confidence?: number; 
+    const extractDataFromFilename = (filename: string): {
+        classification?: string;
+        confidence?: number;
         detectionType?: 'bird' | 'full';
     } => {
         const patterns = [
@@ -134,7 +164,7 @@ export default function GalleryManagementScreen() {
             newSelection.add(uri);
         }
         setSelectedPhotos(newSelection);
-        
+
         if (newSelection.size === 0) {
             setSelectionMode(false);
         }
@@ -154,10 +184,10 @@ export default function GalleryManagementScreen() {
 
                     // Convert URI to file path for MediaLibrary
                     const filePath = uriToFilePath(uri);
-                    
+
                     // Create asset
                     const asset = await MediaLibrary.createAssetAsync(filePath);
-                    
+
                     // Add to LogChirpy album
                     let album = await MediaLibrary.getAlbumAsync("LogChirpy");
                     if (album) {
@@ -165,7 +195,7 @@ export default function GalleryManagementScreen() {
                     } else {
                         await MediaLibrary.createAlbumAsync("LogChirpy", asset, false);
                     }
-                    
+
                     savedCount++;
                 } catch (error) {
                     console.error('Failed to save photo:', uri, error);
@@ -198,21 +228,60 @@ export default function GalleryManagementScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
+                            let deletedCount = 0;
+                            let errors = [];
+
                             for (const uri of photoUris) {
-                                // Convert URI to file path for FileSystem operations
-                                const filePath = uriToFilePath(uri);
-                                const fileInfo = await FileSystem.getInfoAsync(filePath);
-                                if (fileInfo.exists) {
-                                    await FileSystem.deleteAsync(filePath);
+                                try {
+                                    // Get the file path relative to the app's document directory
+                                    const galleryDir = `${FileSystem.documentDirectory}gallery/`;
+                                    const filename = uri.split('/').pop(); // Get the filename from the URI
+                                    if (!filename) {
+                                        throw new Error('Invalid file URI');
+                                    }
+
+                                    const filePath = `${galleryDir}${filename}`;
+                                    console.log('[Gallery] Processing delete:', {
+                                        uri,
+                                        galleryDir,
+                                        filename,
+                                        filePath
+                                    });
+
+                                    const fileInfo = await FileSystem.getInfoAsync(filePath);
+                                    if (fileInfo.exists) {
+                                        await FileSystem.deleteAsync(filePath, { idempotent: true });
+                                        deletedCount++;
+                                        console.log('[Gallery] Successfully deleted file:', filePath);
+                                    } else {
+                                        console.warn('[Gallery] File does not exist:', filePath);
+                                        errors.push(`File not found: ${filename}`);
+                                    }
+                                } catch (error) {
+                                    console.error('[Gallery] Failed to delete file:', uri, error);
+                                    errors.push(error instanceof Error ? error.message : String(error));
                                 }
                             }
+
+                            // Clear selection and refresh list regardless of errors
                             setSelectedPhotos(new Set());
                             setSelectionMode(false);
                             await loadPhotos(); // Refresh the list
-                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+                            // Show appropriate feedback
+                            if (deletedCount > 0) {
+                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                showSuccess(t('gallery.delete_success', 'Successfully deleted {{count}} photos', { count: deletedCount }));
+                            }
+
+                            if (errors.length > 0) {
+                                console.error('[Gallery] Deletion errors:', errors);
+                                showError(t('gallery.delete_partial_fail', 'Failed to delete some photos. Please try again.'));
+                            }
                         } catch (error) {
-                            console.error('Delete failed:', error);
-                            Alert.alert(t('gallery.delete_failed'), error instanceof Error ? error.message : String(error));
+                            console.error('[Gallery] Delete operation failed:', error);
+                            showError(t('gallery.delete_failed', 'Failed to delete photos'));
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                         }
                     }
                 }
@@ -231,10 +300,224 @@ export default function GalleryManagementScreen() {
         }
     };
 
+    // Use selected photo for logging
+    const usePhotoForLog = useCallback(async () => {
+        if (selectedPhotos.size !== 1) {
+            showError('Please select exactly one photo to use for logging');
+            return;
+        }
+
+        const selectedPhotoUri = Array.from(selectedPhotos)[0];
+        try {
+            // Update the LogDraft context with the selected photo
+            update({ imageUri: selectedPhotoUri });
+            showSuccess('Photo selected for bird log');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // Navigate to the manual entry screen
+            router.push('/log/manual');
+        } catch (error) {
+            console.error('Failed to use photo for log:', error);
+            showError('Failed to select photo for logging');
+        }
+    }, [selectedPhotos, update, showSuccess, showError]);
+
+    // AI Identification function
+    const handleIdentifyBird = useCallback(async () => {
+        if (!mlReady || isIdentifying || selectedPhotos.size !== 1) return;
+
+        const selectedPhotoUri = Array.from(selectedPhotos)[0];
+        setIsIdentifying(true);
+        const startTime = Date.now();
+
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+            const results = await classifier?.classifyImage(selectedPhotoUri) || [];
+            const endTime = Date.now();
+            setProcessingTime((endTime - startTime) / 1000);
+
+            if (results && results.length > 0) {
+                const birdPredictions = results
+                    .filter((r: BirdPrediction) => r.confidence > 0.1)
+                    .sort((a: BirdPrediction, b: BirdPrediction) => b.confidence - a.confidence)
+                    .slice(0, 5);
+
+                setPredictions(birdPredictions);
+                setShowPredictions(true);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+                // Auto-hide predictions after 8 seconds
+                setTimeout(() => {
+                    setShowPredictions(false);
+                    setPredictions([]);
+                }, 8000);
+            } else {
+                showError('No bird detected in image');
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            }
+        } catch (error) {
+            console.error('ML identification error:', error);
+            showError('Failed to identify bird');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        } finally {
+            setIsIdentifying(false);
+        }
+    }, [mlReady, isIdentifying, selectedPhotos, classifier, showError]);
+
+    // Calculate string similarity score (same algorithm as smart-search)
+    const calculateMatchScore = useCallback((query: string, target: string): number => {
+        if (!target) return 0;
+
+        const queryLower = query.toLowerCase().trim();
+        const targetLower = target.toLowerCase().trim();
+
+        // Exact match
+        if (queryLower === targetLower) return 100;
+
+        // Starts with query
+        if (targetLower.startsWith(queryLower)) return 90;
+
+        // Contains query
+        if (targetLower.includes(queryLower)) return 80;
+
+        // Word boundary matches
+        const queryWords = queryLower.split(' ');
+        const targetWords = targetLower.split(' ');
+
+        let wordMatches = 0;
+        let partialMatches = 0;
+
+        for (const queryWord of queryWords) {
+            for (const targetWord of targetWords) {
+                if (targetWord === queryWord) {
+                    wordMatches++;
+                } else if (targetWord.includes(queryWord) || queryWord.includes(targetWord)) {
+                    partialMatches++;
+                }
+            }
+        }
+
+        if (wordMatches > 0) return 70 + (wordMatches * 10);
+        if (partialMatches > 0) return 50 + (partialMatches * 5);
+
+        // Levenshtein distance for typos
+        const distance = levenshteinDistance(queryLower, targetLower);
+        const maxLength = Math.max(queryLower.length, targetLower.length);
+        const similarity = (maxLength - distance) / maxLength;
+
+        return Math.max(0, similarity * 60);
+    }, []);
+
+    // Levenshtein distance implementation
+    const levenshteinDistance = (str1: string, str2: string): number => {
+        const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+
+        for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+        for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+
+        for (let j = 1; j <= str2.length; j++) {
+            for (let i = 1; i <= str1.length; i++) {
+                const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+                matrix[j][i] = Math.min(
+                    matrix[j][i - 1] + 1,     // deletion
+                    matrix[j - 1][i] + 1,     // insertion
+                    matrix[j - 1][i - 1] + indicator // substitution
+                );
+            }
+        }
+
+        return matrix[str2.length][str1.length];
+    };
+
+    // Clean ML prediction text (remove class numbers, extra spaces, etc.)
+    const cleanBirdName = useCallback((rawName: string): string => {
+        // Remove leading numbers and whitespace (e.g., "308 Rainbow Lorikeet" -> "Rainbow Lorikeet")
+        const cleaned = rawName.replace(/^\d+\s+/, '').trim();
+        console.log(`Cleaned "${rawName}" -> "${cleaned}"`);
+        return cleaned;
+    }, []);
+
+    // Find best matching bird code using smart-search logic
+    const findBestMatchingBirdCode = useCallback((birdName: string): string | null => {
+        try {
+            // Clean the bird name first
+            const cleanedName = cleanBirdName(birdName);
+            console.log('Searching database for:', cleanedName);
+
+            // Get search results from database
+            const dbResults = searchBirdsByName(cleanedName, 20);
+            console.log('Database returned', dbResults.length, 'results:', dbResults.slice(0, 5).map(r => r.english_name));
+
+            if (dbResults.length === 0) {
+                console.log('No database results found');
+                return null;
+            }
+
+            // Score each result across all name fields
+            let bestMatch = { score: 0, speciesCode: '', matchedName: '' };
+
+            dbResults.forEach(bird => {
+                const nameFields = [
+                    { name: bird.english_name, label: 'english' },
+                    { name: bird.scientific_name, label: 'scientific' },
+                    { name: bird.de_name, label: 'german' },
+                    { name: bird.es_name, label: 'spanish' },
+                    { name: bird.ukrainian_name, label: 'ukrainian' },
+                    { name: bird.ar_name, label: 'arabic' }
+                ].filter(field => field.name); // Remove null/undefined values
+
+                nameFields.forEach(field => {
+                    if (field.name) {
+                        const score = calculateMatchScore(cleanedName, field.name);
+                        if (score > bestMatch.score) {
+                            bestMatch = { score, speciesCode: bird.species_code, matchedName: field.name };
+                            console.log(`New best: "${cleanedName}" vs "${field.name}" (${field.label}): ${score}%`);
+                        }
+                    }
+                });
+            });
+
+            console.log('Best match:', bestMatch);
+
+            // Lower threshold to 30% since you said it doesn't have to be 100%
+            return bestMatch.score > 30 ? bestMatch.speciesCode : null;
+        } catch (error) {
+            console.error('Error finding matching bird code:', error);
+            return null;
+        }
+    }, [calculateMatchScore, cleanBirdName]);
+
+    const handleSelectPrediction = useCallback((prediction: BirdPrediction) => {
+        console.log('handleSelectPrediction called with:', prediction.text);
+
+        update({
+            imagePrediction: prediction.text,
+            birdType: prediction.text
+        });
+        setShowPredictions(false);
+        setPredictions([]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+        // Find and navigate to best matching bird code
+        console.log('Searching for matching bird code for:', prediction.text);
+        const speciesCode = findBestMatchingBirdCode(prediction.text);
+        console.log('Found species code:', speciesCode);
+
+        if (speciesCode) {
+            console.log('Navigating to:', `/birdex/details/${speciesCode}`);
+            // Navigate to bird details page with the matched species code
+            router.push(`/birdex/details/${speciesCode}`);
+        } else {
+            console.log('No matching species code found for:', prediction.text);
+            showError(`No bird found in database matching: ${prediction.text}`);
+        }
+    }, [update, showSuccess, findBestMatchingBirdCode]);
+
     const renderPhoto = ({ item }: { item: PhotoItem }) => {
         const isSelected = selectedPhotos.has(item.uri);
         const isBroken = brokenImages.has(item.uri);
-        
+
         return (
             <View style={styles.photoContainer}>
                 <Pressable
@@ -242,7 +525,7 @@ export default function GalleryManagementScreen() {
                         if (selectionMode) {
                             toggleSelection(item.uri);
                         } else {
-                            // Single photo actions
+                            // Single photo view or quick actions could go here
                         }
                     }}
                     onLongPress={() => {
@@ -263,8 +546,8 @@ export default function GalleryManagementScreen() {
                             </ThemedText>
                         </View>
                     ) : (
-                        <Image 
-                            source={{ uri: item.uri }} 
+                        <Image
+                            source={{ uri: item.uri }}
                             style={styles.photo}
                             onError={() => {
                                 console.warn('Failed to load image:', item.uri);
@@ -272,7 +555,7 @@ export default function GalleryManagementScreen() {
                             }}
                         />
                     )}
-                    
+
                     {/* Selection indicator */}
                     {selectionMode && (
                         <View style={[
@@ -284,7 +567,7 @@ export default function GalleryManagementScreen() {
                             )}
                         </View>
                     )}
-                    
+
                     {/* Classification label */}
                     {item.classification && (
                         <View style={[styles.classificationBadge, { backgroundColor: colors.backgroundSecondary }]}>
@@ -294,7 +577,7 @@ export default function GalleryManagementScreen() {
                         </View>
                     )}
                 </Pressable>
-                
+
                 {/* Photo info */}
                 <View style={styles.photoInfo}>
                     <ThemedText variant="caption" color="secondary" numberOfLines={1}>
@@ -334,19 +617,56 @@ export default function GalleryManagementScreen() {
             </ThemedView>
 
             {/* Selection Mode Actions */}
-            {selectionMode && selectedPhotos.size > 0 && (
+            {(selectionMode && selectedPhotos.size > 0) && (
                 <View style={styles.actionBar}>
                     <ModernCard style={styles.actionCard}>
                         <View style={styles.actionButtons}>
+                            {/* Use for Bird Log button - always available when photos are selected */}
                             <ThemedPressable
                                 variant="primary"
+                                size="sm"
+                                onPress={usePhotoForLog}
+                                disabled={selectedPhotos.size !== 1}
+                                style={[
+                                    styles.actionButton,
+                                    ...(selectedPhotos.size !== 1 ? [{ opacity: 0.5 }] : [])
+                                ]}
+                            >
+                                <ThemedIcon name="edit" size={16} color="inverse" />
+                                <ThemedText variant="labelMedium" color="inverse">
+                                    Use for Log
+                                </ThemedText>
+                            </ThemedPressable>
+
+                            {/* AI Identify button - only when one photo is selected */}
+                            {selectedPhotos.size === 1 && mlReady && (
+                                <ThemedPressable
+                                    variant="secondary"
+                                    size="sm"
+                                    onPress={handleIdentifyBird}
+                                    disabled={isIdentifying}
+                                    style={[
+                                        styles.actionButton,
+                                        ...(isIdentifying ? [{ opacity: 0.5 }] : [])
+                                    ]}
+                                >
+                                    <ThemedIcon name="cpu" size={16} color="primary" />
+                                    <ThemedText variant="labelMedium" color="primary">
+                                        {isIdentifying ? 'Identifying...' : 'AI Identify'}
+                                    </ThemedText>
+                                </ThemedPressable>
+                            )}
+
+                            {/* Standard gallery actions - always available */}
+                            <ThemedPressable
+                                variant="secondary"
                                 size="sm"
                                 onPress={() => saveToGallery(Array.from(selectedPhotos))}
                                 style={styles.actionButton}
                             >
                                 <ThemedIcon name="download" size={16} color="primary" />
                                 <ThemedText variant="labelMedium" color="primary">
-                                    {t('gallery.save_to_gallery')}
+                                    Save to Gallery
                                 </ThemedText>
                             </ThemedPressable>
 
@@ -356,9 +676,9 @@ export default function GalleryManagementScreen() {
                                 onPress={() => sharePhotos(Array.from(selectedPhotos))}
                                 style={styles.actionButton}
                             >
-                                <ThemedIcon name="share" size={16} color="secondary" />
-                                <ThemedText variant="labelMedium" color="secondary">
-                                    {t('buttons.share')}
+                                <ThemedIcon name="share" size={16} color="primary" />
+                                <ThemedText variant="labelMedium" color="primary">
+                                    Share
                                 </ThemedText>
                             </ThemedPressable>
 
@@ -366,11 +686,11 @@ export default function GalleryManagementScreen() {
                                 variant="secondary"
                                 size="sm"
                                 onPress={() => deletePhotos(Array.from(selectedPhotos))}
-                                style={[styles.actionButton, { backgroundColor: 'red' }]}
+                                style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
                             >
-                                <ThemedIcon name="trash-2" size={16} color="error" />
-                                <ThemedText variant="labelMedium" color="error">
-                                    {t('buttons.delete')}
+                                <ThemedIcon name="trash-2" size={16} color="inverse" />
+                                <ThemedText variant="labelMedium" color="inverse">
+                                    Delete
                                 </ThemedText>
                             </ThemedPressable>
 
@@ -383,12 +703,78 @@ export default function GalleryManagementScreen() {
                                 }}
                             >
                                 <ThemedText variant="labelMedium" color="tertiary">
-                                    {t('buttons.cancel')}
+                                    Cancel
                                 </ThemedText>
                             </ThemedPressable>
                         </View>
                     </ModernCard>
                 </View>
+            )}
+
+            {/* Instructions */}
+            {selectedPhotos.size === 0 && !selectionMode && photos.length > 0 && (
+                <View style={styles.actionBar}>
+                    <ModernCard style={styles.actionCard}>
+                        <View style={styles.instructionContainer}>
+                            <ThemedIcon name="info" size={20} color="primary" />
+                            <ThemedText variant="body" color="secondary" style={styles.instructionText}>
+                                Long press any photo to select, then choose an action (log, save, share, or delete)
+                            </ThemedText>
+                        </View>
+                    </ModernCard>
+                </View>
+            )}
+
+            {/* AI Predictions Overlay */}
+            {showPredictions && predictions.length > 0 && (
+                <Animated.View
+                    entering={FadeInDown.duration(300)}
+                    exiting={FadeOutUp.duration(250)}
+                    style={styles.predictionsOverlay}
+                >
+                    <ModernCard style={styles.predictionsCard}>
+                        <View style={styles.predictionsHeader}>
+                            <ThemedIcon name="cpu" size={20} color="primary" />
+                            <ThemedText variant="h3" style={styles.predictionsTitle}>
+                                AI Bird Identification
+                            </ThemedText>
+                            <ThemedText variant="caption" color="secondary">
+                                Processing time: {processingTime.toFixed(1)}s
+                            </ThemedText>
+                        </View>
+
+                        <View style={styles.predictionsList}>
+                            {predictions.map((prediction, index) => (
+                                <ThemedPressable
+                                    key={index}
+                                    variant="ghost"
+                                    style={styles.predictionItem}
+                                    onPress={() => handleSelectPrediction(prediction)}
+                                >
+                                    <View style={styles.predictionContent}>
+                                        <ThemedText variant="body" style={styles.predictionText}>
+                                            {prediction.text}
+                                        </ThemedText>
+                                        <View style={styles.confidenceContainer}>
+                                            <View style={[
+                                                styles.confidenceBar,
+                                                { width: `${prediction.confidence * 100}%`, backgroundColor: colors.primary }
+                                            ]} />
+                                        </View>
+                                        <ThemedText variant="caption" color="secondary">
+                                            {(prediction.confidence * 100).toFixed(1)}% confidence
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedIcon name="chevron-right" size={16} color="tertiary" />
+                                </ThemedPressable>
+                            ))}
+                        </View>
+
+                        <ThemedText variant="caption" color="tertiary" style={styles.autoHideText}>
+                            Tap a result to select, or wait for auto-hide
+                        </ThemedText>
+                    </ModernCard>
+                </Animated.View>
             )}
 
             {/* Photo Grid */}
@@ -417,6 +803,7 @@ export default function GalleryManagementScreen() {
                     refreshing={loading}
                 />
             )}
+            <SnackbarComponent />
         </ThemedSafeAreaView>
     );
 }
@@ -425,8 +812,9 @@ function createStyles() {
     return StyleSheet.create({
         container: {
             flex: 1,
+            paddingTop: 32,
         },
-        
+
         // Header
         header: {
             paddingHorizontal: 16,
@@ -465,6 +853,16 @@ function createStyles() {
             flexDirection: 'row',
             gap: 4,
         },
+        instructionContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            padding: 4,
+        },
+        instructionText: {
+            flex: 1,
+            lineHeight: 20,
+        },
 
         // Photo Grid
         gridContent: {
@@ -474,7 +872,7 @@ function createStyles() {
         gridRow: {
             justifyContent: 'space-between',
         },
-        
+
         // Photo Items
         photoContainer: {
             width: '48%',
@@ -546,6 +944,67 @@ function createStyles() {
             textAlign: 'center',
             lineHeight: 20,
             maxWidth: 280,
+        },
+
+        // AI Predictions Overlay
+        predictionsOverlay: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 20,
+            zIndex: 1000,
+        },
+        predictionsCard: {
+            width: '100%',
+            maxWidth: 400,
+            maxHeight: '70%',
+            padding: 20,
+        },
+        predictionsHeader: {
+            alignItems: 'center',
+            marginBottom: 20,
+            gap: 8,
+        },
+        predictionsTitle: {
+            fontWeight: '600',
+            textAlign: 'center',
+        },
+        predictionsList: {
+            gap: 12,
+            marginBottom: 16,
+        },
+        predictionItem: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 12,
+            borderRadius: 8,
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+        },
+        predictionContent: {
+            flex: 1,
+            gap: 4,
+        },
+        predictionText: {
+            fontWeight: '500',
+        },
+        confidenceContainer: {
+            height: 4,
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            borderRadius: 2,
+            overflow: 'hidden',
+        },
+        confidenceBar: {
+            height: '100%',
+            borderRadius: 2,
+        },
+        autoHideText: {
+            textAlign: 'center',
+            fontStyle: 'italic',
         },
     });
 }

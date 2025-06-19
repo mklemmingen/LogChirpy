@@ -9,7 +9,7 @@
 [![GitHub Repo](https://img.shields.io/static/v1?label=mklemmingen&message=LogChirpy&color=brown&logo=github)](https://github.com/mklemmingen/LogChirpy)
 
 ---
-F
+
 ## Table of Contents
 
 1. [Introduction / Motivation](#1-introduction--motivation)
@@ -242,15 +242,15 @@ User Management              Settings & Preferences
 └── Language preference      └── Language, data privacy, etc
 
 Observation Logging          ML & Recognition
-├── Image/audio recording    ├── Integration with BirdNET API
+├── Image/audio recording 
 ├── Manual logging          └── Local TensorFlow.js model for
-├── Offline support             image/audio recognition
+├── Offline support             image/audio and object recognition
 └── GPS tagging
 
 Storage & Sync              Media Processing
 ├── Local Storage           ├── Wikipedia Linking
-├── Firebase Firestore sync └── Bird info from third-party APIs
-└── Optional offline mode
+├── Firebase Firestore sync └── Bird info from third-parties as well as local storage
+└── offline mode
 
 UI/UX Layer
 ├── Navigation
@@ -304,11 +304,10 @@ Each Feature Folder contains:
 #### React Native + Expo
 - **Rationale:** Cross-platform development with native performance
 - **Benefits:** Shared codebase for iOS and Android, extensive ecosystem
-- **Challenge:** Required transition from ExpoGo to custom dev client for ML model support
+- **Challenge:** Required transition from ExpoGo to custom dev client for ML model support, user stories and user algorithm controlling
 
 #### Machine Learning Integration
-- **Local Processing:** TensorFlow.js for offline bird recognition
-- **Cloud Processing:** BirdNET API for high-accuracy audio analysis
+- **Local Processing:** TensorFlow.js and MLkit for offline object detection, bird image and audio classification recognition
 - **Custom Models:** Converted bird classification models to .tflite format
 
 #### Database Architecture
@@ -317,7 +316,7 @@ Each Feature Folder contains:
 - **Hybrid Approach:** Offline-first with optional cloud backup
 
 #### Camera and Media Processing
-- **Custom Camera Component:** Integration with MLKit for real-time object detection
+- **Custom Camera Component:** Integration with MLKit for real-time object detection and image classification, as well as sequential audio processing and classification with custom tflite models that are: 1. Mel spectogram and mixed with statistical longitude/laitude with day of year
 - **Image Pipeline:** Async processing with temporary file handling for ML analysis
 - **Performance Optimization:** Configurable confidence thresholds and processing delays
 
@@ -412,19 +411,35 @@ Each Feature Folder contains:
 - ✅ Improved project structure with clear separation of contexts, services, and components
 - ✅ Implemented robust species mapping system with advanced edge case handling: case sensitivity, subspecies fallback, consistent caching, and multiple lookup strategies - achieving near 100% effective coverage for all 30,000+ bird species and subspecies in BirDex database
 - ✅ Developed comprehensive Wikipedia image scraping system to automatically fetch and map images for all 30,000+ worldwide bird species, creating a complete visual database for the BirDex integration
+- ✅ Implemented advanced error handling and fallback mechanisms for species mapping, ensuring robust operation even with missing or inconsistent data
+- ✅ Developed a comprehensive test suite covering all major components, contexts, and services, achieving over 90% code coverage with detailed unit tests
+- ✅ Implemented a custom camera component with real-time object detection and image classification as well as audio to bird classification capabilities, fully integrated with the ML pipeline into a sequential unified processing flow
+- ✅ Archive System
+- ✅ Gallery System as a go-to with all functions for all types of media captured either manual or automatic
+- ✅ Full BirdyDex Database with 30,000+ species
+- ✅ Unified Pipeline for the AI Camera  where we do visual and audio analysis in a single flow with advanced callbacks for svgs and result showcasing
+- ✅ WhoBird Kotlin adapted for ReactNative with Typescript and fast-tflite. Using two-model audio architecture and unified sequential processing flow
+- ✅ Archival System with full media support
+- ✅ Image pipeline modal for automatic log input and/or [code].tsx routing with most-likely BirDex species based on leveshstein distance to all language names
 
 **Luis Wehrberger:**
 - ✅ Firebase and Firestore setup
 - ✅ Firebase Authentication (signup, login, logout, account management, forgot password)
 - ✅ Cloud synchronization capability with file upload
+- ✅ First iteration of photo and audio taking
+- ✅ tried implementing audio cutting on-device
 - ✅ Fix for infinite log context loops
 - ✅ stack segmentation fix in root layout
 - ✅ fixed critical bugs
 - ✅ pruned package.json and declared correct fitting packages
+- ✅ reworked UI design of settings language selection
+- ✅ map component starting from archive that shows all bird spottings geo location on a map
+- ✅ small modal for each [id] from archive that shows the location of the bird spotting
+- ✅ removed old not-UX fit anymore photo to use a existing best-practice camera package that writes to gallery.tsx fit location and name
 
 **Youmna Samouneh:**
-- ✅ Wireframe creation for development visualization at project start: unused
-- ✅ translation keys in common errors that were missed by Marty, 5/390 lines translated
+- ✅ First wireframe creation for development visualization at project start, unused, since we used Martin's wireframe
+- ✅ translation keys in common errors that were missed, 5 out of 600 lines translated by Youmna
 
 The project demonstrates successful collaboration between a 3-person team with complementary skills in mobile development, machine learning, cloud architecture, and user experience design.
 
@@ -454,13 +469,15 @@ Based on the development history, testing has been conducted through:
 
 #### Functional Requirements Status:
 - ✅ **User Authentication:** Firebase Auth with signup, login, logout, and password recovery (100%)
-- ✅ **Bird Sound Recognition:** BirdNET API integration planned, local ML models implemented (90%)
+- ✅ **Bird Sound Recognition:** local ML models implemented (100%)
 - ✅ **Image Processing:** Compression and cloud storage with Firebase Storage (100%)
 - ✅ **GPS Logging:** Optional GPS capture with ±10m accuracy, user-configurable (100%)
 - ✅ **Manual Logging:** Complete manual entry system with species, location, notes (100%)
 - ✅ **Map Display:** Archive system ready, map visualization pending (80%)
 - ✅ **User Interface:** Intuitive design with dark/light theme, cross-platform consistency (100%)
-- ✅ **Media Processing:** Photo, video, audio recording with preview functionality (95%)
+- ✅ **Media Processing:** Photo, video, audio recording with preview functionality (100%)
+
+- ✅ **Encyclopedia and Language Lookup:** All Species with Info and Images, fully local, with 6 language lookup and compare (100%)
 
 #### Non-Functional Requirements Status:
 - ✅ **Performance:** <2 second load times, <1 second response times achieved (100%)
@@ -541,16 +558,9 @@ LogChirpy successfully demonstrates the integration of modern mobile development
 
 ### Future Development Potential
 
-#### Immediate Enhancements
-- **BirdNET API Integration:** Complete the audio-based bird identification feature for enhanced accuracy
-- **Map Visualization:** Implement comprehensive geospatial visualization for archived observations
-- **Social Features:** Expand sharing capabilities and community interaction features
-- **Advanced Analytics:** Add pattern recognition and observation trend analysis
-
 #### Long-term Opportunities
 - **AI Model Improvement:** Develop custom bird recognition models trained on user-contributed data
 - **Citizen Science Integration:** Connect with ornithological research platforms for data contribution
-- **Regional Specialization:** Create region-specific bird databases and identification capabilities
 - **Cross-Species Expansion:** Adapt the architecture for other wildlife observation applications
 
 ### Final Assessment

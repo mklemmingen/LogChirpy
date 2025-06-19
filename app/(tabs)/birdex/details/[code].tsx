@@ -1,9 +1,9 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StyleSheet, View} from 'react-native';
+import {ActivityIndicator, Alert, Image, Linking, ScrollView, StyleSheet, View} from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useTranslation} from 'react-i18next';
 import {ThemedIcon} from '@/components/ThemedIcon';
-import { Feather } from '@expo/vector-icons';
+import {Feather} from '@expo/vector-icons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Animated, {
     FadeInDown,
@@ -22,7 +22,7 @@ import {ModernCard} from '@/components/ModernCard';
 import {useColorVariants, useSemanticColors, useTheme, useTypography} from '@/hooks/useThemeColor';
 import {type BirdDexRecord, getBirdBySpeciesCode} from '@/services/databaseBirDex';
 import {hasSpottingForLatin} from '@/services/database';
-import { getBirdImageSource } from '@/services/birdImageService';
+import {getBirdImageSource} from '@/services/birdImageService';
 
 type DetailRecord = BirdDexRecord & {
     hasBeenLogged: 0 | 1;

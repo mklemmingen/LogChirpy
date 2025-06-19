@@ -1,42 +1,42 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, Alert, BackHandler, Dimensions, Linking, StatusBar,} from 'react-native';
-import {Audio} from 'expo-av';
-import {router, Stack, useFocusEffect} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {ThemedIcon} from '@/components/ThemedIcon';
-import * as Haptics from 'expo-haptics';
-import {BlurView} from 'expo-blur';
-import Animated, {
-    Easing,
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
+/**
+ * Streamlined Audio Recording Screen
+ * 
+ * Simple, responsive audio recording with 3-6 second guidance
+ * Minimal UI focused on recording experience
+ */
 
-import {useLogDraft} from '@/contexts/LogDraftContext';
-import {ModernCard} from '@/components/ModernCard';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {ActivityIndicator, Alert, StatusBar, StyleSheet} from 'react-native';
+import {Audio} from 'expo-av';
+import {router, Stack} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import * as Haptics from 'expo-haptics';
+import * as Linking from 'expo-linking';
+
+// Components
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedPressable} from '@/components/ThemedPressable';
+import {ThemedIcon} from '@/components/ThemedIcon';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {useTheme} from '@/hooks/useThemeColor';
+import {BackButton} from '@/components/BackButton';
 
-type RecordingStatus = 'idle' | 'recording' | 'stopping' | 'playback';
+// Context
+import {useLogDraft} from '@/contexts/LogDraftContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const AnimatedPressable = Animated.createAnimatedComponent(ThemedPressable);
+// Hooks
+import {useColors} from '@/hooks/useThemeColor';
 
-// Enhanced Audio Quality Configuration
-const AUDIO_QUALITY = {
+type RecordingState = 'idle' | 'recording' | 'stopping' | 'recorded';
+
+// Optimized audio quality settings
+const AUDIO_SETTINGS = {
     android: {
         extension: '.m4a',
         outputFormat: Audio.AndroidOutputFormat.MPEG_4,
         audioEncoder: Audio.AndroidAudioEncoder.AAC,
         sampleRate: 44100,
-        numberOfChannels: 2,
+        numberOfChannels: 1,
         bitRate: 128000,
     },
     ios: {
@@ -44,418 +44,46 @@ const AUDIO_QUALITY = {
         outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
         audioQuality: Audio.IOSAudioQuality.HIGH,
         sampleRate: 44100,
-        numberOfChannels: 2,
+        numberOfChannels: 1,
         bitRate: 128000,
-        linearPCMBitDepth: 16,
-        linearPCMIsBigEndian: false,
-        linearPCMIsFloat: false,
     },
-    web: {
-        extension: '.m4a',
-        mimeType: 'audio/mp4',
-        bitsPerSecond: 128000,
-    },
-};
-
-// Animated Wave Visualization Component
-function WaveVisualizer({ isRecording }: { isRecording: boolean }) {
-    const waveAnim = useSharedValue(0);
-    const theme = useTheme();
-
-    useEffect(() => {
-        if (isRecording) {
-            waveAnim.value = withRepeat(
-                withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-                -1,
-                true
-            );
-        } else {
-            waveAnim.value = withTiming(0, { duration: 300 });
-        }
-    }, [isRecording]);
-
-    return (
-        <ThemedView style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            gap: 4, 
-            height: 60,
-            paddingVertical: 16 
-        }}>
-            {[...Array(7)].map((_, index) => {
-                return (
-                    <WaveBar key={index} index={index} waveAnim={waveAnim} />
-                );
-            })}
-        </ThemedView>
-    );
-}
-
-// Separate component for wave bar to use hooks properly
-function WaveBar({ index, waveAnim }: { index: number; waveAnim: any }) {
-    const animatedStyle = useAnimatedStyle(() => {
-        const delay = index * 0.1;
-        const height = interpolate(
-            waveAnim.value,
-            [0, 1],
-            [4, 30 + Math.sin(delay * 4) * 15]
-        );
-        return {
-            height: Math.max(4, height),
-            opacity: interpolate(waveAnim.value, [0, 1], [0.3, 1]),
-        };
-    });
-
-    return (
-        <Animated.View
-            style={[
-                {
-                    width: 4,
-                    backgroundColor: '#007AFF',
-                    borderRadius: 2,
-                    minHeight: 4,
-                },
-                animatedStyle,
-            ]}
-        />
-    );
-}
-
-// Recording Button Component
-function RecordingButton({
-    status,
-    onPress,
-    duration,
-}: {
-    status: RecordingStatus;
-    onPress: () => void;
-    duration: number;
-}) {
-    const theme = useTheme();
-    const { t } = useTranslation();
-
-    const scale = useSharedValue(1);
-    const glowOpacity = useSharedValue(0);
-
-    useEffect(() => {
-        if (status === 'recording') {
-            scale.value = withRepeat(
-                withTiming(1.05, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-                -1,
-                true
-            );
-            glowOpacity.value = withRepeat(
-                withTiming(0.6, { duration: 1500 }),
-                -1,
-                true
-            );
-        } else {
-            scale.value = withSpring(1);
-            glowOpacity.value = withTiming(0);
-        }
-    }, [status]);
-
-    const buttonStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
-    }));
-
-    const glowStyle = useAnimatedStyle(() => ({
-        opacity: glowOpacity.value,
-        transform: [{ scale: scale.value * 1.2 }],
-    }));
-
-    const isRecording = status === 'recording';
-    const buttonColor = isRecording ? theme.colors.status.error : theme.colors.background.secondary;
-
-    return (
-        <ThemedView style={{ alignItems: 'center', gap: 20 }}>
-            <ThemedView style={{ position: 'relative', alignItems: 'center' }}>
-                {/* Glow Effect */}
-                {isRecording && (
-                    <Animated.View
-                        style={[
-                            {
-                                position: 'absolute',
-                                width: 160,
-                                height: 160,
-                                borderRadius: 80,
-                                backgroundColor: theme.colors.status.error,
-                            },
-                            glowStyle,
-                        ]}
-                    />
-                )}
-
-                {/* Main Button */}
-                <AnimatedPressable
-                    variant="ghost"
-                    style={[
-                        {
-                            width: 140,
-                            height: 140,
-                            borderRadius: 70,
-                            backgroundColor: buttonColor,
-                            borderWidth: isRecording ? 4 : 2,
-                            borderColor: isRecording ? theme.colors.status.error : theme.colors.border.primary,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            ...theme.shadows.lg,
-                        },
-                        buttonStyle,
-                    ]}
-                    onPress={onPress}
-                    disabled={status === 'stopping'}
-                >
-                    <ThemedIcon
-                        name={isRecording ? 'square' : 'mic'}
-                        size={48}
-                        color={isRecording ? 'error' : 'primary'}
-                    />
-                </AnimatedPressable>
-            </ThemedView>
-
-            {/* Status Text */}
-            <ThemedView style={{ alignItems: 'center', gap: 8 }}>
-                <ThemedText
-                    variant="body"
-                    color="secondary"
-                    style={{ textAlign: 'center' }}
-                >
-                    {isRecording ? t('audio.tap_to_stop') : t('audio.tap_to_start')}
-                </ThemedText>
-
-                {/* Duration Display */}
-                {(isRecording || duration > 0) && (
-                    <ThemedView
-                        style={{ 
-                            paddingHorizontal: 16, 
-                            paddingVertical: 6,
-                            backgroundColor: theme.colors.background.secondary,
-                            borderRadius: theme.borderRadius.md,
-                        }}
-                    >
-                        <ThemedText variant="h3" color="primary">
-                            {formatDuration(duration)}
-                        </ThemedText>
-                    </ThemedView>
-                )}
-            </ThemedView>
-        </ThemedView>
-    );
-}
-
-// Permission Error Component
-function PermissionError({
-    onRetry,
-    onSettings,
-    isRequesting,
-}: {
-    onRetry: () => void;
-    onSettings: () => void;
-    isRequesting: boolean;
-}) {
-    const { t } = useTranslation();
-    const theme = useTheme();
-
-    return (
-        <ThemedSafeAreaView style={{ flex: 1 }}>
-            <ThemedView style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
-                <ModernCard elevated={true} bordered={false} style={{ alignItems: 'center', padding: 32 }}>
-                    <ThemedView
-                        style={{
-                            width: 80,
-                            height: 80,
-                            borderRadius: 40,
-                            backgroundColor: theme.colors.background.secondary,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginBottom: 24,
-                        }}
-                    >
-                        <ThemedIcon name="mic-off" size={32} color="error" />
-                    </ThemedView>
-
-                    <ThemedText variant="h2" style={{ textAlign: 'center', marginBottom: 12 }}>
-                        {t('audio.permission_required', 'Microphone Permission Required')}
-                    </ThemedText>
-
-                    <ThemedText
-                        variant="body"
-                        color="secondary"
-                        style={{ textAlign: 'center', marginBottom: 32, lineHeight: 24 }}
-                    >
-                        {t('audio.permission_explanation', 'LogChirpy needs access to your microphone to record bird sounds for identification.')}
-                    </ThemedText>
-
-                    <ThemedView style={{ flexDirection: 'row', gap: 16, width: '100%' }}>
-                        <ThemedPressable
-                            variant="secondary"
-                            style={{ flex: 1 }}
-                            onPress={() => router.back()}
-                        >
-                            <ThemedText>{t('common.cancel', 'Cancel')}</ThemedText>
-                        </ThemedPressable>
-
-                        <ThemedPressable
-                            variant="primary"
-                            style={{ flex: 1 }}
-                            onPress={onRetry}
-                            disabled={isRequesting}
-                        >
-                            {isRequesting ? (
-                                <ActivityIndicator size="small" color={theme.colors.text.inverse} />
-                            ) : (
-                                <ThemedText color="inverse">{t('audio.grant_permission', 'Grant Permission')}</ThemedText>
-                            )}
-                        </ThemedPressable>
-                    </ThemedView>
-
-                    <ThemedPressable
-                        variant="ghost"
-                        onPress={onSettings}
-                        style={{ marginTop: 16 }}
-                    >
-                        <ThemedText color="accent">{t('common.settings', 'Open Settings')}</ThemedText>
-                    </ThemedPressable>
-                </ModernCard>
-            </ThemedView>
-        </ThemedSafeAreaView>
-    );
-}
-
-// Playback Controls Component
-function PlaybackControls({
-    isPlaying,
-    onPlay,
-    onRetake,
-    onConfirm,
-}: {
-    isPlaying: boolean;
-    onPlay: () => void;
-    onRetake: () => void;
-    onConfirm: () => void;
-}) {
-    const { t } = useTranslation();
-    const theme = useTheme();
-
-    return (
-        <BlurView
-            intensity={80}
-            tint={theme.colors.background.primary === '#FFFFFF' ? 'light' : 'dark'}
-            style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                paddingBottom: 40,
-                paddingTop: 20,
-                paddingHorizontal: 24,
-            }}
-        >
-            <ThemedView style={{ flexDirection: 'row', gap: 16 }}>
-                <ThemedPressable
-                    variant="secondary"
-                    style={{ flex: 1, flexDirection: 'row', gap: 8, justifyContent: 'center' }}
-                    onPress={onPlay}
-                >
-                    <ThemedIcon name={isPlaying ? 'pause' : 'play'} size={20} color="primary" />
-                    <ThemedText>{isPlaying ? t('audio.pause', 'Pause') : t('audio.play', 'Play')}</ThemedText>
-                </ThemedPressable>
-
-                <ThemedPressable
-                    variant="secondary"
-                    style={{ paddingHorizontal: 20 }}
-                    onPress={onRetake}
-                >
-                    <ThemedIcon name="refresh-cw" size={20} color="primary" />
-                </ThemedPressable>
-
-                <ThemedPressable
-                    variant="primary"
-                    style={{ flex: 1, flexDirection: 'row', gap: 8, justifyContent: 'center' }}
-                    onPress={onConfirm}
-                >
-                    <ThemedIcon name="check" size={20} color="inverse" />
-                    <ThemedText color="inverse">{t('common.confirm', 'Confirm')}</ThemedText>
-                </ThemedPressable>
-            </ThemedView>
-        </BlurView>
-    );
-}
-
-// Helper function
-const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
 export default function AudioScreen() {
     const { t } = useTranslation();
     const { update } = useLogDraft();
-    const theme = useTheme();
+    const colors = useColors();
 
-    // State management
-    const [status, setStatus] = useState<RecordingStatus>('idle');
+    // State
+    const [state, setState] = useState<RecordingState>('idle');
     const [duration, setDuration] = useState(0);
     const [recordedUri, setRecordedUri] = useState<string | null>(null);
-    const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-    const [isRequestingPermission, setIsRequestingPermission] = useState(false);
 
     // Refs
     const recordingRef = useRef<Audio.Recording | null>(null);
-    const durationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Initialize permissions
+    // Check permissions on mount
     useEffect(() => {
         checkPermissions();
         return cleanup;
     }, []);
 
-    // Handle back button during recording
-    useFocusEffect(
-        useCallback(() => {
-            const onBackPress = () => {
-                if (status === 'recording') {
-                    Alert.alert(
-                        t('audio.stop_recording_title', 'Stop Recording?'),
-                        t('audio.stop_recording_message', 'Are you sure you want to stop the current recording?'),
-                        [
-                            { text: t('common.continue', 'Continue'), style: 'cancel' },
-                            {
-                                text: t('audio.stop_and_exit', 'Stop & Exit'),
-                                style: 'destructive',
-                                onPress: handleForceExit
-                            },
-                        ]
-                    );
-                    return true;
-                }
-                return false;
-            };
-
-            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-            return () => subscription.remove();
-        }, [status, t])
-    );
-
     const cleanup = useCallback(() => {
-        if (durationInterval.current) {
-            clearInterval(durationInterval.current);
-        }
-        if (sound) {
-            sound.unloadAsync();
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
         }
         if (recordingRef.current) {
-            recordingRef.current.stopAndUnloadAsync();
+            recordingRef.current.stopAndUnloadAsync().catch(console.warn);
+            recordingRef.current = null;
         }
-    }, [sound]);
+    }, []);
 
     const checkPermissions = async () => {
         try {
-            const { status } = await Audio.requestPermissionsAsync();
+            const { status } = await Audio.getPermissionsAsync();
             setHasPermission(status === 'granted');
         } catch (error) {
             console.error('Permission check failed:', error);
@@ -463,315 +91,428 @@ export default function AudioScreen() {
         }
     };
 
-    const openAppSettings = useCallback(async () => {
-        try {
-            await Linking.openSettings();
-        } catch (error) {
-            console.error('Failed to open settings:', error);
-        }
-    }, []);
-
-    const requestPermission = async () => {
-        setIsRequestingPermission(true);
+    const requestPermissions = async () => {
         try {
             const { status } = await Audio.requestPermissionsAsync();
             setHasPermission(status === 'granted');
-
+            
             if (status !== 'granted') {
                 Alert.alert(
-                    t('audio.permission_denied', 'Permission Denied'),
-                    t('audio.permission_denied_message', 'Please enable microphone access in Settings to record audio.'),
+                    'Permission Required',
+                    'Microphone access is needed to record bird sounds.',
                     [
-                        { text: t('common.cancel', 'Cancel') },
-                        { text: t('common.settings', 'Settings'), onPress: openAppSettings },
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Settings', onPress: () => Linking.openSettings() }
                     ]
                 );
             }
         } catch (error) {
             console.error('Permission request failed:', error);
-        } finally {
-            setIsRequestingPermission(false);
+            setHasPermission(false);
         }
     };
 
     const startRecording = async () => {
         if (!hasPermission) {
-            await requestPermission();
+            await requestPermissions();
             return;
         }
 
         try {
-            setStatus('recording');
+            setState('recording');
             setDuration(0);
-
+            
             await Audio.setAudioModeAsync({
                 allowsRecordingIOS: true,
                 playsInSilentModeIOS: true,
                 shouldDuckAndroid: true,
                 playThroughEarpieceAndroid: false,
-                staysActiveInBackground: true,
             });
 
             const recording = new Audio.Recording();
-            await recording.prepareToRecordAsync(AUDIO_QUALITY as any);
+            await recording.prepareToRecordAsync(AUDIO_SETTINGS as any);
             await recording.startAsync();
             recordingRef.current = recording;
 
-            durationInterval.current = setInterval(() => {
+            // Start timer
+            timerRef.current = setInterval(() => {
                 setDuration(prev => prev + 1);
             }, 1000);
 
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         } catch (error) {
             console.error('Recording failed:', error);
-            setStatus('idle');
-            Alert.alert(
-                t('common.error', 'Error'), 
-                t('audio.recording_failed', 'Failed to start recording. Please try again.')
-            );
+            setState('idle');
+            Alert.alert('Error', 'Failed to start recording. Please try again.');
         }
     };
 
     const stopRecording = async () => {
-        if (!recordingRef.current) return;
+        if (!recordingRef.current || state !== 'recording') return;
 
-        setStatus('stopping');
-
-        if (durationInterval.current) {
-            clearInterval(durationInterval.current);
-            durationInterval.current = null;
+        setState('stopping');
+        
+        // Clear timer
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
         }
 
         try {
             await recordingRef.current.stopAndUnloadAsync();
             const uri = recordingRef.current.getURI();
+            recordingRef.current = null;
 
             if (uri) {
                 setRecordedUri(uri);
-                setStatus('idle');
+                setState('recorded');
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } else {
-                throw new Error('No recording URI available');
+                throw new Error('No recording URI');
             }
         } catch (error) {
             console.error('Stop recording failed:', error);
-            setStatus('idle');
-            Alert.alert(
-                t('common.error', 'Error'), 
-                t('audio.save_failed', 'Failed to save recording. Please try again.')
-            );
+            setState('idle');
+            Alert.alert('Error', 'Failed to save recording. Please try again.');
         }
     };
 
-    const playRecording = async () => {
-        if (!recordedUri) return;
-
-        try {
-            if (sound) {
-                await sound.unloadAsync();
-                setSound(null);
-                setStatus('idle');
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            } else {
-                setStatus('playback');
-                const { sound: newSound } = await Audio.Sound.createAsync(
-                    { uri: recordedUri },
-                    { shouldPlay: true, isLooping: false }
-                );
-                setSound(newSound);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-                newSound.setOnPlaybackStatusUpdate((playbackStatus) => {
-                    if (playbackStatus.isLoaded && 'didJustFinish' in playbackStatus && playbackStatus.didJustFinish) {
-                        setSound(null);
-                        setStatus('idle');
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('Playback failed:', error);
-            setStatus('idle');
-            Alert.alert(
-                t('common.error', 'Error'), 
-                t('audio.playback_failed', 'Failed to play recording. Please try again.')
-            );
+    const handleRecord = useCallback(() => {
+        if (state === 'recording') {
+            stopRecording();
+        } else if (state === 'idle') {
+            startRecording();
         }
-    };
+        // Do nothing for 'stopping' and 'recorded' states
+    }, [state]);
 
-    const confirmRecording = useCallback(() => {
+    const handleRetake = useCallback(() => {
+        setRecordedUri(null);
+        setDuration(0);
+        setState('idle');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, []);
+
+    const handleConfirm = useCallback(() => {
         if (recordedUri) {
             update({ audioUri: recordedUri });
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            router.push('/log/manual');
+            router.back();
         }
     }, [recordedUri, update]);
 
-    const retakeRecording = useCallback(() => {
-        setRecordedUri(null);
-        setDuration(0);
-        setStatus('idle');
-
-        if (sound) {
-            sound.unloadAsync();
-            setSound(null);
-        }
-
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, [sound]);
-
-    const handleForceExit = useCallback(async () => {
-        await stopRecording();
-        router.back();
-    }, []);
-
-    const handleRecordingToggle = () => {
-        if (status === 'recording') {
-            stopRecording();
-        } else {
-            startRecording();
-        }
+    const formatTime = (seconds: number): string => {
+        return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
     };
 
-    // Permission denied state
+    const getDurationColor = () => {
+        if (duration < 3) return colors.error;
+        if (duration <= 6) return colors.success;
+        return colors.warning;
+    };
+
+    const getDurationMessage = () => {
+        if (duration < 3) return 'Keep recording...';
+        if (duration <= 6) return 'Perfect length!';
+        return 'Good length';
+    };
+
+    // Permission screen
     if (hasPermission === false) {
         return (
-            <>
+            <ThemedSafeAreaView style={styles.container}>
                 <StatusBar barStyle="dark-content" />
                 <Stack.Screen options={{ headerShown: false }} />
-                <PermissionError
-                    onRetry={requestPermission}
-                    onSettings={openAppSettings}
-                    isRequesting={isRequestingPermission}
-                />
-            </>
-        );
-    }
+                
+                <ThemedView style={styles.header}>
+                    <BackButton variant="inline" />
+                    <ThemedText variant="h3" style={styles.headerTitle}>
+                        Record Audio
+                    </ThemedText>
+                </ThemedView>
 
-    // Processing state
-    if (status === 'stopping') {
-        return (
-            <ThemedSafeAreaView style={{ flex: 1 }}>
-                <StatusBar barStyle="dark-content" />
-                <Stack.Screen options={{ headerShown: false }} />
-
-                <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <ThemedView style={{ alignItems: 'center', gap: 24 }}>
-                        <ActivityIndicator size="large" color={theme.colors.text.primary} />
-                        <ThemedText variant="h3" color="secondary">
-                            {t('audio.processing', 'Processing recording...')}
+                <ThemedView style={styles.centerContent}>
+                    <ThemedView style={styles.permissionContainer}>
+                        <ThemedIcon name="mic-off" size={48} color="error" />
+                        <ThemedText variant="h2" style={styles.permissionTitle}>
+                            Microphone Permission Required
                         </ThemedText>
+                        <ThemedText variant="body" color="secondary" style={styles.permissionText}>
+                            LogChirpy needs microphone access to record bird sounds for identification.
+                        </ThemedText>
+                        <ThemedView style={styles.permissionButtons}>
+                            <ThemedPressable variant="secondary" onPress={() => router.back()}>
+                                <ThemedText>Cancel</ThemedText>
+                            </ThemedPressable>
+                            <ThemedPressable variant="primary" onPress={requestPermissions}>
+                                <ThemedText color="inverse">Grant Permission</ThemedText>
+                            </ThemedPressable>
+                        </ThemedView>
                     </ThemedView>
                 </ThemedView>
             </ThemedSafeAreaView>
         );
     }
 
+    // Processing screen
+    if (state === 'stopping') {
+        return (
+            <ThemedSafeAreaView style={styles.container}>
+                <StatusBar barStyle="dark-content" />
+                <Stack.Screen options={{ headerShown: false }} />
+                
+                <ThemedView style={styles.centerContent}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <ThemedText variant="h3" color="secondary" style={styles.processingText}>
+                        Processing recording...
+                    </ThemedText>
+                </ThemedView>
+            </ThemedSafeAreaView>
+        );
+    }
+
     return (
-        <ThemedSafeAreaView style={{ flex: 1 }}>
+        <ThemedSafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
             <Stack.Screen options={{ headerShown: false }} />
 
             {/* Header */}
-            <ThemedView
-                style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    borderBottomWidth: 1,
-                    borderBottomColor: theme.colors.border.primary
-                }}
-            >
-                <ThemedPressable
-                    variant="ghost"
-                    style={{ padding: 8 }}
-                    onPress={() => router.back()}
-                >
-                    <ThemedIcon name="arrow-left" size={24} color="primary" />
-                </ThemedPressable>
-
-                <ThemedText variant="h3" style={{ marginLeft: 16 }}>
-                    {t('audio.record_audio', 'Record Audio')}
+            <ThemedView style={styles.header}>
+                <BackButton variant="inline" />
+                <ThemedText variant="h3" style={styles.headerTitle}>
+                    Record Audio
                 </ThemedText>
             </ThemedView>
 
             {/* Main Content */}
-            <ThemedView style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
-                <ModernCard
-                    elevated={true}
-                    bordered={false}
-                    style={{
-                        alignItems: 'center',
-                        padding: 40,
-                        maxWidth: SCREEN_WIDTH - 48,
-                        alignSelf: 'center',
-                    }}
-                >
-                    {/* Recording Status Indicator */}
-                    {status === 'recording' && (
-                        <ThemedView style={{ alignItems: 'center', marginBottom: 32 }}>
-                            <ThemedView
-                                style={{
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    paddingHorizontal: 16,
-                                    paddingVertical: 8,
-                                    backgroundColor: theme.colors.status.error + '20',
-                                    borderRadius: theme.borderRadius.sm,
-                                }}
-                            >
-                                <ThemedView
-                                    style={{
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: 4,
-                                        backgroundColor: theme.colors.status.error,
-                                    }}
-                                />
-                                <ThemedText variant="label" color="error">
-                                    {t('audio.recording', 'RECORDING').toUpperCase()}
-                                </ThemedText>
-                            </ThemedView>
-                        </ThemedView>
-                    )}
-
-                    {/* Wave Visualization */}
-                    <ThemedView style={{ marginBottom: 32 }}>
-                        <WaveVisualizer isRecording={status === 'recording'} />
+            <ThemedView style={styles.content}>
+                {/* Recording Status */}
+                {state === 'recording' && (
+                    <ThemedView style={styles.recordingStatus}>
+                        <ThemedView style={styles.recordingDot} />
+                        <ThemedText variant="label" color="error">
+                            RECORDING
+                        </ThemedText>
                     </ThemedView>
+                )}
 
-                    {/* Recording Button */}
-                    <RecordingButton
-                        status={status}
-                        onPress={handleRecordingToggle}
-                        duration={duration}
-                    />
+                {/* Duration Display */}
+                <ThemedView style={styles.durationContainer}>
+                    <ThemedText variant="h1" style={[styles.duration, { color: getDurationColor() }]}>
+                        {formatTime(duration)}
+                    </ThemedText>
+                    {state === 'recording' && (
+                        <ThemedText variant="body" color="secondary" style={styles.durationMessage}>
+                            {getDurationMessage()}
+                        </ThemedText>
+                    )}
+                </ThemedView>
 
-                    {/* Instructions */}
-                    {status === 'idle' && !recordedUri && (
-                        <ThemedView style={{ marginTop: 32, alignItems: 'center' }}>
-                            <ThemedText
-                                variant="body"
-                                color="secondary"
-                                style={{ textAlign: 'center', lineHeight: 24 }}
-                            >
-                                {t('audio.instructions', 'Record bird sounds for identification and logging. Keep the device steady and minimize background noise.')}
+                {/* Record Button */}
+                <ThemedView style={styles.buttonContainer}>
+                    <ThemedPressable
+                        variant="ghost"
+                        onPress={handleRecord}
+                        disabled={state === 'recorded'}
+                        style={[
+                            styles.recordButton,
+                            {
+                                backgroundColor: state === 'recording' ? colors.error : colors.backgroundSecondary,
+                                borderColor: state === 'recording' ? colors.error : colors.primary,
+                            }
+                        ]}
+                    >
+                        <ThemedIcon
+                            name={state === 'recording' ? 'square' : 'mic'}
+                            size={state === 'recording' ? 32 : 36}
+                            color={state === 'recording' ? 'inverse' : 'primary'}
+                        />
+                    </ThemedPressable>
+                    
+                    <ThemedText variant="body" color="secondary" style={styles.buttonText}>
+                        {state === 'recording' ? 'Tap to stop' : 'Tap to record'}
+                    </ThemedText>
+                </ThemedView>
+
+                {/* Instructions */}
+                {state === 'idle' && !recordedUri && (
+                    <ThemedView style={styles.instructions}>
+                        <ThemedText variant="body" color="secondary" style={styles.instructionText}>
+                            Record bird sounds for AI identification.
+                        </ThemedText>
+                        <ThemedView style={styles.tip}>
+                            <ThemedIcon name="info" size={16} color="accent" />
+                            <ThemedText variant="caption" color="secondary">
+                                3-6 seconds is optimal for best results
                             </ThemedText>
                         </ThemedView>
-                    )}
-                </ModernCard>
+                    </ThemedView>
+                )}
             </ThemedView>
 
-            {/* Playback Controls */}
-            {recordedUri && (
-                <PlaybackControls
-                    isPlaying={status === 'playback' && !!sound}
-                    onPlay={playRecording}
-                    onRetake={retakeRecording}
-                    onConfirm={confirmRecording}
-                />
+            {/* Bottom Controls */}
+            {recordedUri && state === 'recorded' && (
+                <ThemedView style={styles.bottomControls}>
+                    <ThemedPressable variant="secondary" onPress={handleRetake} style={styles.controlButton}>
+                        <ThemedIcon name="refresh-cw" size={20} color="primary" />
+                        <ThemedText>Retake</ThemedText>
+                    </ThemedPressable>
+                    
+                    <ThemedPressable variant="primary" onPress={handleConfirm} style={styles.controlButton}>
+                        <ThemedIcon name="check" size={20} color="inverse" />
+                        <ThemedText color="inverse">Use Recording</ThemedText>
+                    </ThemedPressable>
+                </ThemedView>
             )}
         </ThemedSafeAreaView>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.1)',
+    },
+    headerTitle: {
+        marginLeft: 8,
+    },
+    content: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+        gap: 32,
+    },
+    centerContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    
+    // Recording Status
+    recordingStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderRadius: 20,
+    },
+    recordingDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#ef4444',
+    },
+
+    // Duration
+    durationContainer: {
+        alignItems: 'center',
+        gap: 8,
+    },
+    duration: {
+        fontSize: 48,
+        fontWeight: '600',
+        fontVariant: ['tabular-nums'],
+    },
+    durationMessage: {
+        textAlign: 'center',
+    },
+
+    // Record Button
+    buttonContainer: {
+        alignItems: 'center',
+        gap: 16,
+    },
+    recordButton: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        borderWidth: 3,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    buttonText: {
+        textAlign: 'center',
+        fontWeight: '500',
+    },
+
+    // Instructions
+    instructions: {
+        alignItems: 'center',
+        gap: 16,
+        maxWidth: 280,
+    },
+    instructionText: {
+        textAlign: 'center',
+        lineHeight: 24,
+    },
+    tip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        borderRadius: 16,
+    },
+
+    // Permission
+    permissionContainer: {
+        alignItems: 'center',
+        gap: 24,
+        padding: 32,
+        maxWidth: 320,
+    },
+    permissionTitle: {
+        textAlign: 'center',
+        fontWeight: '600',
+    },
+    permissionText: {
+        textAlign: 'center',
+        lineHeight: 24,
+    },
+    permissionButtons: {
+        flexDirection: 'row',
+        gap: 16,
+        width: '100%',
+    },
+
+    // Processing
+    processingText: {
+        marginTop: 16,
+        textAlign: 'center',
+    },
+
+    // Bottom Controls
+    bottomControls: {
+        flexDirection: 'row',
+        gap: 16,
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.1)',
+    },
+    controlButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 16,
+    },
+});

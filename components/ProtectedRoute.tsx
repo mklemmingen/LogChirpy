@@ -1,33 +1,39 @@
-import React, { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSemanticColors } from '../hooks/useThemeColor';
+import React, {useEffect} from 'react';
+import {Href, router} from 'expo-router';
+import {useAuth} from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  redirectTo?: string;
+  redirectTo?: Href<string>;
+  requireAuth?: boolean;
 }
 
-export function ProtectedRoute({ children, redirectTo = '/account/login' }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  redirectTo = '/(tabs)/account/(auth)/login' as Href<string>,
+  requireAuth = true,
+}: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
-  const semanticColors = useSemanticColors();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace(redirectTo as '/');
+    if (!isLoading) {
+      if (requireAuth && !isAuthenticated) {
+        router.replace(redirectTo);
+      } else if (!requireAuth && isAuthenticated) {
+        router.replace('/(tabs)/account/profile' as Href<string>);
+      }
     }
-  }, [isAuthenticated, isLoading, redirectTo]);
+  }, [isLoading, isAuthenticated, requireAuth, redirectTo]);
 
   if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: semanticColors.background }}>
-        <ActivityIndicator size="large" color={semanticColors.primary} />
-      </View>
-    );
+    return null;
   }
 
-  if (!isAuthenticated) {
+  if (requireAuth && !isAuthenticated) {
+    return null;
+  }
+
+  if (!requireAuth && isAuthenticated) {
     return null;
   }
 

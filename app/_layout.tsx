@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {ThemeProvider} from '@react-navigation/native';
+import {useFonts} from 'expo-font';
+import {Stack} from 'expo-router';
+import type {NativeStackNavigationOptions} from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
-import { ThemedIcon } from '@/components/ThemedIcon';
-import { useTranslation } from 'react-i18next';
+import {StatusBar} from 'expo-status-bar';
+import {Platform, Pressable, StyleSheet, Text, View} from 'react-native';
+import {ThemedIcon} from '@/components/ThemedIcon';
+import {useTranslation} from 'react-i18next';
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -18,13 +18,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import 'react-native-reanimated';
 import "@/i18n/i18n";
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
-import { useColors, useTheme, useTypography, useShadows } from '@/hooks/useThemeColor';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { useBirdDexDatabase } from '@/hooks/useBirdDexDatabase';
-import { MemoryMonitor } from '@/components/MemoryMonitor';
+import {useColors, useShadows, useTheme, useTypography} from '@/hooks/useThemeColor';
+import {AuthProvider} from '@/contexts/AuthContext';
+import {LogDraftProvider} from '@/contexts/LogDraftContext';
+import {useBirdDexDatabase} from '@/hooks/useBirdDexDatabase';
+import {MemoryMonitor} from '@/components/MemoryMonitor';
 
 import {
     ImageLabelingConfig,
@@ -39,8 +40,8 @@ import {
 } from '@infinitered/react-native-mlkit-object-detection';
 
 // Database imports
-import { initDB } from '@/services/database';
-import { AudioIdentificationService } from '@/services/audioIdentificationService';
+import {initDB} from '@/services/database';
+import {initializeBirdClassifier} from '@/services/ultraSimpleBirdClassifier';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -214,7 +215,7 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                     </View>
 
                     <Text style={[typography.h2, { color: colors.text }]}>
-                       {t('errors.database_error_title')}
+                        {t('errors.database_error_title')}
                     </Text>
 
                     <Text style={[typography.body, { color: colors.textSecondary, textAlign: 'center' }]}>
@@ -237,7 +238,7 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                     >
                         <ThemedIcon name="refresh-cw" size={16} color="secondary" />
                         <Text style={[typography.label, { color: colors.textInverse }]}>
-                             {t('common.retry_loading')}
+                            {t('common.retry_loading')}
                         </Text>
                     </Pressable>
                 </View>
@@ -310,7 +311,7 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                                 </Text>
                                 {loadedRecords > 0 && (
                                     <Text style={[typography.label, { color: colors.textSecondary }]}>
-                                        {t('loading_messages.species_loaded', {count: loadedRecords})}
+                                        {t('loading_messages.species_loaded', { count: loadedRecords })}
                                     </Text>
                                 )}
                             </View>
@@ -487,13 +488,13 @@ export default function RootLayout() {
                 console.log('[Database] Starting local database initialization...');
                 await initDB();
                 console.log('[Database] Local database initialized successfully (bird_spottings table created)');
-                
+
                 // Add a small delay for Android to ensure database is fully ready
                 if (Platform.OS === 'android') {
                     console.log('[Database] Android detected - adding 100ms delay for database stability');
                     await new Promise(resolve => setTimeout(resolve, 100));
                 }
-                
+
                 setLocalDbReady(true);
                 setLocalDbError(null);
             } catch (error) {
@@ -506,7 +507,7 @@ export default function RootLayout() {
                     });
                 }
                 setLocalDbError(error instanceof Error ? error.message : t('loading_messages.failed_initialize_local_database'));
-                
+
                 // On Android, retry once after a delay
                 if (Platform.OS === 'android' && retryCount === 0) {
                     console.log('[Database] Android: Retrying database initialization in 500ms...');
@@ -525,7 +526,7 @@ export default function RootLayout() {
         const initializeOfflineModel = async () => {
             try {
                 console.log('Initializing offline bird classification model...');
-                await AudioIdentificationService.initialize();
+                await initializeBirdClassifier();
                 setOfflineModelReady(true);
                 console.log('Offline bird classification model initialized successfully');
             } catch (error) {
@@ -566,16 +567,18 @@ export default function RootLayout() {
         }
 
         return (
-            <ImageLabelingModelProvider>
-                <ObjectDetectionProvider>
-                    <AppInitializationScreen
-                        message={message}
-                        error={localDbError || undefined}
-                        onRetry={localDbError ? handleRetry : undefined}
-                    />
-                    <StatusBar style="auto" />
-                </ObjectDetectionProvider>
-            </ImageLabelingModelProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+                <ImageLabelingModelProvider>
+                    <ObjectDetectionProvider>
+                        <AppInitializationScreen
+                            message={message}
+                            error={localDbError || undefined}
+                            onRetry={localDbError ? handleRetry : undefined}
+                        />
+                        <StatusBar style="auto" />
+                    </ObjectDetectionProvider>
+                </ImageLabelingModelProvider>
+            </GestureHandlerRootView>
         );
     }
 
@@ -584,8 +587,8 @@ export default function RootLayout() {
         return (
             <ImageLabelingModelProvider>
                 <ObjectDetectionProvider>
-                    <DatabaseLoadingScreen 
-                        onReady={() => setBirdDexReady(true)} 
+                    <DatabaseLoadingScreen
+                        onReady={() => setBirdDexReady(true)}
                         localDbReady={localDbReady}
                     />
                     <StatusBar style="auto" />
@@ -599,33 +602,35 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
                 <AuthProvider>
-                    <ThemeProvider
-                        value={{
-                            dark: colors.isDark,
-                            colors: {
-                                notification: colors.primary,
-                                background: colors.background,
-                                card: colors.backgroundSecondary,
-                                text: colors.text,
-                                border: colors.border,
-                                primary: colors.primary,
-                            },
-                        }}
-                    >
-                        <ImageLabelingModelProvider>
-                            <ObjectDetectionProvider>
-                                <View style={[styles.container, { backgroundColor: colors.background }]}>
-                                    <Stack screenOptions={getScreenOptions}>
-                                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                                        <Stack.Screen name="log" options={{ headerShown: false }} />
-                                        <Stack.Screen name="+not-found" />
-                                    </Stack>
-                                    <MemoryMonitor />
-                                </View>
-                                <StatusBar style="auto" />
-                            </ObjectDetectionProvider>
-                        </ImageLabelingModelProvider>
-                    </ThemeProvider>
+                    <LogDraftProvider>
+                        <ThemeProvider
+                            value={{
+                                dark: colors.isDark,
+                                colors: {
+                                    notification: colors.primary,
+                                    background: colors.background,
+                                    card: colors.backgroundSecondary,
+                                    text: colors.text,
+                                    border: colors.border,
+                                    primary: colors.primary,
+                                },
+                            }}
+                        >
+                            <ImageLabelingModelProvider>
+                                <ObjectDetectionProvider>
+                                    <View style={[styles.container, { backgroundColor: colors.background }]}>
+                                        <Stack screenOptions={getScreenOptions}>
+                                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                            <Stack.Screen name="log" options={{ headerShown: false }} />
+                                            <Stack.Screen name="+not-found" />
+                                        </Stack>
+                                        <MemoryMonitor />
+                                    </View>
+                                    <StatusBar style="auto" />
+                                </ObjectDetectionProvider>
+                            </ImageLabelingModelProvider>
+                        </ThemeProvider>
+                    </LogDraftProvider>
                 </AuthProvider>
             </SafeAreaProvider>
         </GestureHandlerRootView>

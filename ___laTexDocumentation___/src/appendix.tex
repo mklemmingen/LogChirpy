@@ -1,0 +1,372 @@
+\section{Technical Specifications}
+
+\subsection{System Requirements}
+
+\subsubsection{Minimum Requirements}
+\begin{itemize}
+    \item \textbf{Android:} Version 8.0 (API Level 26) or higher
+    \item \textbf{iOS:} Version 12.0 or higher
+    \item \textbf{RAM:} Minimum 3GB for optimal machine learning performance
+    \item \textbf{Storage:} 2GB available storage for application and ML models
+    \item \textbf{Hardware:} Camera and microphone required for complete functionality
+\end{itemize}
+
+\subsubsection{Recommended Specifications}
+\begin{itemize}
+    \item \textbf{Android:} Version 10.0 or higher
+    \item \textbf{iOS:} Version 14.0 or higher
+    \item \textbf{RAM:} 4GB or more
+    \item \textbf{Storage:} 4GB available storage
+    \item \textbf{Processor:} Modern ARM architecture (2020 or later)
+\end{itemize}
+
+\subsection{Machine Learning Model Specifications}
+
+\subsubsection{Image Classification}
+\begin{itemize}
+    \item \textbf{Object Detection:} SSD MobileNet V1 (MLKit)
+    \item \textbf{Bird Classification:} Custom MobileNetV2 Model
+    \item \textbf{Input Format:} RGB images, variable dimensions
+    \item \textbf{Output:} Classification probabilities with bounding box coordinates
+\end{itemize}
+
+\subsubsection{Audio Classification}
+\begin{itemize}
+    \item \textbf{Primary Model:} BirdNET\_GLOBAL\_6K\_V2.4\_Model\_FP32.tflite
+    \item \textbf{Meta Model:} BirdNET\_GLOBAL\_6K\_V2.4\_MData\_Model\_FP16.tflite
+    \item \textbf{Input Format:} 48kHz, mono, 3-second audio samples
+    \item \textbf{Output:} 6,522 bird species classification probabilities
+    \item \textbf{Model Size:} Approximately 25-30 MB combined
+\end{itemize}
+
+\section{Development Environment Setup}
+
+\subsection{Prerequisites}
+\begin{lstlisting}[style=javascript, caption=Package Versions, label=lst:package_versions]
+{
+  "expo": "~51.0.0",
+  "react": "18.2.0",
+  "react-native": "0.74.0",
+  "@tensorflow/tfjs": "^4.17.0",
+  "@tensorflow/tfjs-react-native": "^0.8.0",
+  "react-native-vision-camera": "^4.0.0",
+  "@infinitered/react-native-mlkit-object-detection": "^0.7.0",
+  "@infinitered/react-native-mlkit-image-labeling": "^0.7.0",
+  "expo-sqlite": "~14.0.0",
+  "firebase": "^10.7.0"
+}
+\end{lstlisting}
+
+\subsection{Development Commands}
+\begin{lstlisting}[style=javascript, caption=Development Scripts, label=lst:dev_scripts]
+# TypeScript type checking
+npm run typecheck
+
+# Start development server
+npm start
+
+# Run on Android device
+npm run android:device
+
+# Run on iOS simulator  
+npm run ios
+
+# Execute test suite
+npm test
+
+# Production build generation
+npm run build
+\end{lstlisting}
+
+\section{Database Architecture and Schema Design}
+
+\subsection{SQLite Database Schema Implementation}
+\begin{lstlisting}[style=javascript, caption=Database Schema, label=lst:db_schema]
+-- Bird observation records
+CREATE TABLE observations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid TEXT UNIQUE NOT NULL,
+    species_name TEXT,
+    common_name TEXT,
+    scientific_name TEXT,
+    confidence REAL,
+    timestamp TEXT NOT NULL,
+    latitude REAL,
+    longitude REAL,
+    image_path TEXT,
+    audio_path TEXT,
+    notes TEXT,
+    sync_status INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- BirDex species database
+CREATE TABLE species (
+    id INTEGER PRIMARY KEY,
+    scientific_name TEXT UNIQUE NOT NULL,
+    common_name_en TEXT,
+    common_name_de TEXT,
+    common_name_es TEXT,
+    common_name_fr TEXT,
+    common_name_uk TEXT,
+    common_name_ar TEXT,
+    wikipedia_url TEXT,
+    asset_url TEXT,
+    family_name TEXT,
+    order_name TEXT
+);
+
+-- User configuration settings
+CREATE TABLE user_settings (
+    id INTEGER PRIMARY KEY,
+    key TEXT UNIQUE NOT NULL,
+    value TEXT,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Synchronization status tracking
+CREATE TABLE sync_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    table_name TEXT NOT NULL,
+    record_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+    status TEXT DEFAULT 'pending'
+);
+\end{lstlisting}
+
+\section{Cloud Architecture and API Specifications}
+
+\subsection{Firebase Firestore Data Collections}
+\begin{lstlisting}[style=javascript, caption=Firestore Collections, label=lst:firestore_collections]
+// User profile management
+users/{userId} {
+    email: string,
+    displayName: string,
+    createdAt: timestamp,
+    settings: {
+        language: string,
+        theme: string,
+        notifications: boolean
+    }
+}
+
+// Bird observation records
+observations/{observationId} {
+    userId: string,
+    speciesName: string,
+    commonName: string,
+    scientificName: string,
+    confidence: number,
+    timestamp: timestamp,
+    location: geopoint,
+    imageUrl?: string,
+    audioUrl?: string,
+    notes?: string,
+    metadata: {
+        appVersion: string,
+        deviceInfo: string
+    }
+}
+
+// Media file management
+media/{mediaId} {
+    observationId: string,
+    type: 'image' | 'audio',
+    fileName: string,
+    size: number,
+    uploadedAt: timestamp,
+    downloadUrl: string
+}
+\end{lstlisting}
+
+\section{Performance Evaluation and System Benchmarks}
+
+\subsection{Machine Learning Pipeline Performance Analysis}
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Operation} & \textbf{Low-End Device} & \textbf{Mid-Range Device} & \textbf{High-End Device} \\
+\hline
+Photo capture & 800ms & 500ms & 300ms \\
+Object detection & 1200ms & 800ms & 400ms \\
+Image classification & 2000ms & 1200ms & 600ms \\
+Audio recording & 3000ms & 3000ms & 3000ms \\
+Audio classification & 1500ms & 1000ms & 500ms \\
+\textbf{Complete cycle} & \textbf{8.5s} & \textbf{6.5s} & \textbf{4.8s} \\
+\hline
+\end{tabular}
+\caption{Machine Learning Pipeline Performance by Device Classification}
+\label{tab:ml_performance}
+\end{table}
+
+\subsection{Memory Utilization Analysis}
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\textbf{System Component} & \textbf{Memory Utilization} \\
+\hline
+Application base & ~50 MB \\
+ML model framework & ~30 MB \\
+BirDex database & ~25 MB \\
+Image cache system & ~100 MB (configurable) \\
+User-generated data & Variable \\
+\textbf{Minimum total} & \textbf{~105 MB} \\
+\hline
+\end{tabular}
+\caption{Memory Utilization by System Components}
+\label{tab:memory_usage}
+\end{table}
+
+\section{System Configuration Framework}
+
+\subsection{Application Configuration Parameters}
+\begin{lstlisting}[style=javascript, caption=Configuration Options, label=lst:config_options]
+export const Config = {
+  // Machine learning pipeline configuration
+  camera: {
+    pipelineDelay: 2, // Seconds between processing cycles
+    confidenceThreshold: 0.7, // Minimum confidence for data persistence
+    maxDetections: 5, // Maximum concurrent detection objects
+    imageQuality: 0.3, // Image quality for ML processing optimization
+  },
+  
+  // Audio processing configuration
+  audio: {
+    recordingDuration: 3000, // Recording duration in milliseconds
+    sampleRate: 48000, // Sample rate in Hz
+    channels: 1, // Mono channel configuration
+    format: 'wav',
+  },
+  
+  // Database management configuration
+  database: {
+    pageSize: 20, // Elements per pagination page
+    cacheSize: 100, // Cache size in MB for image storage
+    syncInterval: 300000, // Synchronization interval: 5 minutes in ms
+  },
+  
+  // User interface configuration
+  ui: {
+    theme: 'auto', // Theme options: 'light', 'dark', 'auto'
+    language: 'auto', // Language code or 'auto' detection
+    hapticFeedback: true,
+    animations: true,
+  }
+};
+\end{lstlisting}
+
+\section{System Diagnostics and Troubleshooting Framework}
+
+\subsection{Common System Issues and Resolution Procedures}
+
+\subsubsection{Machine Learning Pipeline Initialization Failure}
+\textbf{Symptoms:} No ML processing activity, UI displays "Offline" status
+
+\textbf{Resolution procedures:}
+\begin{enumerate}
+    \item Verify camera permission grants
+    \item Validate ML model loading integrity
+    \item Execute application restart procedure
+    \item Confirm device storage availability (minimum 1GB free space)
+\end{enumerate}
+
+\subsubsection{Audio Classification System Malfunction}
+\textbf{Symptoms:} Absence of audio predictions in HUD display
+
+\textbf{Resolution procedures:}
+\begin{enumerate}
+    \item Verify microphone permission configuration
+    \item Test hardware microphone accessibility
+    \item Validate BirdNET model loading status
+    \item Confirm audio format compatibility requirements
+\end{enumerate}
+
+\subsubsection{System Performance Degradation}
+\textbf{Symptoms:} Reduced processing speed, elevated memory utilization
+
+\textbf{Optimization procedures:}
+\begin{enumerate}
+    \item Increase \texttt{Config.camera.pipelineDelay} parameter
+    \item Reduce image quality settings for ML processing
+    \item Decrease cache allocation size
+    \item Terminate background application processes
+\end{enumerate}
+
+\subsection{Diagnostic Command Interface}
+\begin{lstlisting}[style=javascript, caption=Debug Commands, label=lst:debug_commands]
+// Pipeline logging monitoring
+# Search for diagnostic patterns:
+[UnifiedPipeline] State: capturing_image
+[UnifiedPipeline] State: detecting_objects
+[UnifiedPipeline] State: recording_audio
+
+// Error validation procedures
+[UnifiedPipeline] image error: [Error details]
+[UnifiedPipeline] audio error: [Error details]
+
+// Performance metric analysis
+[Performance] Photo capture time: 500ms
+[Performance] Detection count: 3
+[Performance] Audio processing: 1000ms
+\end{lstlisting}
+
+\section{Production Deployment Framework}
+
+\subsection{Android Application Package Build Process}
+\begin{lstlisting}[style=javascript, caption=Android Build Process, label=lst:android_build]
+# Dependency installation procedure
+npm install --legacy-peer-deps
+
+# Native project generation
+npx expo prebuild --clean --platform android
+
+# Local build process (when EAS unavailable)
+npx expo run:android --device
+
+# EAS build process (recommended approach)
+eas build --platform android --profile production
+\end{lstlisting}
+
+\subsection{iOS Application Build Framework}
+\begin{lstlisting}[style=javascript, caption=iOS Build Process, label=lst:ios_build]
+# Dependency installation procedure
+npm install --legacy-peer-deps
+
+# Native project initialization
+npx expo prebuild --clean --platform ios
+
+# EAS build process
+eas build --platform ios --profile production
+\end{lstlisting}
+
+\section{Licensing Framework and Attribution}
+
+\subsection{Open Source License Compliance}
+\begin{itemize}
+    \item \textbf{LogChirpy:} AGPL-3.0 License
+    \item \textbf{React Native:} MIT License
+    \item \textbf{Expo:} MIT License
+    \item \textbf{TensorFlow.js:} Apache 2.0 License
+    \item \textbf{BirdNET Models:} Custom Academic License
+    \item \textbf{MLKit:} Google Terms of Service
+\end{itemize}
+
+\subsection{Data Source Attribution}
+\begin{itemize}
+    \item \textbf{BirDex Database:} Compiled from comprehensive ornithological sources
+    \item \textbf{Wikipedia:} Species information and taxonomic imagery
+    \item \textbf{Macaulay Library:} Reference media for avian species validation
+    \item \textbf{OpenStreetMap:} Cartographic data and geospatial services
+\end{itemize}
+
+\subsection{External Technical Contributions}
+\begin{itemize}
+    \item \textbf{BirdNET Team:} Audio classification model framework provision
+    \item \textbf{Infinite Red:} Reliable MLKit React Native package maintenance
+    \item \textbf{Marc Wannenmacher:} React Native Vision Camera library development
+    \item \textbf{whoBIRD Project:} TensorFlow Lite implementation reference architecture
+\end{itemize}
