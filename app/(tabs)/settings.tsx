@@ -13,7 +13,7 @@ import Animated, {
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-
+import { useRouter } from 'expo-router';
 import { languages } from "@/i18n/languages";
 import { Config, STORAGE_KEYS } from "@/constants/config";
 import Slider from '@react-native-community/slider';
@@ -318,6 +318,7 @@ function GPSToggleCard({
  * Settings screen with language selection, location settings, and app information
  */
 export default function SettingsScreen() {
+    const router = useRouter();
     const { i18n, t } = useTranslation();
     const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
     const [gpsEnabled, setGpsEnabled] = useState(true);
@@ -673,37 +674,19 @@ export default function SettingsScreen() {
                         entering={FadeInDown.delay(250).springify()}
                         layout={Layout.springify()}
                     >
-                        <Card style={styles.tutorialCard}>
-                            <View style={styles.tutorialContent}>
-                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                    {t("settings.tutorial.how_to_use.title")}
-                                </ThemedText>
-                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                    {t("settings.tutorial.how_to_use.description")}
-                                </ThemedText>
+                        <ThemedPressable onPress={() => router.push('/tutorial')}>
+                            <Card style={styles.tutorialCard}>
+                                <View
+                                    style={[
+                                        styles.tutorialContent,
+                                        { alignItems: 'center', paddingVertical: 28 },
+                                    ]}
+                                >
 
-                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                    {t("settings.tutorial.image_processing.title")}
-                                </ThemedText>
-                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                    {t("settings.tutorial.image_processing.description")}
-                                </ThemedText>
-
-                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                    {t("settings.tutorial.ai_models.title")}
-                                </ThemedText>
-                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                    {t("settings.tutorial.ai_models.description")}
-                                </ThemedText>
-
-                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                    {t("settings.tutorial.data_privacy.title")}
-                                </ThemedText>
-                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                    {t("settings.tutorial.data_privacy.description")}
-                                </ThemedText>
-                            </View>
-                        </Card>
+                                    <ThemedIcon name="book-open" size={32} color="primary" />
+                                </View>
+                            </Card>
+                        </ThemedPressable>
                     </Animated.View>
                 </ThemedView>
 
