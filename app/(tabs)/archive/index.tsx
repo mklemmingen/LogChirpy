@@ -683,20 +683,36 @@ export default function ArchiveScreen() {
               {t('archive.subtitle', { count: filteredSpottings.length })}
             </ThemedText>
           </View>
-          <ThemedPressable
-            variant="secondary"
-            size="sm"
-            onPress={() => {
-              Haptics.selectionAsync();
-              router.push('/(tabs)/gallery');
-            }}
-            style={styles.galleryButton}
-          >
-            <ThemedIcon name="image" size={16} color="secondary" />
-            <ThemedText variant="labelMedium" color="secondary">
-              {t('archive.gallery')}
-            </ThemedText>
-          </ThemedPressable>
+          <View style={styles.actionButtons}>
+            <ThemedPressable
+              variant="secondary"
+              size="sm"
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push('/(tabs)/gallery');
+              }}
+              style={styles.actionButton}
+            >
+              <ThemedIcon name="image" size={16} color="secondary" />
+              <ThemedText variant="labelMedium" color="secondary">
+                {t('archive.gallery')}
+              </ThemedText>
+            </ThemedPressable>
+            <ThemedPressable
+              variant="secondary"
+              size="sm"
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push('/(tabs)/archive/map');
+              }}
+              style={styles.actionButton}
+            >
+              <ThemedIcon name="map" size={16} color="secondary" />
+              <ThemedText variant="labelMedium" color="secondary">
+                {t('archive.map')}
+              </ThemedText>
+            </ThemedPressable>
+          </View>
         </View>
       </View>
 
@@ -922,7 +938,11 @@ function createStyles(colors?: any) {
     subtitle: {
       opacity: 0.8,
     },
-    galleryButton: {
+    actionButtons: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    actionButton: {
       flexDirection: 'row',
       gap: 4,
     },
