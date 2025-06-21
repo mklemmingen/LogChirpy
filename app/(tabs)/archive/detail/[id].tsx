@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -16,6 +17,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
+import Constants from 'expo-constants';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 import { type BirdSpotting, getSpottingById, deleteSpotting } from '@/services/database';
 import { deleteRemoteSpotting } from '@/services/sync_layer';
@@ -329,6 +332,13 @@ export default function ArchiveDetailScreen() {
         };
     }, [currentSound]);
 
+    // Log Google Maps API Key for validation (runs once on mount)
+    useEffect(() => {
+        // Using optional chaining in case extra is undefined in certain environments
+        const apiKey = Constants?.expoConfig?.extra?.GOOGLE_MAPS_API_KEY;
+        console.log('[Google Maps] API Key:', apiKey);
+    }, []);
+
     // Navigation and actions
     const handleBack = useCallback(() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -627,6 +637,23 @@ export default function ArchiveDetailScreen() {
                             onPress={handleLocationPress}
                             style={styles.coordinatesText}
                         />
+
+                        {/* Inline map preview of spotting location */}
+                        <MapView
+                            style={styles.map}
+                            provider={PROVIDER_GOOGLE}
+                            initialRegion={{
+                                latitude: entry.gpsLat ?? 0,
+                                longitude: entry.gpsLng ?? 0,
+                                latitudeDelta: 0.005,
+                                longitudeDelta: 0.005,
+                            }}
+                            pointerEvents="none" // Map is for display only
+                        >
+                            {entry.gpsLat !== null && entry.gpsLng !== null && (
+                                <Marker coordinate={{ latitude: entry.gpsLat, longitude: entry.gpsLng }} />
+                            )}
+                        </MapView>
                     </Section>
                 )}
 
@@ -817,6 +844,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 8,
         paddingVertical: 12,
+        borderRadius: 8,
+    },
+
+    // Map style
+    map: {
+        width: '100%',
+        height: 200,
         borderRadius: 8,
     },
 });
