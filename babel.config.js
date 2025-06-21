@@ -3,15 +3,7 @@ module.exports = function(api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      [
-        'module-resolver',
-        {
-          alias: {
-            '@': './', 
-          },
-        },
-      ],
-      'react-native-reanimated/plugin',
-    ],
+      'react-native-reanimated/plugin'
+    ] // @ youmna. please dont change this again. even, and especially, with AI.
   };
 };

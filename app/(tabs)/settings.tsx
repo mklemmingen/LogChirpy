@@ -14,15 +14,14 @@ import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { languages } from "@/i18n/languages";
-import { Config, STORAGE_KEYS } from "@/constants/config";
-
 import Slider from '@react-native-community/slider';
 import {Card, ThemedView} from "@/components/ThemedView";
 import {ThemedText} from "@/components/ThemedText";
 import {ThemedPressable} from "@/components/ThemedPressable";
 import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
 import {useColors, useTheme, useTypography} from "@/hooks/useThemeColor";
+import { languages } from "@/i18n/languages";
+import { Config, STORAGE_KEYS } from "@/constants/config";
 
 /**
  * Language selection card with flags and animations
@@ -539,157 +538,6 @@ export default function SettingsScreen() {
                             </ThemedText>
                         </View>
                     )}
-                </ThemedView>
-
-                {/* Location Section */}
-                <ThemedView style={styles.section}>
-                    <ThemedText variant="h3" style={styles.sectionTitle}>
-                        {t("settings.logging") || "Location Settings"}
-                    </ThemedText>
-                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
-                         {t("settings.location_data_settings")}
-                    </ThemedText>
-                    <GPSToggleCard
-                        enabled={gpsEnabled}
-                        onToggle={toggleGpsLogging}
-                        styles={styles}
-                    />
-                </ThemedView>
-
-                {/* Camera AI Settings Section */}
-                <ThemedView style={styles.section}>
-                    <ThemedText variant="h3" style={styles.sectionTitle}>
-                          {t("settings.camera_ai_settings")}
-                    </ThemedText>
-                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
-                        {t("settings.adjust_bird_detection")}
-                    </ThemedText>
-
-                    <Animated.View
-                        entering={FadeInDown.delay(250).springify()}
-                        layout={Layout.springify()}
-                    >
-                        <Card style={styles.cameraCard}>
-                            <View style={styles.cameraContent}>
-                                {/* Detection Speed */}
-                                <View style={styles.settingRow}>
-                                    <View style={styles.settingInfo}>
-                                        <ThemedText variant="bodyLarge" style={styles.settingTitle}>
-                                            {t("settings.detection_speed")}
-                                        </ThemedText>
-                                        <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
-                                            {t("settings.camera_analysis_frequency")}
-                                        </ThemedText>
-                                        <ThemedText variant="labelSmall" color="primary" style={styles.settingPreset}>
-                                            {getDelayPresetLabel(cameraSettings.pipelineDelay)}
-                                        </ThemedText>
-                                    </View>
-                                    <View style={styles.sliderContainer}>
-                                        <Slider
-                                            value={cameraSettings.pipelineDelay}
-                                            onValueChange={(value) => updateCameraSetting('pipelineDelay', value)}
-                                            minimumValue={0.1}
-                                            maximumValue={1.0}
-                                            step={0.01}
-                                            style={styles.slider}
-                                            minimumTrackTintColor={colors.primary}
-                                            maximumTrackTintColor={colors.border}
-                                            thumbTintColor={colors.primary}
-                                        />
-                                        <ThemedText variant="labelSmall" color="secondary" style={styles.sliderValue}>
-                                            {cameraSettings.pipelineDelay.toFixed(2)}s
-                                        </ThemedText>
-                                    </View>
-                                </View>
-
-                                {/* Confidence Threshold */}
-                                <View style={styles.settingRow}>
-                                    <View style={styles.settingInfo}>
-                                        <ThemedText variant="bodyLarge" style={styles.settingTitle}>
-                                            {t("settings.detection_confidence")}
-                                        </ThemedText>
-                                        <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
-                                            {t("settings.min_confidence_description")}
-                                        </ThemedText>
-                                        <ThemedText variant="labelSmall" color="primary" style={styles.settingPreset}>
-                                            {getConfidencePresetLabel(cameraSettings.confidenceThreshold)}
-                                        </ThemedText>
-                                    </View>
-                                    <View style={styles.sliderContainer}>
-                                        <Slider
-                                            value={cameraSettings.confidenceThreshold}
-                                            onValueChange={(value) => updateCameraSetting('confidenceThreshold', value)}
-                                            minimumValue={0.1}
-                                            maximumValue={1.0}
-                                            step={0.01}
-                                            style={styles.slider}
-                                            minimumTrackTintColor={colors.primary}
-                                            maximumTrackTintColor={colors.border}
-                                            thumbTintColor={colors.primary}
-                                        />
-                                        <ThemedText variant="labelSmall" color="secondary" style={styles.sliderValue}>
-                                            {Math.round(cameraSettings.confidenceThreshold * 100)}%
-                                        </ThemedText>
-                                    </View>
-                                </View>
-
-                                {/* Settings Toggle */}
-                                <View style={styles.settingRow}>
-                                    <View style={styles.settingInfo}>
-                                        <ThemedText variant="bodyLarge" style={styles.settingTitle}>
-                                             {t("settings.show_camera_controls")}
-                                        </ThemedText>
-                                        <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
-                                            {t("settings.display_advanced_controls")}
-                                        </ThemedText>
-                                    </View>
-                                    <Switch
-                                        value={cameraSettings.showSettings}
-                                        onValueChange={(value) => updateCameraSetting('showSettings', value)}
-                                        trackColor={{
-                                            false: colors.border,
-                                            true: colors.primary
-                                        }}
-                                        thumbColor={
-                                            cameraSettings.showSettings
-                                                ? colors.textInverse
-                                                : colors.textSecondary
-                                        }
-                                        ios_backgroundColor={colors.border}
-                                    />
-                                </View>
-                            </View>
-                        </Card>
-                    </Animated.View>
-                </ThemedView>
-
-                {/* Tutorial Section */}
-                <ThemedView style={styles.section}>
-                    <ThemedText variant="h3" style={styles.sectionTitle}>
-                        {t("settings.tutorial.title")}
-                    </ThemedText>
-                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
-                        {t("settings.tutorial.subtitle")}
-                    </ThemedText>
-
-                    <Animated.View
-                        entering={FadeInDown.delay(250).springify()}
-                        layout={Layout.springify()}
-                    >
-                        <ThemedPressable onPress={() => router.push('/tutorial')}>
-                            <Card style={styles.tutorialCard}>
-                                <View
-                                    style={[
-                                        styles.tutorialContent,
-                                        { alignItems: 'center', paddingVertical: 28 },
-                                    ]}
-                                >
-
-                                    <ThemedIcon name="book-open" size={32} color="primary" />
-                                </View>
-                            </Card>
-                        </ThemedPressable>
-                    </Animated.View>
                 </ThemedView>
 
                 {/* About Section */}
