@@ -338,13 +338,6 @@ export default function ArchiveDetailScreen() {
         };
     }, [currentSound]);
 
-    // Log Google Maps API Key for validation (runs once on mount)
-    useEffect(() => {
-        // Using optional chaining in case extra is undefined in certain environments
-        const apiKey = Constants?.expoConfig?.extra?.GOOGLE_MAPS_API_KEY;
-        console.log('[Google Maps] API Key:', apiKey);
-    }, []);
-
     // Navigation and actions
     const handleBack = useCallback(() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -642,7 +635,6 @@ export default function ArchiveDetailScreen() {
                             latitude={entry.gpsLat}
                             longitude={entry.gpsLng}
                             previewMode={false}
-                            showFocusButton={false}
                             onFocus={() => Haptics.selectionAsync()}
                         />
                         <ThemedPressable
