@@ -10,4 +10,4 @@
 
 ---
 
-See __latexDocumenation__ for more details on the project.
+See __latexDocumentation__ folder for more details on the project.
