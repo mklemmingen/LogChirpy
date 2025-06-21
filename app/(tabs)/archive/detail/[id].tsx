@@ -18,7 +18,7 @@ import { Audio } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
 import Constants from 'expo-constants';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapPreview from '@/components/MapPreview';
 
 import { type BirdSpotting, getSpottingById, deleteSpotting } from '@/services/database';
 import { deleteRemoteSpotting } from '@/services/sync_layer';
@@ -634,26 +634,11 @@ export default function ArchiveDetailScreen() {
                             label={safeText(t('archive.coordinates') || 'Coordinates')}
                             value={`${safeNumber(entry.gpsLat, 6)}, ${safeNumber(entry.gpsLng, 6)}`}
                             icon="map-pin"
-                            onPress={handleLocationPress}
                             style={styles.coordinatesText}
                         />
 
-                        {/* Inline map preview of spotting location */}
-                        <MapView
-                            style={styles.map}
-                            provider={PROVIDER_GOOGLE}
-                            initialRegion={{
-                                latitude: entry.gpsLat ?? 0,
-                                longitude: entry.gpsLng ?? 0,
-                                latitudeDelta: 0.005,
-                                longitudeDelta: 0.005,
-                            }}
-                            pointerEvents="none" // Map is for display only
-                        >
-                            {entry.gpsLat !== null && entry.gpsLng !== null && (
-                                <Marker coordinate={{ latitude: entry.gpsLat, longitude: entry.gpsLng }} />
-                            )}
-                        </MapView>
+                        {/* Map preview */}
+                        <MapPreview latitude={entry.gpsLat} longitude={entry.gpsLng} previewMode={false} />
                     </Section>
                 )}
 
@@ -844,13 +829,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 8,
         paddingVertical: 12,
-        borderRadius: 8,
-    },
-
-    // Map style
-    map: {
-        width: '100%',
-        height: 200,
         borderRadius: 8,
     },
 });
