@@ -500,8 +500,9 @@ export default function ArchiveScreen() {
   };
 
   // Format location helper
-  const formatLocation = (lat?: number, lng?: number) => {
-    if (!lat || !lng) return undefined;
+  const formatLocation = (lat: number | null | undefined, lng: number | null | undefined) => {
+    if (lat === null || lat === undefined || lng === null || lng === undefined) return undefined;
+    if (lat === 0 && lng === 0) return undefined;
     return `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
   };
 

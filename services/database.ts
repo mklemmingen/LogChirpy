@@ -13,8 +13,8 @@ export interface BirdSpotting {
   videoUri: string;
   audioUri: string;
   textNote: string;
-  gpsLat: number;
-  gpsLng: number;
+  gpsLat: number | null;
+  gpsLng: number | null;
   date: string;
   birdType: string;
   imagePrediction: string;
@@ -157,8 +157,8 @@ function mapDatabaseResult(dbResult: any): BirdSpotting {
     videoUri: dbResult.video_uri || '',
     audioUri: dbResult.audio_uri || '',
     textNote: dbResult.text_note || '',
-    gpsLat: dbResult.gps_lat || 0,
-    gpsLng: dbResult.gps_lng || 0,
+    gpsLat: dbResult.gps_lat !== null && dbResult.gps_lat !== undefined ? dbResult.gps_lat : null,
+    gpsLng: dbResult.gps_lng !== null && dbResult.gps_lng !== undefined ? dbResult.gps_lng : null,
     date: dbResult.date || '',
     birdType: dbResult.bird_type || '',
     imagePrediction: dbResult.image_prediction || '',
