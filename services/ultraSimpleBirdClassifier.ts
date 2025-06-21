@@ -65,7 +65,7 @@ class UltraSimpleBirdClassifier {
   async initialize(language: string = 'en'): Promise<boolean> {
     this.currentLanguage = language;
     try {
-      console.log('🔧 Loading BirdNET models...');
+      console.log('Loading BirdNET models...');
       
       // Load main audio model (hardcoded)
       const mainModelPath = require('../assets/models/whoBIRD-TFlite-master/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite');

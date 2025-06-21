@@ -22,7 +22,7 @@ const languageDetectorPlugin: LanguageDetectorAsyncModule = {
                 // 1. Try to get saved language preference
                 const savedLang = await AsyncStorage.getItem('appLanguage');
                 if (savedLang && SUPPORTED_LANGUAGES[savedLang]) {
-                    console.log('🌐 Using saved language:', savedLang);
+                    console.log('Using saved language:', savedLang);
                     return savedLang;
                 }
 
@@ -39,16 +39,16 @@ const languageDetectorPlugin: LanguageDetectorAsyncModule = {
                         }
                     }
                 } catch (localeError) {
-                    console.warn('🚨 Device locale detection failed:', localeError);
+                    console.warn('Device locale detection failed:', localeError);
                 }
 
                 // 3. Final fallback to English
-                console.log('🌐 Using fallback language: en');
+                console.log('Using fallback language: en');
                 await AsyncStorage.setItem('appLanguage', 'en');
                 return 'en';
                 
             } catch (error) {
-                console.error('🚨 Language detection failed:', error);
+                console.error('Language detection failed:', error);
                 return 'en';
             }
         };
@@ -62,12 +62,12 @@ const languageDetectorPlugin: LanguageDetectorAsyncModule = {
         try {
             if (SUPPORTED_LANGUAGES[lng]) {
                 await AsyncStorage.setItem('appLanguage', lng);
-                console.log('🌐 Cached language:', lng);
+                console.log('Cached language:', lng);
             } else {
-                console.warn('🚨 Attempted to cache unsupported language:', lng);
+                console.warn('Attempted to cache unsupported language:', lng);
             }
         } catch (error) {
-            console.error('🚨 Failed to cache language:', error);
+            console.error('Failed to cache language:', error);
         }
     },
 };
@@ -105,7 +105,7 @@ const initOptions = {
     // Missing key handler for development
     ...__DEV__ && {
         missingKeyHandler: (lngs: readonly string[], ns: string, key: string, fallbackValue: string) => {
-            console.warn(`🚨 Missing translation key: ${key} for languages: ${lngs.join(', ')}`);
+            console.warn(`Missing translation key: ${key} for languages: ${lngs.join(', ')}`);
         }
     }
 };
@@ -115,10 +115,10 @@ i18n
     .use(initReactI18next)
     .init(initOptions)
     .then(() => {
-        console.log('🌐 i18n initialized successfully');
+        console.log('i18n initialized successfully');
     })
     .catch((error) => {
-        console.error('🚨 i18n initialization failed:', error);
+        console.error('i18n initialization failed:', error);
     });
 
 // Helper function to validate translation key exists

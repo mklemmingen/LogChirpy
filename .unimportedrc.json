@@ -9,6 +9,8 @@
     "node_modules/**",
     "**/*.test.*",
     "**/*.spec.*",
-    "_documentationAndConversionScripts/**"
+    "dev/**",
+    "___laTexDocumentation___",
+    "__tests__"
   ]
 }

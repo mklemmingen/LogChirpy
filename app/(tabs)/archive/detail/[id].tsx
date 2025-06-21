@@ -3,12 +3,15 @@ import {
     ActivityIndicator,
     Alert,
     Image,
+    ImageStyle,
     Linking,
     Pressable,
     ScrollView,
     Share,
     StyleSheet,
+    TextStyle,
     View,
+    ViewStyle,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +19,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
+import Constants from 'expo-constants';
+import MapPreview from '@/components/MapPreview';
 
 import { type BirdSpotting, getSpottingById, deleteSpotting } from '@/services/database';
 import { deleteRemoteSpotting } from '@/services/sync_layer';
@@ -26,6 +31,8 @@ import { ThemedIcon } from '@/components/ThemedIcon';
 import { ThemedSnackbar, useSnackbar } from '@/components/ThemedSnackbar';
 import { useColors } from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
+
+
 
 // Safe text rendering helper
 const safeText = (value: any, fallback: string = ' '): string => {
@@ -134,6 +141,7 @@ interface SectionProps {
     title: string;
     icon: string;
     children: React.ReactNode;
+
 }
 
 function Section({ title, icon, children }: SectionProps) {
@@ -271,6 +279,7 @@ export default function ArchiveDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
+    const mapPreviewRef = React.useRef<{ handleFocus: () => void }>(null);
 
     // Load spotting data
     useEffect(() => {
@@ -618,16 +627,30 @@ export default function ArchiveDetailScreen() {
                 </Section>
 
                 {/* Location Section */}
-                {(entry.gpsLat !== null && entry.gpsLat !== undefined && entry.gpsLng !== null && entry.gpsLng !== undefined) && (
-                    <Section title={safeText(t('archive.location') || 'Location')} icon="map-pin">
-                        <InfoRow
-                            label={safeText(t('archive.coordinates') || 'Coordinates')}
-                            value={`${safeNumber(entry.gpsLat, 6)}, ${safeNumber(entry.gpsLng, 6)}`}
-                            icon="map-pin"
-                            onPress={handleLocationPress}
-                            style={styles.coordinatesText}
+                {(entry.gpsLat !== null && entry.gpsLat !== undefined && entry.gpsLng !== null && entry.gpsLng !== undefined && entry.gpsLat !== 0 && entry.gpsLng !== 0) && (
+                    <View style={[styles.mapContainer, { borderColor: colors.border }]}>
+                        <MapPreview
+                            ref={mapPreviewRef}
+                            style={styles.mapFullscreen}
+                            latitude={entry.gpsLat}
+                            longitude={entry.gpsLng}
+                            previewMode={false}
+                            onFocus={() => Haptics.selectionAsync()}
                         />
-                    </Section>
+                        <ThemedPressable
+                            style={[styles.mapHeader, { backgroundColor: colors.background, borderColor: colors.border }]}
+                            onPress={() => {
+                                if (entry.gpsLat !== null && entry.gpsLng !== null) {
+                                    mapPreviewRef.current?.handleFocus();
+                                }
+                            }}
+                        >
+                            <ThemedIcon name="map-pin" size={20} color="primary" />
+                            <ThemedText variant="h3" style={styles.sectionTitle}>
+                                {safeText(t('archive.location') || 'Location')}
+                            </ThemedText>
+                        </ThemedPressable>
+                    </View>
                 )}
 
                 {/* AI Predictions */}
@@ -674,7 +697,41 @@ export default function ArchiveDetailScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create<{
+    container: ViewStyle;
+    centerContainer: ViewStyle;
+    centerText: TextStyle;
+    backButton: ViewStyle;
+    header: ViewStyle;
+    headerButton: ViewStyle;
+    headerInfo: ViewStyle;
+    headerTitle: TextStyle;
+    headerDate: TextStyle;
+    scrollView: ViewStyle;
+    scrollContent: ViewStyle;
+    section: ViewStyle;
+    sectionHeader: ViewStyle;
+    sectionTitle: TextStyle;
+    sectionContent: ViewStyle;
+    infoRow: ViewStyle;
+    pressableInfoRow: ViewStyle;
+    infoLabel: TextStyle;
+    infoValueContainer: ViewStyle;
+    infoIcon: ViewStyle;
+    infoValue: TextStyle;
+    noteText: TextStyle;
+    latinText: TextStyle;
+    technicalText: TextStyle;
+    coordinatesText: TextStyle;
+    mediaContainer: ViewStyle;
+    mediaItem: ViewStyle;
+    mediaImage: ImageStyle;
+    mediaOverlay: ViewStyle;
+    audioButton: ViewStyle;
+    mapContainer: ViewStyle;
+    mapFullscreen: ViewStyle;
+    mapHeader: ViewStyle;
+}>({
     container: {
         flex: 1,
     },
@@ -818,5 +875,42 @@ const styles = StyleSheet.create({
         gap: 8,
         paddingVertical: 12,
         borderRadius: 8,
+    },
+
+    // Map style
+
+    mapContainer: {
+        height: 250,
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 20,
+        borderWidth: 1,  // Add border to match other sections
+    },
+    mapFullscreen: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+    },
+    mapHeader: {
+        position: 'absolute',
+        top: 16,
+        left: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
 });

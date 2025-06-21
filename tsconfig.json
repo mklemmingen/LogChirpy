@@ -21,6 +21,6 @@
     "expo-env.d.ts"
   ],
   "exclude": [
-    "dev/backup-services/**/*"
+    "dev/*"
   ]
 }

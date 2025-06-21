@@ -28,6 +28,7 @@ export default {
     android: {
       package: "com.logchirpy.app", // Cleaner package name
       versionCode: 1,
+      minSdkVersion: 24,
       compileSdkVersion: 34,
       targetSdkVersion: 34,
       softwareKeyboardLayoutMode: "pan",
@@ -44,7 +45,7 @@ export default {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#FAFAFA" // Light neutral
-      }
+      },
     },
     newArchEnabled: false,
     ios: {
@@ -58,7 +59,7 @@ export default {
         NSLocationWhenInUseUsageDescription: "LogChirpy uses your location to record where you spotted birds and suggest nearby birding locations.",
         NSLocationAlwaysAndWhenInUseUsageDescription: "LogChirpy uses your location to record where you spotted birds and suggest nearby birding locations.",
         NSMicrophoneUsageDescription: "LogChirpy needs microphone access to record bird sounds and videos for identification."
-      }
+      },
     },
     platforms: ["android", "ios"],
     plugins: [
@@ -88,6 +89,22 @@ export default {
           "photosPermission": "Allow LogChirpy to access your photos to save bird detections",
           "savePhotosPermission": "Allow LogChirpy to save bird photos to your gallery",
           "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24
+          }
+        }
+      ],
+      [
+        "@maplibre/maplibre-react-native",
+        {
+          "android": {
+            "minSdkVersion": 23
+          }
         }
       ]
     ],
