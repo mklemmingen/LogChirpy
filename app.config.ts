@@ -28,6 +28,7 @@ export default {
     android: {
       package: "com.logchirpy.app", // Cleaner package name
       versionCode: 1,
+      minSdkVersion: 24,
       compileSdkVersion: 34,
       targetSdkVersion: 34,
       softwareKeyboardLayoutMode: "pan",
@@ -44,7 +45,12 @@ export default {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#FAFAFA" // Light neutral
-      }
+      },
+      config: {
+        googleMaps: {
+          apiKey: process.env.GOOGLE_MAPS_API_KEY,
+        },
+      },
     },
     newArchEnabled: false,
     ios: {
@@ -58,7 +64,10 @@ export default {
         NSLocationWhenInUseUsageDescription: "LogChirpy uses your location to record where you spotted birds and suggest nearby birding locations.",
         NSLocationAlwaysAndWhenInUseUsageDescription: "LogChirpy uses your location to record where you spotted birds and suggest nearby birding locations.",
         NSMicrophoneUsageDescription: "LogChirpy needs microphone access to record bird sounds and videos for identification."
-      }
+      },
+      config: {
+        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+      },
     },
     platforms: ["android", "ios"],
     plugins: [
@@ -89,6 +98,14 @@ export default {
           "savePhotosPermission": "Allow LogChirpy to save bird photos to your gallery",
           "isAccessMediaLocationEnabled": true
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24
+          }
+        }
       ]
     ],
     experiments: {
@@ -101,6 +118,7 @@ export default {
       EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
       EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
       EXPO_PUBLIC_FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+      GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
       eas: {
         projectId: "f3cad8d2-c8a4-4696-a73f-9f57db6f7f08"
       }

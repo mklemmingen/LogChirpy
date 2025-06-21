@@ -94,7 +94,8 @@
     "react-native-webview": "13.8.6",
     "react-native-zip-archive": "^7.0.1",
     "recyclerlistview": "^4.2.0",
-    "zustand": "^4.4.4"
+    "zustand": "^4.4.4",
+    "react-native-maps": "1.14.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
