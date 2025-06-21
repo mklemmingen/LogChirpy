@@ -627,7 +627,7 @@ export default function ArchiveDetailScreen() {
                 </Section>
 
                 {/* Location Section */}
-                {(entry.gpsLat !== null && entry.gpsLat !== undefined && entry.gpsLng !== null && entry.gpsLng !== undefined) && (
+                {(entry.gpsLat !== null && entry.gpsLat !== undefined && entry.gpsLng !== null && entry.gpsLng !== undefined && entry.gpsLat !== 0 && entry.gpsLng !== 0) && (
                     <View style={[styles.mapContainer, { borderColor: colors.border }]}>
                         <MapPreview
                             ref={mapPreviewRef}
