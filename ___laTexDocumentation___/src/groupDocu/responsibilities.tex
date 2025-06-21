@@ -52,6 +52,7 @@ The LogChirpy research project was executed by a multidisciplinary development t
     \item Service architecture for bird details, archive management, localization, and string comparison BirDex provision
     \item Comprehensive documentation framework and README development
     \item Extensive test suite implementation achieving >90\% code coverage
+    \item Open Street Map component implementation for bird sighting geolocation visualization
 \end{itemize}
 
 \subsubsection{Areas of Specialization}
@@ -96,7 +97,7 @@ Estimated development contribution: ~85\% of total project implementation time
     \item Critical bug fixes for application stability and reliability
     \item Package.json optimization and dependency management protocols
     \item User interface redesign for settings language selection components
-    \item Map component implementation for bird sighting geolocation visualization
+    \item Google Map component implementation for bird sighting geolocation visualization
     \item Modal system development for archive detail view presentations
     \item Migration to modern camera package implementations
 \end{itemize}
@@ -116,6 +117,7 @@ Estimated development contribution: ~12\% of total project implementation time
     \item Authentication system development: 10 hours
     \item Map integration and geospatial features: 8 hours
     \item Bug resolution and refactoring initiatives: 7 hours
+    \item Camera and media handling improvements: 6 hours
     \item \textbf{Total Contribution: ~40 hours}
 \end{itemize}
 
@@ -124,24 +126,19 @@ Estimated development contribution: ~12\% of total project implementation time
 \subsubsection{Primary Research Responsibilities}
 \begin{itemize}
     \item Initial wireframe development and conceptual design
-    \item Internationalization and localization support implementation
-    \item User interface text optimization and enhancement
+    \item Support in localization
     \item Design feedback provision and usability assessment
 \end{itemize}
 
 \subsubsection{Technical Implementation Contributions}
 \begin{itemize}
-    \item Initial wireframe creation for development visualization at project initiation
-    \item Translation key development for common error handling (20 of 600 translation lines)
-    \item Design feedback provision for user interface components
-    \item Usability testing protocols and improvement recommendations
+    \item Dynamic Quiz using Martins BirDex database and Service
 \end{itemize}
 
 \subsubsection{Areas of Specialization}
 \begin{itemize}
     \item \textbf{User Experience Design:} Wireframing methodologies, user interface conceptualization
     \item \textbf{Internationalization:} Translation protocols, multilingual support systems
-    \item \textbf{Usability Assessment:} User experience evaluation, design feedback frameworks
 \end{itemize}
 
 \subsubsection{Development Effort Allocation}
@@ -150,7 +147,8 @@ Estimated development contribution: ~3\% of total project implementation time
     \item Wireframe development: 4 hours
     \item Internationalization contributions: 2 hours
     \item Design feedback and evaluation: 3 hours
-    \item \textbf{Total Contribution: ~9 hours}
+    \item Quiz feature development: 5 hours
+    \item \textbf{Total Contribution: ~14 hours}
 \end{itemize}
 
 \section{Collaborative Framework and Team Coordination}
@@ -215,12 +213,14 @@ Technical Documentation & Primary & Support & Internationalization \\
 \hline
 \textbf{Development Milestone} & \textbf{Timeline} & \textbf{Primary Responsibility} \\
 \hline
-Project Initialization & Week 1-2 & Martin \\
-Firebase Integration & Week 3-4 & Luis \\
-ML Pipeline Development & Week 5-8 & Martin \\
-UI/UX Implementation & Week 6-10 & Martin, Youmna \\
+Project Initialization & Week 1-2 & Martin, Luis \\
+Firebase Integration & Week 1-2 & Luis \\Martin \\
+ML Pipeline Development & Week 1-8 & Martin \\
+Database Design & Week 2-4 & Martin, Luis \\
+UI/UX Implementation & Week 6-10 & Martin \\
 Testing and Optimization & Week 9-11 & Martin, Luis \\
-Documentation Completion & Week 12 & All Team Members \\
+Quiz Feature Development & Week 11 & Youmna \\
+Documentation Completion & Week 12 & Martin \\
 \hline
 \end{tabular}
 \caption{Project Timeline and Responsibility Matrix}
@@ -243,13 +243,6 @@ Documentation Completion & Week 12 & All Team Members \\
     \item \textbf{Cloud Services Mastery:} Practical experience with Firebase and cloud integration frameworks
     \item \textbf{Collaborative Development:} Team collaboration experience in large-scale development projects
     \item \textbf{Code Quality Principles:} Understanding of clean code practices and dependency management importance
-\end{itemize}
-
-\subsubsection{Youmna Samouneh}
-\begin{itemize}
-    \item \textbf{Design Process Understanding:} Experience in UI/UX design for mobile application development
-    \item \textbf{Internationalization Expertise:} Understanding of international application development considerations
-    \item \textbf{Team Communication Skills:} Importance of design feedback and user perspective integration
 \end{itemize}
 
 \subsection{Collective Learning Outcomes}
@@ -288,8 +281,6 @@ Documentation Completion & Week 12 & All Team Members \\
 The research team extends recognition to the following contributors and institutions:
 
 \begin{itemize}
-    \item \textbf{Prof. Dr. Arjan Kuijper:} Academic supervision and technical guidance provision
-    \item \textbf{Hochschule RheinMain:} Development environment and institutional support provision
     \item \textbf{Open Source Community:} Available library and tool ecosystem contributions
     \item \textbf{BirdNET Research Project:} Audio classification model availability and accessibility
     \item \textbf{MLKit Development Team:} Reliable machine learning package provision and support

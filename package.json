@@ -30,6 +30,7 @@
     "@expo/webpack-config": "~19.0.1",
     "@infinitered/react-native-mlkit-image-labeling": "^3.1.0",
     "@infinitered/react-native-mlkit-object-detection": "^3.1.0",
+    "@maplibre/maplibre-react-native": "^10.1.6",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/datetimepicker": "8.0.1",
     "@react-native-community/slider": "4.5.2",
@@ -104,6 +105,7 @@
     "depcheck": "^1.4.7",
     "eslint": "^8.57.0",
     "eslint-config-expo": "~7.1.2",
+    "expo-build-properties": "^0.14.6",
     "jest": "^29.7.0",
     "jest-expo": "~51.0.4",
     "typescript": "~5.3.3"

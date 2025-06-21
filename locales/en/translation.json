@@ -50,6 +50,7 @@
     "created": "Created",
     "has_media": "Media",
     "gallery": "Gallery",
+    "map": "Map",
     "play_audio": "Play",
     "share_message": "Spotted {{bird}} on {{date}} at {{location}}",
     "share_title": "Bird Spotting",
@@ -59,6 +60,7 @@
     "image_saved": "Saved to gallery",
     "save_failed": "Save failed",
     "audio_play_failed": "Playback failed",
+    "viewDetails": "View Details",
     "load_detail_failed": "Load failed",
     "location_unknown": "No location",
     "share_options": "Share",
@@ -95,6 +97,14 @@
     "permission_message": "Gallery access required",
     "error": "Error",
     "load_failed": "Load failed"
+  },
+  "map": {
+    "title": "Bird Spotting Map",
+    "loading": "Loading map...",
+    "noSpottings": "No bird spottings found",
+    "startLogging": "Start logging birds with GPS to see them on the map",
+    "spottings": "spottings",
+    "allSpecies": "All Species"
   },
   "birdnet": {
     "identify_button": "Identify",
