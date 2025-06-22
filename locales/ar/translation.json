@@ -94,7 +94,7 @@
     "no": "لا"
   },
   "questions": {
-    "birdName": "ما اسم هذا الطائر؟",
+    "selectCorrectImage": "أي صورة تُظهر الطائر المسمى {{name}}؟",
     "birdRange": "في أي منطقة يعيش هذا الطائر؟",
     "birdExtinct": "هل هذا الطائر منقرض؟"
   },

@@ -94,7 +94,7 @@
     "no": "Nein"
   },
   "questions": {
-    "birdName": "Wie heißt dieser Vogel?",
+    "selectCorrectImage": "Welches Bild zeigt den Vogel namens {{name}}?",
     "birdRange": "In welchem Gebiet lebt dieser Vogel?",
     "birdExtinct": "Ist dieser Vogel ausgestorben?"
   },

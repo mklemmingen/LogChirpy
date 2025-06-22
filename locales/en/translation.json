@@ -269,7 +269,7 @@
     "no": "No"
   },
   "questions": {
-    "birdName": "What is the name of this bird?",
+    "selectCorrectImage": "Which image shows the bird named {{name}}?",
     "birdRange": "In which area does this bird live?",
     "birdExtinct": "Is this bird extinct?"
   },

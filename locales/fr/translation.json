@@ -209,7 +209,7 @@
     "no": "Non"
   },
   "questions": {
-    "birdName": "Quel est le nom de cet oiseau ?",
+    "selectCorrectImage": "Quelle image montre l'oiseau nommé {{name}} ?",
     "birdRange": "Dans quelle région vit cet oiseau ?",
     "birdExtinct": "Cet oiseau est-il éteint ?"
   },

@@ -10,6 +10,7 @@ import { useNavigation } from 'expo-router';
 import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { TouchableOpacity } from 'react-native';
 
 export default function BirdQuiz() {
     const [bird, setBird] = useState<BirdDexRecord | null>(null);
@@ -22,10 +23,20 @@ export default function BirdQuiz() {
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const { t } = useTranslation();
+    const [options, setOptions] = useState<BirdDexRecord[]>([]);
+
     useEffect(() => {
         const birds = queryBirdDexPage('', 'english_name', true, 100, 1, 'all');
-        const random = birds[Math.floor(Math.random() * birds.length)];
-        setBird(random);
+        const correct = birds[Math.floor(Math.random() * birds.length)];
+        const others = birds
+            .filter(b => b.scientific_name !== correct.scientific_name)
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 3);
+
+        const options = [correct, ...others].sort(() => 0.5 - Math.random());
+
+        setBird(correct);
+        setOptions(options);
     }, []);
 
     useEffect(() => {
@@ -39,22 +50,10 @@ export default function BirdQuiz() {
         let answeredCorrectly = false;
         const answer = bird.english_name?.toLowerCase().trim() ?? '';
         const guess = input.toLowerCase().trim();
-
         const correctName = bird.english_name || bird.de_name || bird.scientific_name;
 
         const distance = levenshtein.get(answer, guess);
-        if (questionIndex === 1) {
-            if (guess === answer || answer.includes(guess) || guess.includes(answer)) {
-                answeredCorrectly = true;
-                Alert.alert(t('alerts.correctTitle'), t('alerts.correctMessage', { name: correctName }),
-                    [
-                        { text: t('common.ok'), onPress: () => console.log('OK pressed') }
-                    ]
-                );
-            } else {
-                Alert.alert(t('alerts.incorrectTitle'), t('alerts.incorrectMessage', { name: correctName }));
-            }
-        }
+        if (questionIndex === 1) return;
 
         else if (questionIndex === 2) {
             const answer = bird.range.toLowerCase().trim();
@@ -87,6 +86,7 @@ export default function BirdQuiz() {
     };
 
     if (!bird) return null;
+    const name = bird.english_name;
 
     return (
         <KeyboardAvoidingView
@@ -98,11 +98,13 @@ export default function BirdQuiz() {
                 contentContainerStyle={styles.container}
                 keyboardShouldPersistTaps="handled"
             >
-                <Image
-                    source={getBirdImageSource(bird.scientific_name)}
-                    style={styles.image}
-                    resizeMode="cover"
-                />
+                {(questionIndex === 2 || questionIndex === 3) && (
+                    <Image
+                        source={getBirdImageSource(bird.scientific_name)}
+                        style={styles.image}
+                        resizeMode="cover"
+                    />
+                )}
                 <Text style={{ fontSize: 18, marginBottom: 10, color: colors.text.primary }}>
                     {questionIndex === 3 && t('questions.birdExtinct')}
                 </Text>
@@ -120,28 +122,64 @@ export default function BirdQuiz() {
                             onPress={() => setSelectedAnswer(t('buttons.no'))}
                         />
                     </View>
+                ) : questionIndex === 1 && bird ? (
+                    // Neue Frage 1 – Bildauswahl
+                    <>
+                        <Text style={{ fontSize: 18, marginBottom: 25, color: colors.text.primary }}>
+                            {t('questions.selectCorrectImage', { name: bird.english_name || bird.de_name || bird.scientific_name })}
+                        </Text>
+
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+
+                            {options.map((option) => (
+                                <TouchableOpacity
+                                    key={option.scientific_name}
+                                    onPress={() => {
+                                        const isCorrect = option.scientific_name === bird?.scientific_name;
+                                        setIsAnswered(true);
+                                        setCorrect(isCorrect);
+                                        Alert.alert(
+                                            t(isCorrect ? 'alerts.correctTitle' : 'alerts.incorrectTitle'),
+                                            t(isCorrect ? 'alerts.correctMessage' : 'alerts.incorrectMessage', {
+                                                name: bird.english_name || bird.de_name || bird.scientific_name
+                                            })
+                                        );
+                                    }}
+                                    style={{ margin: 5, borderRadius: 12 }}
+                                >
+                                    <Image
+                                        source={getBirdImageSource(option.scientific_name)}
+                                        style={{ width: 150, height: 150, borderRadius: 12 }}
+                                        resizeMode="cover"
+                                    />
+                                </TouchableOpacity>
+                            ))}
+
+                        </View>
+                    </>
                 ) : (
-                    // Für Frage 1 und 2 das TextInput
                     <TextInput
                         style={[styles.input, {
                             backgroundColor: colors.background.secondary,
                             borderColor: colors.border.primary,
                             color: colors.text.primary,
                         }]}
-                        placeholder={questionIndex === 1 ? t('questions.birdName') : t('questions.birdRange')}
+                        placeholder={t('questions.birdRange')}
                         placeholderTextColor={colors.text.tertiary}
                         value={input}
                         onChangeText={setInput}
                     />
                 )}
-                <View style={{ marginTop: 10 }}>
-                    <Button
-                        size="md"
-                        variant="primary"
-                        onPress={checkAnswer}
-                        title={t('buttons.checkAnswer')}
-                    />
-                </View>
+                {questionIndex !== 1 && (
+                    <View style={{ marginTop: 10 }}>
+                        <Button
+                            size="md"
+                            variant="primary"
+                            onPress={checkAnswer}
+                            title={t('buttons.checkAnswer')}
+                        />
+                    </View>
+                )}
                 <View style={{ marginTop: 10 }}>
                     <Button
                         size="md"

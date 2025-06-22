@@ -94,7 +94,7 @@
     "no": "No"
   },
   "questions": {
-    "birdName": "¿Cómo se llama este pájaro?",
+    "selectCorrectImage": "¿Qué imagen muestra el ave llamada {{name}}?",
     "birdRange": "¿En qué área vive este pájaro?",
     "birdExtinct": "¿Está este pájaro extinguido?"
   },
