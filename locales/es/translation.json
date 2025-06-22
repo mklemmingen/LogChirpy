@@ -186,8 +186,8 @@
         "description": "A continuación verás varios iconos: cada uno representa una función específica. En la pantalla de inicio encontrarás botones que representan las funciones principales de la aplicación. En los siguientes pasos te explicaremos las funciones más importantes paso a paso."
       },
       "image_processing": {
-        "title": "Qué sucede con tus imágenes",
-        "description": "Una vez que hayas tomado las fotos, se almacenan temporalmente en la carpeta de documentos de tu dispositivo y pueden guardarse manualmente en tu galería de fotos a través de la página de la galería. Ninguna imagen se sube automáticamente a servidores externos. Por favor, sostiene el teléfono con firmeza para evitar que las fotos salgan movidas."
+        "title": "Cómo funciona la detección por cámara",
+        "description": "Paso 1: Toca el icono de la cámara en la pantalla principal.\n\nPaso 2: Mantén el dispositivo enfocado en el ave. Si la app tiene acceso a la cámara, podrás tomar una foto. La IA identificará automáticamente la especie del ave.\n\nPaso 3: La imagen se guardará en la app y se podrá agregar a la galería si permites el acceso. Puedes añadir esta imagen a una observación manual desde el botón 'Manual' en la pantalla principal."
       },
       "ai_models": {
         "title": "Cómo funcionan los modelos de IA",

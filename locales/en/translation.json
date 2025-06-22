@@ -384,8 +384,8 @@
         "description": "Below you’ll see various icons – each represents a specific function. On the home screen, you’ll find buttons that represent the main features of the app. In the following steps, we’ll explain the most important features one by one."
       },
       "image_processing": {
-        "title": "Image Storage",
-        "description": "Once you have taken the photos, they are temporarily stored in your device's documents folder and can be manually saved to your photo gallery via the gallery page. No images are automatically uploaded to external servers. Please hold your phone steady to avoid blurring."
+        "title": "How Camera Detection Works",
+        "description": "Step 1: Tap the camera icon on the home screen.\n\nStep 2: Hold your device steady towards the bird. If the app has access to the camera, you can take a picture. The AI will automatically identify the bird species.\n\nStep 3: The picture will be saved in the app and can then be added to the gallery — if you allow the app to access it. You can add the picture to an observation manually via the 'Manual' button on the home screen."
       },
       "ai_models": {
         "title": "AI Models",

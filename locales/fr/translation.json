@@ -313,8 +313,8 @@
         "description": "Ci-dessous, vous verrez différents symboles – chacun représente une fonction spécifique. Sur l'écran d'accueil, vous trouverez des boutons représentant les principales fonctionnalités de l'application. Dans les étapes suivantes, nous vous expliquerons les fonctions les plus importantes une par une."
       },
       "image_processing": {
-        "title": "Traitement de vos images",
-        "description": "Une fois les photos prises, elles sont temporairement stockées dans le dossier documents de votre appareil et peuvent être enregistrées manuellement dans votre galerie photo via la page galerie. Aucune image n'est automatiquement téléchargée sur des serveurs externes. Veuillez tenir votre téléphone stable pour éviter le flou."
+        "title": "Comment fonctionne la détection par caméra",
+        "description": "Étape 1 : Appuie sur l’icône de la caméra sur l’écran d’accueil.\n\nÉtape 2 : Tiens ton appareil fermement en direction de l’oiseau. Si l’application a accès à la caméra, tu peux prendre une photo. L’IA identifiera automatiquement l’espèce de l’oiseau.\n\nÉtape 3 : La photo sera enregistrée dans l’application et pourra ensuite être ajoutée à la galerie — si tu autorises l’accès. Tu peux l’ajouter manuellement à une observation via le bouton « Manuel » sur l’écran d’accueil."
       },
       "ai_models": {
         "title": "Fonctionnement des modèles IA",

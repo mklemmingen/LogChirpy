@@ -191,8 +191,8 @@
         "description": "Unten siehst du verschiedene Symbole – jedes steht für eine bestimmte Funktion. Auf der Startseite findest du Buttons, die die Hauptfunktionen der App darstellen. In den nächsten Schritten erklären wir dir die wichtigsten Funktionen Schritt für Schritt."
       },
       "image_processing": {
-        "title": "Was passiert mit Ihren Bildern",
-        "description": "Sobald Sie die Bilder fotografiert haben, werden sie temporär im Dokumentenordner Ihres Geräts gespeichert und können über die Galerie-Seite manuell in Ihre Fotogalerie übernommen werden. Keine Bilder werden automatisch auf externe Server hochgeladen. Bitte halten Sie das Handy ruhig, damit es nicht verwackelt."
+        "title": "So funktioniert die Kamera-Erkennung",
+        "description": "Schritt 1: Tippe auf das Kamerasymbol auf der Startseite. \n\n Schritt 2: Halte dein Gerät ruhig auf den Vogel. Vorausgesetzt, die App hat Zugriff auf die Kamera, kannst du dann ein Bild aufnehmen. Die KI erkennt automatisch die Vogelart.\n\n Schritt 3: Das Bild wird in der App gespeichert und kann anschließend in die Galerie übernommen werden – sofern du der App den Zugriff auf deine Galerie erlaubst. Du kannst dieses Bild über den „Manuell“-Button auf der Startseite einer Beobachtung hinzufügen."
       },
       "ai_models": {
         "title": "Wie KI-Modelle funktionieren",
