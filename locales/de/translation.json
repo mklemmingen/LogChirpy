@@ -106,7 +106,8 @@
     "correctStatusMessage": "Status: {{status}}",
     "incorrectStatusMessage": "Richtiger Status: {{status}}",
     "correctRangeMessage": "Verbreitungsgebiet: {{range}}",
-    "incorrectRangeMessage": "Richtiges Verbreitungsgebiet: {{range}}"
+    "incorrectRangeMessage": "Richtiges Verbreitungsgebiet: {{range}}",
+    "incorrectMessageWithGuess": "Das war der {{guessName}}"
   },
   "auth": {
     "welcome_back": "Willkommen zurück",

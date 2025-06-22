@@ -106,7 +106,8 @@
     "correctStatusMessage": "Статус: {{status}}",
     "incorrectStatusMessage": "Правильний статус: {{status}}",
     "correctRangeMessage": "Поширення: {{range}}",
-    "incorrectRangeMessage": "Правильна область: {{range}}"
+    "incorrectRangeMessage": "Правильна область: {{range}}",
+    "incorrectMessageWithGuess": "Це був {{guessName}}"
   },
   "auth": {
     "welcome_back": "Ласкаво просимо",

@@ -281,7 +281,8 @@
     "correctStatusMessage": "Status: {{status}}",
     "incorrectStatusMessage": "Correct Status: {{status}}",
     "correctRangeMessage": "Range: {{range}}",
-    "incorrectRangeMessage": "Correct range: {{range}}"
+    "incorrectRangeMessage": "Correct range: {{range}}",
+    "incorrectMessageWithGuess": "That was the {{guessName}}"
   },
   "auth": {
     "welcome_back": "Welcome Back",

@@ -106,7 +106,8 @@
     "correctStatusMessage": "Estado: {{status}}",
     "incorrectStatusMessage": "Estado correcto: {{status}}",
     "correctRangeMessage": "Área de distribución: {{range}}",
-    "incorrectRangeMessage": "Área correcta: {{range}}"
+    "incorrectRangeMessage": "Área correcta: {{range}}",
+    "incorrectMessageWithGuess": "Ese era el {{guessName}}"
   },
   "auth": {
     "welcome_back": "Bienvenido de nuevo",

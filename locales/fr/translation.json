@@ -221,7 +221,8 @@
     "correctStatusMessage": "Statut : {{status}}",
     "incorrectStatusMessage": "Statut correct : {{status}}",
     "correctRangeMessage": "Zone de répartition : {{range}}",
-    "incorrectRangeMessage": "Zone correcte : {{range}}"
+    "incorrectRangeMessage": "Zone correcte : {{range}}",
+    "incorrectMessageWithGuess": "C'était le {{guessName}}"
   },
   "auth": {
     "welcome_back": "Bon retour",

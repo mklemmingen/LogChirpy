@@ -106,7 +106,8 @@
     "correctStatusMessage": "الحالة: {{status}}",
     "incorrectStatusMessage": "الحالة الصحيحة: {{status}}",
     "correctRangeMessage": "منطقة الانتشار: {{range}}",
-    "incorrectRangeMessage": "النطاق الصحيح: {{range}}"
+    "incorrectRangeMessage": "النطاق الصحيح: {{range}}",
+    "incorrectMessageWithGuess": "كان ذلك {{guessName}}"
   },
   "auth": {
     "welcome_back": "مرحباً بعودتك",

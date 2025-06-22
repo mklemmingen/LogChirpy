@@ -24,19 +24,52 @@ export default function BirdQuiz() {
     const [isAnswered, setIsAnswered] = useState(false);
     const { t } = useTranslation();
     const [options, setOptions] = useState<BirdDexRecord[]>([]);
+    const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
     useEffect(() => {
         const birds = queryBirdDexPage('', 'english_name', true, 100, 1, 'all');
-        const correct = birds[Math.floor(Math.random() * birds.length)];
-        const others = birds
-            .filter(b => b.scientific_name !== correct.scientific_name)
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 3);
+        const getValidBirdWithImage = (): BirdDexRecord | null => {
+            for (let i = 0; i < birds.length; i++) {
+                const candidate = birds[Math.floor(Math.random() * birds.length)];
+                const image = getBirdImageSource(candidate.scientific_name);
+                if (image) return candidate;
+            }
+            return null;
+        };
 
-        const options = [correct, ...others].sort(() => 0.5 - Math.random());
+        const selectOptions = () => {
+            const selectedNames = new Set<string>();
+            const selectedImages = new Set<string>();
+            const results: BirdDexRecord[] = [];
 
-        setBird(correct);
-        setOptions(options);
+            while (results.length < 4 && selectedNames.size < birds.length) {
+                const candidate = birds[Math.floor(Math.random() * birds.length)];
+                const image = getBirdImageSource(candidate.scientific_name);
+
+                if (
+                    image &&
+                    !selectedNames.has(candidate.scientific_name) &&
+                    !selectedImages.has(image.uri || image)
+                ) {
+                    selectedNames.add(candidate.scientific_name);
+                    selectedImages.add(image.uri || image);
+                    results.push(candidate);
+                }
+            }
+
+            return results;
+        };
+
+
+        const options = selectOptions();
+
+        if (options.length === 4) {
+            const correct = options[Math.floor(Math.random() * options.length)];
+            setOptions(options);
+            setBird(correct);
+        } else {
+            console.warn('Nicht genügend gültige Bilder gefunden');
+        }
     }, []);
 
     useEffect(() => {
@@ -101,7 +134,7 @@ export default function BirdQuiz() {
                 {(questionIndex === 2 || questionIndex === 3) && (
                     <Image
                         source={getBirdImageSource(bird.scientific_name)}
-                        style={styles.image}
+                        style={[styles.image, { marginTop: 60 }]}
                         resizeMode="cover"
                     />
                 )}
@@ -123,7 +156,7 @@ export default function BirdQuiz() {
                         />
                     </View>
                 ) : questionIndex === 1 && bird ? (
-                    // Neue Frage 1 – Bildauswahl
+                    // Frage 1 – Bildauswahl
                     <>
                         <Text style={{ fontSize: 18, marginBottom: 25, color: colors.text.primary }}>
                             {t('questions.selectCorrectImage', { name: bird.english_name || bird.de_name || bird.scientific_name })}
@@ -131,29 +164,54 @@ export default function BirdQuiz() {
 
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
 
-                            {options.map((option) => (
-                                <TouchableOpacity
-                                    key={option.scientific_name}
-                                    onPress={() => {
-                                        const isCorrect = option.scientific_name === bird?.scientific_name;
-                                        setIsAnswered(true);
-                                        setCorrect(isCorrect);
-                                        Alert.alert(
-                                            t(isCorrect ? 'alerts.correctTitle' : 'alerts.incorrectTitle'),
-                                            t(isCorrect ? 'alerts.correctMessage' : 'alerts.incorrectMessage', {
-                                                name: bird.english_name || bird.de_name || bird.scientific_name
-                                            })
-                                        );
-                                    }}
-                                    style={{ margin: 5, borderRadius: 12 }}
-                                >
-                                    <Image
-                                        source={getBirdImageSource(option.scientific_name)}
-                                        style={{ width: 150, height: 150, borderRadius: 12 }}
-                                        resizeMode="cover"
-                                    />
-                                </TouchableOpacity>
-                            ))}
+                            {options.map((option) => {
+                                const imageSource = getBirdImageSource(option.scientific_name);
+                                if (!imageSource) return null;
+                                const isSelected = selectedOption === option.scientific_name;
+                                const isCorrectBird = bird?.scientific_name === option.scientific_name;
+                                const borderColor = !isAnswered
+                                    ? 'transparent'
+                                    : isCorrectBird
+                                        ? 'green'
+                                        : isSelected
+                                            ? 'red'
+                                            : 'transparent';
+
+                                return (
+                                    <TouchableOpacity
+                                        key={option.scientific_name}
+                                        onPress={() => {
+                                            const isCorrect = option.scientific_name === bird?.scientific_name;
+                                            setIsAnswered(true);
+                                            setCorrect(isCorrect);
+                                            setSelectedOption(option.scientific_name);
+                                            Alert.alert(
+                                                t(isCorrect ? 'alerts.correctTitle' : 'alerts.incorrectTitle'),
+                                                isCorrect
+                                                    ? t('alerts.correctMessage', { name: bird.english_name || bird.de_name || bird.scientific_name })
+                                                    : t('alerts.incorrectMessageWithGuess', {
+                                                        correctName: bird.english_name,
+                                                        guessName: option.english_name || option.de_name || option.scientific_name
+                                                    })
+                                            );
+
+                                        }}
+                                        style={{
+                                            margin: 5,
+                                            borderRadius: 12,
+                                            borderWidth: 3,
+                                            borderColor: borderColor,
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        <Image
+                                            source={getBirdImageSource(option.scientific_name)}
+                                            style={{ width: 150, height: 150, borderRadius: 12 }}
+                                            resizeMode="cover"
+                                        />
+                                    </TouchableOpacity>
+                                );
+                            })}
 
                         </View>
                     </>
