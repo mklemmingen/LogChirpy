@@ -222,7 +222,13 @@
     "incorrectStatusMessage": "Statut correct : {{status}}",
     "correctRangeMessage": "Zone de répartition : {{range}}",
     "incorrectRangeMessage": "Zone correcte : {{range}}",
-    "incorrectMessageWithGuess": "C'était le {{guessName}}"
+    "incorrectMessageWithGuess": "C'était le {{guessName}}",
+    "inputTooShort": "Veuillez entrer au moins 3 lettres"
+  },
+  "results": {
+    "title": "Ton résultat",
+    "successMessage": "Félicitations ! Tu as répondu correctement à {{score}} sur 3 questions",
+    "failureMessage": "Malheureusement, le quiz n’a pas été réussi. Réessaie !"
   },
   "auth": {
     "welcome_back": "Bon retour",
@@ -371,8 +377,8 @@
     "listening": "À l'écoute...",
     "audio_ready": "Audio prêt",
     "audio_error": "Erreur audio",
-   "instructions": "Enregistrez les chants d'oiseaux pour l'identification et la journalisation. Gardez l'appareil stable et minimisez les bruits de fond."
-},
+    "instructions": "Enregistrez les chants d'oiseaux pour l'identification et la journalisation. Gardez l'appareil stable et minimisez les bruits de fond."
+  },
   "log": {
     "save_success": "Entrée enregistrée",
     "entry_saved_success": "Votre entrée a été enregistrée.",

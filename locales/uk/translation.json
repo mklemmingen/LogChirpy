@@ -107,7 +107,13 @@
     "incorrectStatusMessage": "Правильний статус: {{status}}",
     "correctRangeMessage": "Поширення: {{range}}",
     "incorrectRangeMessage": "Правильна область: {{range}}",
-    "incorrectMessageWithGuess": "Це був {{guessName}}"
+    "incorrectMessageWithGuess": "Це був {{guessName}}",
+    "inputTooShort": "Будь ласка, введіть щонайменше 3 літери"
+  },
+  "results": {
+    "title": "Твій результат",
+    "successMessage": "Вітаємо! Ви правильно відповіли на {{score}} з 3 запитань",
+    "failureMessage": "На жаль, вікторина не була успішною. Спробуйте ще раз!"
   },
   "auth": {
     "welcome_back": "Ласкаво просимо",

@@ -107,8 +107,14 @@
     "incorrectStatusMessage": "الحالة الصحيحة: {{status}}",
     "correctRangeMessage": "منطقة الانتشار: {{range}}",
     "incorrectRangeMessage": "النطاق الصحيح: {{range}}",
-    "incorrectMessageWithGuess": "كان ذلك {{guessName}}"
+    "incorrectMessageWithGuess": "كان ذلك {{guessName}}",
+    "inputTooShort": "يرجى إدخال 3 أحرف على الأقل"
   },
+  "results": {
+  "title": "نتيجتك",
+  "successMessage": "تهانينا! لقد أجبت بشكل صحيح على {{score}} من أصل 3 أسئلة",
+  "failureMessage": "للأسف، لم يكن الاختبار ناجحًا. حاول مرة أخرى!"
+},
   "auth": {
     "welcome_back": "مرحباً بعودتك",
     "email_label": "البريد الإلكتروني",

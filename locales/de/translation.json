@@ -91,7 +91,8 @@
     "nextQuestion": "Nächste Frage",
     "finish": "Beenden",
     "yes": "Ja",
-    "no": "Nein"
+    "no": "Nein",
+    "backToHome": "Zurück zur Startseite"
   },
   "questions": {
     "selectCorrectImage": "Welches Bild zeigt den Vogel namens {{name}}?",
@@ -107,8 +108,14 @@
     "incorrectStatusMessage": "Richtiger Status: {{status}}",
     "correctRangeMessage": "Verbreitungsgebiet: {{range}}",
     "incorrectRangeMessage": "Richtiges Verbreitungsgebiet: {{range}}",
-    "incorrectMessageWithGuess": "Das war der {{guessName}}"
+    "incorrectMessageWithGuess": "Das war der {{guessName}}",
+    "inputTooShort": "Bitte gib mindestens 3 Buchstaben ein"
   },
+  "results": {
+    "title": "Dein Ergebnis",
+    "successMessage": "Glückwunsch! Du hast {{score}} von 3 Fragen richtig beantwortet",
+    "failureMessage": "Leider war das Quiz nicht erfolgreich. Versuche es noch einmal!"
+},
   "auth": {
     "welcome_back": "Willkommen zurück",
     "email_label": "E-Mail",

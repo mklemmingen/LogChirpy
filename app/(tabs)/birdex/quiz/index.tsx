@@ -11,6 +11,8 @@ import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { TouchableOpacity } from 'react-native';
+import { Keyboard } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function BirdQuiz() {
     const [bird, setBird] = useState<BirdDexRecord | null>(null);
@@ -25,6 +27,8 @@ export default function BirdQuiz() {
     const { t } = useTranslation();
     const [options, setOptions] = useState<BirdDexRecord[]>([]);
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
+    const [score, setScore] = useState(0);
+    const router = useRouter();
 
     useEffect(() => {
         const birds = queryBirdDexPage('', 'english_name', true, 100, 1, 'all');
@@ -84,15 +88,17 @@ export default function BirdQuiz() {
         const answer = bird.english_name?.toLowerCase().trim() ?? '';
         const guess = input.toLowerCase().trim();
         const correctName = bird.english_name || bird.de_name || bird.scientific_name;
-
-        const distance = levenshtein.get(answer, guess);
         if (questionIndex === 1) return;
 
         else if (questionIndex === 2) {
+            Keyboard.dismiss();
             const answer = bird.range.toLowerCase().trim();
             const guess = input.toLowerCase().trim();
-            if (answer.includes(guess) || guess.includes(answer)) {
+            const distance = levenshtein.get(answer, guess);
+
+            if (guess.length >= 3 && (distance <= 2 || answer.includes(guess) || guess.includes(answer))) {
                 answeredCorrectly = true;
+                setScore(prev => prev + 1);
                 Alert.alert(t('alerts.correctTitle'), t('alerts.correctRangeMessage', { range: bird.range }));
             } else {
                 Alert.alert(t('alerts.incorrectTitle'), t('alerts.incorrectRangeMessage', { range: bird.range }));
@@ -105,6 +111,7 @@ export default function BirdQuiz() {
 
             if (selectedAnswer === correctAnswer) {
                 answeredCorrectly = true;
+                setScore(prev => prev + 1);
                 Alert.alert(t('alerts.correctTitle'), t('alerts.correctStatusMessage', { status: correctAnswer }),
                     [
                         { text: t('common.ok'), onPress: () => console.log('OK pressed') }
@@ -120,7 +127,25 @@ export default function BirdQuiz() {
 
     if (!bird) return null;
     const name = bird.english_name;
-
+    if (questionIndex === 4) {
+        return (
+            <View style={styles.container}>
+                <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 20 }}>
+                    {t('results.title')}
+                </Text>
+                <Text style={{ fontSize: 20, marginBottom: 40, textAlign: 'center' }}>
+                    {score >= 2
+                        ? t('results.successMessage', { score })
+                        : t('results.failureMessage')}
+                </Text>
+                <Button
+                    title={t('buttons.backToHome')}
+                    onPress={() => router.push('/')}
+                    variant="primary"
+                />
+            </View>
+        );
+    }
     return (
         <KeyboardAvoidingView
             style={{ flex: 1 }}
@@ -185,6 +210,9 @@ export default function BirdQuiz() {
                                             setIsAnswered(true);
                                             setCorrect(isCorrect);
                                             setSelectedOption(option.scientific_name);
+                                            if (isCorrect) {
+                                                setScore(prev => prev + 1);
+                                            }
                                             Alert.alert(
                                                 t(isCorrect ? 'alerts.correctTitle' : 'alerts.incorrectTitle'),
                                                 isCorrect
@@ -216,18 +244,28 @@ export default function BirdQuiz() {
                         </View>
                     </>
                 ) : (
-                    <TextInput
-                        style={[styles.input, {
-                            backgroundColor: colors.background.secondary,
-                            borderColor: colors.border.primary,
-                            color: colors.text.primary,
-                        }]}
-                        placeholder={t('questions.birdRange')}
-                        placeholderTextColor={colors.text.tertiary}
-                        value={input}
-                        onChangeText={setInput}
-                    />
+                    <>
+                        <TextInput
+                            style={[styles.input, {
+                                backgroundColor: colors.background.secondary,
+                                borderColor: colors.border.primary,
+                                color: colors.text.primary,
+                            }]}
+                            placeholder={t('questions.birdRange')}
+                            placeholderTextColor={colors.text.tertiary}
+                            value={input}
+                            onChangeText={setInput}
+                        />
+                        {questionIndex === 2 && input.trim().length > 0 && input.trim().length < 3 && (
+                            <Text style={{ color: 'red', marginBottom: 8 }}>
+                                {t('alerts.inputTooShort')}
+                            </Text>
+                        )}
+                    </>
                 )}
+
+
+
                 {questionIndex !== 1 && (
                     <View style={{ marginTop: 10 }}>
                         <Button
@@ -235,6 +273,7 @@ export default function BirdQuiz() {
                             variant="primary"
                             onPress={checkAnswer}
                             title={t('buttons.checkAnswer')}
+                            disabled={questionIndex === 2 && input.trim().length < 3}
                         />
                     </View>
                 )}
@@ -244,7 +283,7 @@ export default function BirdQuiz() {
                         variant="secondary"
                         onPress={() => {
                             if (questionIndex === 3) {
-                                navigation.goBack();  // Zurück zur vorherigen Seite
+                                setQuestionIndex(4);
                             } else {
                                 setQuestionIndex(prev => prev + 1);
                                 setInput('');
@@ -258,7 +297,7 @@ export default function BirdQuiz() {
                     />
                 </View>
             </ScrollView>
-        </KeyboardAvoidingView>
+        </KeyboardAvoidingView >
     );
 }
 

@@ -282,7 +282,13 @@
     "incorrectStatusMessage": "Correct Status: {{status}}",
     "correctRangeMessage": "Range: {{range}}",
     "incorrectRangeMessage": "Correct range: {{range}}",
-    "incorrectMessageWithGuess": "That was the {{guessName}}"
+    "incorrectMessageWithGuess": "That was the {{guessName}}",
+    "inputTooShort": "Please enter at least 3 letters"
+  },
+  "results": {
+    "title": "Your Result",
+    "successMessage": "Congratulations! You answered {{score}} out of 3 questions correctly",
+    "failureMessage": "Unfortunately, the quiz was not successful. Try again!"
   },
   "auth": {
     "welcome_back": "Welcome Back",
@@ -551,7 +557,6 @@
     "next": "Next",
     "loading": "Loading...",
     "back": "Back"
-
   },
   "warnings": {
     "media_permission_required": "Media access required"

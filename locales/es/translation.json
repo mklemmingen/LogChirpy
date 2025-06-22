@@ -107,7 +107,13 @@
     "incorrectStatusMessage": "Estado correcto: {{status}}",
     "correctRangeMessage": "Área de distribución: {{range}}",
     "incorrectRangeMessage": "Área correcta: {{range}}",
-    "incorrectMessageWithGuess": "Ese era el {{guessName}}"
+    "incorrectMessageWithGuess": "Ese era el {{guessName}}",
+    "inputTooShort": "Por favor, introduce al menos 3 letras"
+  },
+  "results": {
+    "title": "Tu resultado",
+    "successMessage": "¡Felicidades! Has respondido correctamente a {{score}} de 3 preguntas",
+    "failureMessage": "Desafortunadamente, el cuestionario no fue exitoso. ¡Inténtalo de nuevo!"
   },
   "auth": {
     "welcome_back": "Bienvenido de nuevo",
