@@ -182,8 +182,8 @@
       "title": "Tutorial de la App",
       "subtitle": "Aprende a usar LogChirpy de manera efectiva",
       "how_to_use": {
-        "title": "Cómo usar LogChirpy",
-        "description": "LogChirpy es tu compañero digital de observación de aves que te ayuda a identificar, registrar y rastrear avistamientos de aves. Usa la cámara principal para detección de aves en tiempo real, captura fotos y videos, graba audio o registra avistamientos manualmente. La app funciona tanto en línea como sin conexión para uso en el campo."
+        "title": "Cómo empezar con LogChirpy",
+        "description": "A continuación verás varios iconos: cada uno representa una función específica. En la pantalla de inicio encontrarás botones que representan las funciones principales de la aplicación. En los siguientes pasos te explicaremos las funciones más importantes paso a paso."
       },
       "image_processing": {
         "title": "Qué sucede con tus imágenes",

@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { TouchableOpacity } from 'react-native';
 import { Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
+import LottieView from 'lottie-react-native';
 
 export default function BirdQuiz() {
     const [bird, setBird] = useState<BirdDexRecord | null>(null);
@@ -130,6 +131,16 @@ export default function BirdQuiz() {
     if (questionIndex === 4) {
         return (
             <View style={styles.container}>
+                <LottieView
+                    source={
+                        score >= 2
+                            ? require('@/assets/quiz/success-animation.json')  
+                            : require('@/assets/quiz/failure-animation.json')  
+                    }
+                    autoPlay
+                    loop={false}
+                    style={{ width: 200, height: 200, marginBottom: 40 }}
+                />
                 <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 20 }}>
                     {t('results.title')}
                 </Text>
@@ -146,6 +157,7 @@ export default function BirdQuiz() {
             </View>
         );
     }
+
     return (
         <KeyboardAvoidingView
             style={{ flex: 1 }}
@@ -173,11 +185,13 @@ export default function BirdQuiz() {
                             title={t('buttons.yes')}
                             variant={selectedAnswer === t('buttons.yes') ? 'primary' : 'secondary'}
                             onPress={() => setSelectedAnswer(t('buttons.yes'))}
+                            disabled={isAnswered}
                         />
                         <Button
                             title={t('buttons.no')}
                             variant={selectedAnswer === t('buttons.no') ? 'primary' : 'secondary'}
                             onPress={() => setSelectedAnswer(t('buttons.no'))}
+                            disabled={isAnswered}
                         />
                     </View>
                 ) : questionIndex === 1 && bird ? (
@@ -205,6 +219,7 @@ export default function BirdQuiz() {
                                 return (
                                     <TouchableOpacity
                                         key={option.scientific_name}
+                                        disabled={isAnswered}
                                         onPress={() => {
                                             const isCorrect = option.scientific_name === bird?.scientific_name;
                                             setIsAnswered(true);
@@ -255,6 +270,7 @@ export default function BirdQuiz() {
                             placeholderTextColor={colors.text.tertiary}
                             value={input}
                             onChangeText={setInput}
+                            editable={!isAnswered}
                         />
                         {questionIndex === 2 && input.trim().length > 0 && input.trim().length < 3 && (
                             <Text style={{ color: 'red', marginBottom: 8 }}>
@@ -273,7 +289,10 @@ export default function BirdQuiz() {
                             variant="primary"
                             onPress={checkAnswer}
                             title={t('buttons.checkAnswer')}
-                            disabled={questionIndex === 2 && input.trim().length < 3}
+                            disabled={
+                                (questionIndex === 2 && input.trim().length < 3) || // Für Frage 2
+                                (questionIndex === 3 && (!selectedAnswer || isAnswered)) // Für Frage 3
+                            }
                         />
                     </View>
                 )}

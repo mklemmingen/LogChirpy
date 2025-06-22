@@ -309,8 +309,8 @@
       "title": "Guide de l'application",
       "subtitle": "Apprenez à utiliser LogChirpy efficacement",
       "how_to_use": {
-        "title": "Comment utiliser LogChirpy",
-        "description": "LogChirpy est votre compagnon numérique d'observation ornithologique qui vous aide à identifier, enregistrer et suivre vos observations d'oiseaux. Utilisez la caméra principale pour la détection en temps réel, capturez des photos et vidéos, enregistrez de l'audio, ou enregistrez manuellement vos observations. L'application fonctionne en ligne et hors ligne pour une utilisation sur le terrain."
+        "title": "Commencer avec LogChirpy",
+        "description": "Ci-dessous, vous verrez différents symboles – chacun représente une fonction spécifique. Sur l'écran d'accueil, vous trouverez des boutons représentant les principales fonctionnalités de l'application. Dans les étapes suivantes, nous vous expliquerons les fonctions les plus importantes une par une."
       },
       "image_processing": {
         "title": "Traitement de vos images",

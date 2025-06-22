@@ -188,6 +188,6 @@ export default function TutorialScreen() {
 const styles = StyleSheet.create({
     tutorialCard: { padding: 0 },
     tutorialContent: { padding: 20, gap: 16 },
-    tutorialSectionTitle: { fontWeight: '600', marginTop: 8 },
+    tutorialSectionTitle: { fontWeight: '600', marginTop: 40, marginBottom: 40 },
     tutorialText: { lineHeight: 20 },
 });

@@ -380,8 +380,8 @@
       "title": "Tutorial",
       "subtitle": "Quick start guide",
       "how_to_use": {
-        "title": "Getting Started",
-        "description": "Identify and log birds using camera, photos, audio, or manual entry. Works offline."
+        "title": "Getting started with LogChirpy",
+        "description": "Below you’ll see various icons – each represents a specific function. On the home screen, you’ll find buttons that represent the main features of the app. In the following steps, we’ll explain the most important features one by one."
       },
       "image_processing": {
         "title": "Image Storage",
