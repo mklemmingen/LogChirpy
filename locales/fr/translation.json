@@ -206,7 +206,8 @@
     "nextQuestion": "Question suivante",
     "finish": "Terminer",
     "yes": "Oui",
-    "no": "Non"
+    "no": "Non",
+    "backToHome": "Retour à l'accueil"
   },
   "questions": {
     "selectCorrectImage": "Quelle image montre l'oiseau nommé {{name}} ?",

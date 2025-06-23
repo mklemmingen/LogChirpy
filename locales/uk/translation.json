@@ -91,7 +91,8 @@
     "nextQuestion": "Наступне питання",
     "finish": "Завершити",
     "yes": "Так",
-    "no": "Ні"
+    "no": "Ні",
+    "backToHome": "Повернутися на головну"
   },
   "questions": {
     "selectCorrectImage": "Яке зображення показує птаха з назвою {{name}}?",

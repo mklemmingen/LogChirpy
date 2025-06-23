@@ -91,7 +91,8 @@
     "nextQuestion": "السؤال التالي",
     "finish": "إنهاء",
     "yes": "نعم",
-    "no": "لا"
+    "no": "لا",
+    "backToHome": "العودة إلى الصفحة الرئيسية"
   },
   "questions": {
     "selectCorrectImage": "أي صورة تُظهر الطائر المسمى {{name}}؟",

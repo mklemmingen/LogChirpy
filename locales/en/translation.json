@@ -266,7 +266,8 @@
     "nextQuestion": "Next Question",
     "finish": "Finish",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "backToHome": "Back to Home"
   },
   "questions": {
     "selectCorrectImage": "Which image shows the bird named {{name}}?",

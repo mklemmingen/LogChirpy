@@ -91,7 +91,8 @@
     "nextQuestion": "Siguiente pregunta",
     "finish": "Terminar",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "backToHome": "Volver al inicio"
   },
   "questions": {
     "selectCorrectImage": "¿Qué imagen muestra el ave llamada {{name}}?",

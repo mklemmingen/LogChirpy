@@ -14,6 +14,7 @@ import { TouchableOpacity } from 'react-native';
 import { Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function BirdQuiz() {
     const [bird, setBird] = useState<BirdDexRecord | null>(null);
@@ -30,6 +31,7 @@ export default function BirdQuiz() {
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [score, setScore] = useState(0);
     const router = useRouter();
+    const totalQuestions = 3;
 
     useEffect(() => {
         const birds = queryBirdDexPage('', 'english_name', true, 100, 1, 'all');
@@ -100,9 +102,11 @@ export default function BirdQuiz() {
             if (guess.length >= 3 && (distance <= 2 || answer.includes(guess) || guess.includes(answer))) {
                 answeredCorrectly = true;
                 setScore(prev => prev + 1);
-                Alert.alert(t('alerts.correctTitle'), t('alerts.correctRangeMessage', { range: bird.range }));
+                Alert.alert(t('alerts.correctTitle'), t('alerts.correctRangeMessage', { range: bird.range }),
+                    [{ text: t('common.ok') }]);
             } else {
-                Alert.alert(t('alerts.incorrectTitle'), t('alerts.incorrectRangeMessage', { range: bird.range }));
+                Alert.alert(t('alerts.incorrectTitle'), t('alerts.incorrectRangeMessage', { range: bird.range }),
+                    [{ text: t('common.ok') }]);
             }
         }
 
@@ -119,7 +123,9 @@ export default function BirdQuiz() {
                     ]
                 );
             } else {
-                Alert.alert(t('alerts.incorrectTitle'), t('alerts.incorrectStatusMessage', { status: correctAnswer }));
+                Alert.alert(t('alerts.incorrectTitle'), t('alerts.incorrectStatusMessage', { status: correctAnswer }),
+                    [{ text: t('common.ok') }]
+                );
             }
         }
         setIsAnswered(true);
@@ -134,12 +140,12 @@ export default function BirdQuiz() {
                 <LottieView
                     source={
                         score >= 2
-                            ? require('@/assets/quiz/success-animation.json')  
-                            : require('@/assets/quiz/failure-animation.json')  
+                            ? require('@/assets/quiz/success-animation.json')
+                            : require('@/assets/quiz/failure-animation.json')
                     }
                     autoPlay
-                    loop={false}
-                    style={{ width: 200, height: 200, marginBottom: 40 }}
+                    loop={true}
+                    style={{ width: 250, height: 250, marginTop: 40, marginBottom: 5 }}
                 />
                 <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 20 }}>
                     {t('results.title')}
@@ -149,11 +155,54 @@ export default function BirdQuiz() {
                         ? t('results.successMessage', { score })
                         : t('results.failureMessage')}
                 </Text>
+
+                {/* Restart */}
+                <TouchableOpacity
+                    onPress={() => {
+                        setQuestionIndex(1);
+                        setScore(0);
+                        setInput('');
+                        setSelectedAnswer(null);
+                        setIsAnswered(false);
+                        setCorrect(false);
+
+                        const birds = queryBirdDexPage('', 'english_name', true, 100, 1, 'all');
+                        const options: BirdDexRecord[] = [];
+
+                        const selectedNames = new Set<string>();
+                        const selectedImages = new Set<string>();
+
+                        while (options.length < 4 && selectedNames.size < birds.length) {
+                            const candidate = birds[Math.floor(Math.random() * birds.length)];
+                            const image = getBirdImageSource(candidate.scientific_name);
+
+                            if (
+                                image &&
+                                !selectedNames.has(candidate.scientific_name) &&
+                                !selectedImages.has(image.uri || image)
+                            ) {
+                                selectedNames.add(candidate.scientific_name);
+                                selectedImages.add(image.uri || image);
+                                options.push(candidate);
+                            }
+                        }
+
+                        if (options.length === 4) {
+                            const correct = options[Math.floor(Math.random() * options.length)];
+                            setOptions(options);
+                            setBird(correct);
+                        }
+                    }}
+                    style={{ marginBottom: 15 }}
+                >
+                    <Ionicons name="refresh-circle" size={52} color={colors.text.secondary} />
+                </TouchableOpacity>
                 <Button
                     title={t('buttons.backToHome')}
-                    onPress={() => router.push('/')}
+                    onPress={() => router.replace('/birdex')}
                     variant="primary"
                 />
+
             </View>
         );
     }
@@ -168,6 +217,13 @@ export default function BirdQuiz() {
                 contentContainerStyle={styles.container}
                 keyboardShouldPersistTaps="handled"
             >
+                <View style={{ width: '90%', alignItems: 'flex-end', marginTop: 10 }}>
+                    <Text style={{ fontSize: 16, color: colors.text.secondary }}>
+                        {questionIndex}/{totalQuestions}
+                    </Text>
+                </View>
+
+
                 {(questionIndex === 2 || questionIndex === 3) && (
                     <Image
                         source={getBirdImageSource(bird.scientific_name)}
@@ -235,7 +291,10 @@ export default function BirdQuiz() {
                                                     : t('alerts.incorrectMessageWithGuess', {
                                                         correctName: bird.english_name,
                                                         guessName: option.english_name || option.de_name || option.scientific_name
-                                                    })
+                                                    }),
+                                                [
+                                                    { text: t('common.ok') }
+                                                ]
                                             );
 
                                         }}
