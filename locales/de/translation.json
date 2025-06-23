@@ -187,12 +187,12 @@
       "title": "App-Tutorial",
       "subtitle": "Lernen Sie, wie Sie LogChirpy effektiv nutzen",
       "how_to_use": {
-        "title":  "So startest du mit LogChirpy",
+        "title": "So startest du mit LogChirpy",
         "description": "Unten siehst du verschiedene Symbole – jedes steht für eine bestimmte Funktion. Auf der Startseite findest du Buttons, die die Hauptfunktionen der App darstellen. In den nächsten Schritten erklären wir dir die wichtigsten Funktionen Schritt für Schritt."
       },
       "image_processing": {
         "title": "So funktioniert die Kamera-Erkennung",
-        "description": "Schritt 1: Tippe auf das Kamerasymbol auf der Startseite. \n\n Schritt 2: Halte dein Gerät ruhig auf den Vogel. Vorausgesetzt, die App hat Zugriff auf die Kamera, kannst du dann ein Bild aufnehmen. Die KI erkennt automatisch die Vogelart.\n\n Schritt 3: Das Bild wird in der App gespeichert und kann anschließend in die Galerie übernommen werden – sofern du der App den Zugriff auf deine Galerie erlaubst. Du kannst dieses Bild über den „Manuell“-Button auf der Startseite einer Beobachtung hinzufügen."
+        "description": "Schritt 1: Tippe auf das Kamerasymbol auf der Startseite. \nSchritt 2: Halte dein Gerät ruhig auf den Vogel. Vorausgesetzt, die App hat Zugriff auf die Kamera, kannst du dann ein Bild aufnehmen. Die KI erkennt automatisch die Vogelart.\nSchritt 3: Das Bild wird in der App gespeichert und kann anschließend in die Galerie übernommen werden – sofern du der App den Zugriff auf deine Galerie erlaubst. Du kannst dieses Bild über den „Manuell“-Button auf der Startseite einer Beobachtung hinzufügen."
       },
       "ai_models": {
         "title": "Wie KI-Modelle funktionieren",
@@ -200,11 +200,11 @@
       },
       "data_privacy": {
         "title": "Firebase & Datenschutz",
-        "description": "Ihre Vogelbeobachtungsprotokolle werden sicher in Firebase Firestore mit Ende-zu-Ende-Verschlüsselung gespeichert. Nur wesentliche Daten wie Vogelart, Standort (falls aktiviert), Datum und Notizen werden synchronisiert. Die Authentifizierung wird sicher über Firebase Auth abgewickelt. Keine persönlichen Bilder oder Audioaufnahmen werden zu Firebase hochgeladen - sie bleiben auf Ihrem Gerät."
+        "description": "Deine Vogelbeobachtungen werden sicher gespeichert – nur das Nötigste wird synchronisiert: Vogelart, Datum, Standort (falls aktiviert) und Notizen. Bilder und Audioaufnahmen bleiben immer auf deinem Gerät. Auch die Anmeldung ist geschützt – sie läuft über Firebase Auth. Du behältst die volle Kontrolle über deine Daten"
       },
-      "audio_recording": "Man kann Audio aufnehmen, indem man auf das Mikrofon klickt. Wenn man die Aufnahme erneut anhören möchte, kann man das tun oder sie erneut aufnehmen und anschließend manuell speichern.",
+      "audio_recording": "1.Tippe auf das Mikrofonsymbol auf der Startseite, um den Gesang aufzunehmen.\n2. Halte das Gerät ruhig in Richtung des Vogelgeräuschs.\n3. Du kannst die Aufnahme anhören oder erneut aufnehmen.\n4. Speichere sie manuell als Beobachtung oder nutze die KI zur Erkennung.",
       "record_audio": "Audio aufnehmen",
-      "manual_entry_description": "Sie können manuell Ihre Vogelbeobachtung eingeben: Geben Sie den Vogeltyp, Datum und Standort an, fügen Sie Notizen hinzu und laden Sie Fotos, Videos oder Audioaufnahmen hoch. Sie können auch eine automatische KI-basierte Vogelidentifikation über Ihre Audioaufnahme nutzen.",
+      "manual_entry_description": "1. Öffne die Startseite. 2. Tippe auf „Manuell“. 3. Gib Name, Ort und Datum ein. 4. Optional: Füge ein Foto, eine Audioaufnahme, den Standort oder Notizen hinzu. 5. Tippe auf „Speichern“. In deinem Archiv kannst du deine Beobachtung jederzeit aufrufen.",
       "manual_entry": "Eigene Vogelbeobachtungen eingeben",
       "tutorial_welcome_title": "Willkommen bei LogChirpy",
       "tutorial_welcome_description": "Entdecke, bestimme und protokolliere Vögel mit KI-gestützten Tools – sogar offline!"

@@ -314,7 +314,7 @@
       },
       "image_processing": {
         "title": "Comment fonctionne la détection par caméra",
-        "description": "Étape 1 : Appuie sur l’icône de la caméra sur l’écran d’accueil.\n\nÉtape 2 : Tiens ton appareil fermement en direction de l’oiseau. Si l’application a accès à la caméra, tu peux prendre une photo. L’IA identifiera automatiquement l’espèce de l’oiseau.\n\nÉtape 3 : La photo sera enregistrée dans l’application et pourra ensuite être ajoutée à la galerie — si tu autorises l’accès. Tu peux l’ajouter manuellement à une observation via le bouton « Manuel » sur l’écran d’accueil."
+        "description": "Étape 1 : Appuie sur l’icône de la caméra sur l’écran d’accueil.\nÉtape 2 : Tiens ton appareil fermement en direction de l’oiseau. Si l’application a accès à la caméra, tu peux prendre une photo. L’IA identifiera automatiquement l’espèce de l’oiseau.\nÉtape 3 : La photo sera enregistrée dans l’application et pourra ensuite être ajoutée à la galerie — si tu autorises l’accès. Tu peux l’ajouter manuellement à une observation via le bouton « Manuel » sur l’écran d’accueil."
       },
       "ai_models": {
         "title": "Fonctionnement des modèles IA",
@@ -322,7 +322,7 @@
       },
       "data_privacy": {
         "title": "Firebase et confidentialité des données",
-        "description": "Vos journaux d'observations d'oiseaux sont stockés de manière sécurisée dans Firebase Firestore avec chiffrement de bout en bout. Seules les données essentielles comme le type d'oiseau, la localisation (si activée), la date et les notes sont synchronisées. L'authentification est gérée de manière sécurisée via Firebase Auth. Aucune image personnelle ou enregistrement audio n'est envoyé vers Firebase - ils restent sur votre appareil."
+        "description": "Tes observations d’oiseaux sont stockées en toute sécurité – seules les données essentielles sont synchronisées : espèce, date, localisation (si activée) et notes. Les photos et les enregistrements audio restent toujours sur ton appareil. La connexion est également sécurisée via Firebase Auth. Tu gardes le contrôle total de tes données."
       },
       "adjust_bird_detection": "Ajuster les paramètres de détection des oiseaux",
       "camera_ai_settings": "Paramètres IA de la caméra",
@@ -338,9 +338,9 @@
       "language_setting_description": "Choisissez votre langue préférée pour l'interface de l'app",
       "tutorial_welcome_title": "Bienvenue sur LogChirpy",
       "tutorial_welcome_description": "Découvrez, identifiez et enregistrez les oiseaux grâce à des outils basés sur l'IA – même hors ligne !",
-      "audio_recording": "Vous pouvez enregistrer de l’audio en appuyant sur le microphone. Si vous souhaitez réécouter l’enregistrement, vous pouvez le faire ou le réenregistrer puis le sauvegarder manuellement.",
+      "audio_recording": "1. Appuie sur l’icône du micro sur l’écran d’accueil pour enregistrer le chant de l’oiseau.\n2. Tiens l’appareil immobile en direction du son.\n3. Tu peux écouter l’enregistrement ou le refaire.\n4. Enregistre-le manuellement comme observation ou utilise l’IA pour l’identifier.",
       "record_audio": "Enregistrer l’audio",
-      "manual_entry_description": "Vous pouvez saisir manuellement votre observation d'oiseau : indiquez le type d'oiseau, la date et le lieu, ajoutez des notes et téléchargez des photos, des vidéos ou des enregistrements audio. Vous pouvez également utiliser l'identification automatique des oiseaux basée sur l'IA via votre enregistrement audio.",
+      "manual_entry_description": "1. Ouvre l'écran d'accueil. 2. Appuie sur « Manuel ». 3. Saisis le nom, le lieu et la date. 4. Optionnel : Ajoute une photo, un enregistrement audio, l'emplacement ou des notes. 5. Appuie sur « Enregistrer ». Tu peux consulter ton observation à tout moment dans tes archives.",
       "manual_entry": "Saisissez vos propres observations d’oiseaux"
     },
     "about": {

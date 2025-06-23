@@ -385,7 +385,7 @@
       },
       "image_processing": {
         "title": "How Camera Detection Works",
-        "description": "Step 1: Tap the camera icon on the home screen.\n\nStep 2: Hold your device steady towards the bird. If the app has access to the camera, you can take a picture. The AI will automatically identify the bird species.\n\nStep 3: The picture will be saved in the app and can then be added to the gallery — if you allow the app to access it. You can add the picture to an observation manually via the 'Manual' button on the home screen."
+        "description": "Step 1: Tap the camera icon on the home screen.\nStep 2: Hold your device steady towards the bird. If the app has access to the camera, you can take a picture. The AI will automatically identify the bird species.\nStep 3: The picture will be saved in the app and can then be added to the gallery — if you allow the app to access it. You can add the picture to an observation manually via the 'Manual' button on the home screen."
       },
       "ai_models": {
         "title": "AI Models",
@@ -393,7 +393,7 @@
       },
       "data_privacy": {
         "title": "Privacy",
-        "description": "Your bird sighting logs are securely stored in Firebase Firestore with end-to-end encryption. Only essential data such as bird species, location (if enabled), date, and notes are synchronized. Authentication is securely handled through Firebase Auth. No personal images or audio recordings are uploaded to Firebase—they remain on your device."
+        "description": "Your bird observations are stored securely – only essential data is synchronized: species, date, location (if enabled), and notes. Photos and audio recordings always stay on your device. Your login is also protected – it runs via Firebase Auth. You stay in full control of your data."
       },
       "adjust_detection_settings": "Adjust bird detection settings",
       "camera_ai_settings": "Camera AI Settings",
@@ -409,9 +409,9 @@
       "language_setting_description": "Choose your preferred language for the app interface",
       "tutorial_welcome_title": "Welcome to LogChirpy",
       "tutorial_welcome_description": "Discover, identify, and log birds using AI-powered tools – even offline!",
-      "audio_recording": "You can record audio by tapping on the microphone. If you want to listen to the recording again, you can do so or record it again and then save it manually.",
+      "audio_recording": "1. Tap the microphone icon on the home screen to start recording the bird sound.\n2. Hold the device steady towards the bird sound.\n3. You can listen to the recording or re-record it.\n4. Save it manually as an observation or use the AI for identification.",
       "record_audio": "Record Audio",
-      "manual_entry_description": "You can manually enter your bird sighting: specify the bird type, date, and location, add notes, and upload photos, videos, or audio recordings. You can also use automatic AI-based bird identification through your audio recording.",
+      "manual_entry_description": "1. Open the home screen. 2. Tap on “Manual”. 3. Enter the name, location, and date. 4. Optional: Add a photo, audio recording, location, or notes. 5. Tap “Save”. You can access your observation anytime in your archive.",
       "manual_entry": "Enter your own bird sightings"
     },
     "about": {

@@ -187,7 +187,7 @@
       },
       "image_processing": {
         "title": "Cómo funciona la detección por cámara",
-        "description": "Paso 1: Toca el icono de la cámara en la pantalla principal.\n\nPaso 2: Mantén el dispositivo enfocado en el ave. Si la app tiene acceso a la cámara, podrás tomar una foto. La IA identificará automáticamente la especie del ave.\n\nPaso 3: La imagen se guardará en la app y se podrá agregar a la galería si permites el acceso. Puedes añadir esta imagen a una observación manual desde el botón 'Manual' en la pantalla principal."
+        "description": "Paso 1: Toca el icono de la cámara en la pantalla principal.\nPaso 2: Mantén el dispositivo enfocado en el ave. Si la app tiene acceso a la cámara, podrás tomar una foto. La IA identificará automáticamente la especie del ave.\nPaso 3: La imagen se guardará en la app y se podrá agregar a la galería si permites el acceso. Puedes añadir esta imagen a una observación manual desde el botón 'Manual' en la pantalla principal."
       },
       "ai_models": {
         "title": "Cómo funcionan los modelos de IA",
@@ -195,7 +195,7 @@
       },
       "data_privacy": {
         "title": "Firebase y Privacidad de Datos",
-        "description": "Tus registros de avistamientos de aves se almacenan de forma segura en Firebase Firestore con cifrado de extremo a extremo. Solo se sincronizan datos esenciales como tipo de ave, ubicación (si está habilitada), fecha y notas. La autenticación se maneja de forma segura a través de Firebase Auth. Ninguna imagen personal o grabación de audio se sube a Firebase - permanecen en tu dispositivo."
+        "description": "Tus observaciones de aves se guardan de forma segura: solo se sincronizan los datos esenciales como la especie, la fecha, la ubicación (si está activada) y las notas. Las fotos y grabaciones de audio permanecen siempre en tu dispositivo. El inicio de sesión también está protegido a través de Firebase Auth. Tú mantienes el control total sobre tus datos."
       },
       "adjust_bird_detection": "Ajustar la configuración de detección de aves",
       "camera_ai_settings": "Configuración de IA de cámara",
@@ -211,9 +211,9 @@
       "language_setting_description": "Elige tu idioma preferido para la interfaz de la aplicación",
       "tutorial_welcome_title": "Bienvenido a LogChirpy",
       "tutorial_welcome_description": "Descubre, identifica y registra aves con herramientas impulsadas por IA, ¡incluso sin conexión!",
-      "audio_recording": "Puedes grabar audio tocando el micrófono. Si quieres escuchar la grabación nuevamente, puedes hacerlo o grabarla otra vez y luego guardarla manualmente.",
+      "audio_recording": "1. Toca el ícono del micrófono en la pantalla de inicio para grabar el canto del ave.\n2. Mantén el dispositivo quieto apuntando hacia el sonido del ave.\n3. Puedes escuchar la grabación o volver a grabarla.\n4. Guárdala manualmente como observación o utiliza la IA para identificarla.",
       "record_audio": "Grabar audio",
-      "manual_entry_description": "Puede ingresar manualmente su avistamiento de aves: especifique el tipo de ave, la fecha y la ubicación, agregue notas y cargue fotos, videos o grabaciones de audio. También puede utilizar la identificación automática de aves basada en IA a través de su grabación de audio.",
+      "manual_entry_description": "1. Abre la pantalla de inicio. 2. Toca en “Manual”. 3. Ingresa el nombre, la ubicación y la fecha. 4. Opcional: Añade una foto, una grabación de audio, la ubicación o notas. 5. Toca en “Guardar”. Puedes acceder a tu observación en cualquier momento desde tu archivo.",
       "manual_entry": "Ingrese sus propias observaciones de aves"
     },
     "about": {
