@@ -75,6 +75,27 @@ export default function TutorialScreen() {
 
                 },
                 {
+                    backgroundColor: '#f0f0f0',
+                    image: (
+                        <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
+                            <LottieView
+                                source={require('@/assets/tutorial/AI-animation.json')}
+                                autoPlay
+                                loop
+                                style={{ width: 200, height: 200 }}
+                            />
+                            <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                {t("settings.tutorial.image_processing_ai.title")}
+                            </ThemedText>
+                            <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                {t("settings.tutorial.image_processing_ai.description")}
+                            </ThemedText>
+                        </View>
+                    ),
+                    title: '',
+                    subtitle: '',
+                },
+                {
                     backgroundColor: '#fff',
                     image: (
                         <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
@@ -160,26 +181,27 @@ export default function TutorialScreen() {
                     subtitle: '',
                 },
                 {
-                    backgroundColor: '#f0f0f0',
+                    backgroundColor: '#fff',
                     image: (
                         <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
                             <LottieView
-                                source={require('@/assets/tutorial/AI-animation.json')}
+                                source={require('@/assets/tutorial/login-animation.json')} 
                                 autoPlay
                                 loop
-                                style={{ width: 200, height: 200 }}
+                                style={{ width: 220, height: 220 }}
                             />
                             <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                {t("settings.tutorial.ai_models.title")}
+                                {t("settings.tutorial.login.title")}
                             </ThemedText>
                             <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                {t("settings.tutorial.ai_models.description")}
+                                {t("settings.tutorial.login.description")}
                             </ThemedText>
                         </View>
                     ),
                     title: '',
                     subtitle: '',
-                }
+                },
+
             ]}
         />
     );

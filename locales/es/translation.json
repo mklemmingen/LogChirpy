@@ -188,11 +188,15 @@
       },
       "image_processing": {
         "title": "Cómo funciona la detección por cámara",
-        "description": "Paso 1: Toca el icono de la cámara en la pantalla principal.\nPaso 2: Mantén el dispositivo enfocado en el ave. Si la app tiene acceso a la cámara, podrás tomar una foto. La IA identificará automáticamente la especie del ave.\nPaso 3: La imagen se guardará en la app y se podrá agregar a la galería si permites el acceso. Puedes añadir esta imagen a una observación manual desde el botón 'Manual' en la pantalla principal."
+        "description": "1: Toca el icono de la cámara en la pantalla principal.\n2: Mantén el dispositivo enfocado en el ave. Si la app tiene acceso a la cámara, podrás tomar una foto. La IA identificará automáticamente la especie del ave.\n3: La imagen se guardará en la app y se podrá agregar a la galería si permites el acceso. Puedes añadir esta imagen a una observación manual desde el botón 'Manual' en la pantalla principal."
       },
       "ai_models": {
         "title": "Cómo funcionan los modelos de IA",
-        "description": "LogChirpy utiliza modelos de aprendizaje automático en el dispositivo (TensorFlow Lite) para detección y clasificación de aves en tiempo real. Los modelos se ejecutan completamente en tu dispositivo, garantizando privacidad y funcionalidad sin conexión. La app incluye modelos de detección de objetos y clasificación de imágenes optimizados para rendimiento móvil."
+        "description": "LogChirpy utiliza modelos de aprendizaje automático en el dispositivo (TensorFlow Lite) para la detección y clasificación de aves en tiempo real. Los modelos se ejecutan completamente en tu dispositivo, garantizando la privacidad y la funcionalidad sin conexión. La aplicación incluye modelos de detección de objetos y clasificación de imágenes optimizados para el rendimiento móvil."
+      },
+      "image_processing_ai": {
+        "title": "Cómo funciona la cámara con IA",
+        "description": "La cámara inteligente detecta aves automáticamente mientras apuntas tu dispositivo hacia ellas. Las marcas de colores indican las especies reconocidas en la imagen. Además, la cámara puede analizar cantos de aves a través del micrófono. Activa el acceso a la cámara y al micrófono. Los datos de ubicación ayudan a la IA a ofrecer resultados más precisos. Esta función es ideal para observaciones en vivo en la naturaleza."
       },
       "data_privacy": {
         "title": "Firebase y Privacidad de Datos",
@@ -214,8 +218,12 @@
       "tutorial_welcome_description": "Descubre, identifica y registra aves con herramientas impulsadas por IA, ¡incluso sin conexión!",
       "audio_recording": "1. Toca el ícono del micrófono en la pantalla de inicio para grabar el canto del ave.\n2. Mantén el dispositivo quieto apuntando hacia el sonido del ave.\n3. Puedes escuchar la grabación o volver a grabarla.\n4. Guárdala manualmente como observación o utiliza la IA para identificarla.",
       "record_audio": "Grabar audio",
-      "manual_entry_description": "1. Abre la pantalla de inicio. 2. Toca en “Manual”. 3. Ingresa el nombre, la ubicación y la fecha. 4. Opcional: Añade una foto, una grabación de audio, la ubicación o notas. 5. Toca en “Guardar”. Puedes acceder a tu observación en cualquier momento desde tu archivo.",
-      "manual_entry": "Ingrese sus propias observaciones de aves"
+      "manual_entry_description": "Abre la pantalla de inicio. Toca en “Manual”. Ingresa el nombre, la ubicación y la fecha. Opcional: Añade una foto, una grabación de audio, la ubicación o notas. Toca en “Guardar”. Puedes acceder a tu observación en cualquier momento desde tu archivo.",
+      "manual_entry": "Ingrese sus propias observaciones de aves",
+      "login": {
+        "title": "Iniciar sesión y cuenta",
+        "description": "Pulsa el icono de persona en la parte inferior de la página de inicio. Introduce tu correo electrónico y contraseña si ya tienes una cuenta. Si no, pulsa 'Registrarse' en la misma página. Si olvidaste tu contraseña, pulsa '¿Olvidaste tu contraseña?' e introduce tu correo electrónico para recibir un enlace de restablecimiento."
+      }
     },
     "about": {
       "title": "Acerca de LogChirpy",

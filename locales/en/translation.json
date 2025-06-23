@@ -386,11 +386,15 @@
       },
       "image_processing": {
         "title": "How Camera Detection Works",
-        "description": "Step 1: Tap the camera icon on the home screen.\nStep 2: Hold your device steady towards the bird. If the app has access to the camera, you can take a picture. The AI will automatically identify the bird species.\nStep 3: The picture will be saved in the app and can then be added to the gallery — if you allow the app to access it. You can add the picture to an observation manually via the 'Manual' button on the home screen."
+        "description": "1: Tap the camera icon on the home screen.\n2: Hold your device steady towards the bird. If the app has access to the camera, you can take a picture. The AI will automatically identify the bird species.\n3: The picture will be saved in the app and can then be added to the gallery — if you allow the app to access it. You can add the picture to an observation manually via the 'Manual' button on the home screen."
       },
       "ai_models": {
         "title": "AI Models",
-        "description": "On-device ML for privacy. Real-time detection and classification. Fully offline."
+        "description": "LogChirpy uses on-device machine learning models (TensorFlow Lite) for real-time bird detection and classification. Models run entirely on your device, ensuring privacy and offline functionality. The app includes both object detection and image classification models optimized for mobile performance."
+      },
+      "image_processing_ai": {
+        "title": "How the AI Camera Works",
+        "description": "The intelligent camera automatically detects birds while you point your device at them. Colored markings show recognized species in the image. Additionally, the camera can analyze bird sounds via the microphone. Enable camera and microphone access for this. Location data helps the AI deliver more accurate results. This feature is ideal for live observations in nature."
       },
       "data_privacy": {
         "title": "Privacy",
@@ -412,8 +416,12 @@
       "tutorial_welcome_description": "Discover, identify, and log birds using AI-powered tools – even offline!",
       "audio_recording": "1. Tap the microphone icon on the home screen to start recording the bird sound.\n2. Hold the device steady towards the bird sound.\n3. You can listen to the recording or re-record it.\n4. Save it manually as an observation or use the AI for identification.",
       "record_audio": "Record Audio",
-      "manual_entry_description": "1. Open the home screen. 2. Tap on “Manual”. 3. Enter the name, location, and date. 4. Optional: Add a photo, audio recording, location, or notes. 5. Tap “Save”. You can access your observation anytime in your archive.",
-      "manual_entry": "Enter your own bird sightings"
+      "manual_entry_description": "Open the home screen. Tap on “Manual”. Enter the name, location, and date. Optional: Add a photo, audio recording, location, or notes. Tap “Save”. You can access your observation anytime in your archive.",
+      "manual_entry": "Enter your own bird sightings",
+      "login": {
+        "title": "Login & Account",
+        "description": "Tap the person icon at the bottom of the home screen. Enter your email address and password if you already have an account. If not, tap 'Register' at the bottom of the same page. If you forgot your password, tap 'Forgot Password' and enter your email address to receive a reset link."
+      }
     },
     "about": {
       "title": "About LogChirpy",

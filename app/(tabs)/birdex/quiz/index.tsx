@@ -145,7 +145,7 @@ export default function BirdQuiz() {
                     }
                     autoPlay
                     loop={true}
-                    style={{ width: 250, height: 250, marginTop: 40, marginBottom: 5 }}
+                    style={{ width: 200, height: 200, marginTop: 40, marginBottom: 5 }}
                 />
                 <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 20 }}>
                     {t('results.title')}

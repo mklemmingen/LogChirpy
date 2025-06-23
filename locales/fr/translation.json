@@ -315,11 +315,15 @@
       },
       "image_processing": {
         "title": "Comment fonctionne la détection par caméra",
-        "description": "Étape 1 : Appuie sur l’icône de la caméra sur l’écran d’accueil.\nÉtape 2 : Tiens ton appareil fermement en direction de l’oiseau. Si l’application a accès à la caméra, tu peux prendre une photo. L’IA identifiera automatiquement l’espèce de l’oiseau.\nÉtape 3 : La photo sera enregistrée dans l’application et pourra ensuite être ajoutée à la galerie — si tu autorises l’accès. Tu peux l’ajouter manuellement à une observation via le bouton « Manuel » sur l’écran d’accueil."
+        "description": "1 : Appuie sur l’icône de la caméra sur l’écran d’accueil.\n2 : Tiens ton appareil fermement en direction de l’oiseau. Si l’application a accès à la caméra, tu peux prendre une photo. L’IA identifiera automatiquement l’espèce de l’oiseau.\n3 : La photo sera enregistrée dans l’application et pourra ensuite être ajoutée à la galerie — si tu autorises l’accès. Tu peux l’ajouter manuellement à une observation via le bouton « Manuel » sur l’écran d’accueil."
       },
       "ai_models": {
         "title": "Fonctionnement des modèles IA",
-        "description": "LogChirpy utilise des modèles d'apprentissage automatique sur appareil (TensorFlow Lite) pour la détection et classification d'oiseaux en temps réel. Les modèles s'exécutent entièrement sur votre appareil, garantissant la confidentialité et permettant un fonctionnement hors ligne. L'application inclut des modèles de détection d'objets et de classification d'images optimisés pour les performances mobiles."
+        "description": "LogChirpy utilise des modèles d'apprentissage automatique embarqués (TensorFlow Lite) pour la détection et la classification des oiseaux en temps réel. Les modèles fonctionnent entièrement sur votre appareil, garantissant la confidentialité et une utilisation hors ligne. L'application inclut des modèles de détection d'objets et de classification d'images optimisés pour les performances mobiles."
+      },
+      "image_processing_ai": {
+        "title": "Comment fonctionne la caméra IA",
+        "description": "La caméra intelligente détecte automatiquement les oiseaux lorsque vous dirigez votre appareil vers eux. Des marquages colorés indiquent les espèces reconnues dans l’image. La caméra peut également analyser les chants d’oiseaux via le microphone. Activez l’accès à la caméra et au micro. Les données de localisation aident l'IA à fournir des résultats plus précis. Cette fonction est idéale pour les observations en direct dans la nature."
       },
       "data_privacy": {
         "title": "Firebase et confidentialité des données",
@@ -341,8 +345,12 @@
       "tutorial_welcome_description": "Découvrez, identifiez et enregistrez les oiseaux grâce à des outils basés sur l'IA – même hors ligne !",
       "audio_recording": "1. Appuie sur l’icône du micro sur l’écran d’accueil pour enregistrer le chant de l’oiseau.\n2. Tiens l’appareil immobile en direction du son.\n3. Tu peux écouter l’enregistrement ou le refaire.\n4. Enregistre-le manuellement comme observation ou utilise l’IA pour l’identifier.",
       "record_audio": "Enregistrer l’audio",
-      "manual_entry_description": "1. Ouvre l'écran d'accueil. 2. Appuie sur « Manuel ». 3. Saisis le nom, le lieu et la date. 4. Optionnel : Ajoute une photo, un enregistrement audio, l'emplacement ou des notes. 5. Appuie sur « Enregistrer ». Tu peux consulter ton observation à tout moment dans tes archives.",
-      "manual_entry": "Saisissez vos propres observations d’oiseaux"
+      "manual_entry_description": "Ouvre l'écran d'accueil. Appuie sur « Manuel ». Saisis le nom, le lieu et la date. Optionnel : Ajoute une photo, un enregistrement audio, l'emplacement ou des notes. Appuie sur « Enregistrer ». Tu peux consulter ton observation à tout moment dans tes archives.",
+      "manual_entry": "Saisissez vos propres observations d’oiseaux",
+      "login": {
+        "title": "Connexion & Compte utilisateur",
+        "description": "Appuie sur l'icône de profil en bas de la page d'accueil. Saisis ton adresse e-mail et ton mot de passe si tu as déjà un compte. Sinon, clique sur 'S’inscrire' en bas de la même page. Si tu as oublié ton mot de passe, clique sur 'Mot de passe oublié' et entre ton adresse e-mail pour recevoir un lien de réinitialisation."
+      }
     },
     "about": {
       "title": "À propos de LogChirpy",
