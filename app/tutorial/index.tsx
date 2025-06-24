@@ -9,11 +9,18 @@ import { Card } from '@/components/ThemedView'
 import LottieView from 'lottie-react-native';
 import { useNavigation } from 'expo-router';
 import { useEffect } from 'react';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { Video as VideoType } from 'expo-av';
+import { TouchableOpacity, Text } from 'react-native';
+import { useRef, useState } from 'react';
 
 export default function TutorialScreen() {
     const router = useRouter();
     const navigation = useNavigation();
     const { t } = useTranslation();
+    const videoRef = useRef<VideoType>(null);;
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [videoLoaded, setVideoLoaded] = useState(false);
 
     useEffect(() => {
         navigation.setOptions({
@@ -31,23 +38,61 @@ export default function TutorialScreen() {
             nextLabel={t("common.next")}
             pages={[
                 {
-
                     backgroundColor: '#fff',
                     image: (
                         <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
-                            <LottieView
-                                source={require('@/assets/tutorial/willkommen-animation.json')}
-                                autoPlay
-                                loop
-                                style={{ width: 300, height: 300, alignSelf: 'center' }}
-                            />
-                            <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                {t("settings.tutorial.tutorial_welcome_title")}
-                            </ThemedText>
-                            <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                {t("settings.tutorial.tutorial_welcome_description")}
-                            </ThemedText>
-                        </View>
+                            <View style={{ position: 'relative', width: 560, height: 340 }}>
+                                <Video
+                                    ref={videoRef}
+                                    source={require('@/assets/tutorial/Video/intro-fixed.mp4')}
+                                    resizeMode={ResizeMode.CONTAIN}
+                                    isLooping={false}
+                                    onLoad={() => setVideoLoaded(true)}
+                                    useNativeControls={false}
+                                    onPlaybackStatusUpdate={(status) => {
+                                        if ('didJustFinish' in status && status.didJustFinish) {
+                                            setIsPlaying(false);
+                                        }
+                                    }}
+                                    onError={(error) => {
+                                        console.error('Video error:', error);
+                                        setVideoLoaded(false);
+                                    }}
+                                    style={{ width: 300, height: 200, alignSelf: 'center' }}
+                                />{!isPlaying && (
+                                    <TouchableOpacity
+                                        onPress={async () => {
+                                            if (videoRef.current) {
+                                                const status = await videoRef.current.getStatusAsync();
+                                                if ('isLoaded' in status && status.isLoaded) {
+                                                    if (status.isPlaying) {
+                                                        await videoRef.current.pauseAsync();
+                                                        setIsPlaying(false);
+                                                    } else {
+                                                        await videoRef.current.playAsync();
+                                                        setIsPlaying(true);
+                                                    }
+                                                }
+                                            }
+                                        }}
+                                        style={{
+                                            position: 'absolute',
+                                            top: '40%',
+                                            left: '45%',
+                                            backgroundColor: 'rgba(0,0,0,0.4)',
+                                            borderRadius: 30,
+                                            padding: 10,
+                                        }}
+                                    >
+                                        <Text style={{ color: 'white', fontSize: 20 }}>
+                                            {isPlaying ? '⏸' : '▶'}
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                )}
+
+                            </View>
+                        </View >
                     ),
                     title: '',
                     subtitle: '',
@@ -185,7 +230,7 @@ export default function TutorialScreen() {
                     image: (
                         <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
                             <LottieView
-                                source={require('@/assets/tutorial/login-animation.json')} 
+                                source={require('@/assets/tutorial/login-animation.json')}
                                 autoPlay
                                 loop
                                 style={{ width: 220, height: 220 }}
@@ -212,4 +257,10 @@ const styles = StyleSheet.create({
     tutorialContent: { padding: 20, gap: 16 },
     tutorialSectionTitle: { fontWeight: '600', marginBottom: 10 },
     tutorialText: { lineHeight: 20 },
+    subtitle: {
+        textAlign: 'center',
+        marginBottom: 5,
+        fontSize: 14,
+        color: '#333',
+    },
 });

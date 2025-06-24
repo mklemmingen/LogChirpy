@@ -386,7 +386,7 @@
       },
       "image_processing": {
         "title": "How Camera Detection Works",
-        "description": "1: Tap the camera icon on the home screen.\n2: Hold your device steady towards the bird. If the app has access to the camera, you can take a picture. The AI will automatically identify the bird species.\n3: The picture will be saved in the app and can then be added to the gallery — if you allow the app to access it. You can add the picture to an observation manually via the 'Manual' button on the home screen."
+        "description": "Tap the camera icon on the home screen.\nHold your device steady towards the bird. If the app has access to the camera, you can take a picture. The AI will automatically identify the bird species.\nThe picture will be saved in the app and can then be added to the gallery — if you allow the app to access it. You can add the picture to an observation manually via the 'Manual' button on the home screen."
       },
       "ai_models": {
         "title": "AI Models",

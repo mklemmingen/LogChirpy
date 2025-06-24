@@ -236,6 +236,14 @@
     "gps_location_logging": "GPS-Standortprotokollierung",
     "language_setting_description": "Wähle deine bevorzugte Sprache für die App-Oberfläche"
   },
+  "intro": {
+    "line1": "Hast du schon einmal einen Vogel gesehen...",
+    "line2": "...und dich gefragt, um welche Art es sich handelt?",
+    "line3": "Eine Studentengruppe der Hochschule Reutlingen hat eine App entwickelt,",
+    "line4": "die dir hilft, Vögel per Foto oder Ton zu identifizieren – sogar offline.",
+    "line5": "Die App unterstützt 6 Sprachen – wechsle zu deiner und probiere sie aus!",
+    "line6": "Du kannst deine Beobachtungen im Archiv speichern und jederzeit darauf zugreifen."
+  },
   "audio": {
     "start": "Aufnahme starten",
     "stop": "Stopp & verwenden",

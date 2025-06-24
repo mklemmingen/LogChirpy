@@ -232,6 +232,14 @@
       "created_by": "Creado por"
     }
   },
+  "intro": {
+    "line1": "¿Alguna vez has visto un ave...",
+    "line2": "...y te has preguntado de qué especie se trata?",
+    "line3": "Un grupo de estudiantes de la Universidad de Reutlingen ha desarrollado una app para ayudarte a",
+    "line4": "identificar aves mediante fotos o sonidos – incluso sin conexión.",
+    "line5": "¡La app admite 6 idiomas – cambia al tuyo y pruébala!",
+    "line6": "Puedes guardar tus avistamientos en el archivo y acceder a ellos en cualquier momento."
+  },
   "audio": {
     "start": "Iniciar grabación",
     "stop": "Detener y usar grabación",
