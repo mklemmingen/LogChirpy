@@ -290,8 +290,9 @@ LogChirpy uses React Context for application-wide state management, providing cl
     \item \textbf{Multi-Language Support:} State management for cross-language searches
 \end{itemize}
 
-\textbf{Cloud Synchronization Architecture (Firebase):}
+\section{Cloud Architecture and Synchronization}
 
+\textbf{Firebase Integration (\texttt{services/sync\_layer.ts}):}
 \begin{itemize}
     \item \textbf{Firestore Collections:}
     \begin{itemize}
@@ -299,166 +300,158 @@ LogChirpy uses React Context for application-wide state management, providing cl
         \item \texttt{observations} - Bird observations with comprehensive metadata
         \item \texttt{media} - References to Firebase Storage media files
     \end{itemize}
-    \item \textbf{Firebase Storage:} Binary storage for image and audio files
-    \item \textbf{Synchronization Strategy:} Offline-first architecture with optional cloud synchronization
+    \item \textbf{Firebase Storage:} Binary storage for captured images, audio, and video
+    \item \textbf{Offline-First Strategy:} Local SQLite as primary, cloud as optional backup
+    \item \textbf{Selective Sync:} User-controlled synchronization preferences
 \end{itemize}
 
-\section{User Interface Architecture}
+\section{User Interface and Component Architecture}
 
-\textbf{Design System Implementation:}
+\textbf{Themed Component System (\texttt{components/}):}
+
+LogChirpy implements a comprehensive design system ensuring consistent user experience across all interfaces:
 
 \begin{itemize}
-    \item \textbf{Theming Architecture:} Dynamic dark/light mode switching with consistent visual hierarchy
-    \item \textbf{Component Library:} Reusable UI components following established design patterns and guidelines
-    \item \textbf{Navigation Framework:} Tab-based primary navigation with stack navigation for detailed views
-    \item \textbf{User Feedback Systems:} Haptic feedback integration and audio cues for enhanced user interaction
+    \item \textbf{ThemedView.tsx:} Base container component with background variants
+    \item \textbf{ThemedText.tsx:} Typography system with semantic color integration
+    \item \textbf{ThemedPressable.tsx:} Interactive elements with haptic feedback
+    \item \textbf{BackButton.tsx:} Consistent navigation with multiple variants
+    \item \textbf{Audio Components:} Specialized components for audio interface elements
 \end{itemize}
 
-\textbf{Cyberpunk Interface Design (ObjectDetectCamera):}
+\textbf{Real-Time ML Interface (\texttt{app/log/objectIdentCamera.tsx}):}
+The camera interface features a cyberpunk-themed HUD displaying real-time ML analysis results with SVG overlays for detection visualization, confidence-based color coding, and integrated audio/visual prediction displays.
 
-\begin{figure}[H]
-    \centering
-    \begin{minipage}{0.8\textwidth}
-        \footnotesize
-        \begin{verbatim}
-┌─────────────────────────────────────────────┐
-│              NEURAL VISION SYSTEM           │
-├─────────────────────────────────────────────┤
-│ Visual Analysis:                            │
-│ ████████████ 95% - Turdus migratorius      │
-│ ████████     80% - Corvus brachyrhynchos   │
-│                                            │
-│ Audio Analysis:                             │
-│ ██████████   92% - American Robin          │
-│ ███████      75% - Blue Jay                │
-├─────────────────────────────────────────────┤
-│              [SVG OVERLAYS]                 │
-│           Echtzeiterkennungsboxen           │
-│        mit Konfidenz-Farbkodierung         │
-└─────────────────────────────────────────────┘
-        \end{verbatim}
-    \end{minipage}
-    \caption{Cyberpunk HUD Layout Architecture}
-    \label{fig:cyberpunk_hud}
-\end{figure}
+\section{Integration and Data Flow}
 
-\section{Security Architecture and Privacy}
+\textbf{System Integration Architecture:}
 
-\textbf{Privacy-Preserving Design:}
-\begin{itemize}
-    \item \textbf{Local Processing:} All ML operations execute on-device to ensure data privacy
-    \item \textbf{Optional Cloud Integration:} Users maintain full control over cloud synchronization preferences
-    \item \textbf{Encryption Protocols:} Data encryption implemented for both transmission and storage operations
-    \item \textbf{GDPR Compliance:} Comprehensive adherence to European data protection regulations
-\end{itemize}
-
-\textbf{Authentication Framework:}
-\begin{itemize}
-    \item \textbf{Firebase Authentication:} Secure user authentication with industry-standard protocols
-    \item \textbf{Local Fallback Mode:} Application functionality maintained without mandatory user registration
-    \item \textbf{Permission Management:} Explicit user consent required for camera, microphone, and location access
-\end{itemize}
-
-\section{Knowledge Extraction and Translation}
-
-\textbf{Wikipedia Integration and Image Extraction:}
-
-\textbf{Real Implementation Architecture:}
-
-The system implements two complementary approaches for Wikipedia integration:
+LogChirpy's three-pillar architecture requires careful coordination between ML processing, encyclopedia data, and logging workflows:
 
 \begin{itemize}
-    \item \textbf{Bird Image Service} (\texttt{services/birdImageService.ts}): Manages bird image retrieval and caching
-    \item \textbf{Development Scripts}: Python scripts for bulk data processing (in development directory)
+    \item \textbf{BirDex-ML Integration:} Species database provides taxonomic foundation for ML classification
+    \item \textbf{Logging-ML Coordination:} Real-time ML results integrate with observation capture workflows
+    \item \textbf{Encyclopedia-Logging Linkage:} Log entries connect to BirDex through Latin names for taxonomic accuracy
+    \item \textbf{Gallery-Storage Bridge:} Media management bridges device storage with app functionality
 \end{itemize}
 
-\textbf{Wikipedia Name Localization (TypeScript):}
-The production service fetches multi-language bird names through Wikipedia's langlinks API with chunked requests and error handling.
+\textbf{Data Flow Architecture:}
+Observation workflows combine ML predictions with manual entries, link taxonomic data from BirDex, store media through gallery integration, and optionally synchronize with Firebase cloud storage, creating a seamless end-to-end bird watching experience.
 
-\textbf{Image Extraction (Python Development Script):}
-A comprehensive Python script handles bulk image downloading from Wikimedia Commons with features including:
+\section{Data Processing Infrastructure}
+
+\textbf{Wikimedia Image Extraction System}
+
+One of LogChirpy's major data processing achievements involved creating a comprehensive image dataset for 33,000+ bird species through automated Wikimedia Commons scraping. This required developing sophisticated Python scripts to handle the scale and complexity of bulk image processing.
+
+\textbf{Wikimedia Scraping Architecture (\texttt{dev/scripts/}):}
+
+The image extraction system implements a robust pipeline for downloading, processing, and optimizing bird images:
+
 \begin{itemize}
-    \item Rate limiting and API quota management
-    \item Image optimization and WebP conversion for mobile devices
-    \item Quality filtering and metadata extraction
-    \item Resume functionality for large batch operations
-    \item Manifest generation with image metadata
+    \item \textbf{Wikipedia API Integration:} Automated species page discovery and image identification
+    \item \textbf{Wikimedia Commons Access:} Direct image downloading from Commons repositories
+    \item \textbf{Rate Limiting and Quota Management:} Respectful API usage with exponential backoff
+    \item \textbf{Image Quality Filtering:} Automated selection of high-quality, relevant images
+    \item \textbf{WebP Conversion:} Mobile-optimized image format conversion for app performance
+    \item \textbf{Batch Processing:} Efficient handling of 33,000+ species with resume functionality
+    \item \textbf{Metadata Extraction:} Image attribution and licensing information preservation
+    \item \textbf{Local Storage Integration:} Direct integration with app asset structure
 \end{itemize}
 
-\textbf{Mass Translation System for 30,000+ Species:}
-
-\textbf{Real Translation Implementation:}
-
-The project implements a comprehensive OpenAI-powered translation system through Node.js scripts in \texttt{dev/scripts/\_birdyDex\_massTranslationScripts/}:
-
-\textbf{Implementation Features:}
-This implementation demonstrates practical integration of translation APIs within the constraints of an educational project, rather than novel translation methodology.
-\begin{itemize}
-    \item \textbf{OpenAI API Integration:} Uses ChatGPT for high-quality bird name translations
-    \item \textbf{Automatic Resume Functionality:} Safely resumes interrupted translation batches
-    \item \textbf{Caching System:} Persistent cache to avoid re-translating completed entries
-    \item \textbf{Rate Limiting with Exponential Backoff:} Handles API quotas and request timing
-    \item \textbf{Model Fallback:} Automatic fallback between GPT models based on availability
-    \item \textbf{Progress Tracking:} Real-time progress monitoring with periodic CSV exports
-    \item \textbf{Multi-Language Support:} Generates German, Spanish, Ukrainian, and Arabic names
-\end{itemize}
-
-\textbf{Translation Workflow:}
+\textbf{Image Processing Workflow:}
 \begin{enumerate}
-    \item \textbf{Data Input:} Processes Clements v2024 taxonomy CSV with 30,000+ species
-    \item \textbf{English Enrichment:} First enriches entries with English common names
-    \item \textbf{Multi-Language Translation:} Batch translates to target languages using OpenAI
-    \item \textbf{Quality Validation:} Validates translations and handles edge cases
-    \item \textbf{Output Generation:} Produces \texttt{birds\_fully\_translated.csv} for app integration
+    \item \textbf{Species Page Discovery:} Query Wikipedia for each bird species scientific name
+    \item \textbf{Image Identification:} Extract primary species images from infoboxes and galleries
+    \item \textbf{Quality Assessment:} Filter images based on resolution, relevance, and licensing
+    \item \textbf{Batch Download:} Download images with proper attribution and error handling
+    \item \textbf{Format Optimization:} Convert to WebP format and optimize for mobile devices
+    \item \textbf{Integration:} Generate manifest files for app integration and caching
 \end{enumerate}
 
-\textbf{Data Processing and Export Framework:}
+\textbf{OpenAI-Powered Translation System}
 
-\textbf{Large-Scale Dataset Processing:}
+The multilingual encyclopedia required translating 33,000+ bird species names across five target languages (German, Spanish, French, Ukrainian, Arabic). This massive undertaking utilized OpenAI's API as the primary translation engine with comprehensive fallback strategies.
 
-The system implements efficient batch processing for handling the 30,000+ bird species dataset. The actual implementation uses specialized Node.js scripts (\texttt{dev/scripts/\_birdyDex\_massTranslationScripts/enrich-birddex-with-translations.js}) that provide:
+\textbf{Translation Architecture (\texttt{dev/scripts/\_birdyDex\_massTranslationScripts/}):}
 
+\begin{lstlisting}[style=javascript, caption=Translation System Implementation, label=lst:translation_system]
+// Core translation workflow with OpenAI integration
+const translateSpeciesBatch = async (speciesBatch) => {
+  // 1. Public API fallback attempts
+  for (const publicAPI of publicBirdAPIs) {
+    try {
+      const publicResults = await tryPublicAPI(speciesBatch, publicAPI);
+      if (publicResults.coverage > 0.8) {
+        return publicResults;
+      }
+    } catch (error) {
+      console.warn(`Public API ${publicAPI.name} failed, trying next`);
+    }
+  }
+  
+  // 2. OpenAI fallback for comprehensive coverage
+  const openAIResults = await translateWithOpenAI(speciesBatch, {
+    model: 'gpt-4',
+    maxTokens: 2000,
+    temperature: 0.1, // Low temperature for consistent translations
+    retryAttempts: 3,
+    rateLimitBackoff: true
+  });
+  
+  return openAIResults;
+};
+\end{lstlisting}
+
+\textbf{Translation System Features:}
 \begin{itemize}
-    \item \textbf{Memory-Efficient Processing:} Chunk-based processing with configurable batch sizes
-    \item \textbf{CSV Import/Export:} Papa Parse library for robust CSV processing
-    \item \textbf{Data Validation:} Automated validation and cleaning of species names and translations
-    \item \textbf{Progress Tracking:} Real-time processing progress monitoring with periodic saves
-    \item \textbf{Resume Functionality:} Automatic resume capability for interrupted translation batches
-    \item \textbf{Rate Limiting:} Exponential backoff and API quota management
+    \item \textbf{Hybrid API Strategy:} Public bird APIs first, OpenAI as comprehensive fallback
+    \item \textbf{Cost Optimization:} Minimize OpenAI usage through public API prioritization
+    \item \textbf{Quality Assurance:} Low-temperature GPT-4 settings for consistent translations
+    \item \textbf{Batch Processing:} Efficient API usage through intelligent batching
+    \item \textbf{Resume Functionality:} Automatic recovery from interruptions with progress tracking
+    \item \textbf{Caching System:} Persistent storage to avoid re-translating completed entries
+    \item \textbf{Rate Limit Management:} Exponential backoff and quota monitoring
+    \item \textbf{Multi-Model Fallback:} Automatic fallback between GPT-4 and GPT-3.5 based on availability
+    \item \textbf{Progress Monitoring:} Real-time progress tracking with periodic CSV exports
 \end{itemize}
 
-\textbf{String Comparison and Fuzzy-Matching in BirDex:}
+\textbf{Data Processing Pipeline:}
+\begin{enumerate}
+    \item \textbf{CSV Input Processing:} Load Clements v2024 taxonomy with 33,000+ species
+    \item \textbf{English Name Enrichment:} Query public APIs for English common names
+    \item \textbf{Public API Translation:} Attempt translation through free ornithological APIs
+    \item \textbf{OpenAI Enhancement:} Fill gaps and enhance quality through GPT-4 translations
+    \item \textbf{Quality Validation:} Validate translations and handle special cases
+    \item \textbf{Export Generation:} Produce final \texttt{birds\_fully\_translated.csv}
+    \item \textbf{Database Integration:} Import enriched data into app's SQLite database
+\end{enumerate}
 
-\textbf{Robust Species Recognition with BirDex Search Implementation:}
+\textbf{Translation Quality Management:}
+The system implements comprehensive quality controls including validation of translation completeness, detection of untranslated scientific names, handling of extinct species and regional variants, and maintenance of taxonomic accuracy across all target languages.
 
-The project implements advanced species matching through the \texttt{services/databaseBirDex.ts} service, which provides comprehensive species lookup capabilities:
+\section{Performance Optimization and Scalability}
 
+\textbf{Database Performance Management:}
 \begin{itemize}
-    \item \textbf{Multi-stage Search Strategy:} Exact match → Normalized search → Fuzzy matching → Cross-language fallback
-    \item \textbf{BirDex Integration:} Provides \texttt{searchBirdsByName()} function for efficient database queries
-    \item \textbf{Scientific Name Normalization:} Handles common variations and format differences
-    \item \textbf{Caching System:} 5-minute TTL cache to optimize repeated lookups
-    \item \textbf{Species Validation:} Comprehensive validation system for ML prediction accuracy
-    \item \textbf{Multi-language Support:} Cross-reference matching across 6 supported languages
+    \item \textbf{Strategic Indexing:} Optimized indexes for species search across 33,000+ records
+    \item \textbf{Pagination Systems:} Efficient handling of large datasets with 20-item pages
+    \item \textbf{Caching Strategies:} 5-minute TTL cache for frequently accessed species data
+    \item \textbf{Query Optimization:} Multi-stage search strategy from exact match to fuzzy matching
 \end{itemize}
-
-\textbf{Actual Implementation Features:}
-The \texttt{databaseBirDex.ts} service bridges whoBIRD audio predictions with the BirDex database, providing enriched metadata and species search functionality.
-
-\section{Performance Optimization}
 
 \textbf{ML Pipeline Optimizations:}
 \begin{itemize}
-    \item \textbf{Sequential Processing:} Elimination of race conditions through controlled pipeline execution
-    \item \textbf{Quality Reduction:} 0.3 quality factor for ML processing to optimize performance
-    \item \textbf{Result Limitation:} Display optimization showing top 2 results per category
-    \item \textbf{Configurable Delays:} Adaptive cycle timing for diverse device capabilities
+    \item \textbf{Sequential Processing:} Unified pipeline eliminates race conditions
+    \item \textbf{Quality Optimization:} 0.3 quality factor for ML processing performance
+    \item \textbf{Result Filtering:} Top 2 results display to prevent UI clutter
+    \item \textbf{Configurable Timing:} Adaptive delays for different device capabilities
 \end{itemize}
 
-\textbf{Memory Management Strategy:}
+\textbf{Media and Storage Management:}
 \begin{itemize}
-    \item \textbf{Automatic Cleanup:} Systematic removal of temporary files and cached data
-    \item \textbf{Lazy Loading:} On-demand ML model loading to minimize memory footprint
-    \item \textbf{Pagination:} Database query optimization with 20-item page segmentation
-    \item \textbf{Image Compression:} Automatic compression protocols for reduced file sizes
+    \item \textbf{WebP Optimization:} All bird images converted to WebP for mobile efficiency
+    \item \textbf{Automatic Cleanup:} Systematic removal of temporary ML processing files
+    \item \textbf{Lazy Loading:} On-demand model and image loading to minimize memory usage
+    \item \textbf{Compression Protocols:} Automatic media compression for storage efficiency
 \end{itemize}
