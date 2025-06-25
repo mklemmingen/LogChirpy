@@ -7,10 +7,11 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "channel": "development",
+      "channel": "preview",
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleDebug"
+        "gradleCommand": ":app:assembleDebug",
+        "resourceClass": "medium"
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://dev.api.com"
@@ -21,17 +22,24 @@
       "channel": "preview",
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "gradleCommand": ":app:assembleRelease",
+        "resourceClass": "medium",
+        "image": "latest"
+      },
+      "env": {
+        "NODE_OPTIONS": "--max-old-space-size=4096"
       }
     },
     "production": {
-      "autoSubmit": false,
       "channel": "production",
       "android": {
-        "buildType": "aab"
+        "buildType": "app-bundle",
+        "resourceClass": "medium",
+        "image": "latest"
       },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "resourceClass": "medium"
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.com"
@@ -45,8 +53,5 @@
         "track": "internal"
       }
     }
-  },
-  "update": {
-    "url": "https://u.expo.dev/f3cad8d2-c8a4-4696-a73f-9f57db6f7f08"
   }
 }

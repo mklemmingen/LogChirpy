@@ -2,7 +2,7 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    owner: "dhfgkjhksdfgsd",
+    owner: "renounce3868",
     name: "LogChirpy",
     slug: "logchirpy",
     version: "1.0.0",
@@ -19,11 +19,14 @@ export default {
       backgroundColor: "#ffffff"
     },
     assetBundlePatterns: [
-      "assets/**/*", // all assets basically
-      "assets/models/*",
-      "assets/fonts/*",
-      "assets/images/*",
-      "**/*.csv" // include all CSVs anywhere
+      "assets/fonts/**/*",
+      "assets/images/**/*",
+      "assets/models/**/*", 
+      "assets/model_labels_whoBird/**/*",
+      "assets/sounds/**/*",
+      "locales/**/*",
+      "**/*.csv",
+      "!dev/**/*"
     ],
     android: {
       package: "com.logchirpy.app", // Cleaner package name
@@ -119,7 +122,7 @@ export default {
       EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
       EXPO_PUBLIC_FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
       eas: {
-        projectId: "f3cad8d2-c8a4-4696-a73f-9f57db6f7f08"
+        "projectId": "6d5c443d-9c04-49fa-b17a-8b7e30bd5df5"
       }
     },
   }

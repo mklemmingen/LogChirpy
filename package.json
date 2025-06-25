@@ -18,6 +18,7 @@
     "android": "npx expo run:android",
     "android:device": "npx expo run:android --device",
     "android:release": "npx expo run:android --variant release",
+    "build:apk:local": "NODE_OPTIONS='--max-old-space-size=4096' npx expo build:android --type apk",
     "export": "npx expo export --platform android",
     "doctor": "npx expo-doctor",
     "reset-cache": "npx expo start --clear",
