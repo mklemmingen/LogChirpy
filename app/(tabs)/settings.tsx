@@ -13,14 +13,7 @@ import Animated, {
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-<<<<<<< HEAD
 import { useRouter } from 'expo-router';
-=======
-
-
-import {languages} from "@/i18n/languages";
-import {Config, STORAGE_KEYS} from "@/constants/config";
->>>>>>> origin/main
 import Slider from '@react-native-community/slider';
 import {Card, ThemedView} from "@/components/ThemedView";
 import {ThemedText} from "@/components/ThemedText";
