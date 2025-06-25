@@ -588,6 +588,15 @@ export default function GalleryManagementScreen() {
                 return;
             }
 
+            // Set audio mode for playback
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: false,
+                playsInSilentModeIOS: true,
+                shouldDuckAndroid: true,
+                playThroughEarpieceAndroid: false,
+                staysActiveInBackground: false,
+            });
+
             const { sound } = await Audio.Sound.createAsync({ uri });
             setAudioSound(sound);
             setPlayingAudio(uri);

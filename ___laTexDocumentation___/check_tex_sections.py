@@ -219,8 +219,8 @@ def main():
             print(f"File {filepath} not found!")
             sys.exit(1)
     
-    # Find all .tex files in src directory
-    src_dir = Path(__file__).parent / 'src'
+    # Find all .tex files in src/chapters directory
+    src_dir = Path(__file__).parent / 'src' / 'chapters'
     if not src_dir.exists():
         print(f"Error: Directory {src_dir} not found!")
         sys.exit(1)

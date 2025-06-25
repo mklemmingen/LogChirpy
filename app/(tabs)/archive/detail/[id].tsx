@@ -400,6 +400,15 @@ export default function ArchiveDetailScreen() {
                 await currentSound.unloadAsync();
             }
 
+            // Set audio mode for playback
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: false,
+                playsInSilentModeIOS: true,
+                shouldDuckAndroid: true,
+                playThroughEarpieceAndroid: false,
+                staysActiveInBackground: false,
+            });
+
             const { sound } = await Audio.Sound.createAsync(
                 { uri },
                 { shouldPlay: true }
