@@ -13,6 +13,8 @@ import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Video as VideoType } from 'expo-av';
 import { TouchableOpacity, Text } from 'react-native';
 import { useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { TouchableWithoutFeedback } from 'react-native';
 
 export default function TutorialScreen() {
     const router = useRouter();
@@ -21,6 +23,7 @@ export default function TutorialScreen() {
     const videoRef = useRef<VideoType>(null);;
     const [isPlaying, setIsPlaying] = useState(false);
     const [videoLoaded, setVideoLoaded] = useState(false);
+    const [showControls, setShowControls] = useState(true);
 
     useEffect(() => {
         navigation.setOptions({
@@ -41,57 +44,75 @@ export default function TutorialScreen() {
                     backgroundColor: '#fff',
                     image: (
                         <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
-                            <View style={{ position: 'relative', width: 560, height: 340 }}>
-                                <Video
-                                    ref={videoRef}
-                                    source={require('@/assets/tutorial/Video/intro-fixed.mp4')}
-                                    resizeMode={ResizeMode.CONTAIN}
-                                    isLooping={false}
-                                    onLoad={() => setVideoLoaded(true)}
-                                    useNativeControls={false}
-                                    onPlaybackStatusUpdate={(status) => {
-                                        if ('didJustFinish' in status && status.didJustFinish) {
-                                            setIsPlaying(false);
-                                        }
-                                    }}
-                                    onError={(error) => {
-                                        console.error('Video error:', error);
-                                        setVideoLoaded(false);
-                                    }}
-                                    style={{ width: 300, height: 200, alignSelf: 'center' }}
-                                />{!isPlaying && (
-                                    <TouchableOpacity
-                                        onPress={async () => {
-                                            if (videoRef.current) {
-                                                const status = await videoRef.current.getStatusAsync();
-                                                if ('isLoaded' in status && status.isLoaded) {
-                                                    if (status.isPlaying) {
-                                                        await videoRef.current.pauseAsync();
-                                                        setIsPlaying(false);
-                                                    } else {
-                                                        await videoRef.current.playAsync();
-                                                        setIsPlaying(true);
-                                                    }
-                                                }
+                            <TouchableWithoutFeedback onPress={() => setShowControls(true)}>
+
+                                <View style={{ position: 'relative', width: 560, height: 340 }}>
+                                    <Video
+                                        ref={videoRef}
+                                        source={require('@/assets/tutorial/Video/intro-fixed.mp4')}
+                                        resizeMode={ResizeMode.CONTAIN}
+                                        isLooping={false}
+                                        onLoad={() => setVideoLoaded(true)}
+                                        useNativeControls={false}
+                                        onPlaybackStatusUpdate={(status) => {
+                                            if ('didJustFinish' in status && status.didJustFinish) {
+                                                setIsPlaying(false);
                                             }
                                         }}
-                                        style={{
-                                            position: 'absolute',
-                                            top: '40%',
-                                            left: '45%',
-                                            backgroundColor: 'rgba(0,0,0,0.4)',
-                                            borderRadius: 30,
-                                            padding: 10,
+                                        onError={(error) => {
+                                            console.error('Video error:', error);
+                                            setVideoLoaded(false);
                                         }}
-                                    >
-                                        <Text style={{ color: 'white', fontSize: 20 }}>
-                                            {isPlaying ? '⏸' : '▶'}
-                                        </Text>
-                                    </TouchableOpacity>
+                                        style={{ width: 460, height: 340, alignSelf: 'center' }}
+                                    />{videoLoaded && showControls && (
+                                        <TouchableOpacity
+                                            onPress={async () => {
+                                                if (videoRef.current) {
+                                                    const status = await videoRef.current.getStatusAsync();
+                                                    if ('isLoaded' in status && status.isLoaded) {
+                                                        const atEnd =
+                                                            typeof status.positionMillis === 'number' &&
+                                                            typeof status.durationMillis === 'number' &&
+                                                            status.positionMillis >= status.durationMillis;
 
-                                )}
+                                                        if (status.isPlaying) {
+                                                            await videoRef.current.pauseAsync();
+                                                            setIsPlaying(false);
+                                                            setShowControls(true);
+                                                        } else {
+                                                            if (atEnd) {
+                                                                await videoRef.current.setPositionAsync(0);
+                                                            }
+                                                            await videoRef.current.playAsync();
+                                                            setIsPlaying(true);
+                                                            setShowControls(true);
+                                                            setTimeout(() => {
+                                                                setShowControls(false);
+                                                            }, 1000);
+                                                        }
+                                                    }
+                                                }
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '40%',
+                                                left: '45%',
+                                                backgroundColor: 'rgba(0,0,0,0.4)',
+                                                borderRadius: 30,
+                                                padding: 10,
+                                            }}
+                                        >
+                                            <Ionicons
+                                                name={isPlaying ? 'pause' : 'play'}
+                                                size={32}
+                                                color="white"
+                                            />
+                                        </TouchableOpacity>
 
-                            </View>
+                                    )}
+
+                                </View>
+                            </TouchableWithoutFeedback>
                         </View >
                     ),
                     title: '',
