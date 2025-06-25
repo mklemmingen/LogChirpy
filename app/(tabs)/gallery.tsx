@@ -579,12 +579,19 @@ export default function GalleryManagementScreen() {
         try {
             // Stop current audio if playing
             if (audioSound) {
-                await audioSound.unloadAsync();
-                setAudioSound(null);
+                try {
+                    setPlayingAudio(null);
+                    await audioSound.stopAsync();
+                    await audioSound.unloadAsync();
+                } catch (cleanupError) {
+                    console.warn('Audio cleanup error:', cleanupError);
+                } finally {
+                    setAudioSound(null);
+                }
             }
 
             if (playingAudio === uri) {
-                setPlayingAudio(null);
+                // Already handled above, just return
                 return;
             }
 
@@ -598,6 +605,8 @@ export default function GalleryManagementScreen() {
             });
 
             const { sound } = await Audio.Sound.createAsync({ uri });
+            
+            // Set state before starting playback
             setAudioSound(sound);
             setPlayingAudio(uri);
             
@@ -607,12 +616,17 @@ export default function GalleryManagementScreen() {
             sound.setOnPlaybackStatusUpdate((status) => {
                 if (status.isLoaded && status.didJustFinish) {
                     setPlayingAudio(null);
-                    sound.unloadAsync().catch(() => {});
                     setAudioSound(null);
+                    // Clean up the sound object
+                    sound.unloadAsync().catch((unloadError) => {
+                        console.warn('Audio unload error:', unloadError);
+                    });
                 }
             });
         } catch (error) {
             console.error('Audio playback failed:', error);
+            setPlayingAudio(null);
+            setAudioSound(null);
             showError('Failed to play audio');
         }
     };

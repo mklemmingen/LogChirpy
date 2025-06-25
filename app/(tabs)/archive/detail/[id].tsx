@@ -396,8 +396,16 @@ export default function ArchiveDetailScreen() {
 
     const handleAudioPress = useCallback(async (uri: string) => {
         try {
+            // Clean up existing sound with proper error handling
             if (currentSound) {
-                await currentSound.unloadAsync();
+                try {
+                    await currentSound.stopAsync();
+                    await currentSound.unloadAsync();
+                } catch (cleanupError) {
+                    console.warn('Audio cleanup error:', cleanupError);
+                } finally {
+                    setCurrentSound(null);
+                }
             }
 
             // Set audio mode for playback
@@ -418,12 +426,15 @@ export default function ArchiveDetailScreen() {
 
             sound.setOnPlaybackStatusUpdate((status) => {
                 if (status.isLoaded && status.didJustFinish) {
-                    sound.unloadAsync().catch(console.warn);
                     setCurrentSound(null);
+                    sound.unloadAsync().catch((unloadError) => {
+                        console.warn('Audio unload error:', unloadError);
+                    });
                 }
             });
         } catch (error) {
             console.error('Audio playback error:', error);
+            setCurrentSound(null);
             Alert.alert('Error', 'Failed to play audio');
         }
     }, [currentSound]);

@@ -205,9 +205,19 @@ export default function AudioScreen() {
         if (!recordedUri) return;
 
         try {
-            // Stop any existing playback
+            // Stop any existing playback with proper cleanup
             if (soundRef.current) {
-                await soundRef.current.unloadAsync();
+                try {
+                    const status = await soundRef.current.getStatusAsync();
+                    if (status.isLoaded) {
+                        await soundRef.current.stopAsync();
+                        await soundRef.current.unloadAsync();
+                    }
+                } catch (cleanupError) {
+                    console.warn('Audio cleanup error in startPlayback:', cleanupError);
+                } finally {
+                    soundRef.current = null;
+                }
             }
 
             // Set audio mode for playback
@@ -268,72 +278,99 @@ export default function AudioScreen() {
     const pausePlayback = async () => {
         if (soundRef.current) {
             try {
-                await soundRef.current.pauseAsync();
-                setPlaybackState('paused');
-                if (playbackTimerRef.current) {
-                    clearInterval(playbackTimerRef.current);
-                    playbackTimerRef.current = null;
+                const status = await soundRef.current.getStatusAsync();
+                if (status.isLoaded) {
+                    await soundRef.current.pauseAsync();
+                    setPlaybackState('paused');
+                    if (playbackTimerRef.current) {
+                        clearInterval(playbackTimerRef.current);
+                        playbackTimerRef.current = null;
+                    }
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                } else {
+                    console.warn('Cannot pause - sound not loaded');
+                    setPlaybackState('idle');
                 }
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             } catch (error) {
                 console.error('Pause failed:', error);
+                setPlaybackState('idle');
             }
+        } else {
+            console.warn('Cannot pause - no sound reference');
+            setPlaybackState('idle');
         }
     };
 
     const resumePlayback = async () => {
         if (soundRef.current) {
             try {
-                await soundRef.current.playAsync();
-                setPlaybackState('playing');
-                
-                // Resume position tracking
-                playbackTimerRef.current = setInterval(async () => {
-                    if (soundRef.current) {
-                        const status = await soundRef.current.getStatusAsync();
-                        if (status.isLoaded) {
-                            if (status.positionMillis !== undefined && status.durationMillis !== undefined) {
-                                const currentPosition = Math.floor(status.positionMillis / 1000);
-                                const duration = Math.floor(status.durationMillis / 1000);
-                                
-                                // Handle looping - reset position when it reaches the end
-                                if (currentPosition >= duration) {
-                                    setPlaybackPosition(0);
-                                } else {
-                                    setPlaybackPosition(currentPosition);
+                const status = await soundRef.current.getStatusAsync();
+                if (status.isLoaded) {
+                    await soundRef.current.playAsync();
+                    setPlaybackState('playing');
+                    
+                    // Resume position tracking
+                    playbackTimerRef.current = setInterval(async () => {
+                        if (soundRef.current) {
+                            try {
+                                const status = await soundRef.current.getStatusAsync();
+                                if (status.isLoaded) {
+                                    if (status.positionMillis !== undefined && status.durationMillis !== undefined) {
+                                        const currentPosition = Math.floor(status.positionMillis / 1000);
+                                        const duration = Math.floor(status.durationMillis / 1000);
+                                        
+                                        // Handle looping - reset position when it reaches the end
+                                        if (currentPosition >= duration) {
+                                            setPlaybackPosition(0);
+                                        } else {
+                                            setPlaybackPosition(currentPosition);
+                                        }
+                                    }
                                 }
+                            } catch (statusError) {
+                                console.warn('Status check failed during playback:', statusError);
                             }
-                            // Note: With looping enabled, didJustFinish won't trigger
-                            // The audio will continue playing automatically
                         }
-                    }
-                }, 100);
+                    }, 100);
 
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                } else {
+                    console.warn('Cannot resume - sound not loaded');
+                    setPlaybackState('idle');
+                }
             } catch (error) {
                 console.error('Resume failed:', error);
+                setPlaybackState('idle');
             }
+        } else {
+            console.warn('Cannot resume - no sound reference');
+            setPlaybackState('idle');
         }
     };
 
     const stopPlayback = async () => {
+        // Clear timer first to prevent race conditions
+        if (playbackTimerRef.current) {
+            clearInterval(playbackTimerRef.current);
+            playbackTimerRef.current = null;
+        }
+        
         if (soundRef.current) {
             try {
-                await soundRef.current.stopAsync();
-                await soundRef.current.unloadAsync();
-                soundRef.current = null;
+                const status = await soundRef.current.getStatusAsync();
+                if (status.isLoaded) {
+                    await soundRef.current.stopAsync();
+                    await soundRef.current.unloadAsync();
+                }
             } catch (error) {
                 console.error('Stop playback failed:', error);
+            } finally {
+                soundRef.current = null;
             }
         }
         
         setPlaybackState('idle');
         setPlaybackPosition(0);
-        
-        if (playbackTimerRef.current) {
-            clearInterval(playbackTimerRef.current);
-            playbackTimerRef.current = null;
-        }
     };
 
     const handlePlayPause = () => {

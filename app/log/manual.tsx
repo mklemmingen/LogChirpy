@@ -212,10 +212,25 @@ export default function ManualBirdEntry() {
 
         try {
             if (sound) {
-                await sound.unloadAsync();
-                setSound(null);
+                try {
+                    await sound.stopAsync();
+                    await sound.unloadAsync();
+                } catch (cleanupError) {
+                    console.warn('Audio cleanup error:', cleanupError);
+                } finally {
+                    setSound(null);
+                }
                 return;
             }
+
+            // Set audio mode for playback
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: false,
+                playsInSilentModeIOS: true,
+                shouldDuckAndroid: true,
+                playThroughEarpieceAndroid: false,
+                staysActiveInBackground: false,
+            });
 
             const { sound: newSound } = await Audio.Sound.createAsync(
                 { uri: draft.audioUri },
@@ -226,10 +241,14 @@ export default function ManualBirdEntry() {
             newSound.setOnPlaybackStatusUpdate((status) => {
                 if (status.isLoaded && status.didJustFinish) {
                     setSound(null);
+                    newSound.unloadAsync().catch((unloadError) => {
+                        console.warn('Audio unload error:', unloadError);
+                    });
                 }
             });
         } catch (error) {
             console.error('[Audio Playback] Error:', error);
+            setSound(null);
             showError('Failed to play audio');
         }
     }, [draft.audioUri, sound, showError]);
