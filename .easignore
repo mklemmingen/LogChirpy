@@ -1,8 +1,68 @@
-_model_conversion_scripts/
-/_model_conversion_scripts
-/android
-/ios
-_
-___laTexDocumentation___
-__tests__
+# === LARGE DIRECTORIES TO EXCLUDE ===
+
+# Git repository (1.1GB)
+.git
+
+# Node modules (1.2GB - handled by EAS)
+node_modules
+
+# Development directory (495MB)
 dev
+
+# Backup directory (316KB)
+.backup
+
+# === BUILD DIRECTORIES ===
+
+# Platform-specific build directories (not needed for EAS builds)
+android
+ios
+
+# === DOCUMENTATION AND TESTS ===
+
+# Documentation (368KB)
+___laTexDocumentation___
+
+# Tests (96KB)
+__tests__
+
+# === DEVELOPMENT FILES ===
+
+# Model conversion scripts
+_model_conversion_scripts
+_model_conversion_scripts/
+
+# === CACHE AND TEMPORARY FILES ===
+
+# Cache directories
+.cache
+.expo
+
+# Temporary and backup files
+*.log
+*.tmp
+*~
+*.bak
+.DS_Store
+
+# === NODE MODULES BUILD ARTIFACTS ===
+
+# Build artifacts in node_modules
+**/.cxx
+**/.gradle
+**/build
+**/.github
+
+# === EDITOR AND SYSTEM FILES ===
+
+# Version control
+.gitignore
+
+# Editor configurations
+.vscode
+.idea
+*.swp
+*.swo
+
+# System files
+Thumbs.db
