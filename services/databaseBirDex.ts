@@ -987,7 +987,7 @@ export function queryBirdDexPage(
                 ) THEN 1 ELSE 0 END AS hasBeenLogged
             FROM birddex b
             ${whereClause}
-            ORDER BY hasBeenLogged DESC, b."${sortKey}" ${dir}
+            ORDER BY b."${sortKey}" ${dir}
             LIMIT ? OFFSET ?
         ` : `
             SELECT
@@ -1107,7 +1107,7 @@ export function searchBirdsByName(
                 ) THEN 1 ELSE 0 END AS hasBeenLogged
             FROM birddex b
             ${whereClause}
-            ORDER BY hasBeenLogged DESC
+            ORDER BY b.english_name ASC
             LIMIT ?
         ` : `
             SELECT
@@ -1115,6 +1115,7 @@ export function searchBirdsByName(
                 0 AS hasBeenLogged
             FROM birddex b
             ${whereClause}
+            ORDER BY b.english_name ASC
             LIMIT ?
         `;
 

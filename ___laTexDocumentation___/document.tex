@@ -51,19 +51,13 @@
 \cleardoublepage
 \include{src/chapters/conclusion}
 
-%Anhang
-\pagenumbering{gobble}
-\cleardoublepage 
-
 %Quellenverzeichnis
+\cleardoublepage 
 \bibliography{src/bibliography}
 
 %Anhang
 \cleardoublepage
-\renewcommand{\thesection}{\Alph{section}}
-\pagenumbering{arabic}
-\setcounter{section}{0}
-\setcounter{page}{1}
+\appendix
 \include{src/appendix}
 
 %Gruppendokumentation

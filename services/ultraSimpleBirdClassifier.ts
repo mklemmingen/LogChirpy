@@ -11,6 +11,7 @@ import {AudioDecoder} from './audioDecoder';
 import {getLabelsForLanguage} from './generated/BirdLabelsMap';
 import {AudioWindowManager} from './audioWindowManager';
 import {Asset} from 'expo-asset';
+import {filterAudioForBirds} from './audioFiltering';
 
 interface BirdPrediction {
   commonName: string;
@@ -339,8 +340,12 @@ class UltraSimpleBirdClassifier {
       result.set(audioData, start);
     }
     
-    // Optional: Apply high-pass filter as per guide (200Hz cutoff)
-    return this.applyHighPassFilter(result, 200);
+    // Apply comprehensive audio filtering optimized for bird recognition
+    console.log('[BirdClassifier] Applying advanced audio filtering for bird recognition...');
+    const filteredAudio = filterAudioForBirds(result, targetSampleRate);
+    console.log('[BirdClassifier] Audio filtering complete');
+    
+    return filteredAudio;
   }
 
   /**

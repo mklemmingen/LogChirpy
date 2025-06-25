@@ -1,62 +1,72 @@
 \begin{titlepage}
+	% Header with Faculty Logo
+	\begin{figure}
+		\begin{flushright}
+			\includegraphics[scale=0.6]{img/INFLogo.png}
+		\end{flushright}
+	\end{figure}
+	
+	{\centering
+		
+		\vspace{1.5cm}
+		{\Large Mobile Computing Project SoSe 2025}\\
+		\vspace{0.8cm}
+		
+		% LogChirpy App Icon
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=80pt]{img/logo.png}
+		\end{figure}
+		\vspace{0.5cm}
+		
+		{\LARGE{\textbf{LogChirpy}} \\
+        \vspace{0.3cm}
+        Ornithological Archival \\
+        Application with ML-Powered Recognition \\
+        }
+        
+		\vspace{0.8cm}
+		
+		% Abstract - moved up for prominence
+        \textbf{\Large Abstract}\\
+		\vspace{0.3cm}
+		\begin{minipage}{0.95\textwidth}
+		\small
+		This 4th semester mobile computing project presents LogChirpy, a comprehensive bird watching application demonstrating advanced React Native development with integrated machine learning capabilities. The application successfully implements on-device ML for automated bird species identification through both visual object detection and audio classification systems. The technical architecture features local TensorFlow Lite models for real-time species recognition, combined with an offline-first data management approach that includes optional Firebase cloud synchronization. Notable achievements include complete localization across six languages and integration of a 30,000+ species database with automated translation workflows. LogChirpy serves amateur bird watchers and nature enthusiasts by providing an accessible mobile platform for documenting and sharing ornithological observations, showcasing effective integration of complex technologies within an educational project scope.
+		\end{minipage}
+		
+		\vspace{0.8cm}
 
-\begin{center}
-
-\begin{figure}
-\begin{minipage}[H]{6cm}
-\centering
-\includegraphics[width=0.8\linewidth]{img/university_logo}
-\end{minipage}
-\hfill
-\begin{minipage}[H]{6cm}
-\centering
-% Company/Project logo placeholder
-\textbf{\Large LogChirpy}
-\end{minipage}
-\end{figure}
-
-\vspace*{0.8cm}
-
-\textbf{Hochschule Reutlingen Fakultät Informatik}\\
-\textbf{Mobile Computing Project"} \\
-\vspace*{0.2cm}
-{\large \textbf{SoSe 2025\\}}
-\vspace*{0.4cm}
-Prof. Dr. Martinez\\
-\vspace*{0.8cm}
-{\large \textbf{- Final Report -}}
-
-\textbf{{\large {\LARGE LogChirpy - Ornithological Archival App}}}\\
-\textbf{{\large Bird Watching Application with AI-Powered Recognition}}\\
-
-\noindent\rule{\textwidth}{2pt}
-\vspace*{0.6cm}
-
-\textbf{vorgelegt von:\\}
-{\large \textbf{Martin Lauterbach\\}}
-{\large \textbf{Luis Wehrberger\\}}
-{\large \textbf{Youmna Samouneh\\}}
-
-\vspace*{0.6cm}
-
-Contact addresses:\\
-martin.lauterbach@student.reutlingen-university.de\\
-luis.wehrberger@student.reutlingen-university.de\\
-youmna.samouneh@student.reutlingen-university.de\\
-
-\vspace*{0.6cm}
-
-Submitted on: \today
-
-\vspace*{1cm}
-
-\textbf{Abstract}\\
-\vspace*{0.3cm}
-\begin{minipage}{0.8\textwidth}
-\small
-This research presents LogChirpy, a comprehensive mobile ornithological documentation application developed using React Native and Expo frameworks. The application implements advanced artificial intelligence methodologies for automated avian species identification through integrated visual and acoustic analysis systems. The architecture employs local machine learning models for real-time species recognition, coupled with a sophisticated archival framework that supports both offline operation and optional cloud synchronization capabilities. The system incorporates multilingual functionality across six languages and maintains a comprehensive taxonomic database encompassing over 30,000 global avian species. LogChirpy addresses the requirements of both amateur naturalists and professional ornithologists by providing an intuitive platform for systematic documentation and collaborative sharing of ornithological observations.
-\end{minipage}
-
-\end{center}
-
+		\vspace{0.2cm}
+		Martin Lauterbach\\
+		\small\url{martin.lauterbach@student.reutlingen-university.de}\\
+        \vspace{0.1cm}
+        \normalsize Luis Wehrberger\\
+		\small\url{luis.wehrberger@student.reutlingen-university.de}\\
+        \vspace{0.1cm}
+        \normalsize Youmna Samouneh\\
+		\small\url{youmna.samouneh@student.reutlingen-university.de}\\
+        \vspace{0.3cm}
+        
+		\normalsize Prüfer:in: Prof. Dr. Martinez\\
+		
+		\vspace{0.2cm}
+		{\small Abgabedatum: \today}\\
+	}
+	
+	% Footer with University Branding
+	\backgroundsetup{
+		scale=1,
+		color=black,
+		opacity=1,
+		angle=0,
+		position=current page.south,
+		vshift=60pt,
+		hshift=-200pt,
+		contents={
+			\begin{minipage}{.18\textwidth}
+				\includegraphics[width=1000pt,height=70pt,keepaspectratio]{img/FHRTFooter.png}
+			\end{minipage}
+		}
+	}
 \end{titlepage}

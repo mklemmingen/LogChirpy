@@ -13,7 +13,14 @@ import Animated, {
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+<<<<<<< HEAD
 import { useRouter } from 'expo-router';
+=======
+
+
+import {languages} from "@/i18n/languages";
+import {Config, STORAGE_KEYS} from "@/constants/config";
+>>>>>>> origin/main
 import Slider from '@react-native-community/slider';
 import {Card, ThemedView} from "@/components/ThemedView";
 import {ThemedText} from "@/components/ThemedText";
@@ -332,6 +339,13 @@ export default function SettingsScreen() {
         showSettings: Config.camera.showSettings,
     });
 
+    // Audio filter settings state
+    const [audioFilterSettings, setAudioFilterSettings] = useState({
+        enabled: Config.audioFilter.enabled,
+        noiseSensitivity: Config.audioFilter.noiseSensitivity,
+        birdFrequencyMode: Config.audioFilter.birdFrequencyMode,
+    });
+
     const colorScheme = useColorScheme() ?? 'light';
     const colors = useColors();
     const theme = useTheme();
@@ -343,11 +357,22 @@ export default function SettingsScreen() {
     useEffect(() => {
         const loadSettings = async () => {
             try {
-                const [storedGps, storedDelay, storedThreshold, storedShowSettings] = await Promise.all([
+                const [
+                    storedGps, 
+                    storedDelay, 
+                    storedThreshold, 
+                    storedShowSettings,
+                    storedAudioEnabled,
+                    storedAudioSensitivity,
+                    storedAudioBirdMode
+                ] = await Promise.all([
                     AsyncStorage.getItem(STORAGE_KEYS.gpsLogging),
                     AsyncStorage.getItem(STORAGE_KEYS.cameraPipelineDelay),
                     AsyncStorage.getItem(STORAGE_KEYS.cameraConfidenceThreshold),
                     AsyncStorage.getItem(STORAGE_KEYS.cameraShowSettings),
+                    AsyncStorage.getItem(STORAGE_KEYS.audioFilterEnabled),
+                    AsyncStorage.getItem(STORAGE_KEYS.audioFilterNoiseSensitivity),
+                    AsyncStorage.getItem(STORAGE_KEYS.audioFilterBirdMode),
                 ]);
 
                 // GPS setting
@@ -372,6 +397,22 @@ export default function SettingsScreen() {
                     Config.camera.showSettings = newCameraSettings.showSettings;
                 }
                 setCameraSettings(newCameraSettings);
+
+                // Audio filter settings
+                const newAudioSettings = { ...audioFilterSettings };
+                if (storedAudioEnabled !== null) {
+                    newAudioSettings.enabled = storedAudioEnabled === 'true';
+                    Config.audioFilter.enabled = newAudioSettings.enabled;
+                }
+                if (storedAudioSensitivity !== null) {
+                    newAudioSettings.noiseSensitivity = parseFloat(storedAudioSensitivity);
+                    Config.audioFilter.noiseSensitivity = newAudioSettings.noiseSensitivity;
+                }
+                if (storedAudioBirdMode !== null) {
+                    newAudioSettings.birdFrequencyMode = storedAudioBirdMode === 'true';
+                    Config.audioFilter.birdFrequencyMode = newAudioSettings.birdFrequencyMode;
+                }
+                setAudioFilterSettings(newAudioSettings);
             } catch (error) {
                 console.error('Failed to load settings:', error);
             }
@@ -390,6 +431,8 @@ export default function SettingsScreen() {
 
             if (lang === "ar") {
                 if (!I18nManager.isRTL) {
+                    // Store that we should return to settings after reload
+                    await AsyncStorage.setItem('returnToSettings', 'true');
                     await I18nManager.forceRTL(true);
                     await i18n.changeLanguage(lang);
                     setCurrentLanguage(lang);
@@ -401,6 +444,8 @@ export default function SettingsScreen() {
                 }
             } else {
                 if (I18nManager.isRTL) {
+                    // Store that we should return to settings after reload
+                    await AsyncStorage.setItem('returnToSettings', 'true');
                     await I18nManager.forceRTL(false);
                     await i18n.changeLanguage(lang);
                     setCurrentLanguage(lang);
@@ -412,7 +457,7 @@ export default function SettingsScreen() {
                 }
             }
         } catch (error) {
-            console.error('Failed to change language:', error);
+            console.error('[Settings] Failed to change language:', error);
         } finally {
             setIsLoading(false);
         }
@@ -469,11 +514,61 @@ export default function SettingsScreen() {
         }
     };
 
+    // Audio filter settings handlers
+    const updateAudioFilterSetting = async <K extends keyof typeof audioFilterSettings>(
+        key: K,
+        value: typeof audioFilterSettings[K]
+    ) => {
+        const newSettings = { ...audioFilterSettings, [key]: value };
+        setAudioFilterSettings(newSettings);
+
+        // Type-safe assignment to global config
+        if (key === 'enabled') {
+            Config.audioFilter.enabled = value as boolean;
+        } else if (key === 'noiseSensitivity') {
+            Config.audioFilter.noiseSensitivity = value as number;
+        } else if (key === 'birdFrequencyMode') {
+            Config.audioFilter.birdFrequencyMode = value as boolean;
+        }
+
+        try {
+            let storageKey: string;
+            switch (key) {
+                case 'enabled':
+                    storageKey = STORAGE_KEYS.audioFilterEnabled;
+                    break;
+                case 'noiseSensitivity':
+                    storageKey = STORAGE_KEYS.audioFilterNoiseSensitivity;
+                    break;
+                case 'birdFrequencyMode':
+                    storageKey = STORAGE_KEYS.audioFilterBirdMode;
+                    break;
+                default:
+                    console.warn(`Unknown audio filter setting key: ${key}`);
+                    return;
+            }
+            await AsyncStorage.setItem(storageKey, value.toString());
+        } catch (error) {
+            console.error(`Failed to save audio filter setting ${key}:`, error);
+        }
+    };
+
     // Helper functions for camera settings
     const getDelayPresetLabel = (value: number): string => {
         if (value <= 0.25) return '>0,25s | Performance might be impacted';
         if (value <= 0.6) return 'Balanced (0.5s)';
         return '1s | Better Performance';
+    };
+
+    // Helper functions for audio filter settings
+    const getNoiseSensitivityLabel = (value: number): string => {
+        if (value <= 0.3) return 'Low - Preserve natural audio';
+        if (value <= 0.7) return 'Moderate - Balanced filtering';
+        return 'High - Aggressive noise removal';
+    };
+
+    const formatNoiseSensitivity = (value: number): string => {
+        return `${Math.round(value * 100)}%`;
     };
 
     const getConfidencePresetLabel = (value: number): string => {
@@ -538,6 +633,302 @@ export default function SettingsScreen() {
                             </ThemedText>
                         </View>
                     )}
+                </ThemedView>
+
+
+                {/* Location Section */}
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        {t("settings.logging") || "Location Settings"}
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        Location data settings
+                    </ThemedText>
+                    <GPSToggleCard
+                        enabled={gpsEnabled}
+                        onToggle={toggleGpsLogging}
+                        styles={styles}
+                    />
+                </ThemedView>
+
+                {/* Camera AI Settings Section */}
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        Camera AI Settings
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        Adjust bird detection settings
+                    </ThemedText>
+
+                    <Animated.View
+                        entering={FadeInDown.delay(250).springify()}
+                        layout={Layout.springify()}
+                    >
+                        <Card style={styles.cameraCard}>
+                            <View style={styles.cameraContent}>
+                                {/* Detection Speed */}
+                                <View style={styles.settingRow}>
+                                    <View style={styles.settingInfo}>
+                                        <ThemedText variant="bodyLarge" style={styles.settingTitle}>
+                                            Detection Speed
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
+                                            How frequently the AI analyzes camera feed
+                                        </ThemedText>
+                                        <ThemedText variant="labelSmall" color="primary" style={styles.settingPreset}>
+                                            {getDelayPresetLabel(cameraSettings.pipelineDelay)}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={styles.sliderContainer}>
+                                        <Slider
+                                            value={cameraSettings.pipelineDelay}
+                                            onValueChange={(value) => updateCameraSetting('pipelineDelay', value)}
+                                            minimumValue={0.1}
+                                            maximumValue={1.0}
+                                            step={0.01}
+                                            style={styles.slider}
+                                            minimumTrackTintColor={colors.primary}
+                                            maximumTrackTintColor={colors.border}
+                                            thumbTintColor={colors.primary}
+                                        />
+                                        <ThemedText variant="labelSmall" color="secondary" style={styles.sliderValue}>
+                                            {cameraSettings.pipelineDelay.toFixed(2)}s
+                                        </ThemedText>
+                                    </View>
+                                </View>
+
+                                {/* Confidence Threshold */}
+                                <View style={styles.settingRow}>
+                                    <View style={styles.settingInfo}>
+                                        <ThemedText variant="bodyLarge" style={styles.settingTitle}>
+                                            Detection Confidence
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
+                                            Minimum confidence required to save bird detections
+                                        </ThemedText>
+                                        <ThemedText variant="labelSmall" color="primary" style={styles.settingPreset}>
+                                            {getConfidencePresetLabel(cameraSettings.confidenceThreshold)}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={styles.sliderContainer}>
+                                        <Slider
+                                            value={cameraSettings.confidenceThreshold}
+                                            onValueChange={(value) => updateCameraSetting('confidenceThreshold', value)}
+                                            minimumValue={0.1}
+                                            maximumValue={1.0}
+                                            step={0.01}
+                                            style={styles.slider}
+                                            minimumTrackTintColor={colors.primary}
+                                            maximumTrackTintColor={colors.border}
+                                            thumbTintColor={colors.primary}
+                                        />
+                                        <ThemedText variant="labelSmall" color="secondary" style={styles.sliderValue}>
+                                            {Math.round(cameraSettings.confidenceThreshold * 100)}%
+                                        </ThemedText>
+                                    </View>
+                                </View>
+
+                                {/* Settings Toggle */}
+                                <View style={styles.settingRow}>
+                                    <View style={styles.settingInfo}>
+                                        <ThemedText variant="bodyLarge" style={styles.settingTitle}>
+                                            Show Camera Controls
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
+                                            Display advanced controls overlay in camera view
+                                        </ThemedText>
+                                    </View>
+                                    <Switch
+                                        value={cameraSettings.showSettings}
+                                        onValueChange={(value) => updateCameraSetting('showSettings', value)}
+                                        trackColor={{
+                                            false: colors.border,
+                                            true: colors.primary
+                                        }}
+                                        thumbColor={
+                                            cameraSettings.showSettings
+                                                ? colors.textInverse
+                                                : colors.textSecondary
+                                        }
+                                        ios_backgroundColor={colors.border}
+                                    />
+                                </View>
+                            </View>
+                        </Card>
+                    </Animated.View>
+                </ThemedView>
+
+                {/* Audio Filter Settings Section */}
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        Audio Filter Settings
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        Enhance bird sound detection by filtering background noise
+                    </ThemedText>
+
+                    <Animated.View
+                        entering={FadeInDown.delay(300).springify()}
+                        layout={Layout.springify()}
+                    >
+                        <Card style={styles.cameraCard}>
+                            <View style={styles.cameraContent}>
+                                {/* Enable Audio Filtering */}
+                                <View style={styles.settingRow}>
+                                    <View style={styles.settingInfo}>
+                                        <ThemedText variant="bodyLarge" style={styles.settingTitle}>
+                                            Enable Audio Filtering
+                                        </ThemedText>
+                                        <ThemedText variant="bodySmall" color="secondary" style={styles.settingDescription}>
+                                            Apply advanced noise reduction to improve bird detection
+                                        </ThemedText>
+                                    </View>
+                                    <Switch
+                                        value={audioFilterSettings.enabled}
+                                        onValueChange={(value) => updateAudioFilterSetting('enabled', value)}
+                                        trackColor={{
+                                            false: colors.border,
+                                            true: colors.primary
+                                        }}
+                                        thumbColor={
+                                            audioFilterSettings.enabled
+                                                ? colors.textInverse
+                                                : colors.textSecondary
+                                        }
+                                        ios_backgroundColor={colors.border}
+                                    />
+                                </View>
+
+                                {/* Noise Sensitivity */}
+                                <View style={[styles.settingRow, !audioFilterSettings.enabled && styles.disabledSetting]}>
+                                    <View style={styles.settingInfo}>
+                                        <ThemedText 
+                                            variant="bodyLarge" 
+                                            style={[styles.settingTitle, !audioFilterSettings.enabled && styles.disabledText]}
+                                        >
+                                            Noise Sensitivity
+                                        </ThemedText>
+                                        <ThemedText 
+                                            variant="bodySmall" 
+                                            color="secondary" 
+                                            style={[styles.settingDescription, !audioFilterSettings.enabled && styles.disabledText]}
+                                        >
+                                            Higher values remove more background noise
+                                        </ThemedText>
+                                        <ThemedText 
+                                            variant="labelSmall" 
+                                            color="primary" 
+                                            style={[styles.settingPreset, !audioFilterSettings.enabled && styles.disabledText]}
+                                        >
+                                            {getNoiseSensitivityLabel(audioFilterSettings.noiseSensitivity)}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={styles.sliderContainer}>
+                                        <Slider
+                                            value={audioFilterSettings.noiseSensitivity}
+                                            onValueChange={(value) => updateAudioFilterSetting('noiseSensitivity', value)}
+                                            minimumValue={0.0}
+                                            maximumValue={1.0}
+                                            step={0.01}
+                                            style={styles.slider}
+                                            minimumTrackTintColor={audioFilterSettings.enabled ? colors.primary : colors.border}
+                                            maximumTrackTintColor={colors.border}
+                                            thumbTintColor={audioFilterSettings.enabled ? colors.primary : colors.textSecondary}
+                                            disabled={!audioFilterSettings.enabled}
+                                        />
+                                        <ThemedText 
+                                            variant="labelSmall" 
+                                            color="secondary" 
+                                            style={[styles.sliderValue, !audioFilterSettings.enabled && styles.disabledText]}
+                                        >
+                                            {formatNoiseSensitivity(audioFilterSettings.noiseSensitivity)}
+                                        </ThemedText>
+                                    </View>
+                                </View>
+
+                                {/* Bird Frequency Mode */}
+                                <View style={[styles.settingRow, !audioFilterSettings.enabled && styles.disabledSetting]}>
+                                    <View style={styles.settingInfo}>
+                                        <ThemedText 
+                                            variant="bodyLarge" 
+                                            style={[styles.settingTitle, !audioFilterSettings.enabled && styles.disabledText]}
+                                        >
+                                            Bird Frequency Mode
+                                        </ThemedText>
+                                        <ThemedText 
+                                            variant="bodySmall" 
+                                            color="secondary" 
+                                            style={[styles.settingDescription, !audioFilterSettings.enabled && styles.disabledText]}
+                                        >
+                                            Optimize filters specifically for bird call frequencies (500Hz-12kHz)
+                                        </ThemedText>
+                                    </View>
+                                    <Switch
+                                        value={audioFilterSettings.birdFrequencyMode}
+                                        onValueChange={(value) => updateAudioFilterSetting('birdFrequencyMode', value)}
+                                        trackColor={{
+                                            false: colors.border,
+                                            true: audioFilterSettings.enabled ? colors.primary : colors.border
+                                        }}
+                                        thumbColor={
+                                            audioFilterSettings.birdFrequencyMode && audioFilterSettings.enabled
+                                                ? colors.textInverse
+                                                : colors.textSecondary
+                                        }
+                                        ios_backgroundColor={colors.border}
+                                        disabled={!audioFilterSettings.enabled}
+                                    />
+                                </View>
+                            </View>
+                        </Card>
+                    </Animated.View>
+                </ThemedView>
+
+                {/* Tutorial Section */}
+                <ThemedView style={styles.section}>
+                    <ThemedText variant="h3" style={styles.sectionTitle}>
+                        {t("settings.tutorial.title")}
+                    </ThemedText>
+                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
+                        {t("settings.tutorial.subtitle")}
+                    </ThemedText>
+
+                    <Animated.View
+                        entering={FadeInDown.delay(250).springify()}
+                        layout={Layout.springify()}
+                    >
+                        <Card style={styles.tutorialCard}>
+                            <View style={styles.tutorialContent}>
+                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                    {t("settings.tutorial.how_to_use.title")}
+                                </ThemedText>
+                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                    {t("settings.tutorial.how_to_use.description")}
+                                </ThemedText>
+
+                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                    {t("settings.tutorial.image_processing.title")}
+                                </ThemedText>
+                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                    {t("settings.tutorial.image_processing.description")}
+                                </ThemedText>
+
+                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                    {t("settings.tutorial.ai_models.title")}
+                                </ThemedText>
+                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                    {t("settings.tutorial.ai_models.description")}
+                                </ThemedText>
+
+                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
+                                    {t("settings.tutorial.data_privacy.title")}
+                                </ThemedText>
+                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
+                                    {t("settings.tutorial.data_privacy.description")}
+                                </ThemedText>
+                            </View>
+                        </Card>
+                    </Animated.View>
                 </ThemedView>
 
                 {/* About Section */}
@@ -948,6 +1339,14 @@ const createStyles = () => StyleSheet.create({
     },
     sliderValue: {
         textAlign: 'right',
+    },
+    
+    // Disabled states for audio filter settings
+    disabledSetting: {
+        opacity: 0.5,
+    },
+    disabledText: {
+        opacity: 0.6,
     },
 
     // Info Card

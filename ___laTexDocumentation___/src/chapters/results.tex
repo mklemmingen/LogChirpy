@@ -1,6 +1,8 @@
 \chapter{System Evaluation and Performance Analysis}
 
-\section{Implementation Assessment and Achievement Overview}
+\section{Educational Project Assessment and Achievement Overview}
+
+\textbf{Context:} The following assessment evaluates LogChirpy as a 4th semester mobile computing educational project, recognizing both its technical achievements and appropriate scope limitations.
 
 \subsection{Comprehensive Feature Implementation Analysis}
 
@@ -172,11 +174,13 @@ Usability & 100\% & Localized interface, intuitive navigation \\
 \label{tab:non_functional_requirements}
 \end{table}
 
-\textbf{Overall System Completeness:} Approximately 95\% of core requirements successfully implemented
+\textbf{Overall System Completeness:} Approximately 95\% of core requirements successfully implemented within the scope of this educational project
 
 \section{Performance Metrics and System Evaluation}
 
 \subsection{Technical Performance Analysis}
+
+\textbf{Note:} Performance metrics based on development testing with limited device sampling. Formal benchmarking was not conducted as part of this educational project.
 
 \begin{table}[H]
 \centering
@@ -188,7 +192,7 @@ Application Startup Time & <2 seconds & <2 seconds \\
 Camera ML Pipeline & Real-time processing & Configurable processing delays \\
 Database Operations & Paginated queries & 20 elements per page optimization \\
 Memory Management & Automatic cleanup & Temporary file cleanup implementation \\
-Network Efficiency & 30\%+ compression & 30\%+ size reduction achieved \\
+Network Efficiency & Compression implemented & Image size reduction implemented \\
 \hline
 \end{tabular}
 \caption{Technical Performance Metrics Assessment}
@@ -231,28 +235,30 @@ Build System & Automated CI/CD with GitHub mirroring \\
 \label{tab:development_metrics}
 \end{table}
 
-\section{Innovative Features and Technical Achievements}
+\section{Project Features and Technical Learning}
 
 \subsection{Unified ML Pipeline Architecture}
 The development of a unified machine learning pipeline resolved critical race condition issues and established a robust, sequential processing approach for both image and audio ML operations.
+
+\textbf{Development Context:} The following observations represent informal development notes rather than controlled performance measurements. These serve to document the practical impact of architectural changes during development.
 
 \begin{figure}[H]
     \centering
     \begin{minipage}{0.8\textwidth}
         \footnotesize
         \begin{verbatim}
-Performance Improvements through Unified Pipeline Architecture:
+Observed Changes through Unified Pipeline Architecture (Development Observations):
 
-Metric                    | Before (Dual)  | After (Unified) | Improvement
---------------------------|----------------|-----------------|-------------
-File Stability Errors    | ~50% cycles    | 0%             | 100% reduction
-Audio Recording Conflicts| ~30% cycles    | 0%             | 100% reduction
-Resource Consumption     | High           | Moderate       | ~40% reduction
-Error Recovery           | Poor           | Good           | Significant
-UI Responsiveness        | Inconsistent   | Smooth         | Consistent 60fps
+Characteristic            | Before (Dual)  | After (Unified) | Observed Change
+--------------------------|----------------|-----------------|------------------
+File Stability Errors    | Frequent       | Eliminated      | Complete resolution
+Audio Recording Conflicts| Common         | Eliminated      | Complete resolution
+Resource Consumption     | High           | Moderate        | Noticeable reduction
+Error Recovery           | Poor           | Good            | Significant improvement
+UI Responsiveness        | Inconsistent   | Smooth          | Notable improvement
         \end{verbatim}
     \end{minipage}
-    \caption{Performance Improvements through Unified Pipeline Architecture}
+    \caption{Development Observations of Pipeline Architecture Changes}
     \label{tab:pipeline_improvements}
 \end{figure}
 
@@ -276,7 +282,7 @@ Robust mapping system with advanced edge-case handling mechanisms:
 \begin{itemize}
     \item \textbf{Fallback Strategies:} Subspecies handling, fuzzy-matching algorithms
     \item \textbf{Caching System:} Consistent performance during repeated queries
-    \item \textbf{Success Rate:} Nearly 100\% effective coverage for all species classifications
+    \item \textbf{Coverage:} Comprehensive coverage implemented for species classifications
 \end{itemize}
 
 \section{Technical Challenges and Solution Implementation}
