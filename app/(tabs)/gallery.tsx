@@ -7,6 +7,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
 import { useImageLabeling } from "@infinitered/react-native-mlkit-image-labeling";
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
+import { Audio } from 'expo-av';
 
 // Components
 import { ThemedView } from '@/components/ThemedView';
@@ -29,11 +30,12 @@ import { filePathToUri, uriToFilePath } from '@/services/uriUtils';
 // Database utilities
 import { searchBirdsByName } from '@/services/databaseBirDex';
 
-interface PhotoItem {
+interface MediaItem {
     uri: string;
     filename: string;
     size: number;
     modificationTime: number;
+    type: 'photo' | 'audio';
     classification?: string;
     confidence?: number;
     detectionType?: 'bird' | 'full';
@@ -53,11 +55,13 @@ export default function GalleryManagementScreen() {
     const { update } = useLogDraft();
     const { SnackbarComponent, showSuccess, showError } = useSnackbar();
 
-    const [photos, setPhotos] = useState<PhotoItem[]>([]);
+    const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [selectionMode, setSelectionMode] = useState(false);
     const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
+    const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+    const [audioSound, setAudioSound] = useState<Audio.Sound | null>(null);
 
     // AI Identification state
     const [isIdentifying, setIsIdentifying] = useState(false);
@@ -69,48 +73,71 @@ export default function GalleryManagementScreen() {
     const classifier = useImageLabeling('birdClassifier');
     const mlReady = !!(classifier && typeof classifier.classifyImage === 'function');
 
-    // Load photos from document storage gallery directory
-    const loadPhotos = useCallback(async () => {
+    // Load media files from document storage directories
+    const loadMediaFiles = useCallback(async () => {
         try {
             setLoading(true);
-            const galleryDir = `${FileSystem.documentDirectory}gallery/`;
+            const mediaFiles: MediaItem[] = [];
 
-            // Check if gallery directory exists
-            const dirInfo = await FileSystem.getInfoAsync(galleryDir);
-            if (!dirInfo.exists) {
-                setPhotos([]);
-                return;
+            // Load photos from gallery directory
+            const galleryDir = `${FileSystem.documentDirectory}gallery/`;
+            const galleryDirInfo = await FileSystem.getInfoAsync(galleryDir);
+            if (galleryDirInfo.exists) {
+                const files = await FileSystem.readDirectoryAsync(galleryDir);
+                const photoFiles = files.filter(filename =>
+                    (filename.startsWith('bird_') || filename.startsWith('full_') || filename.startsWith('logchirpy_photo_')) &&
+                    (filename.endsWith('.jpg') || filename.endsWith('.jpeg') || filename.endsWith('.png'))
+                );
+
+                const photoItems: MediaItem[] = await Promise.all(
+                    photoFiles.map(async (filename) => {
+                        const filePath = `${galleryDir}${filename}`;
+                        const info = await FileSystem.getInfoAsync(filePath) as FileSystem.FileInfo & { modificationTime?: number };
+                        const { classification, confidence, detectionType } = extractDataFromFilename(filename);
+
+                        return {
+                            uri: filePathToUri(filePath),
+                            filename: filename,
+                            size: info.exists && 'size' in info ? info.size : 0,
+                            type: 'photo' as const,
+                            modificationTime: info.modificationTime || 0,
+                            classification,
+                            confidence,
+                            detectionType,
+                        };
+                    })
+                );
+                mediaFiles.push(...photoItems);
             }
 
-            const files = await FileSystem.readDirectoryAsync(galleryDir);
-            const photoFiles = files.filter(filename =>
-                (filename.startsWith('bird_') || filename.startsWith('full_') || filename.startsWith('logchirpy_photo_')) &&
-                (filename.endsWith('.jpg') || filename.endsWith('.jpeg') || filename.endsWith('.png'))
+            // Load audio files from documents directory
+            const docsDir = FileSystem.documentDirectory!;
+            const docFiles = await FileSystem.readDirectoryAsync(docsDir);
+            const audioFiles = docFiles.filter(filename =>
+                filename.startsWith('audio_') && filename.endsWith('.m4a')
             );
 
-            const photoItems: PhotoItem[] = await Promise.all(
-                photoFiles.map(async (filename) => {
-                    const filePath = `${galleryDir}${filename}`;
+            const audioItems: MediaItem[] = await Promise.all(
+                audioFiles.map(async (filename) => {
+                    const filePath = `${docsDir}${filename}`;
                     const info = await FileSystem.getInfoAsync(filePath) as FileSystem.FileInfo & { modificationTime?: number };
-                    const { classification, confidence, detectionType } = extractDataFromFilename(filename);
 
                     return {
-                        uri: filePathToUri(filePath), // Convert to proper URI for Image component
+                        uri: filePath,
                         filename: filename,
                         size: info.exists && 'size' in info ? info.size : 0,
+                        type: 'audio' as const,
                         modificationTime: info.modificationTime || 0,
-                        classification,
-                        confidence,
-                        detectionType,
                     };
                 })
             );
+            mediaFiles.push(...audioItems);
 
             // Sort by modification time (newest first)
-            photoItems.sort((a, b) => b.modificationTime - a.modificationTime);
-            setPhotos(photoItems);
+            mediaFiles.sort((a, b) => b.modificationTime - a.modificationTime);
+            setMediaItems(mediaFiles);
         } catch (error) {
-            console.error('Failed to load photos:', error);
+            console.error('Failed to load media files:', error);
             Alert.alert(t('gallery.error'), t('gallery.load_failed'));
         } finally {
             setLoading(false);
@@ -118,17 +145,26 @@ export default function GalleryManagementScreen() {
     }, [t]);
 
     useEffect(() => {
-        loadPhotos();
-    }, [loadPhotos]);
+        loadMediaFiles();
+    }, [loadMediaFiles]);
 
     // Reset selection state when screen is focused
     useFocusEffect(
         useCallback(() => {
             // Always reset selection state when returning to gallery
             setSelectionMode(false);
-            setSelectedPhotos(new Set());
+            setSelectedItems(new Set());
         }, [])
     );
+
+    // Cleanup audio on unmount
+    useEffect(() => {
+        return () => {
+            if (audioSound) {
+                audioSound.unloadAsync().catch(() => {});
+            }
+        };
+    }, [audioSound]);
 
     // Extract classification data from filename patterns like "bird_house_finch_conf085_timestamp_milliseconds.jpg"
     const extractDataFromFilename = (filename: string): {
@@ -157,13 +193,13 @@ export default function GalleryManagementScreen() {
     };
 
     const toggleSelection = (uri: string) => {
-        const newSelection = new Set(selectedPhotos);
+        const newSelection = new Set(selectedItems);
         if (newSelection.has(uri)) {
             newSelection.delete(uri);
         } else {
             newSelection.add(uri);
         }
-        setSelectedPhotos(newSelection);
+        setSelectedItems(newSelection);
 
         if (newSelection.size === 0) {
             setSelectionMode(false);
@@ -217,10 +253,10 @@ export default function GalleryManagementScreen() {
         }
     };
 
-    const deletePhotos = async (photoUris: string[]) => {
+    const deleteMediaItems = async (itemUris: string[]) => {
         Alert.alert(
             t('gallery.delete_confirm'),
-            t('gallery.delete_message', { count: photoUris.length }),
+            t('gallery.delete_message', { count: itemUris.length }),
             [
                 { text: t('buttons.cancel'), style: 'cancel' },
                 {
@@ -231,20 +267,27 @@ export default function GalleryManagementScreen() {
                             let deletedCount = 0;
                             let errors = [];
 
-                            for (const uri of photoUris) {
+                            for (const uri of itemUris) {
+                                const item = mediaItems.find(item => item.uri === uri);
+                                if (!item) continue;
+
                                 try {
-                                    // Get the file path relative to the app's document directory
-                                    const galleryDir = `${FileSystem.documentDirectory}gallery/`;
-                                    const filename = uri.split('/').pop(); // Get the filename from the URI
-                                    if (!filename) {
-                                        throw new Error('Invalid file URI');
+                                    let filePath: string;
+                                    if (item.type === 'photo') {
+                                        // Get the file path relative to the app's document directory
+                                        const galleryDir = `${FileSystem.documentDirectory}gallery/`;
+                                        const filename = uri.split('/').pop(); // Get the filename from the URI
+                                        if (!filename) {
+                                            throw new Error('Invalid file URI');
+                                        }
+                                        filePath = `${galleryDir}${filename}`;
+                                    } else {
+                                        // Audio files are stored directly in documents directory
+                                        filePath = uri;
                                     }
 
-                                    const filePath = `${galleryDir}${filename}`;
                                     console.log('[Gallery] Processing delete:', {
                                         uri,
-                                        galleryDir,
-                                        filename,
                                         filePath
                                     });
 
@@ -255,7 +298,7 @@ export default function GalleryManagementScreen() {
                                         console.log('[Gallery] Successfully deleted file:', filePath);
                                     } else {
                                         console.warn('[Gallery] File does not exist:', filePath);
-                                        errors.push(`File not found: ${filename}`);
+                                        errors.push(`File not found: ${item.filename}`);
                                     }
                                 } catch (error) {
                                     console.error('[Gallery] Failed to delete file:', uri, error);
@@ -264,23 +307,23 @@ export default function GalleryManagementScreen() {
                             }
 
                             // Clear selection and refresh list regardless of errors
-                            setSelectedPhotos(new Set());
+                            setSelectedItems(new Set());
                             setSelectionMode(false);
-                            await loadPhotos(); // Refresh the list
+                            await loadMediaFiles(); // Refresh the list
 
                             // Show appropriate feedback
                             if (deletedCount > 0) {
                                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                                showSuccess(t('gallery.delete_success', 'Successfully deleted {{count}} photos', { count: deletedCount }));
+                                showSuccess(t('gallery.delete_success', 'Successfully deleted {{count}} files', { count: deletedCount }));
                             }
 
                             if (errors.length > 0) {
                                 console.error('[Gallery] Deletion errors:', errors);
-                                showError(t('gallery.delete_partial_fail', 'Failed to delete some photos. Please try again.'));
+                                showError(t('gallery.delete_partial_fail', 'Failed to delete some files. Please try again.'));
                             }
                         } catch (error) {
                             console.error('[Gallery] Delete operation failed:', error);
-                            showError(t('gallery.delete_failed', 'Failed to delete photos'));
+                            showError(t('gallery.delete_failed', 'Failed to delete files'));
                             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                         }
                     }
@@ -289,51 +332,68 @@ export default function GalleryManagementScreen() {
         );
     };
 
-    const sharePhotos = async (photoUris: string[]) => {
+    const shareMediaItems = async (itemUris: string[]) => {
         try {
             await Share.share({
                 message: t('gallery.share_title'),
-                url: photoUris[0], // Share first photo URL
+                url: itemUris[0], // Share first item URL
             });
         } catch (error) {
             console.error('Share failed:', error);
         }
     };
 
-    // Use selected photo for logging
-    const usePhotoForLog = useCallback(async () => {
-        if (selectedPhotos.size !== 1) {
-            showError('Please select exactly one photo to use for logging');
+    // Use selected media for logging
+    const useMediaForLog = useCallback(async () => {
+        if (selectedItems.size !== 1) {
+            showError('Please select exactly one item to use for logging');
             return;
         }
 
-        const selectedPhotoUri = Array.from(selectedPhotos)[0];
+        const selectedItemUri = Array.from(selectedItems)[0] as string;
+        const selectedItem = mediaItems.find(item => item.uri === selectedItemUri);
+
+        if (!selectedItem) return;
+
         try {
-            // Update the LogDraft context with the selected photo
-            update({ imageUri: selectedPhotoUri });
-            showSuccess('Photo selected for bird log');
+            // Update the LogDraft context with the selected media
+            if (selectedItem.type === 'photo') {
+                update({ imageUri: selectedItemUri });
+                showSuccess('Photo selected for bird log');
+            } else if (selectedItem.type === 'audio') {
+                update({ audioUri: selectedItemUri });
+                showSuccess('Audio selected for bird log');
+            }
+            
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
             // Navigate to the manual entry screen
             router.push('/log/manual');
         } catch (error) {
-            console.error('Failed to use photo for log:', error);
-            showError('Failed to select photo for logging');
+            console.error('Failed to use media for log:', error);
+            showError('Failed to select media for logging');
         }
-    }, [selectedPhotos, update, showSuccess, showError]);
+    }, [selectedItems, mediaItems, update, showSuccess, showError]);
 
-    // AI Identification function
+    // AI Identification function (only for photos)
     const handleIdentifyBird = useCallback(async () => {
-        if (!mlReady || isIdentifying || selectedPhotos.size !== 1) return;
+        if (!mlReady || isIdentifying || selectedItems.size !== 1) return;
 
-        const selectedPhotoUri = Array.from(selectedPhotos)[0];
+        const selectedItemUri = Array.from(selectedItems)[0] as string;
+        const selectedItem = mediaItems.find(item => item.uri === selectedItemUri);
+        
+        if (!selectedItem || selectedItem.type !== 'photo') {
+            showError('Please select a photo to identify');
+            return;
+        }
+
         setIsIdentifying(true);
         const startTime = Date.now();
 
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-            const results = await classifier?.classifyImage(selectedPhotoUri) || [];
+            const results = await classifier?.classifyImage(selectedItemUri) || [];
             const endTime = Date.now();
             setProcessingTime((endTime - startTime) / 1000);
 
@@ -363,7 +423,7 @@ export default function GalleryManagementScreen() {
         } finally {
             setIsIdentifying(false);
         }
-    }, [mlReady, isIdentifying, selectedPhotos, classifier, showError]);
+    }, [mlReady, isIdentifying, selectedItems, mediaItems, classifier, showError]);
 
     // Calculate string similarity score (same algorithm as smart-search)
     const calculateMatchScore = useCallback((query: string, target: string): number => {
@@ -512,11 +572,46 @@ export default function GalleryManagementScreen() {
             console.log('No matching species code found for:', prediction.text);
             showError(`No bird found in database matching: ${prediction.text}`);
         }
-    }, [update, showSuccess, findBestMatchingBirdCode]);
+    }, [update, findBestMatchingBirdCode, showError]);
 
-    const renderPhoto = ({ item }: { item: PhotoItem }) => {
-        const isSelected = selectedPhotos.has(item.uri);
+    // Audio playback functions
+    const playAudio = async (uri: string) => {
+        try {
+            // Stop current audio if playing
+            if (audioSound) {
+                await audioSound.unloadAsync();
+                setAudioSound(null);
+            }
+
+            if (playingAudio === uri) {
+                setPlayingAudio(null);
+                return;
+            }
+
+            const { sound } = await Audio.Sound.createAsync({ uri });
+            setAudioSound(sound);
+            setPlayingAudio(uri);
+            
+            await sound.playAsync();
+            
+            // Reset when finished
+            sound.setOnPlaybackStatusUpdate((status) => {
+                if (status.isLoaded && status.didJustFinish) {
+                    setPlayingAudio(null);
+                    sound.unloadAsync().catch(() => {});
+                    setAudioSound(null);
+                }
+            });
+        } catch (error) {
+            console.error('Audio playback failed:', error);
+            showError('Failed to play audio');
+        }
+    };
+
+    const renderMediaItem = ({ item }: { item: MediaItem }) => {
+        const isSelected = selectedItems.has(item.uri);
         const isBroken = brokenImages.has(item.uri);
+        const isPlayingThis = playingAudio === item.uri;
 
         return (
             <View style={styles.photoContainer}>
@@ -524,6 +619,8 @@ export default function GalleryManagementScreen() {
                     onPress={() => {
                         if (selectionMode) {
                             toggleSelection(item.uri);
+                        } else if (item.type === 'audio') {
+                            playAudio(item.uri);
                         } else {
                             // Single photo view or quick actions could go here
                         }
@@ -538,7 +635,23 @@ export default function GalleryManagementScreen() {
                         isSelected && { borderColor: colors.primary, borderWidth: 3 }
                     ]}
                 >
-                    {isBroken ? (
+                    {item.type === 'audio' ? (
+                        <View style={[styles.photo, styles.audioContainer]}>
+                            <ThemedIcon 
+                                name={isPlayingThis ? "pause" : "play"} 
+                                size={32} 
+                                color={isPlayingThis ? "primary" : "secondary"} 
+                            />
+                            <ThemedText variant="caption" color="secondary" style={styles.audioLabel}>
+                                Audio
+                            </ThemedText>
+                            {isPlayingThis && (
+                                <View style={styles.playingIndicator}>
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                </View>
+                            )}
+                        </View>
+                    ) : isBroken ? (
                         <View style={[styles.photo, styles.brokenImageContainer]}>
                             <ThemedIcon name="image" size={32} color="secondary" />
                             <ThemedText variant="caption" color="secondary">
@@ -578,7 +691,7 @@ export default function GalleryManagementScreen() {
                     )}
                 </Pressable>
 
-                {/* Photo info */}
+                {/* Media info */}
                 <View style={styles.photoInfo}>
                     <ThemedText variant="caption" color="secondary" numberOfLines={1}>
                         {item.filename}
@@ -612,24 +725,24 @@ export default function GalleryManagementScreen() {
                     {t('gallery.title')}
                 </ThemedText>
                 <ThemedText variant="body" color="secondary">
-                    {t('gallery.subtitle', { count: photos.length })}
+                    {t('gallery.subtitle', { count: mediaItems.length })}
                 </ThemedText>
             </ThemedView>
 
             {/* Selection Mode Actions */}
-            {(selectionMode && selectedPhotos.size > 0) && (
+            {(selectionMode && selectedItems.size > 0) && (
                 <View style={styles.actionBar}>
                     <ModernCard style={styles.actionCard}>
                         <View style={styles.actionButtons}>
-                            {/* Use for Bird Log button - always available when photos are selected */}
+                            {/* Use for Bird Log button - always available when items are selected */}
                             <ThemedPressable
                                 variant="primary"
                                 size="sm"
-                                onPress={usePhotoForLog}
-                                disabled={selectedPhotos.size !== 1}
+                                onPress={useMediaForLog}
+                                disabled={selectedItems.size !== 1}
                                 style={[
                                     styles.actionButton,
-                                    ...(selectedPhotos.size !== 1 ? [{ opacity: 0.5 }] : [])
+                                    ...(selectedItems.size !== 1 ? [{ opacity: 0.5 }] : [])
                                 ]}
                             >
                                 <ThemedIcon name="edit" size={16} color="inverse" />
@@ -639,7 +752,10 @@ export default function GalleryManagementScreen() {
                             </ThemedPressable>
 
                             {/* AI Identify button - only when one photo is selected */}
-                            {selectedPhotos.size === 1 && mlReady && (
+                            {selectedItems.size === 1 && mlReady && (() => {
+                                const selectedItem = mediaItems.find(item => item.uri === Array.from(selectedItems)[0]);
+                                return selectedItem?.type === 'photo';
+                            })() && (
                                 <ThemedPressable
                                     variant="secondary"
                                     size="sm"
@@ -657,11 +773,21 @@ export default function GalleryManagementScreen() {
                                 </ThemedPressable>
                             )}
 
-                            {/* Standard gallery actions - always available */}
+                            {/* Standard gallery actions - save photos only */}
                             <ThemedPressable
                                 variant="secondary"
                                 size="sm"
-                                onPress={() => saveToGallery(Array.from(selectedPhotos))}
+                                onPress={() => {
+                                    const photoUris = Array.from(selectedItems).filter(uri => {
+                                        const item = mediaItems.find(item => item.uri === uri);
+                                        return item?.type === 'photo';
+                                    });
+                                    if (photoUris.length === 0) {
+                                        showError('Please select photos to save to gallery');
+                                        return;
+                                    }
+                                    saveToGallery(photoUris);
+                                }}
                                 style={styles.actionButton}
                             >
                                 <ThemedIcon name="download" size={16} color="primary" />
@@ -673,7 +799,7 @@ export default function GalleryManagementScreen() {
                             <ThemedPressable
                                 variant="secondary"
                                 size="sm"
-                                onPress={() => sharePhotos(Array.from(selectedPhotos))}
+                                onPress={() => shareMediaItems(Array.from(selectedItems))}
                                 style={styles.actionButton}
                             >
                                 <ThemedIcon name="share" size={16} color="primary" />
@@ -685,7 +811,7 @@ export default function GalleryManagementScreen() {
                             <ThemedPressable
                                 variant="secondary"
                                 size="sm"
-                                onPress={() => deletePhotos(Array.from(selectedPhotos))}
+                                onPress={() => deleteMediaItems(Array.from(selectedItems))}
                                 style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
                             >
                                 <ThemedIcon name="trash-2" size={16} color="inverse" />
@@ -699,7 +825,7 @@ export default function GalleryManagementScreen() {
                                 size="sm"
                                 onPress={() => {
                                     setSelectionMode(false);
-                                    setSelectedPhotos(new Set());
+                                    setSelectedItems(new Set());
                                 }}
                             >
                                 <ThemedText variant="labelMedium" color="tertiary">
@@ -712,13 +838,13 @@ export default function GalleryManagementScreen() {
             )}
 
             {/* Instructions */}
-            {selectedPhotos.size === 0 && !selectionMode && photos.length > 0 && (
+            {selectedItems.size === 0 && !selectionMode && mediaItems.length > 0 && (
                 <View style={styles.actionBar}>
                     <ModernCard style={styles.actionCard}>
                         <View style={styles.instructionContainer}>
                             <ThemedIcon name="info" size={20} color="primary" />
                             <ThemedText variant="body" color="secondary" style={styles.instructionText}>
-                                Long press any photo to select, then choose an action (log, save, share, or delete)
+                                Long press any media to select, then choose an action. Tap audio files to play.
                             </ThemedText>
                         </View>
                     </ModernCard>
@@ -777,29 +903,29 @@ export default function GalleryManagementScreen() {
                 </Animated.View>
             )}
 
-            {/* Photo Grid */}
-            {photos.length === 0 ? (
+            {/* Media Grid */}
+            {mediaItems.length === 0 ? (
                 <View style={styles.emptyContainer}>
                     <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
                         <ThemedIcon name="camera" size={48} color="primary" />
                     </View>
                     <ThemedText variant="h3" style={styles.emptyTitle}>
-                        {t('gallery.no_photos')}
+                        No Media Files
                     </ThemedText>
                     <ThemedText variant="body" color="secondary" style={styles.emptyMessage}>
-                        {t('gallery.no_photos_message')}
+                        Take photos or record audio to see them here.
                     </ThemedText>
                 </View>
             ) : (
                 <FlatList
-                    data={photos}
-                    renderItem={renderPhoto}
+                    data={mediaItems}
+                    renderItem={renderMediaItem}
                     keyExtractor={(item) => item.uri}
                     numColumns={2}
                     contentContainerStyle={styles.gridContent}
                     columnWrapperStyle={styles.gridRow}
                     showsVerticalScrollIndicator={false}
-                    onRefresh={loadPhotos}
+                    onRefresh={loadMediaFiles}
                     refreshing={loading}
                 />
             )}
@@ -864,7 +990,7 @@ function createStyles() {
             lineHeight: 20,
         },
 
-        // Photo Grid
+        // Media Grid
         gridContent: {
             paddingHorizontal: 16,
             paddingBottom: 32,
@@ -873,7 +999,7 @@ function createStyles() {
             justifyContent: 'space-between',
         },
 
-        // Photo Items
+        // Media Items
         photoContainer: {
             width: '48%',
             marginBottom: 16,
@@ -894,6 +1020,22 @@ function createStyles() {
             alignItems: 'center',
             backgroundColor: 'rgba(0,0,0,0.05)',
             gap: 8,
+        },
+        audioContainer: {
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.05)',
+            gap: 8,
+            position: 'relative',
+        },
+        audioLabel: {
+            textAlign: 'center',
+            fontSize: 12,
+        },
+        playingIndicator: {
+            position: 'absolute',
+            top: 8,
+            right: 8,
         },
         selectionIndicator: {
             position: 'absolute',

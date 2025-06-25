@@ -1,41 +1,39 @@
 /**
- * Streamlined Audio Recording Screen
- * 
- * Simple, responsive audio recording with 3-6 second guidance
- * Minimal UI focused on recording experience
+ * Simple Audio Recording Component
+ * Records audio and saves to gallery/manual log
  */
 
-import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, Alert, StatusBar, StyleSheet} from 'react-native';
-import {Audio} from 'expo-av';
-import {router, Stack} from 'expo-router';
-import {useTranslation} from 'react-i18next';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { Audio } from 'expo-av';
+import { router, Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
-import * as Linking from 'expo-linking';
+import * as FileSystem from 'expo-file-system';
 
 // Components
-import {ThemedView} from '@/components/ThemedView';
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {ThemedIcon} from '@/components/ThemedIcon';
-import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {BackButton} from '@/components/BackButton';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { BackButton } from '@/components/BackButton';
 
 // Context
-import {useLogDraft} from '@/contexts/LogDraftContext';
+import { useLogDraft } from '@/contexts/LogDraftContext';
 
 // Hooks
-import {useColors} from '@/hooks/useThemeColor';
+import { useColors } from '@/hooks/useThemeColor';
 
-type RecordingState = 'idle' | 'recording' | 'stopping' | 'recorded';
+type RecordingState = 'idle' | 'recording' | 'recorded';
+type PlaybackState = 'idle' | 'playing' | 'paused';
 
-// Optimized audio quality settings
 const AUDIO_SETTINGS = {
     android: {
         extension: '.m4a',
         outputFormat: Audio.AndroidOutputFormat.MPEG_4,
         audioEncoder: Audio.AndroidAudioEncoder.AAC,
-        sampleRate: 44100,
+        sampleRate: 48000,
         numberOfChannels: 1,
         bitRate: 128000,
     },
@@ -43,7 +41,7 @@ const AUDIO_SETTINGS = {
         extension: '.m4a',
         outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
         audioQuality: Audio.IOSAudioQuality.HIGH,
-        sampleRate: 44100,
+        sampleRate: 48000,
         numberOfChannels: 1,
         bitRate: 128000,
     },
@@ -56,77 +54,70 @@ export default function AudioScreen() {
 
     // State
     const [state, setState] = useState<RecordingState>('idle');
+    const [playbackState, setPlaybackState] = useState<PlaybackState>('idle');
     const [duration, setDuration] = useState(0);
+    const [playbackPosition, setPlaybackPosition] = useState(0);
+    const [playbackDuration, setPlaybackDuration] = useState(0);
     const [recordedUri, setRecordedUri] = useState<string | null>(null);
     const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
     // Refs
     const recordingRef = useRef<Audio.Recording | null>(null);
+    const soundRef = useRef<Audio.Sound | null>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const playbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+            if (playbackTimerRef.current) {
+                clearInterval(playbackTimerRef.current);
+            }
+            if (recordingRef.current) {
+                recordingRef.current.stopAndUnloadAsync().catch(() => {});
+            }
+            if (soundRef.current) {
+                soundRef.current.unloadAsync().catch(() => {});
+            }
+        };
+    }, []);
 
     // Check permissions on mount
     useEffect(() => {
         checkPermissions();
-        return cleanup;
-    }, []);
-
-    const cleanup = useCallback(() => {
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
-        }
-        if (recordingRef.current) {
-            recordingRef.current.stopAndUnloadAsync().catch(console.warn);
-            recordingRef.current = null;
-        }
     }, []);
 
     const checkPermissions = async () => {
         try {
             const { status } = await Audio.getPermissionsAsync();
-            setHasPermission(status === 'granted');
-        } catch (error) {
-            console.error('Permission check failed:', error);
-            setHasPermission(false);
-        }
-    };
-
-    const requestPermissions = async () => {
-        try {
-            const { status } = await Audio.requestPermissionsAsync();
-            setHasPermission(status === 'granted');
-            
-            if (status !== 'granted') {
-                Alert.alert(
-                    'Permission Required',
-                    'Microphone access is needed to record bird sounds.',
-                    [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Settings', onPress: () => Linking.openSettings() }
-                    ]
-                );
+            if (status === 'granted') {
+                setHasPermission(true);
+            } else {
+                const { status: newStatus } = await Audio.requestPermissionsAsync();
+                setHasPermission(newStatus === 'granted');
             }
         } catch (error) {
-            console.error('Permission request failed:', error);
+            console.error('Permission error:', error);
             setHasPermission(false);
         }
     };
 
     const startRecording = async () => {
         if (!hasPermission) {
-            await requestPermissions();
+            Alert.alert('Permission Required', 'Microphone access is needed to record audio.');
             return;
         }
 
         try {
             setState('recording');
             setDuration(0);
-            
+
             await Audio.setAudioModeAsync({
                 allowsRecordingIOS: true,
                 playsInSilentModeIOS: true,
-                shouldDuckAndroid: true,
-                playThroughEarpieceAndroid: false,
             });
 
             const recording = new Audio.Recording();
@@ -143,15 +134,13 @@ export default function AudioScreen() {
         } catch (error) {
             console.error('Recording failed:', error);
             setState('idle');
-            Alert.alert('Error', 'Failed to start recording. Please try again.');
+            Alert.alert('Error', 'Failed to start recording.');
         }
     };
 
     const stopRecording = async () => {
-        if (!recordingRef.current || state !== 'recording') return;
+        if (!recordingRef.current) return;
 
-        setState('stopping');
-        
         // Clear timer
         if (timerRef.current) {
             clearInterval(timerRef.current);
@@ -164,206 +153,373 @@ export default function AudioScreen() {
             recordingRef.current = null;
 
             if (uri) {
-                setRecordedUri(uri);
+                // Save to app documents directory
+                const timestamp = Date.now();
+                const fileName = `audio_${timestamp}.m4a`;
+                const documentsDir = FileSystem.documentDirectory;
+                const newUri = `${documentsDir}${fileName}`;
+                
+                await FileSystem.copyAsync({
+                    from: uri,
+                    to: newUri
+                });
+
+                setRecordedUri(newUri);
                 setState('recorded');
+                
+                // Get audio duration for playback
+                try {
+                    const { sound } = await Audio.Sound.createAsync({ uri: newUri });
+                    const status = await sound.getStatusAsync();
+                    if (status.isLoaded && status.durationMillis) {
+                        setPlaybackDuration(Math.floor(status.durationMillis / 1000));
+                    }
+                    await sound.unloadAsync();
+                } catch (error) {
+                    console.warn('Failed to get audio duration:', error);
+                }
+                
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            } else {
-                throw new Error('No recording URI');
             }
         } catch (error) {
             console.error('Stop recording failed:', error);
             setState('idle');
-            Alert.alert('Error', 'Failed to save recording. Please try again.');
+            Alert.alert('Error', 'Failed to save recording.');
         }
     };
 
-    const handleRecord = useCallback(() => {
+    const handleRecord = () => {
         if (state === 'recording') {
             stopRecording();
         } else if (state === 'idle') {
             startRecording();
         }
-        // Do nothing for 'stopping' and 'recorded' states
-    }, [state]);
+    };
 
-    const handleRetake = useCallback(() => {
+    const handleRetake = async () => {
+        // Stop playback if active
+        await stopPlayback();
         setRecordedUri(null);
         setDuration(0);
+        setPlaybackPosition(0);
+        setPlaybackDuration(0);
         setState('idle');
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, []);
+    };
 
-    const handleConfirm = useCallback(() => {
+    const startPlayback = async () => {
+        if (!recordedUri) return;
+
+        try {
+            // Stop any existing playback
+            if (soundRef.current) {
+                await soundRef.current.unloadAsync();
+            }
+
+            // Load and play the audio
+            const { sound } = await Audio.Sound.createAsync(
+                { uri: recordedUri },
+                { shouldPlay: true, isLooping: true }
+            );
+            soundRef.current = sound;
+
+            // Get duration
+            const status = await sound.getStatusAsync();
+            if (status.isLoaded && status.durationMillis) {
+                setPlaybackDuration(Math.floor(status.durationMillis / 1000));
+            }
+
+            setPlaybackState('playing');
+            setPlaybackPosition(0);
+
+            // Set up playback position tracking
+            playbackTimerRef.current = setInterval(async () => {
+                if (soundRef.current) {
+                    const status = await soundRef.current.getStatusAsync();
+                    if (status.isLoaded) {
+                        if (status.positionMillis !== undefined && status.durationMillis !== undefined) {
+                            const currentPosition = Math.floor(status.positionMillis / 1000);
+                            const duration = Math.floor(status.durationMillis / 1000);
+                            
+                            // Handle looping - reset position when it reaches the end
+                            if (currentPosition >= duration) {
+                                setPlaybackPosition(0);
+                            } else {
+                                setPlaybackPosition(currentPosition);
+                            }
+                        }
+                        // Note: With looping enabled, didJustFinish won't trigger
+                        // The audio will continue playing automatically
+                    }
+                }
+            }, 100);
+
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch (error) {
+            console.error('Playback failed:', error);
+            setPlaybackState('idle');
+            Alert.alert('Error', 'Failed to play audio.');
+        }
+    };
+
+    const pausePlayback = async () => {
+        if (soundRef.current) {
+            try {
+                await soundRef.current.pauseAsync();
+                setPlaybackState('paused');
+                if (playbackTimerRef.current) {
+                    clearInterval(playbackTimerRef.current);
+                    playbackTimerRef.current = null;
+                }
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            } catch (error) {
+                console.error('Pause failed:', error);
+            }
+        }
+    };
+
+    const resumePlayback = async () => {
+        if (soundRef.current) {
+            try {
+                await soundRef.current.playAsync();
+                setPlaybackState('playing');
+                
+                // Resume position tracking
+                playbackTimerRef.current = setInterval(async () => {
+                    if (soundRef.current) {
+                        const status = await soundRef.current.getStatusAsync();
+                        if (status.isLoaded) {
+                            if (status.positionMillis !== undefined && status.durationMillis !== undefined) {
+                                const currentPosition = Math.floor(status.positionMillis / 1000);
+                                const duration = Math.floor(status.durationMillis / 1000);
+                                
+                                // Handle looping - reset position when it reaches the end
+                                if (currentPosition >= duration) {
+                                    setPlaybackPosition(0);
+                                } else {
+                                    setPlaybackPosition(currentPosition);
+                                }
+                            }
+                            // Note: With looping enabled, didJustFinish won't trigger
+                            // The audio will continue playing automatically
+                        }
+                    }
+                }, 100);
+
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            } catch (error) {
+                console.error('Resume failed:', error);
+            }
+        }
+    };
+
+    const stopPlayback = async () => {
+        if (soundRef.current) {
+            try {
+                await soundRef.current.stopAsync();
+                await soundRef.current.unloadAsync();
+                soundRef.current = null;
+            } catch (error) {
+                console.error('Stop playback failed:', error);
+            }
+        }
+        
+        setPlaybackState('idle');
+        setPlaybackPosition(0);
+        
+        if (playbackTimerRef.current) {
+            clearInterval(playbackTimerRef.current);
+            playbackTimerRef.current = null;
+        }
+    };
+
+    const handlePlayPause = () => {
+        if (playbackState === 'idle') {
+            startPlayback();
+        } else if (playbackState === 'playing') {
+            pausePlayback();
+        } else if (playbackState === 'paused') {
+            resumePlayback();
+        }
+    };
+
+    const handleSave = () => {
         if (recordedUri) {
             update({ audioUri: recordedUri });
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             router.back();
         }
-    }, [recordedUri, update]);
+    };
 
     const formatTime = (seconds: number): string => {
         return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
     };
 
-    const getDurationColor = () => {
-        if (duration < 3) return colors.error;
-        if (duration <= 6) return colors.success;
-        return colors.warning;
-    };
-
-    const getDurationMessage = () => {
-        if (duration < 3) return 'Keep recording...';
-        if (duration <= 6) return 'Perfect length!';
-        return 'Good length';
-    };
-
-    // Permission screen
-    if (hasPermission === false) {
+    // Permission loading
+    if (hasPermission === null) {
         return (
             <ThemedSafeAreaView style={styles.container}>
-                <StatusBar barStyle="dark-content" />
-                <Stack.Screen options={{ headerShown: false }} />
-                
-                <ThemedView style={styles.header}>
-                    <BackButton variant="inline" />
-                    <ThemedText variant="h3" style={styles.headerTitle}>
-                        Record Audio
-                    </ThemedText>
-                </ThemedView>
-
-                <ThemedView style={styles.centerContent}>
-                    <ThemedView style={styles.permissionContainer}>
-                        <ThemedIcon name="mic-off" size={48} color="error" />
-                        <ThemedText variant="h2" style={styles.permissionTitle}>
-                            Microphone Permission Required
-                        </ThemedText>
-                        <ThemedText variant="body" color="secondary" style={styles.permissionText}>
-                            LogChirpy needs microphone access to record bird sounds for identification.
-                        </ThemedText>
-                        <ThemedView style={styles.permissionButtons}>
-                            <ThemedPressable variant="secondary" onPress={() => router.back()}>
-                                <ThemedText>Cancel</ThemedText>
-                            </ThemedPressable>
-                            <ThemedPressable variant="primary" onPress={requestPermissions}>
-                                <ThemedText color="inverse">Grant Permission</ThemedText>
-                            </ThemedPressable>
-                        </ThemedView>
-                    </ThemedView>
-                </ThemedView>
+                <ActivityIndicator size="large" color={colors.primary} />
             </ThemedSafeAreaView>
         );
     }
 
-    // Processing screen
-    if (state === 'stopping') {
+    // Permission denied
+    if (hasPermission === false) {
         return (
             <ThemedSafeAreaView style={styles.container}>
-                <StatusBar barStyle="dark-content" />
                 <Stack.Screen options={{ headerShown: false }} />
-                
-                <ThemedView style={styles.centerContent}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <ThemedText variant="h3" color="secondary" style={styles.processingText}>
-                        Processing recording...
+                <BackButton />
+                <View style={styles.centerContent}>
+                    <ThemedIcon name="mic-off" size={64} color="error" />
+                    <ThemedText variant="h2" style={styles.title}>
+                        Microphone Access Required
                     </ThemedText>
-                </ThemedView>
+                    <ThemedText variant="body" color="secondary" style={styles.subtitle}>
+                        Please enable microphone access in settings to record audio.
+                    </ThemedText>
+                    <ThemedPressable variant="primary" onPress={checkPermissions}>
+                        <ThemedText variant="button" color="inverse">Try Again</ThemedText>
+                    </ThemedPressable>
+                </View>
             </ThemedSafeAreaView>
         );
     }
 
     return (
         <ThemedSafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
             <Stack.Screen options={{ headerShown: false }} />
-
+            
             {/* Header */}
-            <ThemedView style={styles.header}>
+            <View style={styles.header}>
                 <BackButton variant="inline" />
-                <ThemedText variant="h3" style={styles.headerTitle}>
-                    Record Audio
-                </ThemedText>
-            </ThemedView>
+                <ThemedText variant="h2">Record Audio</ThemedText>
+            </View>
 
             {/* Main Content */}
-            <ThemedView style={styles.content}>
-                {/* Recording Status */}
-                {state === 'recording' && (
-                    <ThemedView style={styles.recordingStatus}>
-                        <ThemedView style={styles.recordingDot} />
-                        <ThemedText variant="label" color="error">
-                            RECORDING
-                        </ThemedText>
-                    </ThemedView>
-                )}
-
-                {/* Duration Display */}
-                <ThemedView style={styles.durationContainer}>
-                    <ThemedText variant="h1" style={[styles.duration, { color: getDurationColor() }]}>
-                        {formatTime(duration)}
-                    </ThemedText>
-                    {state === 'recording' && (
-                        <ThemedText variant="body" color="secondary" style={styles.durationMessage}>
-                            {getDurationMessage()}
-                        </ThemedText>
-                    )}
-                </ThemedView>
-
+            <View style={styles.content}>
                 {/* Record Button */}
-                <ThemedView style={styles.buttonContainer}>
+                <View style={styles.recordSection}>
                     <ThemedPressable
-                        variant="ghost"
+                        variant={state === 'recording' ? 'secondary' : 'primary'}
                         onPress={handleRecord}
-                        disabled={state === 'recorded'}
                         style={[
                             styles.recordButton,
-                            {
-                                backgroundColor: state === 'recording' ? colors.error : colors.backgroundSecondary,
-                                borderColor: state === 'recording' ? colors.error : colors.primary,
-                            }
+                            ...(state === 'recording' ? [styles.recordingButton] : [])
                         ]}
+                        disabled={state === 'recorded'}
                     >
                         <ThemedIcon
                             name={state === 'recording' ? 'square' : 'mic'}
-                            size={state === 'recording' ? 32 : 36}
-                            color={state === 'recording' ? 'inverse' : 'primary'}
+                            size={32}
+                            color="inverse"
                         />
                     </ThemedPressable>
-                    
-                    <ThemedText variant="body" color="secondary" style={styles.buttonText}>
-                        {state === 'recording' ? 'Tap to stop' : 'Tap to record'}
+
+                    {/* Status */}
+                    <ThemedText variant="h3" style={styles.statusText}>
+                        {state === 'idle' && 'Tap to Record'}
+                        {state === 'recording' && 'Recording...'}
+                        {state === 'recorded' && 'Recording Complete'}
                     </ThemedText>
-                </ThemedView>
 
-                {/* Instructions */}
-                {state === 'idle' && !recordedUri && (
-                    <ThemedView style={styles.instructions}>
-                        <ThemedText variant="body" color="secondary" style={styles.instructionText}>
-                            Record bird sounds for AI identification.
+                    {/* Duration */}
+                    {(state === 'recording' || state === 'recorded') && (
+                        <ThemedText variant="h1" style={styles.duration}>
+                            {formatTime(duration)}
                         </ThemedText>
-                        <ThemedView style={styles.tip}>
-                            <ThemedIcon name="info" size={16} color="accent" />
-                            <ThemedText variant="caption" color="secondary">
-                                3-6 seconds is optimal for best results
-                            </ThemedText>
-                        </ThemedView>
-                    </ThemedView>
-                )}
-            </ThemedView>
+                    )}
 
-            {/* Bottom Controls */}
-            {recordedUri && state === 'recorded' && (
-                <ThemedView style={styles.bottomControls}>
-                    <ThemedPressable variant="secondary" onPress={handleRetake} style={styles.controlButton}>
-                        <ThemedIcon name="refresh-cw" size={20} color="primary" />
-                        <ThemedText>Retake</ThemedText>
-                    </ThemedPressable>
-                    
-                    <ThemedPressable variant="primary" onPress={handleConfirm} style={styles.controlButton}>
-                        <ThemedIcon name="check" size={20} color="inverse" />
-                        <ThemedText color="inverse">Use Recording</ThemedText>
-                    </ThemedPressable>
-                </ThemedView>
-            )}
+                    {/* Recording guidance */}
+                    {state === 'recording' && (
+                        <ThemedText variant="body" color="secondary" style={styles.guidance}>
+                            Record for 3-6 seconds for best results
+                        </ThemedText>
+                    )}
+                </View>
+
+                {/* Playback Section */}
+                {state === 'recorded' && recordedUri && (
+                    <View style={styles.playbackSection}>
+                        <ThemedText variant="h3" style={styles.playbackTitle}>
+                            Preview Recording
+                        </ThemedText>
+                        
+                        {/* Playback Controls */}
+                        <View style={styles.playbackControls}>
+                            <ThemedPressable
+                                variant="secondary"
+                                onPress={handlePlayPause}
+                                style={[styles.playButton, styles.playButtonWithOffset]}
+                            >
+                                <ThemedIcon
+                                    name={
+                                        playbackState === 'playing' ? 'pause' :
+                                        playbackState === 'paused' ? 'play' : 'play'
+                                    }
+                                    size={24}
+                                    color="primary"
+                                />
+                            </ThemedPressable>
+
+                            {/* Progress Bar */}
+                            <View style={styles.progressContainer}>
+                                <View style={styles.progressBar}>
+                                    <View 
+                                        style={[
+                                            styles.progressFill,
+                                            { 
+                                                width: playbackDuration > 0 
+                                                    ? `${(playbackPosition / playbackDuration) * 100}%` 
+                                                    : '0%'
+                                            }
+                                        ]} 
+                                    />
+                                </View>
+                                <View style={styles.timeContainer}>
+                                    <ThemedText variant="caption" color="secondary">
+                                        {formatTime(playbackPosition)}
+                                    </ThemedText>
+                                    <ThemedText variant="caption" color="secondary">
+                                        {formatTime(playbackDuration)}
+                                    </ThemedText>
+                                </View>
+                            </View>
+
+                            {playbackState !== 'idle' && (
+                                <ThemedPressable
+                                    variant="ghost"
+                                    onPress={stopPlayback}
+                                    style={styles.stopButton}
+                                >
+                                    <ThemedIcon name="square" size={20} color="secondary" />
+                                </ThemedPressable>
+                            )}
+                        </View>
+
+                        {/* Playback Status */}
+                        <ThemedText variant="caption" color="secondary" style={styles.playbackStatus}>
+                            {playbackState === 'playing' && 'Playing...'}
+                            {playbackState === 'paused' && 'Paused'}
+                            {playbackState === 'idle' && 'Ready to play'}
+                        </ThemedText>
+                    </View>
+                )}
+
+                {/* Action Buttons */}
+                {state === 'recorded' && (
+                    <View style={styles.actionButtons}>
+                        <ThemedPressable variant="secondary" onPress={handleRetake}>
+                            <ThemedIcon name="rotate-ccw" size={20} color="primary" />
+                            <ThemedText variant="button" color="primary">Retake</ThemedText>
+                        </ThemedPressable>
+
+                        <ThemedPressable variant="primary" onPress={handleSave}>
+                            <ThemedIcon name="check" size={20} color="inverse" />
+                            <ThemedText variant="button" color="inverse">Save Audio</ThemedText>
+                        </ThemedPressable>
+                    </View>
+                )}
+            </View>
         </ThemedSafeAreaView>
     );
 }
@@ -375,144 +531,112 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.1)',
-    },
-    headerTitle: {
-        marginLeft: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        gap: 12,
+        minHeight: 56,
     },
     content: {
         flex: 1,
         justifyContent: 'center',
-        alignItems: 'center',
         padding: 24,
-        gap: 32,
     },
     centerContent: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 24,
+        gap: 16,
     },
-    
-    // Recording Status
-    recordingStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        borderRadius: 20,
-    },
-    recordingDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#ef4444',
-    },
-
-    // Duration
-    durationContainer: {
-        alignItems: 'center',
-        gap: 8,
-    },
-    duration: {
-        fontSize: 48,
-        fontWeight: '600',
-        fontVariant: ['tabular-nums'],
-    },
-    durationMessage: {
+    title: {
         textAlign: 'center',
     },
-
-    // Record Button
-    buttonContainer: {
+    subtitle: {
+        textAlign: 'center',
+    },
+    recordSection: {
         alignItems: 'center',
-        gap: 16,
+        gap: 24,
+        marginBottom: 48,
     },
     recordButton: {
         width: 120,
         height: 120,
         borderRadius: 60,
-        borderWidth: 3,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
     },
-    buttonText: {
+    recordingButton: {
+        transform: [{ scale: 1.1 }],
+    },
+    statusText: {
         textAlign: 'center',
-        fontWeight: '500',
     },
-
-    // Instructions
-    instructions: {
+    duration: {
+        textAlign: 'center',
+        fontVariant: ['tabular-nums'],
+    },
+    guidance: {
+        textAlign: 'center',
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        gap: 16,
+        justifyContent: 'center',
+    },
+    playbackSection: {
         alignItems: 'center',
         gap: 16,
-        maxWidth: 280,
+        marginBottom: 32,
+        paddingHorizontal: 16,
     },
-    instructionText: {
+    playbackTitle: {
         textAlign: 'center',
-        lineHeight: 24,
+        marginBottom: 8,
     },
-    tip: {
+    playbackControls: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        backgroundColor: 'rgba(0,0,0,0.05)',
-        borderRadius: 16,
-    },
-
-    // Permission
-    permissionContainer: {
-        alignItems: 'center',
-        gap: 24,
-        padding: 32,
-        maxWidth: 320,
-    },
-    permissionTitle: {
-        textAlign: 'center',
-        fontWeight: '600',
-    },
-    permissionText: {
-        textAlign: 'center',
-        lineHeight: 24,
-    },
-    permissionButtons: {
-        flexDirection: 'row',
         gap: 16,
         width: '100%',
     },
-
-    // Processing
-    processingText: {
-        marginTop: 16,
-        textAlign: 'center',
-    },
-
-    // Bottom Controls
-    bottomControls: {
-        flexDirection: 'row',
-        gap: 16,
-        paddingHorizontal: 24,
-        paddingVertical: 20,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.1)',
-    },
-    controlButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
+    playButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         justifyContent: 'center',
+        alignItems: 'center',
+    },
+    playButtonWithOffset: {
+        paddingLeft: 0.5, // Very subtle offset for both play and pause icons
+    },
+    stopButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    progressContainer: {
+        flex: 1,
         gap: 8,
-        paddingVertical: 16,
+    },
+    progressBar: {
+        height: 4,
+        backgroundColor: 'rgba(128, 128, 128, 0.3)',
+        borderRadius: 2,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        backgroundColor: '#007AFF',
+        borderRadius: 2,
+    },
+    timeContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    playbackStatus: {
+        textAlign: 'center',
     },
 });

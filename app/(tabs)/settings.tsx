@@ -14,6 +14,7 @@ import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
+
 import {languages} from "@/i18n/languages";
 import {Config, STORAGE_KEYS} from "@/constants/config";
 import Slider from '@react-native-community/slider';
@@ -388,6 +389,8 @@ export default function SettingsScreen() {
 
             if (lang === "ar") {
                 if (!I18nManager.isRTL) {
+                    // Store that we should return to settings after reload
+                    await AsyncStorage.setItem('returnToSettings', 'true');
                     await I18nManager.forceRTL(true);
                     await i18n.changeLanguage(lang);
                     setCurrentLanguage(lang);
@@ -399,6 +402,8 @@ export default function SettingsScreen() {
                 }
             } else {
                 if (I18nManager.isRTL) {
+                    // Store that we should return to settings after reload
+                    await AsyncStorage.setItem('returnToSettings', 'true');
                     await I18nManager.forceRTL(false);
                     await i18n.changeLanguage(lang);
                     setCurrentLanguage(lang);
@@ -410,7 +415,7 @@ export default function SettingsScreen() {
                 }
             }
         } catch (error) {
-            console.error('Failed to change language:', error);
+            console.error('[Settings] Failed to change language:', error);
         } finally {
             setIsLoading(false);
         }

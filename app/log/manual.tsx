@@ -717,6 +717,29 @@ export default function ManualBirdEntry() {
                             </ThemedPressable>
                         )}
                     </View>
+
+                    {/* Audio Preview */}
+                    {draft.audioUri && (
+                        <View style={styles.audioPreview}>
+                            <ThemedText variant="bodySmall" color="secondary" style={styles.inputLabel}>
+                                Audio Recording
+                            </ThemedText>
+                            <ThemedPressable
+                                variant="ghost"
+                                onPress={handlePlayAudio}
+                                style={styles.audioPlayButton}
+                            >
+                                <ThemedIcon 
+                                    name={sound ? "pause" : "play"} 
+                                    size={24} 
+                                    color="primary" 
+                                />
+                                <ThemedText variant="body" color="primary">
+                                    {sound ? "Pause Audio" : "Play Audio"}
+                                </ThemedText>
+                            </ThemedPressable>
+                        </View>
+                    )}
                 </View>
 
                 {/* Bird Information */}
@@ -1064,6 +1087,24 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 8,
         paddingVertical: 12,
+    },
+
+    // Audio Preview
+    audioPreview: {
+        marginTop: 16,
+        gap: 8,
+    },
+    audioPlayButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.1)',
     },
 
     // Form Inputs

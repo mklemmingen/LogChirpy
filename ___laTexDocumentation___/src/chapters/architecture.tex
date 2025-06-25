@@ -89,7 +89,7 @@ Each feature module encapsulates:
 
 \subsection{Unified ML Pipeline Architecture}
 
-The Unified ML Pipeline (\texttt{/services/unifiedMLPipelineService.ts}) represents a centralized orchestration service that manages both image and audio machine learning processing within a single, sequential computational pipeline. This architecture eliminates race conditions and resource conflicts that previously occurred in dual-pipeline implementations.
+The Unified ML Pipeline (\texttt{/services/unifiedMLPipelineService.ts}) represents a centralized orchestration service that manages both image and audio machine learning processing within a single, sequential computational pipeline. This sequential approach, while not novel in the broader ML community, successfully resolved development challenges specific to our mobile implementation and eliminates race conditions that previously occurred in dual-pipeline implementations.
 
 \begin{figure}[H]
     \centering
@@ -140,46 +140,22 @@ REPEAT
 
 The audio classification system is based on a sophisticated dual-model TensorFlow Lite architecture with comprehensive testing and optimization protocols:
 
-\subsubsection{Mel-Spectrogram Processing and Performance Testing}
+\subsubsection{Mel-Spectrogram Processing Configuration}
 
-\textbf{Spectrogram Parameter Optimization Framework:}
-Extensive testing protocols were conducted to identify optimal mel-spectrogram parameters for enhanced classification performance:
+\textbf{Spectrogram Parameter Configuration:}
+The implemented audio processing pipeline uses standard BirdNET parameters based on established research:
 
-\begin{lstlisting}[style=javascript, caption=Mel-Spectrogram Configuration Testing Framework, label=lst:mel_testing]
-// Tested configurations for optimal BirdNET performance
-const melConfigurations = [
-  // Configuration 1: Standard BirdNET
-  {
-    sampleRate: 48000,
-    hopLength: 512,
-    nFft: 1024,
-    nMels: 64,
-    fMin: 150,
-    fMax: 15000,
-    performance: 0.87 // Accuracy achieved
-  },
-  // Configuration 2: Optimized version
-  {
-    sampleRate: 48000,
-    hopLength: 256,
-    nFft: 2048,
-    nMels: 80,
-    fMin: 200,
-    fMax: 12000,
-    performance: 0.91 // Best performance
-  },
-  // Configuration 3: Mobile-optimized
-  {
-    sampleRate: 48000,
-    hopLength: 1024,
-    nFft: 1024,
-    nMels: 48,
-    fMin: 300,
-    fMax: 10000,
-    performance: 0.84,
-    processingTime: "50% faster" // Trade-off
-  }
-];
+\begin{lstlisting}[style=javascript, caption=Implemented Mel-Spectrogram Configuration, label=lst:mel_config]
+// Implemented configuration following BirdNET standards
+const melConfiguration = {
+  sampleRate: 48000,
+  hopLength: 512,
+  nFft: 1024,
+  nMels: 64,
+  fMin: 150,
+  fMax: 15000,
+  duration: 3.0 // seconds
+};
 \end{lstlisting}
 
 \textbf{Tensor Preprocessing Pipeline Framework:}
@@ -228,24 +204,8 @@ const preprocessAudioTensor = async (audioSamples: Float32Array) => {
 
 \subsubsection{TensorFlow.js Package Testing and Optimization Framework}
 
-\textbf{Package Compatibility Assessment Matrix:}
-Extensive testing protocols were conducted with various TensorFlow.js packages:
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|l|l|l|l|l|}
-\hline
-\textbf{Package} & \textbf{Version} & \textbf{Performance} & \textbf{Memory} & \textbf{Compatibility} \\
-\hline
-@tensorflow/tfjs & 4.15.0 & Slow & High & React Native Issues \\
-@tensorflow/tfjs-react-native & 0.8.0 & Medium & Medium & Good \\
-@tensorflow/tfjs-platform-react-native & 0.66.0 & Fast & Low & Optimal \\
-react-native-fast-tflite & 1.0.0 & Very fast & Very low & Perfect \\
-\hline
-\end{tabular}
-\caption{TensorFlow.js Package Performance Testing Framework}
-\label{tab:tf_packages}
-\end{table}
+\textbf{TensorFlow Package Selection (Unscientific Development Experience):}
+Based on development experience, the project uses \texttt{react-native-fast-tflite} as it provided the most stable integration with React Native and appropriate performance for the application's requirements. Alternative packages like \texttt{@tensorflow/tfjs} were evaluated but presented compatibility challenges in the React Native environment.
 
 \textbf{Optimized TFLite Integration Framework:}
 \begin{lstlisting}[style=javascript, caption=Fast TFLite Implementation Architecture, label=lst:fast_tflite]
@@ -305,132 +265,80 @@ class BirdNETClassifier {
 }
 \end{lstlisting}
 
-\subsubsection{Audio-Pipeline Performance-Metriken}
+\subsubsection{Estimated Audio-Pipeline Performance (Unscientific Development Observations)}
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|l|l|l|l|}
+\begin{tabular}{|l|l|}
 \hline
-\textbf{Processing Step} & \textbf{Duration (ms)} & \textbf{Memory (MB)} & \textbf{CPU (\%)} \\
+\textbf{Processing Step} & \textbf{Observed Characteristics} \\
 \hline
-Audio Loading & 50-100 & 5 & 10 \\
-Resampling & 100-200 & 8 & 25 \\
-STFT Computation & 200-400 & 12 & 45 \\
-Mel-Filter Application & 150-300 & 6 & 30 \\
-Tensor Conversion & 50-100 & 10 & 15 \\
-Model Inference & 300-800 & 25 & 60 \\
-Post-processing & 50-100 & 3 & 10 \\
-\textbf{Total Pipeline} & \textbf{900-2000} & \textbf{69} & \textbf{Peak: 60} \\
+Audio Loading & Fast initialization \\
+Resampling & Moderate processing time \\
+STFT Computation & Most computationally intensive step \\
+Mel-Filter Application & Moderate processing requirement \\
+Tensor Conversion & Minimal overhead \\
+Model Inference & Primary processing bottleneck \\
+Post-processing & Minimal overhead \\
+\textbf{Total Pipeline} & \textbf{Approximately 1-3 seconds total} \\
 \hline
 \end{tabular}
-\caption{Audio-Pipeline Performance-Profiling}
-\label{tab:audio_performance}
+\caption{Unscientific Development Observations of Audio Pipeline Performance}
+\label{tab:audio_performance_observations}
 \end{table}
 
 \section{Data Architecture and Management Framework}
 
 \subsection{Local Database Architecture (SQLite)}
 
-\begin{lstlisting}[style=javascript, caption=Comprehensive SQLite Database Schema, label=lst:sqlite_schema]
--- Primary table for bird observations
-CREATE TABLE observations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    uuid TEXT UNIQUE NOT NULL,
-    species_name TEXT,
-    common_name TEXT,
-    scientific_name TEXT,
-    confidence REAL,
-    timestamp TEXT NOT NULL,
-    latitude REAL,
-    longitude REAL,
-    altitude REAL,
-    accuracy REAL,
-    image_path TEXT,
-    audio_path TEXT,
-    video_path TEXT,
-    notes TEXT,
-    weather_condition TEXT,
-    temperature REAL,
-    detection_method TEXT, -- 'manual', 'image_ml', 'audio_ml'
-    ml_model_version TEXT,
-    device_info TEXT,
-    app_version TEXT,
-    sync_status INTEGER DEFAULT 0, -- 0=local, 1=syncing, 2=synced
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TEXT NULL
+\begin{lstlisting}[style=javascript, caption=SQLite Database Schema Implementation, label=lst:sqlite_schema]
+-- Primary table for bird spotting records (database.ts)
+CREATE TABLE bird_spottings (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    image_uri        TEXT,
+    video_uri        TEXT,
+    audio_uri        TEXT,
+    text_note        TEXT,
+    gps_lat          REAL,
+    gps_lng          REAL,
+    date             TEXT,
+    bird_type        TEXT,
+    image_prediction TEXT,
+    audio_prediction TEXT,
+    synced           INTEGER DEFAULT 0,
+    latinBirDex      TEXT  -- BirDex integration column
 );
 
--- BirDex comprehensive species database (30,000+ species)
-CREATE TABLE species (
-    id INTEGER PRIMARY KEY,
-    scientific_name TEXT UNIQUE NOT NULL,
-    common_name_en TEXT,
-    common_name_de TEXT, 
-    common_name_es TEXT,
-    common_name_fr TEXT,
-    common_name_uk TEXT,
-    common_name_ar TEXT,
-    family_name TEXT,
-    order_name TEXT,
-    iucn_status TEXT,
-    wikipedia_url TEXT,
-    wikipedia_image_url TEXT,
-    macaulay_asset_url TEXT,
-    ebird_code TEXT,
-    habitat_description TEXT,
-    geographic_range TEXT,
-    migration_pattern TEXT,
-    breeding_season TEXT,
-    average_length_cm REAL,
-    average_wingspan_cm REAL,
-    average_weight_g REAL,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+-- BirDex comprehensive species database (databaseBirDex.ts)
+-- 30,000+ global bird species with multilingual support
+CREATE TABLE birddex (
+    species_code           TEXT    PRIMARY KEY,
+    english_name           TEXT    NOT NULL,
+    scientific_name        TEXT    NOT NULL,
+    category               TEXT,
+    family                 TEXT,
+    order_                 TEXT,
+    sort_v2024             TEXT,
+    clements_v2024b_change TEXT,
+    text_for_website_v2024b TEXT,
+    range                  TEXT,
+    extinct                TEXT,
+    extinct_year           TEXT,
+    sort_v2023             TEXT,
+    de_name                TEXT,    -- German names
+    es_name                TEXT,    -- Spanish names
+    ukrainian_name         TEXT,    -- Ukrainian names
+    ar_name                TEXT,    -- Arabic names
+    hasBeenLogged          INTEGER DEFAULT 0
 );
 
--- User settings and preferences
-CREATE TABLE user_settings (
-    id INTEGER PRIMARY KEY,
-    key TEXT UNIQUE NOT NULL,
-    value TEXT,
-    data_type TEXT, -- 'string', 'number', 'boolean', 'json'
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
--- ML pipeline cache for performance optimization
-CREATE TABLE ml_cache (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_hash TEXT UNIQUE NOT NULL,
-    file_type TEXT, -- 'image', 'audio'
-    ml_results TEXT, -- JSON-encoded results
-    model_version TEXT,
-    confidence REAL,
-    processing_time_ms INTEGER,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
--- Synchronization log for cloud operations
-CREATE TABLE sync_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    table_name TEXT NOT NULL,
-    record_id TEXT NOT NULL,
-    action TEXT NOT NULL, -- 'create', 'update', 'delete'
-    local_timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-    cloud_timestamp TEXT,
-    status TEXT DEFAULT 'pending', -- 'pending', 'success', 'error'
-    error_message TEXT,
-    retry_count INTEGER DEFAULT 0
-);
-
--- Indices for performance optimization
-CREATE INDEX idx_observations_scientific_name ON observations(scientific_name);
-CREATE INDEX idx_observations_timestamp ON observations(timestamp);
-CREATE INDEX idx_observations_sync_status ON observations(sync_status);
-CREATE INDEX idx_species_scientific_name ON species(scientific_name);
-CREATE INDEX idx_species_common_names ON species(common_name_en, common_name_de, common_name_es);
-CREATE INDEX idx_ml_cache_hash ON ml_cache(file_hash);
-CREATE INDEX idx_sync_log_status ON sync_log(status);
+-- Performance optimization indexes
+CREATE INDEX idx_birddex_english_name ON birddex(english_name);
+CREATE INDEX idx_birddex_scientific_name ON birddex(scientific_name);
+CREATE INDEX idx_birddex_category ON birddex(category);
+CREATE INDEX idx_birddex_family ON birddex(family);
+CREATE INDEX idx_bird_spottings_date ON bird_spottings(date);
+CREATE INDEX idx_bird_spottings_synced ON bird_spottings(synced);
 \end{lstlisting}
 
 \subsection{Cloud Synchronization Architecture (Firebase)}
@@ -504,449 +412,89 @@ CREATE INDEX idx_sync_log_status ON sync_log(status);
 
 \section{Automated Knowledge Extraction and Translation Systems}
 
-\subsection{Wikipedia Image Extraction Pipeline}
+\subsection{Wikipedia Integration and Image Extraction}
 
-\textbf{Comprehensive Data Extraction System for 30,000+ Avian Species:}
+\textbf{Real Implementation Architecture:}
 
-\begin{lstlisting}[style=javascript, caption=Wikipedia Scraping Implementation, label=lst:wiki_scraping]
-// Fully automated Wikipedia scraping for all bird species
-class WikipediaScrapingService {
-  private readonly RATE_LIMIT = 100; // Requests per minute
-  private readonly RETRY_ATTEMPTS = 3;
-  private readonly USER_AGENT = 'LogChirpy/1.0 (Educational Research)';
-  
-  async scrapeAllBirdImages(speciesList: Species[]) {
-    const results = [];
-    const rateLimiter = new RateLimiter(this.RATE_LIMIT);
-    
-    for (const species of speciesList) {
-      await rateLimiter.wait();
-      
-      try {
-        // Multi-Language Wikipedia Scraping
-        const imageData = await this.scrapeSpeciesImages(species);
-        results.push(imageData);
-        
-        // Progress tracking
-        console.log(`Scraped ${results.length}/${speciesList.length}: ${species.scientific_name}`);
-        
-      } catch (error) {
-        console.error(`Failed to scrape ${species.scientific_name}:`, error);
-        // Retry mechanism
-        await this.retryWithBackoff(species, error);
-      }
-    }
-    
-    return results;
-  }
-  
-  async scrapeSpeciesImages(species: Species) {
-    // 1. Primäre Wikipedia-Suche (Englisch)
-    let imageUrl = await this.searchWikipediaImage(
-      species.scientific_name, 'en'
-    );
-    
-    // 2. Fallback auf Common Name Search
-    if (!imageUrl && species.common_name_en) {
-      imageUrl = await this.searchWikipediaImage(
-        species.common_name_en, 'en'
-      );
-    }
-    
-    // 3. Multi-Language Fallback
-    if (!imageUrl) {
-      const languages = ['de', 'es', 'fr'];
-      for (const lang of languages) {
-        const commonName = species[`common_name_${lang}`];
-        if (commonName) {
-          imageUrl = await this.searchWikipediaImage(commonName, lang);
-          if (imageUrl) break;
-        }
-      }
-    }
-    
-    // 4. Wikimedia Commons Search
-    if (!imageUrl) {
-      imageUrl = await this.searchWikimediaCommons(species.scientific_name);
-    }
-    
-    // 5. Quality validation
-    if (imageUrl) {
-      const isValid = await this.validateImageQuality(imageUrl);
-      if (!isValid) {
-        imageUrl = await this.findAlternativeImage(species);
-      }
-    }
-    
-    return {
-      scientific_name: species.scientific_name,
-      image_url: imageUrl,
-      source: 'wikipedia',
-      scraped_at: new Date().toISOString(),
-      quality_score: await this.calculateImageQuality(imageUrl)
-    };
-  }
-  
-  private async searchWikipediaImage(query: string, language: string) {
-    const apiUrl = `https://${language}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-    
-    const response = await fetch(apiUrl, {
-      headers: { 'User-Agent': this.USER_AGENT }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      return data.thumbnail?.source || data.originalimage?.source;
-    }
-    
-    return null;
-  }
-  
-  private async searchWikimediaCommons(scientificName: string) {
-    const apiUrl = `https://commons.wikimedia.org/w/api.php`;
-    const params = new URLSearchParams({
-      action: 'query',
-      format: 'json',
-      list: 'search',
-      srsearch: `${scientificName} bird`,
-      srnamespace: '6', // File namespace
-      srlimit: '10'
-    });
-    
-    const response = await fetch(`${apiUrl}?${params}`);
-    const data = await response.json();
-    
-    if (data.query?.search?.length > 0) {
-      // Return highest quality image
-      return await this.getCommonsImageUrl(data.query.search[0].title);
-    }
-    
-    return null;
-  }
-}
-\end{lstlisting}
+The system implements two complementary approaches for Wikipedia integration:
+
+\begin{itemize}
+    \item \textbf{Wikipedia API Service} (\texttt{/services/wikipediaService.ts}): Fetches localized bird names using Wikipedia langlinks API
+    \item \textbf{Wikimedia Commons Image Fetcher} (\texttt{/dev/image\_getters/bird\_image\_fetcher.py}): Python script for bulk image downloading
+\end{itemize}
+
+\textbf{Wikipedia Name Localization (TypeScript):}
+The production service fetches multi-language bird names through Wikipedia's langlinks API with chunked requests and error handling.
+
+\textbf{Image Extraction (Python Development Script):}
+A comprehensive Python script handles bulk image downloading from Wikimedia Commons with features including:
+\begin{itemize}
+    \item Rate limiting and API quota management
+    \item Image optimization and WebP conversion for mobile devices
+    \item Quality filtering and metadata extraction
+    \item Resume functionality for large batch operations
+    \item Manifest generation with image metadata
+\end{itemize}
 
 \subsection{Mass Translation System for 30,000+ Species}
 
-\textbf{Multi-API Translation Pipeline with Fallback Strategies:}
+\textbf{Real Translation Implementation:}
 
-\begin{lstlisting}[style=javascript, caption=Automated Translation System, label=lst:translation_system]
-// Comprehensive translation system with multiple API fallbacks
-class MassTranslationService {
-  private translationAPIs = [
-    { name: 'DeepL', quota: 500000, cost: 'low' },
-    { name: 'Google Translate', quota: 100000, cost: 'medium' },
-    { name: 'Microsoft Translator', quota: 2000000, cost: 'free' },
-    { name: 'LibreTranslate', quota: 'unlimited', cost: 'free' }
-  ];
-  
-  async translateAllSpecies(species: Species[], targetLanguages: string[]) {
-    const translationBatches = this.createBatches(species, 100); // Batch processing
-    const results = [];
-    
-    for (const batch of translationBatches) {
-      console.log(`Processing batch ${results.length + 1}/${translationBatches.length}`);
-      
-      const batchResults = await Promise.allSettled(
-        batch.map(sp => this.translateSpecies(sp, targetLanguages))
-      );
-      
-      results.push(...batchResults);
-      
-      // Rate limiting zwischen Batches
-      await this.delay(1000);
-    }
-    
-    return this.processBatchResults(results);
-  }
-  
-  async translateSpecies(species: Species, languages: string[]) {
-    const translations = { scientific_name: species.scientific_name };
-    
-    for (const lang of languages) {
-      if (species[`common_name_${lang}`]) {
-        // Bereits vorhanden, überspringen
-        translations[`common_name_${lang}`] = species[`common_name_${lang}`];
-        continue;
-      }
-      
-      try {
-        // Primäre Übersetzung von Englisch
-        let translation = await this.translateWithFallback(
-          species.common_name_en,
-          'en',
-          lang
-        );
-        
-        // Validierung der Übersetzung
-        if (!this.isValidBirdName(translation, lang)) {
-          // Fallback: Wissenschaftlicher Name + Sprachspezifische Suffixe
-          translation = await this.generateLocalizedName(
-            species.scientific_name,
-            lang
-          );
-        }
-        
-        translations[`common_name_${lang}`] = translation;
-        
-      } catch (error) {
-        console.error(`Translation failed for ${species.scientific_name} to ${lang}:`, error);
-        // Fallback: Behalte englischen Namen
-        translations[`common_name_${lang}`] = species.common_name_en;
-      }
-    }
-    
-    return translations;
-  }
-  
-  private async translateWithFallback(text: string, from: string, to: string) {
-    for (const api of this.translationAPIs) {
-      try {
-        if (this.hasQuotaRemaining(api)) {
-          const translation = await this.callTranslationAPI(api, text, from, to);
-          if (translation && translation !== text) {
-            this.updateQuotaUsage(api);
-            return translation;
-          }
-        }
-      } catch (error) {
-        console.warn(`${api.name} failed, trying next API:`, error);
-      }
-    }
-    
-    // Letzte Fallback-Option: Regel-basierte Übersetzung
-    return await this.ruleBasedTranslation(text, to);
-  }
-  
-  private async ruleBasedTranslation(englishName: string, targetLang: string) {
-    // Sprachspezifische Transformationsregeln
-    const rules = {
-      'de': {
-        patterns: [
-          { from: /(.+) Warbler$/, to: '$1-Waldsänger' },
-          { from: /(.+) Flycatcher$/, to: '$1-Fliegenschnäpper' },
-          { from: /(.+) Hawk$/, to: '$1-Falke' },
-          { from: /(.+) Owl$/, to: '$1-Eule' }
-        ],
-        fallback: name => `${name} (Vogel)`
-      },
-      'es': {
-        patterns: [
-          { from: /(.+) Warbler$/, to: 'Reinita $1' },
-          { from: /(.+) Flycatcher$/, to: 'Papamoscas $1' },
-          { from: /(.+) Hawk$/, to: 'Halcón $1' }
-        ],
-        fallback: name => `${name} (ave)`
-      }
-      // ... weitere Sprachen
-    };
-    
-    const langRules = rules[targetLang];
-    if (!langRules) return englishName;
-    
-    // Pattern-Matching anwenden
-    for (const rule of langRules.patterns) {
-      if (rule.from.test(englishName)) {
-        return englishName.replace(rule.from, rule.to);
-      }
-    }
-    
-    // Fallback-Regel
-    return langRules.fallback(englishName);
-  }
-}
-\end{lstlisting}
+The project implements a comprehensive OpenAI-powered translation system through Node.js scripts in \texttt{/dev/scripts/\_birdyDex\_massTranslationScripts/}:
 
-\subsection{CSV Export and Batch Processing Framework}
+\textbf{Implementation Features:}
+This implementation demonstrates practical integration of translation APIs within the constraints of an educational project, rather than novel translation methodology.
+\begin{itemize}
+    \item \textbf{OpenAI API Integration:} Uses ChatGPT for high-quality bird name translations
+    \item \textbf{Automatic Resume Functionality:} Safely resumes interrupted translation batches
+    \item \textbf{Caching System:} Persistent cache to avoid re-translating completed entries
+    \item \textbf{Rate Limiting with Exponential Backoff:} Handles API quotas and request timing
+    \item \textbf{Model Fallback:} Automatic fallback between GPT models based on availability
+    \item \textbf{Progress Tracking:} Real-time progress monitoring with periodic CSV exports
+    \item \textbf{Multi-Language Support:} Generates German, Spanish, Ukrainian, and Arabic names
+\end{itemize}
 
-\textbf{Efficient Large-Scale Dataset Processing Framework:}
+\textbf{Translation Workflow:}
+\begin{enumerate}
+    \item \textbf{Data Input:} Processes Clements v2024 taxonomy CSV with 30,000+ species
+    \item \textbf{English Enrichment:} First enriches entries with English common names
+    \item \textbf{Multi-Language Translation:} Batch translates to target languages using OpenAI
+    \item \textbf{Quality Validation:} Validates translations and handles edge cases
+    \item \textbf{Output Generation:} Produces \texttt{birds\_fully\_translated.csv} for app integration
+\end{enumerate}
 
-\begin{lstlisting}[style=javascript, caption=CSV Translation Processing, label=lst:csv_processing]
-// CSV-based translation processing for 30k+ entries
-class CSVTranslationProcessor {
-  async processTranslationCSV(inputPath: string, outputPath: string) {
-    const csvData = await this.loadCSV(inputPath);
-    const processedData = [];
-    
-    console.log(`Processing ${csvData.length} species translations...`);
-    
-    // Chunk processing for memory efficiency
-    const chunkSize = 1000;
-    for (let i = 0; i < csvData.length; i += chunkSize) {
-      const chunk = csvData.slice(i, i + chunkSize);
-      
-      const processedChunk = await Promise.allSettled(
-        chunk.map(row => this.processSpeciesRow(row))
-      );
-      
-      // Collect successfully processed entries
-      const successfulResults = processedChunk
-        .filter(result => result.status === 'fulfilled')
-        .map(result => result.value);
-      
-      processedData.push(...successfulResults);
-      
-      // Progress Report
-      console.log(`Processed ${Math.min(i + chunkSize, csvData.length)}/${csvData.length} entries`);
-      
-      // Memory Cleanup
-      if (processedData.length % 5000 === 0) {
-        await this.flushToFile(processedData, outputPath, 'append');
-        processedData.length = 0; // Clear array
-      }
-    }
-    
-    // Final flush
-    if (processedData.length > 0) {
-      await this.flushToFile(processedData, outputPath, 'append');
-    }
-    
-    console.log('CSV processing completed successfully');
-  }
-  
-  private async processSpeciesRow(row: any) {
-    return {
-      id: row.id,
-      scientific_name: row.scientific_name,
-      common_name_en: this.cleanBirdName(row.common_name_en),
-      common_name_de: this.cleanBirdName(row.common_name_de),
-      common_name_es: this.cleanBirdName(row.common_name_es),
-      common_name_fr: this.cleanBirdName(row.common_name_fr),
-      common_name_uk: this.cleanBirdName(row.common_name_uk),
-      common_name_ar: this.cleanBirdName(row.common_name_ar),
-      translation_quality: this.assessTranslationQuality(row),
-      updated_at: new Date().toISOString()
-    };
-  }
-  
-  private cleanBirdName(name: string): string {
-    if (!name) return '';
-    
-    return name
-      .trim()
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .replace(/[^\w\s\-\(\)]/g, '') // Remove special chars
-      .replace(/\b(bird|vogel|ave|oiseau|птах|طائر)\b/gi, '') // Remove generic terms
-      .trim();
-  }
-}
-\end{lstlisting}
+\subsection{Data Processing and Export Framework}
+
+\textbf{Large-Scale Dataset Processing:}
+
+The system implements efficient batch processing for handling the 30,000+ bird species dataset. The actual implementation uses specialized Node.js scripts (\texttt{/dev/scripts/\_birdyDex\_massTranslationScripts/enrich-birddex-with-translations.js}) that provide:
+
+\begin{itemize}
+    \item \textbf{Memory-Efficient Processing:} Chunk-based processing with configurable batch sizes
+    \item \textbf{CSV Import/Export:} Papa Parse library for robust CSV processing
+    \item \textbf{Data Validation:} Automated validation and cleaning of species names and translations
+    \item \textbf{Progress Tracking:} Real-time processing progress monitoring with periodic saves
+    \item \textbf{Resume Functionality:} Automatic resume capability for interrupted translation batches
+    \item \textbf{Rate Limiting:} Exponential backoff and API quota management
+\end{itemize}
 
 \subsection{String Comparison and Fuzzy-Matching Framework in BirDex}
 
-\textbf{Robust Species Recognition with Advanced String Algorithm Framework:}
+\textbf{Robust Species Recognition with BirDex Search Implementation:}
 
-\begin{lstlisting}[style=javascript, caption=Advanced String Matching for Species, label=lst:string_matching]
-// Advanced string comparison algorithms for BirDex search
-class SpeciesStringMatcher {
-  
-  async findBestMatch(query: string, language: string = 'en'): Promise<Species | null> {
-    // 1. Exact match (fastest path)
-    let match = await this.exactMatch(query, language);
-    if (match) return match;
-    
-    // 2. Normalized search
-    match = await this.normalizedMatch(query, language);
-    if (match) return match;
-    
-    // 3. Subspecies-Fallback
-    match = await this.subspeciesFallback(query, language);
-    if (match) return match;
-    
-    // 4. Fuzzy-Matching mit verschiedenen Algorithmen
-    match = await this.fuzzyMatch(query, language);
-    if (match) return match;
-    
-    // 5. Cross-Language-Suche
-    match = await this.crossLanguageSearch(query);
-    if (match) return match;
-    
-    return null;
-  }
-  
-  private async fuzzyMatch(query: string, language: string): Promise<Species | null> {
-    const candidates = await this.getAllSpeciesNames(language);
-    let bestMatch = null;
-    let bestScore = 0;
-    
-    for (const candidate of candidates) {
-      // Multiple Similarity-Algorithmen kombinieren
-      const levenshteinScore = this.levenshteinSimilarity(query, candidate.name);
-      const jaccardScore = this.jaccardSimilarity(query, candidate.name);
-      const jaroWinklerScore = this.jaroWinklerSimilarity(query, candidate.name);
-      const phoneticScore = this.phoneticSimilarity(query, candidate.name);
-      
-      // Gewichtete Kombination der Scores
-      const combinedScore = (
-        levenshteinScore * 0.3 +
-        jaccardScore * 0.2 +
-        jaroWinklerScore * 0.3 +
-        phoneticScore * 0.2
-      );
-      
-      if (combinedScore > bestScore && combinedScore > 0.7) {
-        bestScore = combinedScore;
-        bestMatch = candidate;
-      }
-    }
-    
-    return bestMatch ? await this.getSpeciesByName(bestMatch.name) : null;
-  }
-  
-  private levenshteinSimilarity(a: string, b: string): number {
-    const distance = this.levenshteinDistance(a.toLowerCase(), b.toLowerCase());
-    const maxLength = Math.max(a.length, b.length);
-    return maxLength === 0 ? 1 : (maxLength - distance) / maxLength;
-  }
-  
-  private jaccardSimilarity(a: string, b: string): number {
-    const setA = new Set(a.toLowerCase().split(''));
-    const setB = new Set(b.toLowerCase().split(''));
-    const intersection = new Set([...setA].filter(x => setB.has(x)));
-    const union = new Set([...setA, ...setB]);
-    return intersection.size / union.size;
-  }
-  
-  private jaroWinklerSimilarity(a: string, b: string): number {
-    // Implementierung des Jaro-Winkler-Algorithmus
-    const jaroSim = this.jaroSimilarity(a, b);
-    if (jaroSim < 0.7) return jaroSim;
-    
-    // Berechne gemeinsame Präfix-Länge (max 4 Zeichen)
-    let prefixLength = 0;
-    for (let i = 0; i < Math.min(a.length, b.length, 4); i++) {
-      if (a[i].toLowerCase() === b[i].toLowerCase()) {
-        prefixLength++;
-      } else {
-        break;
-      }
-    }
-    
-    return jaroSim + (0.1 * prefixLength * (1 - jaroSim));
-  }
-  
-  private phoneticSimilarity(a: string, b: string): number {
-    // Soundex-ähnlicher phonetischer Vergleich für Vogelnamen
-    const phoneticA = this.generatePhoneticCode(a);
-    const phoneticB = this.generatePhoneticCode(b);
-    return phoneticA === phoneticB ? 1 : 0;
-  }
-  
-  private async crossLanguageSearch(query: string): Promise<Species | null> {
-    const languages = ['en', 'de', 'es', 'fr', 'uk', 'ar'];
-    
-    for (const lang of languages) {
-      const match = await this.fuzzyMatch(query, lang);
-      if (match) {
-        console.log(`Cross-language match found in ${lang}`);
-        return match;
-      }
-    }
-    
-    return null;
-  }
-}
-\end{lstlisting}
+The project implements advanced species matching through the \texttt{/services/speciesMapping.ts} and \texttt{/services/databaseBirDex.ts} services, which provide comprehensive species lookup capabilities:
+
+\begin{itemize}
+    \item \textbf{Multi-stage Search Strategy:} Exact match → Normalized search → Fuzzy matching → Cross-language fallback
+    \item \textbf{BirDex Integration:} Utilizes the \texttt{searchBirdsByName()} function for efficient database queries
+    \item \textbf{Scientific Name Normalization:} Handles common variations and format differences
+    \item \textbf{Caching System:} 5-minute TTL cache to optimize repeated lookups
+    \item \textbf{Species Validation:} Comprehensive validation system for ML prediction accuracy
+    \item \textbf{Multi-language Support:} Cross-reference matching across 6 supported languages
+\end{itemize}
+
+\textbf{Actual Implementation Features:}
+The \texttt{speciesMapping.ts} service bridges whoBIRD audio predictions with the BirDex database, providing enriched metadata through functions like \texttt{enrichBirdPredictions()}, \texttt{validateSpeciesAlignment()}, and \texttt{createIndexToSpeciesMap()}.
 
 \section{Performance Optimization Framework}
 
@@ -963,5 +511,5 @@ class SpeciesStringMatcher {
     \item \textbf{Automatic Cleanup:} Systematic removal of temporary files and cached data
     \item \textbf{Lazy Loading:} On-demand ML model loading to minimize memory footprint
     \item \textbf{Pagination:} Database query optimization with 20-item page segmentation
-    \item \textbf{Image Compression:} Automatic compression protocols achieving 30\%+ size reduction
+    \item \textbf{Image Compression:} Automatic compression protocols for reduced file sizes
 \end{itemize}
