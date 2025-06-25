@@ -97,6 +97,7 @@
   "questions": {
     "selectCorrectImage": "Welches Bild zeigt den Vogel namens {{name}}?",
     "birdRange": "In welchem Gebiet lebt dieser Vogel?",
+    "answerInEnglish": "Antwort auf Englisch",
     "birdExtinct": "Ist dieser Vogel ausgestorben?"
   },
   "alerts": {
@@ -238,11 +239,11 @@
   },
   "intro": {
     "line1": "Hast du schon einmal einen Vogel gesehen...",
-    "line2": "...und dich gefragt, um welche Art es sich handelt?",
-    "line3": "Eine Studentengruppe der Hochschule Reutlingen hat eine App entwickelt,",
-    "line4": "die dir hilft, Vögel per Foto oder Ton zu identifizieren – sogar offline.",
-    "line5": "Die App unterstützt 6 Sprachen – wechsle zu deiner und probiere sie aus!",
-    "line6": "Du kannst deine Beobachtungen im Archiv speichern und jederzeit darauf zugreifen."
+    "line2": "...und dich gefragt, um welche Art\nes sich handelt?",
+    "line3": "Eine Studentengruppe der Hochschule\nReutlingen hat eine App entwickelt,",
+    "line4": "die dir hilft, Vögel per Foto\noder Ton zu identifizieren sogar offline.",
+    "line5": "Die App unterstützt 6 Sprachen\nwechsle zu deiner und probiere sie aus!",
+    "line6": "Du kannst deine Beobachtungen im Archiv\nspeichern und jederzeit darauf zugreifen."
   },
   "audio": {
     "start": "Aufnahme starten",

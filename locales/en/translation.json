@@ -272,6 +272,7 @@
   "questions": {
     "selectCorrectImage": "Which image shows the bird named {{name}}?",
     "birdRange": "In which area does this bird live?",
+    "answerInEnglish": "answer in English",
     "birdExtinct": "Is this bird extinct?"
   },
   "alerts": {

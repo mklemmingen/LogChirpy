@@ -19,11 +19,14 @@ import { TouchableWithoutFeedback } from 'react-native';
 export default function TutorialScreen() {
     const router = useRouter();
     const navigation = useNavigation();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const videoRef = useRef<VideoType>(null);;
     const [isPlaying, setIsPlaying] = useState(false);
     const [videoLoaded, setVideoLoaded] = useState(false);
     const [showControls, setShowControls] = useState(true);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [currentSubtitle, setCurrentSubtitle] = useState('');
+    const lang = i18n.language || 'de';
 
     useEffect(() => {
         navigation.setOptions({
@@ -32,11 +35,55 @@ export default function TutorialScreen() {
         });
     }, [navigation]);
 
+    const pauseVideo = async () => {
+        if (videoRef.current) {
+            const status = await videoRef.current.getStatusAsync();
+            if (status.isLoaded && status.isPlaying) {
+                await videoRef.current.pauseAsync();
+                setIsPlaying(false);
+            }
+        }
+    };
+    const CustomNextButton = ({ isLight, ...props }: any) => (
+        <TouchableOpacity
+            {...props}
+            onPress={async () => {
+                if (currentPage === 0) {
+                    await pauseVideo();
+                }
+                props.onPress?.();
+            }}
+            style={{ marginHorizontal: 10 }}
+        >
+            <Text style={{ fontSize: 16, color: isLight ? '#000' : '#fff' }}>
+                {t("common.next")}
+            </Text>
+        </TouchableOpacity>
+    );
+    const subtitles = [
+        { key: 'intro.line1', start: 5, end: 7 },
+        { key: 'intro.line2', start: 6, end: 11 },
+        { key: 'intro.line3', start: 11, end: 16 },
+        { key: 'intro.line4', start: 16, end: 21 },
+        { key: 'intro.line5', start: 21, end: 24 },
+        { key: 'intro.line6', start: 24, end: 28},
+    ];
+    const generateSubtitles = () => {
+        return subtitles.map(({ key, start, end }) => ({
+            text: t(key, { lng: lang }), // Hole die Übersetzung in aktueller Sprache
+            start,
+            end,
+        }));
+    };
+
+    const subtitleSet = generateSubtitles();
 
     return (
         <Onboarding
             onDone={() => router.back()}
             onSkip={() => router.back()}
+            onPageChange={(index: number) => setCurrentPage(index)}
+            NextButtonComponent={CustomNextButton}
             skipLabel={t("common.skip")}
             nextLabel={t("common.next")}
             pages={[
@@ -45,7 +92,6 @@ export default function TutorialScreen() {
                     image: (
                         <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
                             <TouchableWithoutFeedback onPress={() => setShowControls(true)}>
-
                                 <View style={{ position: 'relative', width: 560, height: 340 }}>
                                     <Video
                                         ref={videoRef}
@@ -58,12 +104,22 @@ export default function TutorialScreen() {
                                             if ('didJustFinish' in status && status.didJustFinish) {
                                                 setIsPlaying(false);
                                             }
+                                            if ('positionMillis' in status && status.isLoaded) {
+                                                if (lang === 'en') {
+                                                    setCurrentSubtitle('');
+                                                    return;
+                                                }
+                                                const currentTime = status.positionMillis / 1000;
+                                                const subtitleSet = generateSubtitles();
+                                                const found = subtitleSet.find(s => currentTime >= s.start && currentTime < s.end);
+                                                setCurrentSubtitle(found ? found.text : '');
+                                            }
                                         }}
                                         onError={(error) => {
                                             console.error('Video error:', error);
                                             setVideoLoaded(false);
                                         }}
-                                        style={{ width: 460, height: 340, alignSelf: 'center' }}
+                                        style={{ width: 490, height: 370, alignSelf: 'center' }}
                                     />{videoLoaded && showControls && (
                                         <TouchableOpacity
                                             onPress={async () => {
@@ -95,7 +151,7 @@ export default function TutorialScreen() {
                                             }}
                                             style={{
                                                 position: 'absolute',
-                                                top: '40%',
+                                                top: '50%',
                                                 left: '45%',
                                                 backgroundColor: 'rgba(0,0,0,0.4)',
                                                 borderRadius: 30,
@@ -108,6 +164,22 @@ export default function TutorialScreen() {
                                                 color="white"
                                             />
                                         </TouchableOpacity>
+                                    )}
+                                    {currentSubtitle !== '' && (
+                                        <Text style={{
+                                            position: 'absolute',
+                                            bottom: -100,
+                                            alignSelf: 'center',
+                                            color: 'white',
+                                            backgroundColor: 'rgba(0,0,0,0.6)',
+                                            paddingHorizontal: 12,
+                                            paddingVertical: 6,
+                                            borderRadius: 6,
+                                            fontSize: 15,
+                                            textAlign: 'center',
+                                        }}>
+                                            {currentSubtitle}
+                                        </Text>
 
                                     )}
 

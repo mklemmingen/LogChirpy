@@ -336,6 +336,11 @@ export default function BirdQuiz() {
                                 {t('alerts.inputTooShort')}
                             </Text>
                         )}
+                        {questionIndex === 2 && (
+                            <Text style={{ fontSize: 14, color: 'gray', marginBottom: 4 }}>
+                                {t('questions.answerInEnglish')}
+                            </Text>
+                        )}
                     </>
                 )}
 
