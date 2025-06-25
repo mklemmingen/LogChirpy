@@ -1,6 +1,6 @@
 {
   "extends": "expo/tsconfig.base",
-  "compilerOptions": {
+  "compilerOptions": { // @ youmna, please dont add a baseURL here, it will break the app
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",

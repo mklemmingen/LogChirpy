@@ -13,16 +13,15 @@ import Animated, {
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-
-
-import {languages} from "@/i18n/languages";
-import {Config, STORAGE_KEYS} from "@/constants/config";
+import { useRouter } from 'expo-router';
 import Slider from '@react-native-community/slider';
 import {Card, ThemedView} from "@/components/ThemedView";
 import {ThemedText} from "@/components/ThemedText";
 import {ThemedPressable} from "@/components/ThemedPressable";
 import {ThemedSafeAreaView} from "@/components/ThemedSafeAreaView";
 import {useColors, useTheme, useTypography} from "@/hooks/useThemeColor";
+import { languages } from "@/i18n/languages";
+import { Config, STORAGE_KEYS } from "@/constants/config";
 
 /**
  * Language selection card with flags and animations
@@ -199,6 +198,7 @@ function GPSToggleCard({
     onToggle: () => void;
     styles: any;
 }) {
+    const {t} = useTranslation();
     const colors = useColors();
     const theme = useTheme();
     const typography = useTypography();
@@ -262,7 +262,7 @@ function GPSToggleCard({
                                 variant="bodyLarge"
                                 style={styles.gpsTitle}
                             >
-                                GPS Location Logging
+                                {t("settings.gps_location_logging")}
                             </ThemedText>
 
                             <ThemedText
@@ -270,7 +270,7 @@ function GPSToggleCard({
                                 color="secondary"
                                 style={styles.gpsDescription}
                             >
-                                Record precise coordinates with your bird sightings for mapping and analysis
+                                 {t("settings.record_coordinates_description")}
                             </ThemedText>
 
                             <View style={styles.gpsStatus}>
@@ -319,6 +319,7 @@ function GPSToggleCard({
  * Settings screen with language selection, location settings, and app information
  */
 export default function SettingsScreen() {
+    const router = useRouter();
     const { i18n, t } = useTranslation();
     const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
     const [gpsEnabled, setGpsEnabled] = useState(true);
@@ -599,7 +600,7 @@ export default function SettingsScreen() {
                         {t("settings.language")}
                     </ThemedText>
                     <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
-                        Choose your preferred language for the app interface
+                        {t("settings.language_setting_description")}
                     </ThemedText>
                     <View style={styles.languageGrid}>
                         {Object.entries(languages).map(([langKey, langName], index) => {
@@ -626,6 +627,7 @@ export default function SettingsScreen() {
                         </View>
                     )}
                 </ThemedView>
+
 
                 {/* Location Section */}
                 <ThemedView style={styles.section}>

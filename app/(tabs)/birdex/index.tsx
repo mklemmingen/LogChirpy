@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, TextInput, View,} from 'react-native';
+import {ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, TextInput, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
 import {ThemedIcon} from '@/components/ThemedIcon';
@@ -765,12 +765,30 @@ export default function BirdDexIndex() {
         <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
             <ThemedView style={styles.header}>
-                <ThemedText variant="h2" style={styles.headerTitle}>
-                    {t('birddex.title')}
-                </ThemedText>
-                <ThemedText variant="body" color="secondary">
-                    {t('birddex.subtitle', { count: totalCount })}
-                </ThemedText>
+                <View style={styles.headerContent}>
+                    <View style={styles.headerText}>
+                        <ThemedText variant="h2" style={styles.headerTitle}>
+                            {t('birddex.title')}
+                        </ThemedText>
+                        <ThemedText variant="body" color="secondary">
+                            {t('birddex.subtitle', { count: totalCount })}
+                        </ThemedText>
+                    </View>
+                    <ThemedPressable
+                        variant="secondary"
+                        size="sm"
+                        onPress={() => {
+                            Haptics.selectionAsync();
+                            router.push('/birdex/quiz');
+                        }}
+                        style={styles.quizButton}
+                    >
+                        <ThemedIcon name="help-circle" size={16} color="primary" />
+                        <ThemedText variant="label" color="primary">
+                            Quiz
+                        </ThemedText>
+                    </ThemedPressable>
+                </View>
             </ThemedView>
 
             {/* Search and Filters */}
@@ -921,9 +939,25 @@ function createStyles() {
         paddingHorizontal: 20,
         paddingVertical: 16,
     },
+    headerContent: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+    },
+    headerText: {
+        flex: 1,
+        marginRight: 16,
+    },
     headerTitle: {
         fontWeight: 'bold',
         marginBottom: 4,
+    },
+    quizButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
     },
 
     // Search Header

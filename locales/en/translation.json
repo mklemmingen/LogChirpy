@@ -261,7 +261,36 @@
     "close": "Close",
     "delete": "Delete",
     "share": "Share",
-    "try_again": "Retry"
+    "try_again": "Retry",
+    "checkAnswer": "Check Answer",
+    "nextQuestion": "Next Question",
+    "finish": "Finish",
+    "yes": "Yes",
+    "no": "No",
+    "backToHome": "Back to Home"
+  },
+  "questions": {
+    "selectCorrectImage": "Which image shows the bird named {{name}}?",
+    "birdRange": "In which area does this bird live?",
+    "answerInEnglish": "answer in English",
+    "birdExtinct": "Is this bird extinct?"
+  },
+  "alerts": {
+    "correctTitle": "Correct!",
+    "correctMessage": "That was {{name}}",
+    "incorrectTitle": "Incorrect",
+    "incorrectMessage": "Correct answer: {{name}}",
+    "correctStatusMessage": "Status: {{status}}",
+    "incorrectStatusMessage": "Correct Status: {{status}}",
+    "correctRangeMessage": "Range: {{range}}",
+    "incorrectRangeMessage": "Correct range: {{range}}",
+    "incorrectMessageWithGuess": "That was the {{guessName}}",
+    "inputTooShort": "Please enter at least 3 letters"
+  },
+  "results": {
+    "title": "Your Result",
+    "successMessage": "Congratulations! You answered {{score}} out of 3 questions correctly",
+    "failureMessage": "Unfortunately, the quiz was not successful. Try again!"
   },
   "auth": {
     "welcome_back": "Welcome Back",
@@ -353,20 +382,46 @@
       "title": "Tutorial",
       "subtitle": "Quick start guide",
       "how_to_use": {
-        "title": "Getting Started",
-        "description": "Identify and log birds using camera, photos, audio, or manual entry. Works offline."
+        "title": "Getting started with LogChirpy",
+        "description": "Below you’ll see various icons – each represents a specific function. On the home screen, you’ll find buttons that represent the main features of the app. In the following steps, we’ll explain the most important features one by one."
       },
       "image_processing": {
-        "title": "Image Storage",
-        "description": "Photos processed locally. Save to gallery manually. No automatic uploads."
+        "title": "How Camera Detection Works",
+        "description": "Tap the camera icon on the home screen.\nHold your device steady towards the bird. If the app has access to the camera, you can take a picture. The AI will automatically identify the bird species.\nThe picture will be saved in the app and can then be added to the gallery — if you allow the app to access it. You can add the picture to an observation manually via the 'Manual' button on the home screen."
       },
       "ai_models": {
         "title": "AI Models",
-        "description": "On-device ML for privacy. Real-time detection and classification. Fully offline."
+        "description": "LogChirpy uses on-device machine learning models (TensorFlow Lite) for real-time bird detection and classification. Models run entirely on your device, ensuring privacy and offline functionality. The app includes both object detection and image classification models optimized for mobile performance."
+      },
+      "image_processing_ai": {
+        "title": "How the AI Camera Works",
+        "description": "The intelligent camera automatically detects birds while you point your device at them. Colored markings show recognized species in the image. Additionally, the camera can analyze bird sounds via the microphone. Enable camera and microphone access for this. Location data helps the AI deliver more accurate results. This feature is ideal for live observations in nature."
       },
       "data_privacy": {
         "title": "Privacy",
-        "description": "Logs sync to Firebase. Photos and audio stay on device. End-to-end encrypted."
+        "description": "Your bird observations are stored securely – only essential data is synchronized: species, date, location (if enabled), and notes. Photos and audio recordings always stay on your device. Your login is also protected – it runs via Firebase Auth. You stay in full control of your data."
+      },
+      "adjust_detection_settings": "Adjust bird detection settings",
+      "camera_ai_settings": "Camera AI Settings",
+      "detection_speed": "Detection Speed",
+      "camera_analysis_frequency": "How frequently the AI analyzes camera feed",
+      "detection_confidence": "Detection Confidence",
+      "min_confidence_description": "Minimum confidence required to save bird detections",
+      "show_camera_controls": "Show Camera Controls",
+      "display_advanced_controls": "Display advanced controls overlay in camera view",
+      "location_data_settings": "Location data settings",
+      "record_coordinates_description": "Record precise coordinates with your bird sightings for mapping and analysis",
+      "gps_location_logging": "GPS Location Logging",
+      "language_setting_description": "Choose your preferred language for the app interface",
+      "tutorial_welcome_title": "Welcome to LogChirpy",
+      "tutorial_welcome_description": "Discover, identify, and log birds using AI-powered tools – even offline!",
+      "audio_recording": "1. Tap the microphone icon on the home screen to start recording the bird sound.\n2. Hold the device steady towards the bird sound.\n3. You can listen to the recording or re-record it.\n4. Save it manually as an observation or use the AI for identification.",
+      "record_audio": "Record Audio",
+      "manual_entry_description": "Open the home screen. Tap on “Manual”. Enter the name, location, and date. Optional: Add a photo, audio recording, location, or notes. Tap “Save”. You can access your observation anytime in your archive.",
+      "manual_entry": "Enter your own bird sightings",
+      "login": {
+        "title": "Login & Account",
+        "description": "Tap the person icon at the bottom of the home screen. Enter your email address and password if you already have an account. If not, tap 'Register' at the bottom of the same page. If you forgot your password, tap 'Forgot Password' and enter your email address to receive a reset link."
       }
     },
     "about": {
@@ -508,6 +563,8 @@
     "continue": "Continue",
     "close": "Close",
     "retry_loading": "Retry",
+    "skip": "Skip",
+    "next": "Next",
     "loading": "Loading...",
     "back": "Back"
   },
