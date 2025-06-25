@@ -1,4 +1,4 @@
-\chapter{System Architecture and Design Framework}
+\chapter{System Architecture and Design}
 
 \section{Architectural Overview and Design Principles}
 
@@ -7,7 +7,7 @@ LogChirpy implements a modular and maintainable software architecture that enabl
 \subsection{Technology Stack and Framework Selection}
 \begin{itemize}
     \item \textbf{Frontend Framework:} React Native with Expo SDK for cross-platform iOS and Android deployment
-    \item \textbf{Machine Learning Architecture:}
+    \item \textbf{ML Architecture:}
     \begin{itemize}
         \item TensorFlow.js framework for audio analysis and classification
         \item MLKit integration for object detection and image classification
@@ -85,11 +85,11 @@ Each feature module encapsulates:
     \item \texttt{utils.ts} (Utility functions and helper methods)
 \end{itemize}
 
-\section{Machine Learning Architecture and Implementation}
+\section{ML Architecture}
 
-\subsection{Unified ML Pipeline Architecture}
+\textbf{Unified ML Pipeline Architecture:}
 
-The Unified ML Pipeline (\texttt{/services/unifiedMLPipelineService.ts}) represents a centralized orchestration service that manages both image and audio machine learning processing within a single, sequential computational pipeline. This sequential approach, while not novel in the broader ML community, successfully resolved development challenges specific to our mobile implementation and eliminates race conditions that previously occurred in dual-pipeline implementations.
+The Unified ML Pipeline (\texttt{/services/unifiedMLPipelineService.ts}) represents a centralized orchestration service that manages both image and audio ML processing within a single, sequential computational pipeline. This sequential approach, while not novel in the broader ML community, successfully resolved development challenges specific to our mobile implementation and eliminates race conditions that previously occurred in dual-pipeline implementations.
 
 \begin{figure}[H]
     \centering
@@ -115,7 +115,7 @@ START
 ├─────────────────────────────────────┤
 │ 1. Audio Recording (3 seconds)      │
 │ 2. Process with local whoBird       │
-│ BirdNet fast-tflite models          │
+│ BirdNET fast-tflite models          │
 │ in dual-pipeline of audio and       │
 │ location/time                       │
 │ 3. Update UI (predictions)          │
@@ -136,7 +136,7 @@ REPEAT
     \label{fig:ml_pipeline}
 \end{figure}
 
-\subsection{Dual-Model Audio System - Detaillierte Technische Implementierung}
+\textbf{Dual-Model Audio System:}
 
 The audio classification system is based on a sophisticated dual-model TensorFlow Lite architecture with comprehensive testing and optimization protocols:
 
@@ -205,7 +205,7 @@ const preprocessAudioTensor = async (audioSamples: Float32Array) => {
 \subsubsection{TensorFlow.js Package Testing and Optimization Framework}
 
 \textbf{TensorFlow Package Selection (Unscientific Development Experience):}
-Based on development experience, the project uses \texttt{react-native-fast-tflite} as it provided the most stable integration with React Native and appropriate performance for the application's requirements. Alternative packages like \texttt{@tensorflow/tfjs} were evaluated but presented compatibility challenges in the React Native environment.
+Based on development experience, the project uses \texttt{react-native-fast-tflite} as it provided the most stable integration with React Native and appropriate performance for the application's requirements. Alternative packages like \texttt{@TensorFlow/tfjs} were evaluated but presented compatibility challenges in the React Native environment.
 
 \textbf{Optimized TFLite Integration Framework:}
 \begin{lstlisting}[style=javascript, caption=Fast TFLite Implementation Architecture, label=lst:fast_tflite]
@@ -287,9 +287,9 @@ Post-processing & Minimal overhead \\
 \label{tab:audio_performance_observations}
 \end{table}
 
-\section{Data Architecture and Management Framework}
+\section{Data Architecture and Management}
 
-\subsection{Local Database Architecture (SQLite)}
+\textbf{Local Database Architecture (SQLite):}
 
 \begin{lstlisting}[style=javascript, caption=SQLite Database Schema Implementation, label=lst:sqlite_schema]
 -- Primary table for bird spotting records (database.ts)
@@ -341,7 +341,7 @@ CREATE INDEX idx_bird_spottings_date ON bird_spottings(date);
 CREATE INDEX idx_bird_spottings_synced ON bird_spottings(synced);
 \end{lstlisting}
 
-\subsection{Cloud Synchronization Architecture (Firebase)}
+\textbf{Cloud Synchronization Architecture (Firebase):}
 
 \begin{itemize}
     \item \textbf{Firestore Collections:}
@@ -354,9 +354,9 @@ CREATE INDEX idx_bird_spottings_synced ON bird_spottings(synced);
     \item \textbf{Synchronization Strategy:} Offline-first architecture with optional cloud synchronization
 \end{itemize}
 
-\section{User Interface Architecture and Design Framework}
+\section{User Interface Architecture}
 
-\subsection{Design System Implementation}
+\textbf{Design System Implementation:}
 
 \begin{itemize}
     \item \textbf{Theming Architecture:} Dynamic dark/light mode switching with consistent visual hierarchy
@@ -365,7 +365,7 @@ CREATE INDEX idx_bird_spottings_synced ON bird_spottings(synced);
     \item \textbf{User Feedback Systems:} Haptic feedback integration and audio cues for enhanced user interaction
 \end{itemize}
 
-\subsection{Cyberpunk Interface Design (ObjectDetectCamera)}
+\textbf{Cyberpunk Interface Design (ObjectDetectCamera):}
 
 \begin{figure}[H]
     \centering
@@ -393,26 +393,26 @@ CREATE INDEX idx_bird_spottings_synced ON bird_spottings(synced);
     \label{fig:cyberpunk_hud}
 \end{figure}
 
-\section{Security Architecture and Privacy Framework}
+\section{Security Architecture and Privacy}
 
-\subsection{Privacy-Preserving Design}
+\textbf{Privacy-Preserving Design:}
 \begin{itemize}
-    \item \textbf{Local Processing:} All machine learning operations execute on-device to ensure data privacy
+    \item \textbf{Local Processing:} All ML operations execute on-device to ensure data privacy
     \item \textbf{Optional Cloud Integration:} Users maintain full control over cloud synchronization preferences
     \item \textbf{Encryption Protocols:} Data encryption implemented for both transmission and storage operations
     \item \textbf{GDPR Compliance:} Comprehensive adherence to European data protection regulations
 \end{itemize}
 
-\subsection{Authentication Framework}
+\textbf{Authentication Framework:}
 \begin{itemize}
     \item \textbf{Firebase Authentication:} Secure user authentication with industry-standard protocols
     \item \textbf{Local Fallback Mode:} Application functionality maintained without mandatory user registration
     \item \textbf{Permission Management:} Explicit user consent required for camera, microphone, and location access
 \end{itemize}
 
-\section{Automated Knowledge Extraction and Translation Systems}
+\section{Knowledge Extraction and Translation}
 
-\subsection{Wikipedia Integration and Image Extraction}
+\textbf{Wikipedia Integration and Image Extraction:}
 
 \textbf{Real Implementation Architecture:}
 
@@ -436,7 +436,7 @@ A comprehensive Python script handles bulk image downloading from Wikimedia Comm
     \item Manifest generation with image metadata
 \end{itemize}
 
-\subsection{Mass Translation System for 30,000+ Species}
+\textbf{Mass Translation System for 30,000+ Species:}
 
 \textbf{Real Translation Implementation:}
 
@@ -463,7 +463,7 @@ This implementation demonstrates practical integration of translation APIs withi
     \item \textbf{Output Generation:} Produces \texttt{birds\_fully\_translated.csv} for app integration
 \end{enumerate}
 
-\subsection{Data Processing and Export Framework}
+\textbf{Data Processing and Export Framework:}
 
 \textbf{Large-Scale Dataset Processing:}
 
@@ -478,7 +478,7 @@ The system implements efficient batch processing for handling the 30,000+ bird s
     \item \textbf{Rate Limiting:} Exponential backoff and API quota management
 \end{itemize}
 
-\subsection{String Comparison and Fuzzy-Matching Framework in BirDex}
+\textbf{String Comparison and Fuzzy-Matching in BirDex:}
 
 \textbf{Robust Species Recognition with BirDex Search Implementation:}
 
@@ -496,9 +496,9 @@ The project implements advanced species matching through the \texttt{/services/s
 \textbf{Actual Implementation Features:}
 The \texttt{speciesMapping.ts} service bridges whoBIRD audio predictions with the BirDex database, providing enriched metadata through functions like \texttt{enrichBirdPredictions()}, \texttt{validateSpeciesAlignment()}, and \texttt{createIndexToSpeciesMap()}.
 
-\section{Performance Optimization Framework}
+\section{Performance Optimization}
 
-\subsection{ML Pipeline Optimizations}
+\textbf{ML Pipeline Optimizations:}
 \begin{itemize}
     \item \textbf{Sequential Processing:} Elimination of race conditions through controlled pipeline execution
     \item \textbf{Quality Reduction:} 0.3 quality factor for ML processing to optimize performance
@@ -506,7 +506,7 @@ The \texttt{speciesMapping.ts} service bridges whoBIRD audio predictions with th
     \item \textbf{Configurable Delays:} Adaptive cycle timing for diverse device capabilities
 \end{itemize}
 
-\subsection{Memory Management Strategy}
+\textbf{Memory Management Strategy:}
 \begin{itemize}
     \item \textbf{Automatic Cleanup:} Systematic removal of temporary files and cached data
     \item \textbf{Lazy Loading:} On-demand ML model loading to minimize memory footprint
