@@ -1,0 +1,197 @@
+\chapter{Application Screens}
+
+This chapter presents the main screens of the LogChirpy application, showcasing its user interface and core functionalities.
+
+\section{Main Screens}
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Log Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/log/main}
+        \small{Central hub for logging bird sightings with multiple methods.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{BirdDex Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/bird_dex/main}
+        \small{Comprehensive catalog of bird species.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Gallery Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/gallery/main}
+        \small{View and manage captured bird photos.}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Search Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/search/main}
+        \small{Find specific bird species quickly.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Archive Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/archive/main}
+        \small{Historical record of bird observations.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Settings Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/settings/main}
+        \small{Configure app preferences and options.}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Account Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/account/main}
+        \small{User profile and account management.}
+    \end{minipage}
+\end{figure}
+
+\clearpage
+\section{Feature Screens}
+
+\subsection{Account Features}
+The account section provides user authentication for syncing bird logs across devices. All other app features work completely offline without requiring login. This design ensures maximum accessibility while offering optional cloud synchronization for users who want to access their bird spotting data on multiple devices.
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Login Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/account/login}
+        \small{Optional login for cloud sync.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Profile Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/account/main}
+        \small{Sync status and settings.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Password Reset}
+        \includegraphics[width=\textwidth]{img/screenshots/account/reset_pw}
+        \small{Account recovery for sync access.}
+    \end{minipage}
+\end{figure}
+
+Key aspects of the account system:
+\begin{itemize}
+    \item \textbf{Optional Authentication}: Login is only required for cloud sync
+    \item \textbf{Offline-First}: All features work without authentication, except sync
+    \item \textbf{Sync Management}: Control when and how data syncs
+    \item \textbf{Data Privacy}: Encrypted cloud storage when syncing
+    \item \textbf{Cross-Device Access}: Access logs on multiple devices when logged in
+\end{itemize}
+
+\subsection{Logging Features}
+The logging section offers various methods to record bird observations.
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Manual Log}
+        \includegraphics[width=\textwidth]{img/screenshots/log/manual}
+        \small{Manual bird observation entry.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Audio Recording}
+        \includegraphics[width=\textwidth]{img/screenshots/log/audio}
+        \small{Bird song recording interface.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Photo Logging}
+        \includegraphics[width=\textwidth]{img/screenshots/log/photo}
+        \small{Photo-based bird logging.}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Auto Identification}
+        \includegraphics[width=\textwidth]{img/screenshots/log/auto_ident}
+        \small{AI-powered bird identification.}
+    \end{minipage}
+\end{figure}
+
+\subsection{Archive Features}
+The archive section provides comprehensive management of past observations.
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Sort View}
+        \includegraphics[width=\textwidth]{img/screenshots/archive/sort}
+        \small{Sorting and filtering options.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Map Overview}
+        \includegraphics[width=\textwidth]{img/screenshots/archive/big_map}
+        \small{Geographical view of observations.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Sync Progress}
+        \includegraphics[width=\textwidth]{img/screenshots/archive/sync_on_going}
+        \small{Data synchronization status.}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Sync Complete}
+        \includegraphics[width=\textwidth]{img/screenshots/archive/sync_done}
+        \small{Successful synchronization view.}
+    \end{minipage}
+\end{figure}
+
+\subsection{BirdDex Features}
+The BirdDex section provides comprehensive bird species information and sorting capabilities.
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Sort by Attribute}
+        \includegraphics[width=\textwidth]{img/screenshots/bird_dex/sort_by_attribute}
+        \small{Attribute-based species sorting.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Sort by Category}
+        \includegraphics[width=\textwidth]{img/screenshots/bird_dex/sort_by_category}
+        \small{Category-based species organization.}
+    \end{minipage}
+\end{figure}
+
