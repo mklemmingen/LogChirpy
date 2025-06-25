@@ -1,9 +1,8 @@
 /**
- * Ultra-Simple Bird Audio Classifier - Minimal Implementation
- * 
- * This is the absolute minimal implementation following ULTIMATE_AUDIO_MODEL_IMPLEMENTATION_GUIDE.md
+ * Bird Audio Classifier
+ *
  * No fallbacks, no model switching, no caching, no performance metrics.
- * Just one hardcoded two-model architecture that works.
+ * one hardcoded two-model architecture that works
  */
 
 import {loadTensorflowModel, TensorflowModel} from 'react-native-fast-tflite';
