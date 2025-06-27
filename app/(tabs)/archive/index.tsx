@@ -4,7 +4,6 @@ import {
   Dimensions,
   FlatList,
   Image,
-  Linking,
   Platform,
   Pressable,
   RefreshControl,
@@ -37,7 +36,7 @@ import { ThemedPressable } from '@/components/ThemedPressable';
 import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
 import { ThemedText } from '@/components/ThemedText';
 import { useColors, useTypography } from '@/hooks/useThemeColor';
-import { type BirdSpotting, getBirdSpottings, randomizeSpottingsInBadenWuerttemberg } from '@/services/database';
+import { type BirdSpotting, getBirdSpottings } from '@/services/database';
 import { syncDatabase } from '@/services/sync_layer';
 
 // These will be calculated in the styles function based on responsive dimensions
@@ -476,9 +475,6 @@ export default function ArchiveScreen() {
   // Load data on mount, when sort changes, or when refresh parameter changes
   useEffect(() => {
     loadSpottings();
-
-    // Randomize locations when the archive page loads
-    randomizeSpottingsInBadenWuerttemberg();
 
     // Cleanup function to prevent memory leaks
     return () => {
