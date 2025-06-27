@@ -64,6 +64,8 @@ export interface PipelineConfig {
     hasAudioPermission: boolean;
     hasLocationPermission: boolean;
     location?: { latitude: number; longitude: number };
+    enableImageML: boolean;
+    enableAudioML: boolean;
 }
 
 export class UnifiedMLPipelineService {
@@ -173,19 +175,27 @@ export class UnifiedMLPipelineService {
 
                     try {
                         // === IMAGE PROCESSING PHASE ===
-                        console.log('[UnifiedPipeline] Starting image processing phase...');
-                        await this.processImagePhase();
+                        if (this.config.enableImageML) {
+                            console.log('[UnifiedPipeline] Starting image processing phase...');
+                            await this.processImagePhase();
+                        } else {
+                            console.log('[UnifiedPipeline] Skipping image phase (disabled)');
+                        }
 
                         // Small delay between phases to prevent resource conflicts
                         console.log('[UnifiedPipeline] Inter-phase delay (300ms)...');
                         await this.delay(300);
 
                         // === AUDIO PROCESSING PHASE ===
-                        if (this.config.hasAudioPermission) {
+                        if (this.config.enableAudioML && this.config.hasAudioPermission) {
                             console.log('[UnifiedPipeline] Starting audio processing phase...');
                             await this.processAudioPhase();
                         } else {
-                            console.log('[UnifiedPipeline] Skipping audio phase (no permission)');
+                            if (!this.config.enableAudioML) {
+                                console.log('[UnifiedPipeline] Skipping audio phase (disabled)');
+                            } else {
+                                console.log('[UnifiedPipeline] Skipping audio phase (no permission)');
+                            }
                         }
 
                         // === WAIT PHASE ===

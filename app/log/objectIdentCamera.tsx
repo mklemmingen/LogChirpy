@@ -20,6 +20,7 @@ import {useImageLabeling} from "@infinitered/react-native-mlkit-image-labeling";
 
 import {useIsFocused} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
+import {useLocalSearchParams} from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, {
     Easing,
@@ -174,6 +175,20 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
     const device = useCameraDevice('back');
     const { t } = useTranslation();
     const isFocused = useIsFocused();
+    
+    // Get ML mode parameters from URL
+    const { enableImage = 'true', enableAudio = 'true' } = useLocalSearchParams();
+    const enableImageML = enableImage === 'true';
+    const enableAudioML = enableAudio === 'true';
+    
+    // Debug logging for ML mode configuration
+    console.log('[ObjectIdentCamera] ML Mode Configuration:', {
+        enableImage,
+        enableAudio,
+        enableImageML,
+        enableAudioML,
+        mode: enableImageML && enableAudioML ? 'BOTH' : enableImageML ? 'IMAGE_ONLY' : 'AUDIO_ONLY'
+    });
 
     // Core refs
     const cameraRef = useRef<Camera>(null);
@@ -285,7 +300,9 @@ function ObjectIdentCamera({ hasAudioPermission, hasLocationPermission }: Object
             classifier,
             hasAudioPermission,
             hasLocationPermission,
-            location
+            location,
+            enableImageML,
+            enableAudioML
         });
 
         // Set up callbacks for UI updates

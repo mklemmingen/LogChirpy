@@ -376,6 +376,7 @@
   },
   "settings": {
     "language": "Change Language",
+    "language_setting_description": "Choose your preferred language for the app interface",
     "enable_gps_logging": "Enable GPS Location Logging",
     "logging": "Logging Settings",
     "tutorial": {
@@ -429,6 +430,16 @@
       "subtitle": "Meet the team behind your birding companion",
       "app_description": "A modern, AI-powered bird watching and logging application designed for nature enthusiasts and bird watchers of all levels.",
       "created_by": "Created by"
+    },
+    "credits": {
+      "title": "Credits & Acknowledgments",
+      "subtitle": "Technology and data sources that make LogChirpy possible",
+      "encyclopedia": "Cornell Lab",
+      "wikimedia": "Wikimedia",
+      "objectidentify": "MLKit Object Detection",
+      "imageclassify": "MLKit Image Classification", 
+      "audioclassify": "BirdNET & WhoBird",
+      "birdsprites": "itch.io nocc"
     }
   },
   "audio": {
@@ -586,7 +597,19 @@
     "camera_description": "Real-time AI",
     "photo_description": "Log via a Photo",
     "audio_description": "or Log via Audio!",
-    "manual_description": "Start a Bird-Spotting by changing all its Entry-Forms"
+    "manual_description": "Start a Bird-Spotting by changing all its Entry-Forms",
+    "sections": {
+      "ai_detection_modes": "AI Detection Modes",
+      "logging_options": "Logging Options"
+    },
+    "ml_modes": {
+      "image_audio_title": "Image+Audio",
+      "image_audio_description": "Full ML detection with both image and audio analysis",
+      "image_only_title": "Image Only", 
+      "image_only_description": "Visual bird detection and classification",
+      "audio_only_title": "Audio Only",
+      "audio_only_description": "Bird sound recognition and identification"
+    }
   },
   "app_errors": {
     "password_reset_error": "Reset failed",
