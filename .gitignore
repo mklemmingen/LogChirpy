@@ -132,16 +132,13 @@ yarn-error.*
 /_documentationAndConversionScripts/_model_conversion_scripts/mobilenet_v2_1.0_224_quant_info.txt
 /_REVERT_/
 /dev/external/whobird/
-CLAUDE.md
 /git-backup-20250613-230600/
 /git-backup-20250613-230827/
 /git-backup-20250613-231245/
 /dev/docs/_old/
 /dev/image_getters/venv/
-/.claude/
 /dev/docs/_old/
 /whoBIRD-master/
-/CLAUDE.md
 /___laTexDocumentation___/MUSTER/
 /___laTexDocumentation___/document.aux
 /___laTexDocumentation___/document.lof
@@ -160,3 +157,4 @@ CLAUDE.md
 /___laTexDocumentation___/src/chapters/conclusion.aux
 /___laTexDocumentation___/src/chapters/architecture.aux
 /___laTexDocumentation___/src/chapters/screens.aux
+/___laTexDocumentation___/src/chapters/aiUsage.aux

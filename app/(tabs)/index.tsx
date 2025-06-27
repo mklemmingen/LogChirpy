@@ -80,14 +80,6 @@ export default function HomeScreen() {
 
   const features: FeatureAction[] = [
     {
-      id: 'detection',
-      title: t('buttons.objectCamera'),
-      description: t('home.camera_description'),
-      icon: 'zap',
-      route: '/log/objectIdentCamera',
-      primary: true,
-    },
-    {
       id: 'photo',
       title: t('buttons.photo'),
       description: t('home.photo_description'),
@@ -107,6 +99,31 @@ export default function HomeScreen() {
       description: t('home.manual_description'),
       icon: 'edit-3',
       route: '/log/manual',
+    },
+  ];
+
+  const mlModeFeatures: FeatureAction[] = [
+    {
+      id: 'ml-both',
+      title: t('home.ml_modes.image_audio_title', 'Image+Audio'),
+      description: t('home.ml_modes.image_audio_description', 'Full ML detection with both image and audio analysis'),
+      icon: 'zap',
+      route: '/log/objectIdentCamera',
+      primary: true,
+    },
+    {
+      id: 'ml-image',
+      title: t('home.ml_modes.image_only_title', 'Image Only'),
+      description: t('home.ml_modes.image_only_description', 'Visual bird detection and classification'),
+      icon: 'eye',
+      route: '/log/objectIdentCamera?enableAudio=false',
+    },
+    {
+      id: 'ml-audio',
+      title: t('home.ml_modes.audio_only_title', 'Audio Only'),
+      description: t('home.ml_modes.audio_only_description', 'Bird sound recognition and identification'),
+      icon: 'headphones',
+      route: '/log/objectIdentCamera?enableImage=false',
     },
   ];
 
@@ -144,16 +161,16 @@ export default function HomeScreen() {
                 styles.iconContainer,
                 { 
                   backgroundColor: isPrimary ? colors.backgroundTertiary : colors.backgroundSecondary,
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
                 }
               ]}
               rounded="lg"
             >
               <ThemedIcon
                 name={feature.icon}
-                size={24}
+                size={20}
                 color="primary"
               />
             </ThemedView>
@@ -184,6 +201,60 @@ export default function HomeScreen() {
     );
   };
 
+  /**
+   * Renders compact horizontal ML mode button
+   * 
+   * @param {FeatureAction} feature - ML mode feature data
+   * @returns {JSX.Element} Compact horizontal button
+   */
+  const renderMLModeButton = (feature: FeatureAction) => {
+    const isPrimary = feature.primary;
+
+    return (
+      <Animated.View key={feature.id} style={[floatingStyle, styles.mlButtonContainer]}>
+        <ModernCard
+          onPress={() => handleFeaturePress(feature.route)}
+          elevated={isPrimary}
+          bordered={!isPrimary || colors.isDark}
+        >
+          <View style={styles.mlButtonContent}>
+            {/* Icon */}
+            <ThemedView
+              style={[
+                styles.mlIconContainer,
+                { 
+                  backgroundColor: isPrimary ? colors.backgroundTertiary : colors.backgroundSecondary,
+                }
+              ]}
+              rounded="lg"
+            >
+              <ThemedIcon
+                name={feature.icon}
+                size={14}
+                color="primary"
+              />
+            </ThemedView>
+
+            {/* Content */}
+            <View style={styles.mlButtonTextContent}>
+              <ThemedText variant="bodySmall" style={styles.mlButtonTitle}>
+                {feature.title}
+              </ThemedText>
+              <ThemedText 
+                variant="caption" 
+                color="secondary" 
+                style={styles.mlButtonDescription}
+                numberOfLines={2}
+              >
+                {feature.description}
+              </ThemedText>
+            </View>
+          </View>
+        </ModernCard>
+      </Animated.View>
+    );
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ThemedSafeAreaView style={styles.safeArea}>
@@ -195,7 +266,7 @@ export default function HomeScreen() {
         >
           <ThemedIcon name="book-open" size={20} color="primary" />
           <ThemedText variant="caption" color="primary" style={styles.tutorialText}>
-            Tutorial
+            {t('settings.tutorial.title', 'Tutorial')}
           </ThemedText>
         </ThemedPressable>
 
@@ -225,8 +296,21 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Features Section */}
+          {/* ML Detection Modes Section */}
+          <View style={styles.mlModesSection}>
+            <ThemedText variant="h3" style={styles.sectionTitle}>
+              {t('home.sections.ai_detection_modes', 'AI Detection Modes')}
+            </ThemedText>
+            <View style={styles.mlButtonsContainer}>
+              {mlModeFeatures.map((feature) => renderMLModeButton(feature))}
+            </View>
+          </View>
+
+          {/* Other Features Section */}
           <View style={styles.featuresSection}>
+            <ThemedText variant="h3" style={styles.sectionTitle}>
+              {t('home.sections.logging_options', 'Logging Options')}
+            </ThemedText>
             {features.map((feature, index) => renderFeatureCard(feature, index))}
           </View>
         </ScrollView>
@@ -271,23 +355,72 @@ const createStyles = () => StyleSheet.create({
     maxWidth: width * 0.85,
   },
 
+  // ML Modes Section
+  mlModesSection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  mlButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  mlButtonContainer: {
+    flex: 1,
+  },
+  mlButtonContent: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    minHeight: 60,
+  },
+  mlIconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  mlButtonTextContent: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  mlButtonTitle: {
+    marginBottom: 2,
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  mlButtonDescription: {
+    lineHeight: 12,
+    textAlign: 'center',
+    fontSize: 10,
+  },
+
+  // Section Titles
+  sectionTitle: {
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+
   // Features Section
   featuresSection: {
     paddingHorizontal: 16,
-    gap: 16,
+    gap: 8,
   },
 
   // Feature Cards
   featureCard: {
-    minHeight: 72,
+    minHeight: 60,
   },
   primaryCard: {
-    minHeight: 82,
+    minHeight: 65,
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
   },
   iconContainer: {
     justifyContent: 'center',
@@ -297,10 +430,10 @@ const createStyles = () => StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    marginBottom: 4,
+    marginBottom: 2,
   },
   cardDescription: {
-    lineHeight: 18,
+    lineHeight: 16,
   },
 
   // Tutorial Button

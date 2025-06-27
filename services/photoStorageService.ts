@@ -1,7 +1,7 @@
 /**
  * Photo Storage Service for LogChirpy
  * 
- * Unified service for managing photo storage across app directory and device gallery.
+ * service for managing photo storage across app directory and device gallery.
  * Integrates with existing uriUtils and gallery system.
  */
 

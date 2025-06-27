@@ -877,53 +877,6 @@ export default function SettingsScreen() {
                     </Animated.View>
                 </ThemedView>
 
-                {/* Tutorial Section */}
-                <ThemedView style={styles.section}>
-                    <ThemedText variant="h3" style={styles.sectionTitle}>
-                        {t("settings.tutorial.title")}
-                    </ThemedText>
-                    <ThemedText variant="body" color="secondary" style={styles.sectionSubtitle}>
-                        {t("settings.tutorial.subtitle")}
-                    </ThemedText>
-
-                    <Animated.View
-                        entering={FadeInDown.delay(250).springify()}
-                        layout={Layout.springify()}
-                    >
-                        <Card style={styles.tutorialCard}>
-                            <View style={styles.tutorialContent}>
-                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                    {t("settings.tutorial.how_to_use.title")}
-                                </ThemedText>
-                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                    {t("settings.tutorial.how_to_use.description")}
-                                </ThemedText>
-
-                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                    {t("settings.tutorial.image_processing.title")}
-                                </ThemedText>
-                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                    {t("settings.tutorial.image_processing.description")}
-                                </ThemedText>
-
-                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                    {t("settings.tutorial.ai_models.title")}
-                                </ThemedText>
-                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                    {t("settings.tutorial.ai_models.description")}
-                                </ThemedText>
-
-                                <ThemedText variant="bodyLarge" style={styles.tutorialSectionTitle}>
-                                    {t("settings.tutorial.data_privacy.title")}
-                                </ThemedText>
-                                <ThemedText variant="body" color="secondary" style={styles.tutorialText}>
-                                    {t("settings.tutorial.data_privacy.description")}
-                                </ThemedText>
-                            </View>
-                        </Card>
-                    </Animated.View>
-                </ThemedView>
-
                 {/* About Section */}
                 <ThemedView style={styles.section}>
                     <ThemedText variant="h3" style={styles.sectionTitle}>
@@ -1003,6 +956,29 @@ export default function SettingsScreen() {
                                     </View>
                                 </ThemedPressable>
                             </View>
+
+                            <View style={styles.creatorsSection}>
+                                <ThemedText variant="bodyLarge" style={styles.creatorsTitle}>
+                                    Tutorial and Quiz by
+                                </ThemedText>
+
+                                <ThemedPressable
+                                    variant="ghost"
+                                    onPress={() => {
+                                        Haptics.selectionAsync();
+                                        Linking.openURL('https://github.com/yummi2');
+                                    }}
+                                    style={styles.creatorCard}
+                                >
+                                    <View style={styles.creatorContent}>
+                                        <ThemedIcon name="github" size={20} color="primary" />
+                                        <ThemedText variant="body" style={styles.creatorName}>
+                                            Youmna Samouneh
+                                        </ThemedText>
+                                    </View>
+                                </ThemedPressable>
+                            </View>
+
                         </Card>
                     </Animated.View>
                 </ThemedView>

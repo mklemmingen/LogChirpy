@@ -1,4 +1,4 @@
-\include{preambel_simple}
+\input{preambel}
 
 \begin{document}
 \pagestyle{plain}
@@ -23,6 +23,8 @@
 \pagestyle{fancy}
 \cleardoublepage
 
+\tocgroup{Project Foundations}
+
 %Kapitel 1 - Einführung und Motivation
 \cleardoublepage
 \include{src/chapters/introduction}
@@ -35,6 +37,8 @@
 \cleardoublepage
 \include{src/chapters/requirements}
 
+\tocgroup{Technical Implementation}
+
 %Kapitel 4 - Konzeptionelles Modell
 \cleardoublepage
 \include{src/chapters/architecture}
@@ -43,22 +47,28 @@
 \cleardoublepage
 \include{src/chapters/design}
 
+\tocgroup{Results and Insights}
+
+\cleardoublepage
+\include{src/chapters/aiUsage}
+
 %Kapitel 6 - Ergebnisse
 \cleardoublepage
 \include{src/chapters/results}
+
+\addtocontents{toc}{\vspace{200pt}}
 
 %Kapitel 7 - Fazit
 \cleardoublepage
 \include{src/chapters/conclusion}
 
-%Quellenverzeichnis
-\cleardoublepage 
-\bibliography{src/bibliography}
-
-%Anhang
-\cleardoublepage
 \appendix
+
+\cleardoublepage
 \include{src/appendix}
+
+\cleardoublepage
+\include{src/appendix_implementation}
 
 %Gruppendokumentation
 \cleardoublepage

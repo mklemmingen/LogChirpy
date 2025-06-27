@@ -1,242 +1,219 @@
-%Schriftgroesse, Layout, Papierformat, Art des Dokumentes
-\documentclass[listof=totoc, 12pt, oneside, bibliography=totoc, a4paper, parskip=full+, final, headinclude=false, footinclude=false]{scrreprt} 
+%===============================================================================
+% DOCUMENT CLASS AND ENCODING
+%===============================================================================
+\documentclass[listof=totoc, 11pt, oneside, bibliography=totoc, a4paper, parskip=full+, final]{scrreprt}
 
-%Einstellungen der Seitenraender, Zeilenabstand
-\usepackage[left=4cm,right=3cm,top=3cm,bottom=2cm,bindingoffset=0cm]{geometry}
-\usepackage{titlesec}                  % Ueberschriftenformatierungen 
-\usepackage{setspace} 
-\setlength{\footskip}{0.8cm}
-%bestimmt abstand zwischen footnotes und text
-\setlength{\skip\footins}{6mm}
+% Character encoding and language settings
+\usepackage[utf8]{inputenc}        % UTF-8 input encoding
+\usepackage[T1]{fontenc}           % T1 font encoding for better hyphenation
+\usepackage[ngerman]{babel}        % German language support
 
-\usepackage{pdfpages}
-%anpassung des Abstadnes zwischen zwei Footnotes
-\setlength {\footnotesep}{0mm} 
-%f�r subusubsection Nummerierungen
-\setcounter{tocdepth}{3}
-\setcounter{secnumdepth}{3} 
+%===============================================================================
+% FONTS AND TYPOGRAPHY
+%===============================================================================
 
-\usepackage{trfsigns}
-%F�r timing diagramme
-\usepackage{tikz-timing}[2009/05/15]
-\def\degr{${}^\circ$}
+% Option 1: Modern and clean (RECOMMENDED)
+\usepackage{libertine}             % Linux Libertine for body text
+% \usepackage{newtxmath}  % Matching math font - disabled due to binhex.tex issue
+\usepackage[scaled=0.9]{FiraMono} % Fira Mono for code (modern, readable)
 
-%% Zeilenabstand
-\onehalfspacing                                     % Zeilenabstand 1,5 fach
+% Typography settings
+\usepackage{microtype}             % Improved typography
+\usepackage[onehalfspacing]{setspace} % Line spacing
+\setstretch{1.08}                  % Fine-tune line spacing
+\usepackage[babel,german=guillemets]{csquotes}  % Proper quotation marks
 
-%Deutsche Rechtschreibung f�r Text und Lit.-verzeichnis
-\usepackage[ngerman]{babel}
-\usepackage[german]{babelbib} 
-%zur korrekten Schreiben vn Anf�hrungszeichen
-\usepackage[babel,german=quotes]{csquotes}
-%Schriftart �ndern 
-\usepackage{mathptmx}
-%pacakge f�r mathematische Transormationszeichen
-\usepackage{trfsigns}
-%BiblatexStyle alphadin = name+Erscheinungsjahr
-\bibliographystyle{unsrt}
+%===============================================================================
+% PAGE LAYOUT
+%===============================================================================
+\usepackage[
+    left=2.2cm,
+    right=2.2cm,
+    top=2.2cm,
+    bottom=2.2cm,
+    headheight=18pt,               % Prevents warnings
+    footskip=1.3cm
+]{geometry}
 
-%bibs als Section
-\makeatletter
-\renewcommand*\bib@heading{%
-	\section*{\bibname}%
-	\@mkboth{\leftmark}{\rightmark}%
+%===============================================================================
+% COLORS
+%===============================================================================
+\usepackage[dvipsnames,svgnames,x11names]{xcolor}
+% Define project-specific colors
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{accentblue}{HTML}{0066CC}  % For headings/links
+
+%===============================================================================
+% MATHEMATICS AND ALGORITHMS
+%===============================================================================
+\usepackage{amsmath}
+% \usepackage{amsfonts}  % Disabled - conflicts with mathdesign
+% \usepackage{amssymb}   % Disabled - conflicts with mathdesign
+\usepackage{siunitx}               % SI units
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+%===============================================================================
+% CODE LISTINGS
+%===============================================================================
+\usepackage{listings}
+\lstset{
+    % Basic settings
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    breakatwhitespace=true,
+    % Frame and numbering
+    frame=single,
+    framesep=5pt,
+    framexleftmargin=5pt,
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    numbersep=10pt,
+    % Syntax highlighting
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{codepurple},
+    % Background
+    backgroundcolor=\color{backcolour},
+    % Spacing
+    aboveskip=15pt,
+    belowskip=10pt,
+    % Other
+    showstringspaces=false,
+    captionpos=b,
+    % German umlauts support
+    literate={ä}{{\"a}}1 {ö}{{\"o}}1 {ü}{{\"u}}1 
+             {Ä}{{\"A}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1 
+             {ß}{{\ss}}1
 }
-\makeatother
-\usepackage{relsize}
-\usepackage{lipsum}
 
-% Ver�ndert Bildunterschriften
-\addtokomafont{caption}{\small \it} 
-
-%Kein Einr�cken bei neuem Absatz
-\setlength\parindent{0pt} 
-
-%f�r Abk�rzungsverzeichnis
-\usepackage{acronym}
-
-%Fuer die Bibliothek
-\usepackage{cite}
-
-\usepackage[center]{caption}
-
-% F�r Symbole
-\usepackage{textcomp}
-
-% Damit einzelne Seiten im Querformat angezeigt werden k�nnen
-\usepackage{pdflscape}
-
-%Text in meheren Spalten
-\usepackage{multicol}
-%Um Tabellen in der tabular Umgebung zu nutzen
-\usepackage{tabularx}
-
-%Mathematische Zeichen wie Menge, Element usw
-\usepackage{dsfont}
-
-%for Tabulares
-\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
-
-%Umlaute ermoeglichen
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage{textcomp}
-
-%Fuer Grafiken
+%===============================================================================
+% GRAPHICS AND FIGURES
+%===============================================================================
+% \usepackage[final]{graphicx}  % final mode ignores missing images more gracefully - loaded in main document
 \usepackage{graphicx}
+\usepackage{adjustbox}             % Advanced image sizing and overflow protection
+\usepackage{placeins}              % FloatBarrier for controlling figure placement
+\usepackage{float}                 % For [H] positioning
+\usepackage{subcaption}            % Subfigures
+\usepackage{pdfpages}              % Include PDF pages
+\usepackage{background}
+
 \usepackage{svg}
+% Configure SVG package for better compatibility
+\svgsetup{
+    inkscapeexe={inkscape},
+    inkscapearea=page,
+    inkscapelatex=false
+}
 
-%Um mehrere Bilder nebeneinander darstellen zu koennen
-\usepackage{subfigure}
+% Configure graphics path
+\graphicspath{{images/}{figures/}{diagrams/}}
 
-%f�r umrandete Texte -> Sperrvermerk
-\usepackage{framed}
+% Caption setup
+\usepackage[
+    font=footnotesize,
+    labelfont=bf,
+    format=plain,
+    justification=justified,
+    singlelinecheck=false
+]{caption}
+\captionsetup[subfigure]{labelformat=empty}
 
-%Um Grafiken neben dem Text einzufuegen
-\usepackage{wrapfig}
-
-%Fuer die eingabe mathematischer Formeln
-\usepackage{amsmath, amsthm, amssymb}
-\usepackage{mathtools}
-
-%Bildunterschriften manipulieren
-\captionsetup{format = plain}
+% German caption names
 \addto\captionsngerman
 {
-	\renewcommand{\figurename}{Abb.} %Fuer die Bildunterschriften wird nun Abb. x verwendet
+	\renewcommand{\figurename}{Abb.}
 	\renewcommand{\tablename}{Tab.} 
 }
 
-%Kopf- und Fusszeile bzw eigene Designs, hier sind �nderungen einzutragen
+% Background setup
+\backgroundsetup{contents={}}
+
+\newcommand{\tocgroup}[1]{%
+    \addtocontents{toc}{\protect\vspace{7em}}%
+    \addtocontents{toc}{\protect\noindent\protect\rule{\textwidth}{0.2pt}}%
+    \addtocontents{toc}{\protect\vspace{0.1em}}%
+    \addtocontents{toc}{\protect\centerline{\protect\parbox{0.8\textwidth}
+    {\protect\centering\textbf{#1}}}}%
+    \addtocontents{toc}{\protect\vspace{2em}}%
+}
+
+%===============================================================================
+% TABLES
+%===============================================================================
+\usepackage{tabularx}
+\usepackage{booktabs}              % Professional tables
+\usepackage{longtable}             % Multi-page tables
+\usepackage{array}                 % Enhanced arrays/tables
+
+%===============================================================================
+% HEADERS AND FOOTERS
+%===============================================================================
 \usepackage[automark]{scrlayer-scrpage}
+\clearpairofpagestyles
+\pagestyle{scrheadings}
 
-\newpagestyle{WissDokuNorm}
-{ %
-	(0pt,0pt)
-	{\hfill\headmark}
-	{\headmark\hfill}
-	{\rlap{}\hfill%
-		\llap{\headmark\hfill}}
-	(\textwidth,.4pt)
-}
-{
-	(\textwidth,.4pt)
-	{\pagemark\hfill}
-	{\hfill\pagemark}
-	{Mobile Computing Final Report - LogChirpy\hfill\pagemark}
-	(0pt,0pt)
-}
+\ihead{Lauterbach, Wehrberger, Samouneh}
+\chead{}
+\ohead{\today}
+\ifoot{}
+\cfoot{}
 
-\newpagestyle{WissDokuChapter}
-{ %
-	(0pt,0pt)
-	{\hfill}
-	{\hfill}
-	{\rlap{}\hfill%
-		\llap{\hfill}}
-	(0pt,.4pt)
-}{%
-(\textwidth,.4pt)
-{\pagemark\hfill}
-{\hfill\pagemark}
-{Mobile Computing Final Report - LogChirpy\hfill\pagemark}
-(0pt,0pt)
-}
+%===============================================================================
+% HYPERLINKS AND PDF METADATA
+%===============================================================================
+\usepackage{lastpage}
+\usepackage[
+    plainpages=false,
+    pdfusetitle,
+    bookmarks=true,
+    bookmarksnumbered=true,
+    bookmarksopen=true,
+    breaklinks=true
+]{hyperref}
 
-\newpagestyle{WissDokuNothing}
-{ %
-	(0pt,0pt)
-	{\hfill}
-	{\hfill}
-	{\rlap{}\hfill%
-		\llap{\hfill}}
-	(0pt,.4pt)
-}{%
-(0pt,0pt)
-{\pagemark\hfill}
-{\hfill\pagemark}
-{\hfill\pagemark}
-(0pt,0pt)
-}
-
-%Zuweisungen der gew�nschten styles
-\assignpagestyle{\chapter}{WissDokuChapter}
-\assignpagestyle{\section}{WissDokuNorm}
-\assignpagestyle{empty}{WissDokuNothing}
-
-\pagestyle{WissDokuNorm}
-
-%----------------------------------------------
-
-%F�r korrektes anzeigen des Quellcodes
-\usepackage[utf8]{inputenc}
-\usepackage{color}
-\definecolor{darkblue}{rgb}{0,0,.6}
-\definecolor{darkred}{rgb}{.6,0,0}
-\definecolor{darkgreen}{rgb}{0,.6,0}
-\definecolor{lightblue}{rgb}{0.97,0.99,1}
-
-\usepackage{listings}
-\renewcommand{\lstlistingname}{Codeauszug}
-\lstdefinestyle{javascript}{language=JavaScript, frame=lr, morekeywords={const,let,var,function,class,async,await,export,import,from,React,useState,useEffect}}
-\lstdefinestyle{typescript}{language=Java, frame=lr, morekeywords={interface,type,const,let,var,function,class,async,await,export,import,from,React,useState,useEffect}}
-\lstset
-{
-	style=javascript,
-	basicstyle=\ttfamily\small,
-	commentstyle=\color{darkgreen},
-	keywordstyle=\bfseries\color{darkblue},
-	stringstyle=\color{darkred},
-	showspaces=false,
-	showstringspaces=false,
-	showtabs=false,
-	columns=fixed,
-	frame=single,
-	frameround=ffff,
-	numbers=left,
-	numberstyle=\tiny,
-	numbersep=5pt,
-	breaklines=true,
-	backgroundcolor=\color{lightblue},
-	captionpos=b
-}
-
-%l�dt das Paket zum erzwingen der Grafikposition
-\usepackage{here} 
-
-% erm�glich es, mit \ScaleIfNeeded Grafik nur dann skalieren zu lassen, wenn sie gr��er als eine seite sind
-\makeatletter
-\def\ScaleIfNeeded{%
-	\ifdim\Gin@nat@width>\linewidth
-	\linewidth
-	\else
-	\Gin@nat@width
-	\fi
-}
-\makeatother
-
-% Keine "Schusterjungen"
-\clubpenalty = 10000
-
-% Keine "Hurenkinder"
-\widowpenalty = 10000
-\displaywidowpenalty = 10000
-
-\raggedbottom
-
-\setlength{\parskip}{3ex plus 3ex minus 3ex}
-
-\renewcommand*\chapterheadstartvskip{\vspace{-\topskip}}
-\renewcommand*{\chapterheadendvskip}{\vspace*{0pt}}      % Abstand zwischen Chapter u. Fliesstext
-
-%Um Links im Dokument zu aktivieren
-\usepackage{hyperref}
 \hypersetup{
-	colorlinks=false,
-	pdfborder={0 0 0},
+    pdftitle={LogChirpy - Ornithological Archival App},
+    pdfauthor={Martin Lauterbach, Luis Wehrberger, Youmna Samouneh},
+    pdfsubject={Mobile Computing Project - Bird Watching Application with AI-Powered Recognition},
+    pdfkeywords={Mobile Computing, React Native, Machine Learning, Bird Identification, Ornithology},
+    pdfproducer={pdfLaTeX},
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=accentblue,
+    urlcolor=accentblue,
+    pdfdisplaydoctitle=true
 }
 
-%Autor und Titel
+%===============================================================================
+% MISCELLANEOUS
+%===============================================================================
+% \usepackage[normalem]{ulem}        % Underline/strikethrough
+\setcounter{tocdepth}{2}           % TOC depth (sections and subsections)
+
+% Compact ToC formatting to fit in 2 pages
+\usepackage{tocloft}
+\usepackage{color}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\setlength{\cftbeforesecskip}{0.15em}
+\setlength{\cftbeforesubsecskip}{0.08em}
+
+
+\rmfamily                          % Roman family default
+
+%===============================================================================
+% CUSTOM COMMANDS
+%===============================================================================
+\newcommand{\logchirpy}{\textsc{LogChirpy}\xspace}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\file}[1]{\texttt{#1}}
+
+%===============================================================================
+% AUTHOR AND TITLE
+%===============================================================================
 \author{Martin Lauterbach, Luis Wehrberger, Youmna Samouneh}
 \title{LogChirpy - Ornithological Archival App}

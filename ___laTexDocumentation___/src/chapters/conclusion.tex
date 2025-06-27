@@ -1,65 +1,25 @@
 \chapter{Project Conclusions and Learning Outcomes}
 
-\section{Educational Achievements and Reflections}
+\section{Educational Achievements and Technical Learning Outcomes}
 
-LogChirpy represents a successful completion of a semester-long mobile computing project that provided extensive hands-on experience with React Native development, machine learning integration, and collaborative software engineering. While the application functions as intended and demonstrates the feasibility of combining multiple ML approaches in a mobile environment, the project's primary value lies in the learning process and technical skills developed during its creation.
+LogChirpy successfully completed a 12-week mobile computing project, delivering hands-on experience with React Native development, ML integration, and collaborative software engineering. The application demonstrates the feasibility of combining multiple ML approaches in mobile environments while providing valuable technical learning outcomes.
 
-\section{Key Learning Outcomes}
+\textbf{Machine Learning Integration and Model Deployment:} The project integrated existing ML models (BirdNET, MLKit) into React Native, focusing on mobile ML deployment challenges including \texttt{.h5} to \texttt{.tflite} model conversion and sequential processing to avoid resource conflicts. 
+\textbf{Cross-Platform Mobile Development Skills:} Working with React Native and Expo provided practical experience in cross-platform development, state management through React Context providers, and mobile-specific challenges including permissions handling, file system operations, and performance optimization across Android and iOS platforms. The development process included transitioning from Expo Go to custom development builds when integrating \texttt{.tflite} models.
 
-\textbf{Machine Learning Integration:} The project successfully integrated existing ML models (BirdNET, MLKit) into a React Native application. While we didn't develop novel algorithms, we learned valuable lessons about mobile ML deployment, including model conversion from .h5 to .tflite format and managing sequential processing to avoid resource conflicts.
+\textbf{Database Architecture and Internationalization:} Implementation of a 30,000+ species database with multi-language support involved data management challenges, translation workflows, and localization architecture. 
+\textbf{Collaborative Development and Project Management:} The project highlighted real-world challenges of team collaboration with an 85/12/3% contribution split among team members, emphasizing the importance of clear role definition and realistic project scoping within academic constraints.
 
-\textbf{Mobile Development Skills:} Working with React Native and Expo provided practical experience in cross-platform development, state management, and mobile-specific challenges like permissions, file handling, and performance optimization.
+\textbf{Critical Technical Challenge Resolution:} The project's primary technical achievement involved solving race conditions in ML processing. The initial dual-pipeline approach (concurrent image and audio processing) caused file stability errors and "Only one Recording object can be prepared" conflicts. The solution involved implementing a sequential processing pipeline that eliminated all resource conflicts and stability issues.
 
-\textbf{Database and Internationalization:} Implementing a 30,000+ species database with multi-language support taught us about data management, translation workflows, and localization in mobile applications.
+\textbf{Mobile Development Environment Configuration:} Handling Windows path length limitations required solutions using WSL2 and drive substitution, highlighting the importance of proper development environment configuration for React Native projects with extensive dependencies.
 
-\textbf{Collaborative Development:} The project highlighted real-world challenges of team collaboration, including unequal workload distribution and the importance of clear role definition in academic settings.
+\textbf{Offline-First Architecture Design:} The decision to prioritize local functionality with optional cloud sync through Firebase Firestore proved beneficial for reliability during development and testing, while addressing privacy concerns for wildlife observation data.
 
-\section{Technical Challenges and Solutions}
+\section{Future Development Opportunities and Project Assessment} 
 
-\textbf{ML Pipeline Race Conditions:} One of our major technical challenges was coordinating image and audio ML processing. Our initial dual-pipeline approach caused file stability errors and resource conflicts. We solved this by implementing a unified sequential pipeline that processes image and audio ML operations one after another, eliminating all race conditions.
+Future enhancements could include training custom models on local bird populations for improved accuracy, social sharing and citizen science integration, and adaptation for other wildlife observation use cases.
 
-\textbf{Mobile ML Model Integration:} Converting BirdNET models from .h5 to .tflite format and integrating them with React Native required custom development builds and careful handling of asynchronous operations. This taught us about the complexities of mobile ML deployment.
+LogChirpy successfully meets its goals as an educational mobile computing project. The application integrates multiple ML models, maintains user data across devices through Firebase synchronization, and provides a complete user experience from species identification to archival. The working application validates the approach of combining existing technologies and frameworks to create useful mobile applications within the constraints of a semester-long project.
 
-\textbf{Cross-Platform Development:} Handling file systems, permissions, and performance differences between Android and iOS provided practical experience with mobile development challenges.
-
-\textbf{Development Environment Setup:} Working with Windows path length limitations required creative solutions using WSL2 and drive substitution, highlighting the importance of proper development environment configuration.
-
-\textbf{Team Coordination:} Managing a three-person team with varying time commitments and technical backgrounds taught us about realistic project scoping and clear role definition in collaborative projects.
-
-\section{Project Insights and Lessons Learned}
-
-\textbf{Offline-First Architecture:} Our decision to prioritize local functionality with optional cloud sync was driven more by privacy concerns, and it proved beneficial for reliability during development and testing.
-
-\textbf{Incremental Development:} Building core functionality first before adding ML features helped us maintain a working application throughout development and avoid getting stuck on complex technical challenges early on.
-
-\textbf{Scope Management:} Learning to balance ambitious feature goals with realistic time constraints was a valuable lesson in project management within academic deadlines.
-
-\section{Potential Future Improvements}
-
-Given more time and resources, several enhancements could improve LogChirpy:
-
-\textbf{ML Accuracy:} Training custom models on local bird populations could improve identification accuracy compared to using global models.
-
-\textbf{Community Features:} Adding social sharing and citizen science integration could make the app more engaging and scientifically valuable.
-
-\textbf{Platform Expansion:} The current architecture could potentially be adapted for other wildlife observation use cases beyond birds.
-
-\section{Technical Achievement: Unified ML Pipeline}
-
-Our most significant technical contribution was solving critical race conditions in our ML processing. Our initial approach of running image and audio ML in parallel caused file stability errors and resource conflicts. 
-
-We solved this by implementing a unified pipeline that processes operations sequentially: image capture → object detection → classification → audio recording → audio classification → wait → repeat. This eliminated all timing issues and made the system much more reliable.
-
-While this solution worked well for our project, it represents practical problem-solving rather than a novel contribution to the field.
-
-\section{Project Assessment}
-
-LogChirpy successfully meets its goals as an educational mobile computing project. We built a functional bird watching application that integrates multiple ML models, maintains user data across devices, and provides a complete user experience from species identification to archival.
-
-The application demonstrates that students can successfully adapt existing technologies and frameworks to create useful mobile applications, even within the constraints of a semester-long project.
-
-While we built upon existing solutions rather than creating novel technologies, the project provided valuable hands-on experience with modern mobile development practices, ML integration, and collaborative software development.
-
-The working application validates our approach and provides a solid foundation that could be extended with additional features and improvements in future work.
-
-LogChirpy demonstrates that students can successfully create functional mobile applications by thoughtfully combining existing technologies, even within the constraints of academic timelines and varying team contributions. The project serves as a practical example of applied mobile computing education.
+The project provided valuable experience with mobile development practices, ML integration, and collaborative software development. LogChirpy demonstrates successful adaptation of existing technologies to create functional mobile applications within academic constraints, serving as a practical example of applied mobile computing education.
