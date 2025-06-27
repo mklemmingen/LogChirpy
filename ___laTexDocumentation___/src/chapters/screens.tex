@@ -65,72 +65,33 @@ This chapter presents the main screens of the LogChirpy application, showcasing 
 \clearpage
 \section{Feature Screens}
 
-\subsection{Account Features}
-The account section provides user authentication for syncing bird logs across devices. All other app features work completely offline without requiring login. This design ensures maximum accessibility while offering optional cloud synchronization for users who want to access their bird spotting data on multiple devices.
-
-\begin{figure}[h]
-    \centering
-    \begin{minipage}[t]{0.3\textwidth}
-        \centering
-        \textbf{Login Screen}
-        \includegraphics[width=\textwidth]{img/screenshots/account/login-portrait}
-        \small{Optional login for cloud sync.}
-    \end{minipage}%
-    \hfill%
-    \begin{minipage}[t]{0.3\textwidth}
-        \centering
-        \textbf{Sign Up Screen}
-        \includegraphics[width=\textwidth]{img/screenshots/account/sign_up-portrait}
-        \small{Create account for cloud sync.}
-    \end{minipage}%
-    \hfill%
-    \begin{minipage}[t]{0.3\textwidth}
-        \centering
-        \textbf{Password Reset}
-        \includegraphics[width=\textwidth]{img/screenshots/account/reset_pw-portrait}
-        \small{Account recovery for sync access.}
-    \end{minipage}
-\end{figure}
-
-Key aspects of the account system:
-\begin{itemize}
-    \item \textbf{Optional Authentication}: Login is only required for cloud sync
-    \item \textbf{Offline-First}: All features work without authentication, except sync
-    \item \textbf{Sync Management}: Control when and how data syncs
-    \item \textbf{Data Privacy}: Encrypted cloud storage when syncing
-    \item \textbf{Cross-Device Access}: Access logs on multiple devices when logged in
-\end{itemize}
-
 \subsection{Logging Features}
 The logging section offers various methods to record bird observations. Users can choose between manual entry, audio recording, photo-based identification, and AI-assisted automatic identification. This multi-modal approach ensures accurate bird species identification regardless of the observation conditions or user expertise level.
 
 \begin{figure}[h]
     \centering
-    \begin{minipage}[t]{0.3\textwidth}
+    \begin{minipage}[t]{0.22\textwidth}
         \centering
         \textbf{Manual Log}
         \includegraphics[width=\textwidth]{img/screenshots/log/manual-portrait}
         \small{Manual bird observation entry.}
     \end{minipage}%
     \hfill%
-    \begin{minipage}[t]{0.3\textwidth}
+    \begin{minipage}[t]{0.22\textwidth}
         \centering
         \textbf{Audio Recording}
         \includegraphics[width=\textwidth]{img/screenshots/log/audio-portrait}
         \small{Bird song recording interface.}
     \end{minipage}%
     \hfill%
-    \begin{minipage}[t]{0.3\textwidth}
+    \begin{minipage}[t]{0.22\textwidth}
         \centering
         \textbf{Photo Logging}
         \includegraphics[width=\textwidth]{img/screenshots/log/photo-portrait}
         \small{Photo-based bird logging.}
-    \end{minipage}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \begin{minipage}[t]{0.3\textwidth}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.22\textwidth}
         \centering
         \textbf{Auto Identification}
         \includegraphics[width=\textwidth]{img/screenshots/log/auto_ident-portrait}
@@ -145,6 +106,30 @@ Key aspects of the logging system:
     \item \textbf{Location Integration}: Automatic GPS tagging of observations
     \item \textbf{Offline Capability}: Full functionality without internet connection
     \item \textbf{Data Validation}: Accuracy checks for species identification
+\end{itemize}
+
+
+
+\subsection{Search Features}
+The search functionality allows users to quickly find specific bird species using various search criteria. This feature enhances the user experience by providing fast access to bird information and simplifying the identification process.
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Search Interface}
+        \includegraphics[width=\textwidth]{img/screenshots/search/main-search-portrait}
+        \small{Find specific bird species quickly.}
+    \end{minipage}
+\end{figure}
+
+Key aspects of the search system:
+\begin{itemize}
+    \item \textbf{Fast Search}: Quick species lookup functionality
+    \item \textbf{Multiple Criteria}: Search by name, category, or attributes
+    \item \textbf{Smart Suggestions}: Auto-complete and suggestions
+    \item \textbf{Offline Search}: Full search capability without internet
+    \item \textbf{Filter Integration}: Combine search with filtering options
 \end{itemize}
 
 \subsection{Archive Features}
@@ -191,6 +176,86 @@ Key aspects of the archive system:
     \item \textbf{Data Management}: Local storage with cloud backup option
     \item \textbf{Detailed Records}: Comprehensive information for each sighting
     \item \textbf{Export Capabilities}: Share and backup observation data
+\end{itemize}
+
+\subsection{Gallery Features}
+The gallery section provides a visual interface for managing and viewing captured bird photos. Users can browse their photo collection, organize images, and integrate photos with their bird observations for comprehensive documentation.
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Gallery View}
+        \includegraphics[width=\textwidth]{img/screenshots/gallery/main-gallery-portrait}
+        \small{View and manage captured bird photos.}
+    \end{minipage}
+\end{figure}
+
+Key aspects of the gallery system:
+\begin{itemize}
+    \item \textbf{Photo Management}: Organize and browse bird photos
+    \item \textbf{Integration}: Link photos with observation records
+    \item \textbf{Local Storage}: All photos stored locally on device
+    \item \textbf{Quality Control}: Photo editing and enhancement tools
+    \item \textbf{Sharing Options}: Export and share photo collections
+\end{itemize}
+
+\subsection{Account Features}
+The account section provides user authentication for syncing bird logs across devices. All other app features work completely offline without requiring login. This design ensures maximum accessibility while offering optional cloud synchronization for users who want to access their bird spotting data on multiple devices.
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Login Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/account/login-portrait}
+        \small{Optional login for cloud sync.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Sign Up Screen}
+        \includegraphics[width=\textwidth]{img/screenshots/account/sign_up-portrait}
+        \small{Create account for cloud sync.}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Password Reset}
+        \includegraphics[width=\textwidth]{img/screenshots/account/reset_pw-portrait}
+        \small{Account recovery for sync access.}
+    \end{minipage}
+\end{figure}
+
+Key aspects of the account system:
+\begin{itemize}
+    \item \textbf{Optional Authentication}: Login is only required for cloud sync
+    \item \textbf{Offline-First}: All features work without authentication, except sync
+    \item \textbf{Sync Management}: Control when and how data syncs
+    \item \textbf{Data Privacy}: Encrypted cloud storage when syncing
+    \item \textbf{Cross-Device Access}: Access logs on multiple devices when logged in
+\end{itemize}
+
+\subsection{Settings Features}
+The settings section allows users to configure app preferences, customize the user experience, and manage application behavior. This includes display options, notification settings, data management preferences, and accessibility features.
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[t]{0.3\textwidth}
+        \centering
+        \textbf{Settings Interface}
+        \includegraphics[width=\textwidth]{img/screenshots/settings/main-settings-portrait}
+        \small{Configure app preferences and options.}
+    \end{minipage}
+\end{figure}
+
+Key aspects of the settings system:
+\begin{itemize}
+    \item \textbf{Customization}: Personalize app appearance and behavior
+    \item \textbf{Data Management}: Control storage and sync preferences
+    \item \textbf{Accessibility}: Options for enhanced usability
+    \item \textbf{Notifications}: Configure alert and reminder settings
+    \item \textbf{Privacy Controls}: Manage data sharing and permissions
 \end{itemize}
 
 \subsection{BirdDex Features}
