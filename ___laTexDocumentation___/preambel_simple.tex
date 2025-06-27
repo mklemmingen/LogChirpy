@@ -1,95 +1,203 @@
-%Schriftgroesse, Layout, Papierformat, Art des Dokumentes
-\documentclass[listof=totoc, 12pt, oneside, bibliography=totoc, a4paper, parskip=full+, final]{scrreprt} 
+%===============================================================================
+% DOCUMENT CLASS AND ENCODING
+%===============================================================================
+\documentclass[listof=totoc, 12pt, oneside, bibliography=totoc, a4paper, parskip=full+, final]{scrreprt}
 
-%Einstellungen der Seitenraender, Zeilenabstand
-\usepackage[left=4cm,right=3cm,top=3cm,bottom=2cm,bindingoffset=0cm]{geometry}
-\usepackage{setspace} 
-\setlength{\footskip}{0.8cm}
+% Character encoding and language settings
+\usepackage[utf8]{inputenc}        % UTF-8 input encoding
+\usepackage[T1]{fontenc}           % T1 font encoding for better hyphenation
+\usepackage[ngerman]{babel}        % German language support
 
-%Deutsche Rechtschreibung
-\usepackage[ngerman]{babel}
-\usepackage[babel,german=quotes]{csquotes}
-\usepackage{mathptmx}
+%===============================================================================
+% FONTS AND TYPOGRAPHY
+%===============================================================================
 
-%BiblatexStyle
-\bibliographystyle{unsrt}
+% Classic technical documentation (Hochschule Reutlingen style)
+\usepackage{charter}             % Charter for body text
+\usepackage[charter]{mathdesign} % Matching math
+\usepackage[scaled=0.85]{beramono} % Bera Mono for code
 
-%Umlaute ermoeglichen
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage{textcomp}
+% Typography settings
+\usepackage{microtype}             % Improved typography
+\usepackage[onehalfspacing]{setspace} % Line spacing
+\setstretch{1.15}                  % Fine-tune line spacing
+\usepackage[babel,german=guillemets]{csquotes}  % Proper quotation marks
 
-%Fuer Grafiken
-\usepackage{graphicx} 
-\usepackage{subfigure}
-\usepackage{wrapfig}
+%===============================================================================
+% PAGE LAYOUT
+%===============================================================================
+\usepackage[
+    left=2.5cm,
+    right=2.5cm,
+    top=2.5cm,
+    bottom=2.5cm,
+    headheight=14pt,               % Prevents warnings
+    footskip=1.5cm
+]{geometry}
 
-%Fuer Tabellen
-\usepackage{tabularx}
-\usepackage{longtable}
-\usepackage{array}
+%===============================================================================
+% COLORS
+%===============================================================================
+\usepackage[dvipsnames,svgnames,x11names]{xcolor}
+% Define project-specific colors
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{accentblue}{HTML}{0066CC}  % For headings/links
 
-%Mathematische Zeichen
-\usepackage{amsmath, amsthm, amssymb}
+%===============================================================================
+% MATHEMATICS AND ALGORITHMS
+%===============================================================================
+\usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{mathtools}
 
-%Bildunterschriften
-\usepackage{caption}
+%===============================================================================
+% CODE LISTINGS
+%===============================================================================
+\usepackage{listings}
+\lstset{
+    % Basic settings
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    breakatwhitespace=true,
+    % Frame and numbering
+    frame=single,
+    framesep=5pt,
+    framexleftmargin=5pt,
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    numbersep=10pt,
+    % Syntax highlighting
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{codepurple},
+    % Background
+    backgroundcolor=\color{backcolour},
+    % Spacing
+    aboveskip=15pt,
+    belowskip=10pt,
+    % Other
+    showstringspaces=false,
+    captionpos=b,
+    % German umlauts support
+    literate={ä}{{\"a}}1 {ö}{{\"o}}1 {ü}{{\"u}}1 
+             {Ä}{{\"A}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1 
+             {ß}{{\ss}}1
+}
+
+%===============================================================================
+% GRAPHICS AND FIGURES
+%===============================================================================
+\usepackage{graphicx}
+\usepackage{float}                 % For [H] positioning
+\usepackage{subcaption}            % Subfigures
+\usepackage{pdfpages}              % Include PDF pages
+\usepackage{background}
+\usepackage{wrapfig}
+\usepackage{svg}                   % SVG support
+
+% Configure graphics path
+\graphicspath{{img/}{images/}{figures/}{diagrams/}}
+
+% Caption setup
+\usepackage[
+    font=small,
+    labelfont=bf,
+    format=plain,
+    justification=justified,
+    singlelinecheck=false
+]{caption}
+\captionsetup[subfigure]{labelformat=empty}
+
+% German caption names
 \addto\captionsngerman
 {
 	\renewcommand{\figurename}{Abb.}
 	\renewcommand{\tablename}{Tab.} 
 }
 
-%Für Quellcode
-\usepackage{listings}
-\usepackage{color}
-\definecolor{darkblue}{rgb}{0,0,.6}
-\definecolor{darkred}{rgb}{.6,0,0}
-\definecolor{darkgreen}{rgb}{0,.6,0}
-\definecolor{lightblue}{rgb}{0.97,0.99,1}
+% Background setup
+\backgroundsetup{contents={}}
 
-\renewcommand{\lstlistingname}{Codeauszug}
-\lstset
-{
-	basicstyle=\ttfamily\small,
-	commentstyle=\color{darkgreen},
-	keywordstyle=\bfseries\color{darkblue},
-	stringstyle=\color{darkred},
-	showspaces=false,
-	showstringspaces=false,
-	showtabs=false,
-	columns=fixed,
-	frame=single,
-	frameround=ffff,
-	numbers=left,
-	numberstyle=\tiny,
-	numbersep=5pt,
-	breaklines=true,
-	backgroundcolor=\color{lightblue},
-	captionpos=b
+\newcommand{\tocgroup}[1]{%
+    \addtocontents{toc}{\protect\vspace{1em}}%
+    \addtocontents{toc}{\protect\noindent\protect\rule{\textwidth}{0.4pt}}%
+    \addtocontents{toc}{\protect\vspace{0.4em}}%
+    \addtocontents{toc}{\protect\centerline{\protect\parbox{0.8\textwidth}
+    {\protect\centering\textbf{#1}}}}%
+    \addtocontents{toc}{\protect\vspace{1em}}%
 }
 
-%lädt das Paket zum erzwingen der Grafikposition
-\usepackage{here} 
+%===============================================================================
+% TABLES
+%===============================================================================
+\usepackage{tabularx}
+\usepackage{booktabs}              % Professional tables
+\usepackage{longtable}             % Multi-page tables
+\usepackage{array}                 % Enhanced arrays/tables
 
-%Um Links im Dokument zu aktivieren
-\usepackage{hyperref}
+%===============================================================================
+% HEADERS AND FOOTERS
+%===============================================================================
+\usepackage[automark]{scrlayer-scrpage}
+\clearpairofpagestyles
+\pagestyle{scrheadings}
+
+% Reduce header spacing to prevent late page starts
+\setlength{\headsep}{0.5cm}
+\ModifyLayer[addvoffset=-0.5cm]{scrheadings.head.odd}
+\ModifyLayer[addvoffset=-0.5cm]{scrheadings.head.even}
+
+\ihead{Lauterbach, Wehrberger, Samouneh}
+\chead{}
+\ohead{\today}
+\ifoot{}
+\cfoot{}
+\ofoot[{\thepage\ von \pageref*{LastPage}}]{\thepage\ von \pageref*{LastPage}}
+
+%===============================================================================
+% HYPERLINKS AND PDF METADATA
+%===============================================================================
+\usepackage{lastpage}
+\usepackage[
+    plainpages=false,
+    pdfusetitle,
+    bookmarks=true,
+    bookmarksnumbered=true,
+    bookmarksopen=true,
+    breaklinks=true
+]{hyperref}
+
 \hypersetup{
-	colorlinks=false,
-	pdfborder={0 0 0},
+    pdftitle={LogChirpy - Ornithological Archival App},
+    pdfauthor={Martin Lauterbach, Luis Wehrberger, Youmna Samouneh},
+    pdfsubject={Mobile Computing Project - Bird Watching Application with AI-Powered Recognition},
+    pdfkeywords={Mobile Computing, React Native, Machine Learning, Bird Identification, Ornithology},
+    pdfproducer={pdfLaTeX},
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=accentblue,
+    urlcolor=accentblue,
+    pdfdisplaydoctitle=true
 }
 
-%Header and Footer - simplified
-\usepackage{fancyhdr}
-\pagestyle{fancy}
-\fancyhf{}
-\fancyfoot[C]{Mobile Computing Final Report - LogChirpy \quad \thepage}
-\fancyhead[C]{\leftmark}
-\renewcommand{\headrulewidth}{0.4pt}
-\renewcommand{\footrulewidth}{0.4pt}
+%===============================================================================
+% MISCELLANEOUS
+%===============================================================================
+\setcounter{tocdepth}{2}           % TOC depth
+\rmfamily                          % Roman family default
 
-%Autor und Titel
+%===============================================================================
+% CUSTOM COMMANDS
+%===============================================================================
+\newcommand{\logchirpy}{\textsc{LogChirpy}\xspace}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\file}[1]{\texttt{#1}}
+
+%===============================================================================
+% AUTHOR AND TITLE
+%===============================================================================
 \author{Martin Lauterbach, Luis Wehrberger, Youmna Samouneh}
 \title{LogChirpy - Ornithological Archival App}

@@ -1,9 +1,10 @@
 import React from 'react';
-import {Tabs} from 'expo-router';
+import {Tabs, useRouter} from 'expo-router';
 import {Platform} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Animated, {useAnimatedStyle, useSharedValue, withSpring, withTiming,} from 'react-native-reanimated';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {useColors, useShadows, useTheme} from '@/hooks/useThemeColor';
 import {ThemedView} from '@/components/ThemedView';
@@ -163,6 +164,10 @@ export default function ModernTabLayout() {
     const theme = useTheme();
     const colors = useColors();
     const shadows = useShadows();
+    const router = useRouter();
+
+    // TODO: Investigate if we need to restore settings navigation after RTL language changes
+    // Temporarily removed to debug navigation issues during standard language changes
 
     // Tab configuration available for future enhancements
     // const tabsConfig = [

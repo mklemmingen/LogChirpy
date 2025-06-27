@@ -20,6 +20,7 @@ import {ModernCard} from '@/components/ModernCard';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
+import {ThemedPressable} from '@/components/ThemedPressable';
 import {useColors} from '@/hooks/useThemeColor';
 
 const { width, height } = Dimensions.get('window');
@@ -187,6 +188,17 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <ThemedSafeAreaView style={styles.safeArea}>
 
+        {/* Tutorial Button - Fixed Position */}
+        <ThemedPressable 
+          onPress={() => router.push('/tutorial')}
+          style={styles.tutorialButton}
+        >
+          <ThemedIcon name="book-open" size={20} color="primary" />
+          <ThemedText variant="caption" color="primary" style={styles.tutorialText}>
+            Tutorial
+          </ThemedText>
+        </ThemedPressable>
+
         {/* Bird Animation */}
         <BirdAnimation numberOfBirds={5} />
 
@@ -289,5 +301,32 @@ const createStyles = () => StyleSheet.create({
   },
   cardDescription: {
     lineHeight: 18,
+  },
+
+  // Tutorial Button
+  tutorialButton: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    zIndex: 1000,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tutorialText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

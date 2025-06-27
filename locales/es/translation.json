@@ -86,7 +86,36 @@
     "cancel": "Cancelar",
     "save": "Guardar",
     "confirm": "Confirmar",
-    "try_again": "Intentar de nuevo"
+    "try_again": "Intentar de nuevo",
+    "checkAnswer": "Comprobar respuesta",
+    "nextQuestion": "Siguiente pregunta",
+    "finish": "Terminar",
+    "yes": "Sí",
+    "no": "No",
+    "backToHome": "Volver al inicio"
+  },
+  "questions": {
+    "selectCorrectImage": "¿Qué imagen muestra el ave llamada {{name}}?",
+    "birdRange": "¿En qué área vive este pájaro?",
+    "answerInEnglish": "responde en inglés",
+    "birdExtinct": "¿Está este pájaro extinguido?"
+  },
+  "alerts": {
+    "correctTitle": "¡Correcto!",
+    "correctMessage": "Era {{name}}",
+    "incorrectTitle": "Incorrecto",
+    "incorrectMessage": "Respuesta correcta: {{name}}",
+    "correctStatusMessage": "Estado: {{status}}",
+    "incorrectStatusMessage": "Estado correcto: {{status}}",
+    "correctRangeMessage": "Área de distribución: {{range}}",
+    "incorrectRangeMessage": "Área correcta: {{range}}",
+    "incorrectMessageWithGuess": "Ese era el {{guessName}}",
+    "inputTooShort": "Por favor, introduce al menos 3 letras"
+  },
+  "results": {
+    "title": "Tu resultado",
+    "successMessage": "¡Felicidades! Has respondido correctamente a {{score}} de 3 preguntas",
+    "failureMessage": "Desafortunadamente, el cuestionario no fue exitoso. ¡Inténtalo de nuevo!"
   },
   "auth": {
     "welcome_back": "Bienvenido de nuevo",
@@ -155,20 +184,46 @@
       "title": "Tutorial de la App",
       "subtitle": "Aprende a usar LogChirpy de manera efectiva",
       "how_to_use": {
-        "title": "Cómo usar LogChirpy",
-        "description": "LogChirpy es tu compañero digital de observación de aves que te ayuda a identificar, registrar y rastrear avistamientos de aves. Usa la cámara principal para detección de aves en tiempo real, captura fotos y videos, graba audio o registra avistamientos manualmente. La app funciona tanto en línea como sin conexión para uso en el campo."
+        "title": "Cómo empezar con LogChirpy",
+        "description": "A continuación verás varios iconos: cada uno representa una función específica. En la pantalla de inicio encontrarás botones que representan las funciones principales de la aplicación. En los siguientes pasos te explicaremos las funciones más importantes paso a paso."
       },
       "image_processing": {
-        "title": "Qué sucede con tus imágenes",
-        "description": "Las fotos se procesan localmente en tu dispositivo usando modelos de IA para identificación de aves. Las imágenes se almacenan temporalmente en la carpeta de documentos de tu dispositivo y pueden guardarse en tu galería de fotos manualmente a través de la página de Galería. Ninguna imagen se sube automáticamente a servidores externos."
+        "title": "Cómo funciona la detección por cámara",
+        "description": "1: Toca el icono de la cámara en la pantalla principal.\n2: Mantén el dispositivo enfocado en el ave. Si la app tiene acceso a la cámara, podrás tomar una foto. La IA identificará automáticamente la especie del ave.\n3: La imagen se guardará en la app y se podrá agregar a la galería si permites el acceso. Puedes añadir esta imagen a una observación manual desde el botón 'Manual' en la pantalla principal."
       },
       "ai_models": {
         "title": "Cómo funcionan los modelos de IA",
-        "description": "LogChirpy utiliza modelos de aprendizaje automático en el dispositivo (TensorFlow Lite) para detección y clasificación de aves en tiempo real. Los modelos se ejecutan completamente en tu dispositivo, garantizando privacidad y funcionalidad sin conexión. La app incluye modelos de detección de objetos y clasificación de imágenes optimizados para rendimiento móvil."
+        "description": "LogChirpy utiliza modelos de aprendizaje automático en el dispositivo (TensorFlow Lite) para la detección y clasificación de aves en tiempo real. Los modelos se ejecutan completamente en tu dispositivo, garantizando la privacidad y la funcionalidad sin conexión. La aplicación incluye modelos de detección de objetos y clasificación de imágenes optimizados para el rendimiento móvil."
+      },
+      "image_processing_ai": {
+        "title": "Cómo funciona la cámara con IA",
+        "description": "La cámara inteligente detecta aves automáticamente mientras apuntas tu dispositivo hacia ellas. Las marcas de colores indican las especies reconocidas en la imagen. Además, la cámara puede analizar cantos de aves a través del micrófono. Activa el acceso a la cámara y al micrófono. Los datos de ubicación ayudan a la IA a ofrecer resultados más precisos. Esta función es ideal para observaciones en vivo en la naturaleza."
       },
       "data_privacy": {
         "title": "Firebase y Privacidad de Datos",
-        "description": "Tus registros de avistamientos de aves se almacenan de forma segura en Firebase Firestore con cifrado de extremo a extremo. Solo se sincronizan datos esenciales como tipo de ave, ubicación (si está habilitada), fecha y notas. La autenticación se maneja de forma segura a través de Firebase Auth. Ninguna imagen personal o grabación de audio se sube a Firebase - permanecen en tu dispositivo."
+        "description": "Tus observaciones de aves se guardan de forma segura: solo se sincronizan los datos esenciales como la especie, la fecha, la ubicación (si está activada) y las notas. Las fotos y grabaciones de audio permanecen siempre en tu dispositivo. El inicio de sesión también está protegido a través de Firebase Auth. Tú mantienes el control total sobre tus datos."
+      },
+      "adjust_bird_detection": "Ajustar la configuración de detección de aves",
+      "camera_ai_settings": "Configuración de IA de cámara",
+      "detection_speed": "Velocidad de detección",
+      "camera_analysis_frequency": "Con qué frecuencia la IA analiza la transmisión de la cámara",
+      "detection_confidence": "Confianza en la detección",
+      "min_confidence_description": "Confianza mínima requerida para guardar detecciones de aves",
+      "show_camera_controls": "Mostrar controles de cámara",
+      "display_advanced_controls": "Mostrar controles avanzados en la vista de la cámara",
+      "location_data_settings": "Configuración de datos de ubicación",
+      "record_coordinates_description": "Registrar coordenadas precisas con tus avistamientos para mapeo y análisis",
+      "gps_location_logging": "Registro de ubicación GPS",
+      "language_setting_description": "Elige tu idioma preferido para la interfaz de la aplicación",
+      "tutorial_welcome_title": "Bienvenido a LogChirpy",
+      "tutorial_welcome_description": "Descubre, identifica y registra aves con herramientas impulsadas por IA, ¡incluso sin conexión!",
+      "audio_recording": "1. Toca el ícono del micrófono en la pantalla de inicio para grabar el canto del ave.\n2. Mantén el dispositivo quieto apuntando hacia el sonido del ave.\n3. Puedes escuchar la grabación o volver a grabarla.\n4. Guárdala manualmente como observación o utiliza la IA para identificarla.",
+      "record_audio": "Grabar audio",
+      "manual_entry_description": "Abre la pantalla de inicio. Toca en “Manual”. Ingresa el nombre, la ubicación y la fecha. Opcional: Añade una foto, una grabación de audio, la ubicación o notas. Toca en “Guardar”. Puedes acceder a tu observación en cualquier momento desde tu archivo.",
+      "manual_entry": "Ingrese sus propias observaciones de aves",
+      "login": {
+        "title": "Iniciar sesión y cuenta",
+        "description": "Pulsa el icono de persona en la parte inferior de la página de inicio. Introduce tu correo electrónico y contraseña si ya tienes una cuenta. Si no, pulsa 'Registrarse' en la misma página. Si olvidaste tu contraseña, pulsa '¿Olvidaste tu contraseña?' e introduce tu correo electrónico para recibir un enlace de restablecimiento."
       }
     },
     "about": {
@@ -177,6 +232,14 @@
       "app_description": "Una aplicación moderna de observación y registro de aves impulsada por IA, diseñada para entusiastas de la naturaleza y observadores de aves de todos los niveles.",
       "created_by": "Creado por"
     }
+  },
+  "intro": {
+    "line1": "¿Alguna vez has visto un ave...",
+    "line2": "...y te has preguntado de qué\nespecie se trata?",
+    "line3": "Un grupo de estudiantes de la Universidad\nde Reutlingen ha desarrollado una app\npara ayudarte a",
+    "line4": "identificar aves mediante fotos o sonidos\nincluso sin conexión.",
+    "line5": "¡La app admite 6 idiomas\ncambia al tuyo y pruébala!",
+    "line6": "Puedes guardar tus avistamientos en el archivo\ny acceder a ellos en cualquier momento."
   },
   "audio": {
     "start": "Iniciar grabación",
@@ -296,7 +359,9 @@
     "settings": "Configuración",
     "continue": "Continuar",
     "close": "Cerrar",
-    "retry_loading": "Volver a cargar"
+    "retry_loading": "Volver a cargar",
+    "skip": "Saltar",
+    "next": "Siguiente"
   },
   "birdnet": {
     "identify_button": "Identificar ave (IA)",

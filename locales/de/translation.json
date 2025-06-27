@@ -86,7 +86,36 @@
     "cancel": "Abbrechen",
     "save": "Speichern",
     "confirm": "Bestätigen",
-    "try_again": "Erneut versuchen"
+    "try_again": "Erneut versuchen",
+    "checkAnswer": "Antwort prüfen",
+    "nextQuestion": "Nächste Frage",
+    "finish": "Beenden",
+    "yes": "Ja",
+    "no": "Nein",
+    "backToHome": "Zurück zur Startseite"
+  },
+  "questions": {
+    "selectCorrectImage": "Welches Bild zeigt den Vogel namens {{name}}?",
+    "birdRange": "In welchem Gebiet lebt dieser Vogel?",
+    "answerInEnglish": "Antwort auf Englisch",
+    "birdExtinct": "Ist dieser Vogel ausgestorben?"
+  },
+  "alerts": {
+    "correctTitle": "Richtig!",
+    "correctMessage": "Das war {{name}}",
+    "incorrectTitle": "Leider falsch",
+    "incorrectMessage": "Richtige Antwort: {{name}}",
+    "correctStatusMessage": "Status: {{status}}",
+    "incorrectStatusMessage": "Richtiger Status: {{status}}",
+    "correctRangeMessage": "Verbreitungsgebiet: {{range}}",
+    "incorrectRangeMessage": "Richtiges Verbreitungsgebiet: {{range}}",
+    "incorrectMessageWithGuess": "Das war der {{guessName}}",
+    "inputTooShort": "Bitte geben Sie mindestens 3 Buchstaben ein"
+  },
+  "results": {
+    "title": "Dein Ergebnis",
+    "successMessage": "Glückwunsch! Du hast {{score}} von 3 Fragen richtig beantwortet",
+    "failureMessage": "Leider war das Quiz nicht erfolgreich. Versuche es noch einmal!"
   },
   "auth": {
     "welcome_back": "Willkommen zurück",
@@ -159,20 +188,34 @@
       "title": "App-Tutorial",
       "subtitle": "Lernen Sie, wie Sie LogChirpy effektiv nutzen",
       "how_to_use": {
-        "title": "Wie man LogChirpy verwendet",
-        "description": "LogChirpy ist Ihr digitaler Vogelbeobachtungsbegleiter, der Ihnen hilft, Vögel zu identifizieren, zu protokollieren und zu verfolgen. Verwenden Sie die Hauptkamera für die Echtzeit-Vogelerkennung, machen Sie Fotos und Videos, nehmen Sie Audio auf oder protokollieren Sie Sichtungen manuell. Die App funktioniert sowohl online als auch offline für den Feldeinsatz."
+        "title": "So startest du mit LogChirpy",
+        "description": "Unten siehst du verschiedene Symbole – jedes steht für eine bestimmte Funktion. Auf der Startseite findest du Buttons, die die Hauptfunktionen der App darstellen. In den nächsten Schritten erklären wir dir die wichtigsten Funktionen Schritt für Schritt."
       },
       "image_processing": {
-        "title": "Was passiert mit Ihren Bildern",
-        "description": "Fotos werden lokal auf Ihrem Gerät mit KI-Modellen für die Vogelidentifikation verarbeitet. Bilder werden temporär im Dokumentenordner Ihres Geräts gespeichert und können über die Galerie-Seite manuell in Ihre Fotogalerie gespeichert werden. Keine Bilder werden automatisch auf externe Server hochgeladen."
+        "title": "So funktioniert die Fotoaufnahme",
+        "description": "Tippe auf das Kamerasymbol auf der Startseite. Halte dein Gerät ruhig auf den Vogel und mache ein Foto. Die App erkennt anschließend automatisch die Vogelart. Das Bild wird in der App gespeichert und kann in der Galerie übernommen werden – sofern du der App Zugriff darauf gibst. Du kannst das Bild auch später über den Button „Manuell“ einer Beobachtung hinzufügen."
       },
       "ai_models": {
         "title": "Wie KI-Modelle funktionieren",
         "description": "LogChirpy verwendet maschinelle Lernmodelle auf dem Gerät (TensorFlow Lite) für die Echtzeit-Vogelerkennung und -klassifikation. Modelle laufen vollständig auf Ihrem Gerät und gewährleisten Privatsphäre und Offline-Funktionalität. Die App enthält sowohl Objekterkennungs- als auch Bildklassifikationsmodelle, die für mobile Leistung optimiert sind."
       },
+      "image_processing_ai": {
+        "title": "So funktioniert die KI-Kamera",
+        "description": "Die intelligente Kamera erkennt Vögel automatisch – während du das Gerät auf sie richtest. Farbliche Markierungen zeigen erkannte Arten im Bild. Zusätzlich kann die Kamera über das Mikrofon Vogelstimmen analysieren. Aktiviere dazu Kamera- und Mikrofonzugriff. Standortdaten helfen der KI, genauere Ergebnisse zu liefern. Diese Funktion eignet sich besonders für Live-Beobachtungen in der Natur."
+      },
       "data_privacy": {
         "title": "Firebase & Datenschutz",
-        "description": "Ihre Vogelbeobachtungsprotokolle werden sicher in Firebase Firestore mit Ende-zu-Ende-Verschlüsselung gespeichert. Nur wesentliche Daten wie Vogelart, Standort (falls aktiviert), Datum und Notizen werden synchronisiert. Die Authentifizierung wird sicher über Firebase Auth abgewickelt. Keine persönlichen Bilder oder Audioaufnahmen werden zu Firebase hochgeladen - sie bleiben auf Ihrem Gerät."
+        "description": "Deine Vogelbeobachtungen werden sicher gespeichert – nur das Nötigste wird synchronisiert: Vogelart, Datum, Standort (falls aktiviert) und Notizen. Bilder und Audioaufnahmen bleiben immer auf deinem Gerät. Auch die Anmeldung ist geschützt – sie läuft über Firebase Auth. Du behältst die volle Kontrolle über deine Daten"
+      },
+      "audio_recording": "1.Tippe auf das Mikrofonsymbol auf der Startseite, um den Gesang aufzunehmen.\n2. Halte das Gerät ruhig in Richtung des Vogelgeräuschs.\n3. Du kannst die Aufnahme anhören oder erneut aufnehmen.\n4. Speichere sie manuell als Beobachtung oder nutze die KI zur Erkennung.",
+      "record_audio": "Audio aufnehmen",
+      "manual_entry_description": "Öffne die Startseite. Tippe auf „Manuell“. Gib Name, Ort und Datum ein. Optional: Füge ein Foto, eine Audioaufnahme, den Standort oder Notizen hinzu. Tippe auf „Speichern“. In deinem Archiv kannst du deine Beobachtung jederzeit aufrufen.",
+      "manual_entry": "Eigene Vogelbeobachtungen eingeben",
+      "tutorial_welcome_title": "Willkommen bei LogChirpy",
+      "tutorial_welcome_description": "Entdecke, bestimme und protokolliere Vögel mit KI-gestützten Tools – sogar offline!",
+      "login": {
+        "title": "Einloggen & Benutzerkonto",
+        "description": "Klicke unten auf der Startseite auf das Personensymbol. Gib deine E-Mail-Adresse und dein Passwort ein, wenn du bereits ein Konto hast. Falls nicht, klicke unten auf derselben Seite auf 'Registrieren'. Wenn du dein Passwort vergessen hast, kannst du auf 'Passwort vergessen' klicken und deine E-Mail-Adresse eingeben, um einen Link zum Zurücksetzen zu erhalten."
       }
     },
     "about": {
@@ -180,7 +223,27 @@
       "subtitle": "Lernen Sie das Team hinter Ihrem Vogelbeobachtungsbegleiter kennen",
       "app_description": "Eine moderne, KI-gestützte Vogelbeobachtungs- und Protokollierungsanwendung für Naturliebhaber und Vogelbeobachter aller Erfahrungsstufen.",
       "created_by": "Erstellt von"
-    }
+    },
+    "adjust_bird_detection": "Einstellungen zur Vogelerkennung anpassen",
+    "camera_ai_settings": "Kamera-KI-Einstellungen",
+    "detection_speed": "Erkennungsgeschwindigkeit",
+    "camera_analysis_frequency": "Wie häufig die KI den Kamerafeed analysiert",
+    "detection_confidence": "Erkennungszuverlässigkeit",
+    "min_confidence_description": "Mindestzuverlässigkeit zum Speichern von Vogel-Erkennungen",
+    "show_camera_controls": "Kamerasteuerung anzeigen",
+    "display_advanced_controls": "Erweiterte Steuerung im Kamerabild anzeigen",
+    "location_data_settings": "Einstellungen für Standortdaten",
+    "record_coordinates_description": "Präzise Koordinaten zu Vogelbeobachtungen für Kartierung und Analyse speichern",
+    "gps_location_logging": "GPS-Standortprotokollierung",
+    "language_setting_description": "Wähle deine bevorzugte Sprache für die App-Oberfläche"
+  },
+  "intro": {
+    "line1": "Hast du schon einmal einen Vogel gesehen...",
+    "line2": "...und dich gefragt, um welche Art\nes sich handelt?",
+    "line3": "Eine Studentengruppe der Hochschule\nReutlingen hat eine App entwickelt,",
+    "line4": "die dir hilft, Vögel per Foto\noder Ton zu identifizieren sogar offline.",
+    "line5": "Die App unterstützt 6 Sprachen\nwechsle zu deiner und probiere sie aus!",
+    "line6": "Du kannst deine Beobachtungen im Archiv\nspeichern und jederzeit darauf zugreifen."
   },
   "audio": {
     "start": "Aufnahme starten",
@@ -301,7 +364,9 @@
     "settings": "Einstellungen",
     "continue": "Fortfahren",
     "close": "Schließen",
-    "retry_loading": "Erneut laden"
+    "retry_loading": "Erneut laden",
+    "skip": "Überspringen",
+    "next": "Weiter"
   },
   "birdnet": {
     "identify_button": "Vogel identifizieren (KI)",

@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, TextInput, View,} from 'react-native';
+import {ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, TextInput, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRouter} from 'expo-router';
 import {ThemedIcon} from '@/components/ThemedIcon';
@@ -193,7 +193,7 @@ function SearchHeader({
         { key: 'name', label: t('birddex.sortByName'), icon: 'type' },
         { key: 'scientific', label: t('birddex.sortByScientific'), icon: 'book' },
         { key: 'family', label: t('birddex.sortByFamily'), icon: 'users' },
-        { key: 'logged', label: t('birddex.sortByLogged'), icon: 'check-circle' },
+        { key: 'logged', label: t('birddex.filterLoggedOnly'), icon: 'check-circle' },
     ];
 
     const getCategoryIcon = (category: string): keyof typeof Feather.glyphMap => {
@@ -610,45 +610,76 @@ export default function BirdDexIndex() {
                     sortOption === 'family' ? 'family' :
                         sortOption === 'logged' ? 'english_name' : 'english_name';
 
-            // Query database
-            const rawBirds = queryBirdDexPage(
-                searchQuery.trim(),
-                sortField,
-                true, // ascending
-                PAGE_SIZE,
-                pageNum,
-                categoryFilter
-            );
-
-            // Process results
-            const processedBirds: DisplayRecord[] = rawBirds.map(bird => {
-                const displayName = bird[nameField as keyof BirdDexRecord] as string ||
-                    bird.english_name ||
-                    bird.scientific_name ||
-                    'Unknown Bird';
-
-                return {
-                    ...bird,
-                    displayName,
-                    logged: hasSpottingForLatin(bird.scientific_name),
-                };
-            });
-
-            // Sort by logged status if needed
+            let finalBirds: DisplayRecord[];
+            
             if (sortOption === 'logged') {
-                processedBirds.sort((a, b) => {
-                    if (a.logged === b.logged) return 0;
-                    return a.logged ? -1 : 1;
+                // For logged filter, get all birds and filter to logged ones
+                const allRawBirds = queryBirdDexPage(
+                    searchQuery.trim(),
+                    sortField,
+                    true, // ascending
+                    10000, // Large number to get all results
+                    1,
+                    categoryFilter
+                );
+
+                // Process and filter to logged birds only
+                const allLoggedBirds: DisplayRecord[] = allRawBirds
+                    .map(bird => {
+                        const displayName = bird[nameField as keyof BirdDexRecord] as string ||
+                            bird.english_name ||
+                            bird.scientific_name ||
+                            'Unknown Bird';
+
+                        return {
+                            ...bird,
+                            displayName,
+                            logged: hasSpottingForLatin(bird.scientific_name),
+                        };
+                    })
+                    .filter(bird => bird.logged);
+
+                // Apply pagination to logged birds
+                const startIndex = (pageNum - 1) * PAGE_SIZE;
+                const endIndex = startIndex + PAGE_SIZE;
+                finalBirds = allLoggedBirds.slice(startIndex, endIndex);
+                
+                // Store total logged count for pagination
+                setTotalCount(allLoggedBirds.length);
+                setTotalPages(Math.ceil(allLoggedBirds.length / PAGE_SIZE));
+            } else {
+                // Regular database query with pagination
+                const rawBirds = queryBirdDexPage(
+                    searchQuery.trim(),
+                    sortField,
+                    true, // ascending
+                    PAGE_SIZE,
+                    pageNum,
+                    categoryFilter
+                );
+
+                // Process results
+                finalBirds = rawBirds.map(bird => {
+                    const displayName = bird[nameField as keyof BirdDexRecord] as string ||
+                        bird.english_name ||
+                        bird.scientific_name ||
+                        'Unknown Bird';
+
+                    return {
+                        ...bird,
+                        displayName,
+                        logged: hasSpottingForLatin(bird.scientific_name),
+                    };
                 });
+
+                // Update pagination for regular queries
+                const total = getBirdDexRowCount(searchQuery.trim(), categoryFilter);
+                setTotalCount(total);
+                setTotalPages(Math.ceil(total / PAGE_SIZE));
             }
 
             // Update state
-            setBirds(processedBirds);
-
-            // Update pagination
-            const total = getBirdDexRowCount(searchQuery.trim(), categoryFilter);
-            setTotalCount(total);
-            setTotalPages(Math.ceil(total / PAGE_SIZE));
+            setBirds(finalBirds);
             setPage(pageNum);
 
         } catch (error) {
@@ -734,12 +765,30 @@ export default function BirdDexIndex() {
         <ThemedSafeAreaView style={styles.container}>
             {/* Header */}
             <ThemedView style={styles.header}>
-                <ThemedText variant="h2" style={styles.headerTitle}>
-                    {t('birddex.title')}
-                </ThemedText>
-                <ThemedText variant="body" color="secondary">
-                    {t('birddex.subtitle', { count: totalCount })}
-                </ThemedText>
+                <View style={styles.headerContent}>
+                    <View style={styles.headerText}>
+                        <ThemedText variant="h2" style={styles.headerTitle}>
+                            {t('birddex.title')}
+                        </ThemedText>
+                        <ThemedText variant="body" color="secondary">
+                            {t('birddex.subtitle', { count: totalCount })}
+                        </ThemedText>
+                    </View>
+                    <ThemedPressable
+                        variant="secondary"
+                        size="sm"
+                        onPress={() => {
+                            Haptics.selectionAsync();
+                            router.push('/birdex/quiz');
+                        }}
+                        style={styles.quizButton}
+                    >
+                        <ThemedIcon name="help-circle" size={16} color="primary" />
+                        <ThemedText variant="label" color="primary">
+                            Quiz
+                        </ThemedText>
+                    </ThemedPressable>
+                </View>
             </ThemedView>
 
             {/* Search and Filters */}
@@ -766,15 +815,7 @@ export default function BirdDexIndex() {
                 onRefresh={handleRefresh}
                 ListEmptyComponent={
                     <ThemedView style={styles.emptyContainer}>
-                        <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                            <ThemedIcon name="search" size={48} color="primary" />
-                        </View>
-                        <ThemedText variant="h3" style={styles.emptyTitle}>
-                            {searchQuery ? t('birddex.noSearchResults') : t('birddex.noResults')}
-                        </ThemedText>
-                        <ThemedText variant="body" color="secondary" style={styles.emptyMessage}>
-                            {searchQuery ? t('birddex.tryDifferentSearch') : t('birddex.noResultsMessage')}
-                        </ThemedText>
+                        <ActivityIndicator size="large" color={colors.primary} />
                     </ThemedView>
                 }
             />
@@ -898,9 +939,25 @@ function createStyles() {
         paddingHorizontal: 20,
         paddingVertical: 16,
     },
+    headerContent: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+    },
+    headerText: {
+        flex: 1,
+        marginRight: 16,
+    },
     headerTitle: {
         fontWeight: 'bold',
         marginBottom: 4,
+    },
+    quizButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
     },
 
     // Search Header

@@ -2,18 +2,21 @@
 
 \section{Operational Context and Usage Environment}
 
-\subsection{Field Deployment Environment}
+\textbf{Field Deployment Environment}
+
 End-users primarily operate the application in outdoor environments across diverse ecological settings, including forested areas, urban parks, and nature conservation zones. The operational context presents significant technical challenges including variable lighting conditions, ambient acoustic interference, and intermittent network connectivity that must be accommodated in the system design.
 
-\subsection{Data Management Framework}
+\textbf{Data Management Framework}
+
 Practitioners utilize the application to maintain comprehensive ornithological observation records, review historical sighting data, and conduct pattern analysis across temporal and geographic dimensions. The system must function as both a data acquisition platform and analytical tool, supporting systematic documentation and retrospective analysis workflows.
 
-\subsection{Social Collaboration and Data Sharing}
+\textbf{Social Collaboration and Data Sharing}
+
 Users engage in collaborative knowledge sharing through the distribution of observation records and photographic evidence via established social media platforms and professional ornithological networks. The system architecture must integrate seamlessly with standard platform sharing mechanisms to facilitate community engagement and scientific collaboration.
 
 \section{Stakeholder Analysis and User Research}
 
-\subsection{Primary Stakeholder Profile: Recreational Naturalist}
+\textbf{Primary Stakeholder Profile: Recreational Naturalist:}
 
 \textbf{Demographic and Professional Characteristics:}
 \begin{itemize}
@@ -38,7 +41,7 @@ As a recreational naturalist, the stakeholder requires a computational system ca
     \item The system shall maintain persistent data storage with cross-platform accessibility through cloud infrastructure
 \end{enumerate}
 
-\subsection{Secondary Stakeholder Profile: Advanced Ornithological Practitioner}
+\textbf{Secondary Stakeholder Profile: Advanced Ornithological Practitioner:}
 
 \textbf{Demographic and Professional Characteristics:}
 \begin{itemize}
@@ -66,7 +69,7 @@ As an advanced ornithological practitioner, the stakeholder requires a sophistic
 
 \section{Use Case Modeling and Validation}
 
-\subsection{Use Case 1: Archive Access and Data Export Functionality}
+\textbf{Use Case 1: Archive Access and Data Export Functionality:}
 \textbf{Specification:} Multimedia Data Retrieval and External Platform Integration
 
 \begin{quote}
@@ -82,7 +85,7 @@ The system shall provide recreational naturalists with intuitive archive navigat
     \item The system shall ensure persistent cloud-based data storage with reliable accessibility across multiple devices
 \end{enumerate}
 
-\subsection{Use Case 2: Real-time Content Sharing and Collaboration}
+\textbf{Use Case 2: Real-time Content Sharing and Collaboration:}
 \textbf{Specification:} Immediate Multimedia Distribution for Professional Networks
 
 \begin{quote}
@@ -98,7 +101,7 @@ The system shall enable advanced ornithological practitioners to rapidly access 
     \item The system shall maintain comprehensive data persistence through cloud-based archival systems
 \end{enumerate}
 
-\subsection{Use Case 3: Geospatial Data Analysis and Location Intelligence}
+\textbf{Use Case 3: Geospatial Data Analysis and Location Intelligence:}
 \textbf{Specification:} Species-specific Location Retrieval and Mapping
 
 \begin{quote}
@@ -114,7 +117,7 @@ The system shall provide advanced ornithological practitioners with sophisticate
     \item The system shall ensure persistent geospatial data storage with cloud-based accessibility and synchronization
 \end{enumerate}
 
-\subsection{Use Case 4: System Onboarding and User Education}
+\textbf{Use Case 4: System Onboarding and User Education:}
 \textbf{Specification:} Comprehensive User Training and Interface Familiarization
 
 \begin{quote}
@@ -132,34 +135,34 @@ The system shall provide new users with structured educational pathways for appl
 
 \section{Functional Requirements Specification}
 
-\subsection{Quantitative Performance Metrics}
+\textbf{Quantitative Performance Metrics:}
 \begin{itemize}
     \item \textbf{User Authentication Framework:} System shall support concurrent access for minimum 10 authenticated users for data synchronization and cloud operations (MVP baseline)
     \item \textbf{Acoustic Pattern Recognition:} System shall process and classify avian vocalizations with ≥85\% accuracy validation, processing latency ≤5 seconds per audio segment (MVP requirement)
-    \item \textbf{Multimedia Compression Architecture:} System shall implement ≥30\% image compression prior to cloud synchronization, supporting up to 1,000 multimedia assets per user account
+    \item \textbf{Multimedia Compression Architecture:} System shall implement appropriate image compression prior to cloud synchronization, supporting up to 1,000 multimedia assets per user account
     \item \textbf{Geospatial Data Acquisition:} System shall capture GPS coordinates with ±10 meter precision accuracy, with user-configurable privacy controls (MVP requirement)
     \item \textbf{Manual Documentation System:} System shall support comprehensive manual observation entries including taxonomic identification, geospatial metadata, and field notes; minimum 500 entries per user account (MVP requirement)
     \item \textbf{Cartographic Visualization:} System shall display all geolocated observations through integrated global mapping interface (MVP requirement)
 \end{itemize}
 
-\subsection{Qualitative System Characteristics}
+\textbf{Qualitative System Characteristics:}
 \begin{itemize}
     \item \textbf{User Interface Design:} System shall implement intuitive, accessibility-compliant interface with consistent cross-platform design patterns for Android and iOS deployment (MVP requirement)
-    \item \textbf{Machine Learning Integration:} System shall provide seamless ML pipeline integration with comprehensive error handling and meaningful user feedback mechanisms (MVP requirement)
+    \item \textbf{ML Integration:} System shall provide seamless ML pipeline integration with comprehensive error handling and meaningful user feedback mechanisms (MVP requirement)
     \item \textbf{Social Media Integration:} System shall enable multimedia content transformation for social messaging platforms including sticker creation and sharing functionality
     \item \textbf{Local Storage and Distribution:} System shall maintain local multimedia storage with integrated social media and messaging platform distribution capabilities (MVP requirement)
 \end{itemize}
 
 \section{Non-Functional Requirements Analysis}
 
-\subsection{Performance and Scalability Metrics}
+\textbf{Performance and Scalability Metrics:}
 \begin{itemize}
     \item \textbf{System Performance:} Application initialization shall complete within 2 seconds, user interaction response time <1 second for optimal user experience (MVP requirement)
     \item \textbf{Scalability Architecture:} Backend infrastructure shall support concurrent multi-user operations without performance degradation under normal load conditions
     \item \textbf{System Availability:} Infrastructure shall maintain 80\% minimum uptime for cloud services and synchronization capabilities (MVP baseline)
 \end{itemize}
 
-\subsection{Quality Attributes and Constraints}
+\textbf{Quality Attributes and Constraints:}
 \begin{itemize}
     \item \textbf{Security Framework:} System shall implement end-to-end encryption for data transmission and storage, ensuring GDPR compliance and privacy protection (MVP requirement)
     \item \textbf{Platform Compatibility:} System shall support current Android and iOS platform versions with responsive design adaptation for diverse screen configurations (MVP requirement)
@@ -167,9 +170,9 @@ The system shall provide new users with structured educational pathways for appl
     \item \textbf{User Experience Design:} System shall provide intuitive navigation patterns with clear instructional guidance and consistent feedback mechanisms across all user interactions (MVP requirement)
 \end{itemize}
 
-\section{System Constraints and Limitations Framework}
+\section{System Constraints and Limitations}
 
-\subsection{Technical Architecture Constraints}
+\textbf{Technical Architecture Constraints:}
 \begin{itemize}
     \item \textbf{Platform Requirements:} System deployment requires Android 8.0+ or iOS 12.0+ for optimal ML framework compatibility and security standards
     \item \textbf{Storage Architecture:} Minimum 2GB available device storage required for comprehensive ML model deployment and local data caching
@@ -177,7 +180,7 @@ The system shall provide new users with structured educational pathways for appl
     \item \textbf{Network Architecture:} Cloud synchronization optional with robust offline operational capabilities for field deployment scenarios
 \end{itemize}
 
-\subsection{Regulatory Compliance Framework}
+\textbf{Regulatory Compliance Framework:}
 \begin{itemize}
     \item \textbf{Privacy Protection:} System implementation shall ensure complete GDPR compliance with comprehensive data protection and user privacy safeguards
     \item \textbf{Distribution Platform Standards:} Application shall adhere to Google Play Store and Apple App Store publication guidelines and content policies

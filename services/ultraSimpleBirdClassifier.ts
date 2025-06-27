@@ -1,9 +1,8 @@
 /**
- * Ultra-Simple Bird Audio Classifier - Minimal Implementation
- * 
- * This is the absolute minimal implementation following ULTIMATE_AUDIO_MODEL_IMPLEMENTATION_GUIDE.md
+ * Bird Audio Classifier
+ *
  * No fallbacks, no model switching, no caching, no performance metrics.
- * Just one hardcoded two-model architecture that works.
+ * one hardcoded two-model architecture that works
  */
 
 import {loadTensorflowModel, TensorflowModel} from 'react-native-fast-tflite';
@@ -11,6 +10,7 @@ import {AudioDecoder} from './audioDecoder';
 import {getLabelsForLanguage} from './generated/BirdLabelsMap';
 import {AudioWindowManager} from './audioWindowManager';
 import {Asset} from 'expo-asset';
+import {filterAudioForBirds} from './audioFiltering';
 
 interface BirdPrediction {
   commonName: string;
@@ -339,8 +339,12 @@ class UltraSimpleBirdClassifier {
       result.set(audioData, start);
     }
     
-    // Optional: Apply high-pass filter as per guide (200Hz cutoff)
-    return this.applyHighPassFilter(result, 200);
+    // Apply comprehensive audio filtering optimized for bird recognition
+    console.log('[BirdClassifier] Applying advanced audio filtering for bird recognition...');
+    const filteredAudio = filterAudioForBirds(result, targetSampleRate);
+    console.log('[BirdClassifier] Audio filtering complete');
+    
+    return filteredAudio;
   }
 
   /**
