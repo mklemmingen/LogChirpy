@@ -2,7 +2,7 @@
  * Bird Audio Classifier
  *
  * No fallbacks, no model switching, no caching, no performance metrics.
- * one hardcoded two-model architecture that works
+ * one hardcoded two-model architecture
  */
 
 import {loadTensorflowModel, TensorflowModel} from 'react-native-fast-tflite';

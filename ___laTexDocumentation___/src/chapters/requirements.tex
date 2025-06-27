@@ -1,18 +1,5 @@
 \chapter{Requirements Analysis and System Specification}
 
-\section{Operational Context and Usage Environment}
-
-\textbf{Field Deployment Environment}
-
-End-users primarily operate the application in outdoor environments across diverse ecological settings, including forested areas, urban parks, and nature conservation zones. The operational context presents significant technical challenges including variable lighting conditions, ambient acoustic interference, and intermittent network connectivity that must be accommodated in the system design.
-
-\textbf{Data Management Framework}
-
-Practitioners utilize the application to maintain comprehensive ornithological observation records, review historical sighting data, and conduct pattern analysis across temporal and geographic dimensions. The system must function as both a data acquisition platform and analytical tool, supporting systematic documentation and retrospective analysis workflows.
-
-\textbf{Social Collaboration and Data Sharing}
-
-Users engage in collaborative knowledge sharing through the distribution of observation records and photographic evidence via established social media platforms and professional ornithological networks. The system architecture must integrate seamlessly with standard platform sharing mechanisms to facilitate community engagement and scientific collaboration.
 
 \section{Stakeholder Analysis and User Research}
 
@@ -104,85 +91,24 @@ The system shall enable advanced ornithological practitioners to rapidly access 
 \textbf{Use Case 3: Geospatial Data Analysis and Location Intelligence:}
 \textbf{Specification:} Species-specific Location Retrieval and Mapping
 
-\begin{quote}
-The system shall provide advanced ornithological practitioners with sophisticated geospatial analysis capabilities, enabling species-specific location queries and historical sighting pattern analysis to support research activities and field planning.
-\end{quote}
 
-\textbf{Acceptance Criteria and System Requirements:}
+\section{Functional Requirements}
+
 \begin{enumerate}
-    \item The system shall implement intuitive cartographic interface navigation with comprehensive mapping functionality
-    \item The system shall provide species-based filtering mechanisms for targeted geographical analysis
-    \item The system shall visualize historical observation data through interactive mapping with temporal analysis capabilities
-    \item The system shall support detailed location metadata access through interactive map elements
-    \item The system shall ensure persistent geospatial data storage with cloud-based accessibility and synchronization
+    \item \textbf{Audio Classification:} Process bird calls with ≥85\% accuracy in <5 seconds
+    \item \textbf{Visual Recognition:} Detect and classify birds from camera images
+    \item \textbf{Species Database:} Provide access to 33,000+ bird species with multilingual support
+    \item \textbf{Observation Logging:} Record sightings with photos, audio, GPS, and notes
+    \item \textbf{Data Management:} Store observations locally with optional cloud sync
+    \item \textbf{Offline Operation:} Function completely without internet connectivity
 \end{enumerate}
 
-\textbf{Use Case 4: System Onboarding and User Education:}
-\textbf{Specification:} Comprehensive User Training and Interface Familiarization
+\section{Non-Functional Requirements}
 
-\begin{quote}
-The system shall provide new users with structured educational pathways for application mastery, including interactive tutorial systems and guided practice scenarios, ensuring effective adoption of species identification and observation documentation capabilities.
-\end{quote}
-
-\textbf{Acceptance Criteria and System Requirements:}
 \begin{enumerate}
-    \item The system shall implement comprehensive onboarding workflows with interactive guidance through primary system functionality
-    \item The system shall provide intuitive user interface design with consistent navigation patterns and clear information hierarchy
-    \item The system shall support practice-based learning through demonstration modes for species identification processes
-    \item The system shall include comprehensive training modules for observation documentation including multimedia capture and geospatial data integration
-    \item The system shall provide educational content for archive management and social sharing functionality
+    \item \textbf{Performance:} App startup <2 seconds, First Start Database under a Minute, UI response <1 second
+    \item \textbf{Compatibility:} Android 8.0+ and iOS 12.0+
+    \item \textbf{Storage:} Minimum 500MB available space for ML models and Birdex Encyclopedia
+    \item \textbf{Privacy:} All ML processing on-device, no data transmission required
 \end{enumerate}
 
-\section{Functional Requirements Specification}
-
-\textbf{Quantitative Performance Metrics:}
-\begin{itemize}
-    \item \textbf{User Authentication Framework:} System shall support concurrent access for minimum 10 authenticated users for data synchronization and cloud operations (MVP baseline)
-    \item \textbf{Acoustic Pattern Recognition:} System shall process and classify avian vocalizations with ≥85\% accuracy validation, processing latency ≤5 seconds per audio segment (MVP requirement)
-    \item \textbf{Multimedia Compression Architecture:} System shall implement appropriate image compression prior to cloud synchronization, supporting up to 1,000 multimedia assets per user account
-    \item \textbf{Geospatial Data Acquisition:} System shall capture GPS coordinates with ±10 meter precision accuracy, with user-configurable privacy controls (MVP requirement)
-    \item \textbf{Manual Documentation System:} System shall support comprehensive manual observation entries including taxonomic identification, geospatial metadata, and field notes; minimum 500 entries per user account (MVP requirement)
-    \item \textbf{Cartographic Visualization:} System shall display all geolocated observations through integrated global mapping interface (MVP requirement)
-\end{itemize}
-
-\textbf{Qualitative System Characteristics:}
-\begin{itemize}
-    \item \textbf{User Interface Design:} System shall implement intuitive, accessibility-compliant interface with consistent cross-platform design patterns for Android and iOS deployment (MVP requirement)
-    \item \textbf{ML Integration:} System shall provide seamless ML pipeline integration with comprehensive error handling and meaningful user feedback mechanisms (MVP requirement)
-    \item \textbf{Social Media Integration:} System shall enable multimedia content transformation for social messaging platforms including sticker creation and sharing functionality
-    \item \textbf{Local Storage and Distribution:} System shall maintain local multimedia storage with integrated social media and messaging platform distribution capabilities (MVP requirement)
-\end{itemize}
-
-\section{Non-Functional Requirements Analysis}
-
-\textbf{Performance and Scalability Metrics:}
-\begin{itemize}
-    \item \textbf{System Performance:} Application initialization shall complete within 2 seconds, user interaction response time <1 second for optimal user experience (MVP requirement)
-    \item \textbf{Scalability Architecture:} Backend infrastructure shall support concurrent multi-user operations without performance degradation under normal load conditions
-    \item \textbf{System Availability:} Infrastructure shall maintain 80\% minimum uptime for cloud services and synchronization capabilities (MVP baseline)
-\end{itemize}
-
-\textbf{Quality Attributes and Constraints:}
-\begin{itemize}
-    \item \textbf{Security Framework:} System shall implement end-to-end encryption for data transmission and storage, ensuring GDPR compliance and privacy protection (MVP requirement)
-    \item \textbf{Platform Compatibility:} System shall support current Android and iOS platform versions with responsive design adaptation for diverse screen configurations (MVP requirement)
-    \item \textbf{Code Maintainability:} Implementation shall follow React Native development best practices with comprehensive documentation and modular architecture design
-    \item \textbf{User Experience Design:} System shall provide intuitive navigation patterns with clear instructional guidance and consistent feedback mechanisms across all user interactions (MVP requirement)
-\end{itemize}
-
-\section{System Constraints and Limitations}
-
-\textbf{Technical Architecture Constraints:}
-\begin{itemize}
-    \item \textbf{Platform Requirements:} System deployment requires Android 8.0+ or iOS 12.0+ for optimal ML framework compatibility and security standards
-    \item \textbf{Storage Architecture:} Minimum 2GB available device storage required for comprehensive ML model deployment and local data caching
-    \item \textbf{Hardware Dependencies:} Camera and microphone access essential for complete system functionality including multimedia capture and acoustic analysis
-    \item \textbf{Network Architecture:} Cloud synchronization optional with robust offline operational capabilities for field deployment scenarios
-\end{itemize}
-
-\textbf{Regulatory Compliance Framework:}
-\begin{itemize}
-    \item \textbf{Privacy Protection:} System implementation shall ensure complete GDPR compliance with comprehensive data protection and user privacy safeguards
-    \item \textbf{Distribution Platform Standards:} Application shall adhere to Google Play Store and Apple App Store publication guidelines and content policies
-    \item \textbf{User Consent Management:} System shall implement explicit user consent protocols for camera, microphone, and location data access with granular privacy controls
-\end{itemize}

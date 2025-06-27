@@ -4,21 +4,21 @@
 
 \textbf{React Native with Expo Framework}
 
-As a mobile computing course project, we selected React Native with Expo primarily for practical reasons. This framework allowed us to target both iOS and Android platforms with a single codebase, which was essential given our 12-week timeline.
+React Native with Expo was selected for cross-platform development targeting both iOS and Android with a single codebase within the 12-week timeline.
 
-The main benefits we experienced were the hot reload feature for rapid development iterations and access to established ML libraries through the React Native ecosystem. However, we encountered a significant challenge when our ML model integration requirements forced us to transition from Expo Go to custom development builds.
+Key benefits included hot reload for rapid development iterations and access to established ML libraries. ML model integration requirements necessitated transitioning from Expo Go to custom development builds.
 
-Our app architecture centers around tab-based navigation defined in \texttt{app/(tabs)/\_layout.tsx}, organizing features into six main sections: Home, BirDex, Archive, Gallery, Account, and Settings. The bird logging workflow is separated into dedicated screens under \texttt{app/log/}, including manual entry (\texttt{manual.tsx}), photo capture (\texttt{photo.tsx}), and AI-powered real-time detection (\texttt{objectIdentCamera.tsx}).
+The app architecture centers around tab-based navigation defined in \texttt{app/(tabs)/\_layout.tsx}, organizing features into six main sections: Home, BirDex, Archive, Gallery, Account, and Settings. The bird logging workflow is separated into dedicated screens under \texttt{app/log/}, including manual entry (\texttt{manual.tsx}), photo capture (\texttt{photo.tsx}), and AI-powered real-time detection (\texttt{objectIdentCamera.tsx}).
 
 \textbf{Machine Learning Framework Selection}
 
-We chose to implement local ML processing primarily for privacy considerations. Using TensorFlow Lite models and MLKit packages meant we could avoid managing cloud infrastructure or API costs within our academic project constraints.
+Local ML processing was implemented for privacy considerations. TensorFlow Lite models and MLKit packages avoided cloud infrastructure and API costs within academic project constraints.
 
-The decision to adapt existing models rather than training our own was driven by time limitations and the educational focus on mobile development rather than machine learning research. We converted BirdNET models from .h5 to .tflite format and integrated the whoBIRD Kotlin implementation concepts into our React Native application through the \texttt{services/ultraSimpleBirdClassifier.ts} service.
+Existing models were adapted rather than training custom models due to time limitations and educational focus on mobile development. BirdNET models were converted from .h5 to .tflite format and integrated whoBIRD Kotlin implementation concepts through the \texttt{services/ultraSimpleBirdClassifier.ts} service.
 
 \textbf{Database Architecture Approach}
 
-Our database design combined SQLite for local storage with Firebase Firestore for cloud synchronization. This hybrid approach was motivated more by learning objectives than technical necessity - we wanted to gain experience with both local database management and cloud services integration.
+Database design combines SQLite for local storage with Firebase Firestore for cloud synchronization. This hybrid approach was motivated by learning objectives to gain experience with both local and cloud database management.
 
 The implementation consists of two main database services: \texttt{services/database.ts} manages bird observation records, while \texttt{services/databaseBirDex.ts} handles the 30,000+ species database. Cloud synchronization is managed through \texttt{services/sync\_layer.ts}, providing optional Firebase integration. The offline-first design emerged from practical considerations during development, as it simplified testing and debugging when working with ML models that process large amounts of data locally.
 
@@ -26,31 +26,31 @@ The implementation consists of two main database services: \texttt{services/data
 
 \textbf{Camera Component Implementation}
 
-Integrating camera functionality with ML processing proved more complex than initially anticipated. We used the React Native Vision Camera package for camera control and MLKit packages for object detection and image classification.
+Camera functionality integration with ML processing used React Native Vision Camera package for camera control and MLKit packages for object detection and image classification.
 
-Our initial approach attempted real-time frame processing, but we discovered that the ML models couldn't process camera frames directly. This led us to implement an asynchronous pipeline in \texttt{app/log/objectIdentCamera.tsx} that captures photos to temporary files, processes them through MLKit, and then cleans up the temporary files. Supporting utilities like \texttt{services/uriUtils.ts} handle file manipulation and image cropping operations.
+Initial real-time frame processing was unsuccessful as ML models couldn't process camera frames directly. An asynchronous pipeline in \texttt{app/log/objectIdentCamera.tsx} captures photos to temporary files, processes them through MLKit, and cleans up temporary files. Supporting utilities like \texttt{services/uriUtils.ts} handle file manipulation and image cropping operations.
 
 \textbf{Processing Pipeline Development}
 
-The image processing workflow follows these steps: capture a photo at reduced quality for ML processing, detect objects using MLKit, crop each detected object, classify the cropped images, and save results that meet our confidence threshold.
+The image processing workflow follows these steps: capture a photo at reduced quality for ML processing, detect objects using MLKit, crop each detected object, classify the cropped images, and save results that meet the confidence threshold.
 
-We learned that proper error handling and temporary file cleanup were crucial for maintaining app stability, especially during extended testing sessions where accumulated temporary files could impact performance.
+Proper error handling and temporary file cleanup proved crucial for app stability, particularly during extended testing sessions.
 
 \section{Key Implementation Challenges}
 
 \textbf{Development Environment Complexity}
 
-Our most significant challenge was transitioning from Expo Go to custom development builds when we discovered that ML model integration required native module access. This transition added considerable complexity to our development process and required learning new build tools and debugging techniques.
+The most significant challenge was transitioning from Expo Go to custom development builds when ML model integration required native module access, adding considerable complexity and requiring new build tools and debugging techniques.
 
 \textbf{ML Package Selection}
 
-We initially struggled with outdated or poorly maintained React Native ML packages. After research and testing, we settled on the MLKit packages from Infinite Red, which provided reliable object detection and image classification capabilities with good documentation and community support.
+We initially struggled with outdated or poorly maintained React Native ML packages. After research and testing, the MLKit packages from Infinite Red provided reliable object detection and image classification capabilities with good documentation and community support.
 
-To ensure consistent user experience across the app, we developed a comprehensive design system with themed components in the \texttt{components/} directory. Core components like \texttt{ThemedView.tsx}, \texttt{ThemedText.tsx}, and \texttt{ThemedPressable.tsx} provide consistent styling and behavior throughout the application.
+To ensure consistent user experience across the app, a comprehensive design system was developed with themed components in the \texttt{components/} directory. Core components like \texttt{ThemedView.tsx}, \texttt{ThemedText.tsx}, and \texttt{ThemedPressable.tsx} provide consistent styling and behavior throughout the application.
 
 \textbf{Audio and Image Processing Coordination}
 
-Our original attempt to run image and audio ML processing concurrently led to systematic race conditions and file stability errors. The solution required implementing a sequential processing pipeline that handles one ML operation at a time, eliminating resource conflicts but requiring careful state management.
+The original attempt to run image and audio ML processing concurrently led to systematic race conditions and file stability errors. The solution required implementing a sequential processing pipeline that handles one ML operation at a time, eliminating resource conflicts but requiring careful state management.
 
 \textbf{File System Management}
 
@@ -58,82 +58,36 @@ Handling temporary files for ML processing required learning about mobile file s
 
 State management across the application is handled through React Context providers in the \texttt{contexts/} directory. The \texttt{AuthContext.tsx} manages Firebase authentication with offline fallback, while \texttt{LogDraftContext.tsx} provides persistent draft storage for bird observations using AsyncStorage with auto-save functionality.
 
-\section{Sequential ML Pipeline Development}
 
-\textbf{Problem Identification}
 
-Our initial design attempted to run image and audio ML processing in parallel, which led to several persistent issues during development. We encountered "File stability timeout" errors, audio recording conflicts stating "Only one Recording object can be prepared at a time," and general resource contention between the two ML processes.
-
-\textbf{Solution Development}
-
-After extensive debugging, we implemented a sequential processing approach where image processing completes entirely before audio processing begins. This eliminated all race conditions and resource conflicts, though it increased the total processing time per cycle.
-
-The \texttt{services/unifiedMLPipelineService.ts} manages the entire ML workflow through a simple state machine that progresses through image capture, object detection, classification, audio recording, audio processing, and waiting phases in sequence. This service coordinates with \texttt{services/ultraSimpleBirdClassifier.ts} for audio processing and MLKit integration for image analysis.
-
-\section{BirDex Encyclopedia Architecture}
-
-\textbf{Comprehensive Species Database Design}
-
-One of LogChirpy's major architectural achievements is the BirDex encyclopedia system, which transforms a massive CSV dataset of global bird species into a fully functional, multilingual encyclopedia. The implementation in \texttt{services/databaseBirDex.ts} manages over 33,000 bird species records with comprehensive metadata and localized content.
-
-\textbf{Data Processing and Enrichment Pipeline}
-
-We developed a systematic approach to enrich the raw species data with translated names across five languages and visual content. Each species entry was individually processed to add German, Spanish, French, Ukrainian, and Arabic translations of common names, creating a multilingual experience. The species data is then mapped to locally stored Wikimedia images in efficient .webp format, providing visual references for each bird.
-
-The BirDex interface in \texttt{app/(tabs)/birdex/} provides comprehensive search and filter capabilities, allowing users to explore species by family or name across all supported languages. The \texttt{hooks/useBirdDexDatabase.ts} manages the complex state requirements for filtering and pagination across this large dataset.
-
-\textbf{Educational Integration}
-
-The encyclopedia extends beyond basic lookup functionality to include interactive learning features. Users can engage with quiz systems that test species identification across different languages and visual characteristics, transforming the static database into an active learning tool.
-
-\section{Logging System Architecture}
-
-\textbf{Comprehensive Observation Management}
-
-LogChirpy's logging system represents the core functionality that ties together all other components. The logging architecture supports three distinct media types - images, audio recordings, and video - integrated with ML predictions, manual text entries, GPS coordinates, and taxonomic classifications.
-
-\textbf{Multi-Modal Data Integration}
-
-The logging workflow spans multiple screens in \texttt{app/log/}, each handling different input methods. Manual entry through \texttt{manual.tsx} allows detailed text-based observations, while \texttt{photo.tsx}, \texttt{audio.tsx}, and \texttt{video.tsx} handle media capture with integrated ML processing. The \texttt{objectIdentCamera.tsx} combines real-time visual and audio ML analysis for comprehensive field observations.
-
-Each log entry creates a complex data structure managed through \texttt{contexts/LogDraftContext.tsx}, which handles persistent draft storage and auto-save functionality. The context manages the full observation lifecycle, from initial capture through ML processing to final database storage.
-
-\textbf{Document Storage and Gallery Integration}
-
-The logging system integrates closely with device storage through \texttt{services/photoStorageService.ts} and the gallery interface in \texttt{app/(tabs)/gallery.tsx}. This creates a seamless workflow where captured media is immediately available for review, organization, and sharing. The gallery provides comprehensive media management with filtering, search, and export capabilities.
-
-Log entries are structured to accommodate both ML-generated metadata (species predictions, confidence scores) and user-provided information (notes, manual species identification, custom tags). This dual approach ensures the system serves both automated classification and traditional field observation methods, linking each observation to the BirDex database through Latin names for taxonomic accuracy.
 
 \section{Development Tools and Process}
 
 \textbf{Development Environment}
 
-We developed LogChirpy using standard React Native development tools including Metro bundler, TypeScript for type safety, and Expo CLI for build management. Custom development builds required learning additional tools like EAS (Expo Application Services) for creating production builds.
+Development used standard React Native tools including Metro bundler, TypeScript for type safety, and Expo CLI for build management. Custom development builds required EAS (Expo Application Services) for production builds.
 
-Our development workflow emphasized modular architecture with clear separation of concerns. Custom hooks like \texttt{hooks/useThemeColor.ts} provide centralized theme management, while \texttt{hooks/useBirdDexDatabase.ts} manages the complex species database state across components.
+Development workflow emphasized modular architecture with clear separation of concerns. Custom hooks like \texttt{hooks/useThemeColor.ts} provide centralized theme management, while \texttt{hooks/useBirdDexDatabase.ts} manages species database state across components.
 
-\textbf{Data Architecture Integration}
-
-The three major data systems - ML processing, BirDex encyclopedia, and logging - required careful coordination to maintain performance and data consistency. The BirDex system processes and serves species information to both the ML classification pipeline and the logging system, creating a unified taxonomic foundation across all app features.
 
 \textbf{Development Assistance}
 
-Like many student projects, we used various online resources and tools to accelerate learning and development. This included consulting documentation, community forums, and occasionally using AI assistants for debugging help and code generation, particularly when learning new frameworks or troubleshooting complex integration issues.
+Development used online resources including documentation, community forums, and AI assistants for debugging and code generation, particularly when learning new frameworks or troubleshooting integration issues.
 
 \section{Testing and Debugging Approach}
 
 \textbf{Development Testing}
 
-We tested LogChirpy primarily using Android emulators and physical devices connected via USB debugging. Custom development builds complicated our testing process, as we could no longer rely on Expo Go for rapid testing iterations.
+Testing used Android emulators and physical devices via USB debugging. Custom development builds eliminated Expo Go for rapid testing iterations.
 
-During development, we implemented console logging throughout our services to track ML pipeline states and performance metrics. This proved essential for debugging the race condition issues that led to our unified pipeline solution. Development tools like \texttt{components/MemoryMonitor.tsx} helped track performance during testing sessions.
+Console logging throughout services tracked ML pipeline states and performance metrics, essential for debugging race condition issues that led to the unified pipeline solution. Development tools like \texttt{components/MemoryMonitor.tsx} helped track performance during testing sessions.
 
 \textbf{Database Performance Optimization}
 
-Managing the large BirDex dataset required careful attention to performance optimization. We implemented strategic indexing, batch processing for translations, and efficient image storage formats to ensure responsive user experience even when working with over 33,000 species records. The logging system needed similar optimization to handle large media files while maintaining smooth synchronization with cloud storage.
+Managing the large BirDex dataset required strategic indexing, batch processing for translations, and efficient image storage formats for responsive performance with 33,000+ species records. The logging system required similar optimization for large media files and smooth cloud synchronization.
 
 \textbf{Performance Considerations}
 
-As a student project, our performance testing was limited to basic functionality verification rather than comprehensive benchmarking. We focused on ensuring the app remained responsive during ML processing and that memory usage stayed within reasonable bounds during extended use.
+Performance testing focused on basic functionality verification, ensuring app responsiveness during ML processing and reasonable memory usage during extended use.
 
-The app's performance varies significantly based on device capabilities, with older devices experiencing longer processing times for both image and audio classification tasks.
+App performance varies with device capabilities, with older devices experiencing longer processing times for image and audio classification tasks.

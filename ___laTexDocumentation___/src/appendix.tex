@@ -1,8 +1,10 @@
+\chapter{Specifications}
+
 \section{Technical Specifications}
 
-\subsection{System Requirements}
+\textbf{System Requirements}
 
-\subsubsection{Minimum Requirements}
+Minimum Requirements
 \begin{itemize}
     \item \textbf{Android:} Version 8.0 (API Level 26) or higher
     \item \textbf{iOS:} Version 12.0 or higher
@@ -11,7 +13,7 @@
     \item \textbf{Hardware:} Camera and microphone required for complete functionality
 \end{itemize}
 
-\subsubsection{Recommended Specifications}
+Recommended Specifications
 \begin{itemize}
     \item \textbf{Android:} Version 10.0 or higher
     \item \textbf{iOS:} Version 14.0 or higher
@@ -20,9 +22,9 @@
     \item \textbf{Processor:} Modern ARM architecture (2020 or later)
 \end{itemize}
 
-\subsection{Machine Learning Model Specifications}
+\textbf{Machine Learning Model Specifications}
 
-\subsubsection{Image Classification}
+Image Classification
 \begin{itemize}
     \item \textbf{Object Detection:} SSD MobileNet V1 (MLKit)
     \item \textbf{Bird Classification:} Custom MobileNetV2 Model
@@ -30,7 +32,7 @@
     \item \textbf{Output:} Classification probabilities with bounding box coordinates
 \end{itemize}
 
-\subsubsection{Audio Classification}
+Audio Classification
 \begin{itemize}
     \item \textbf{Primary Model:} BirdNET\_GLOBAL\_6K\_V2.4\_Model\_FP32.tflite
     \item \textbf{Meta Model:} BirdNET\_GLOBAL\_6K\_V2.4\_MData\_Model\_FP16.tflite
@@ -41,7 +43,7 @@
 
 \section{Development Environment Setup}
 
-\subsection{Prerequisites}
+\textbf{Prerequisites}
 \begin{lstlisting}[style=javascript, caption=Package Versions, label=lst:package_versions]
 {
   "expo": "~51.0.39",
@@ -58,7 +60,7 @@
 }
 \end{lstlisting}
 
-\subsection{Development Commands}
+\textbf{Development Commands}
 \begin{lstlisting}[style=javascript, caption=Development Scripts, label=lst:dev_scripts]
 # TypeScript type checking
 npm run typecheck
@@ -81,7 +83,7 @@ npm run build
 
 \section{Database Architecture and Schema Design}
 
-\subsection{SQLite Database Schema Implementation}
+\textbf{SQLite Database Schema Implementation}
 \begin{lstlisting}[style=javascript, caption=Database Schema, label=lst:db_schema]
 -- Bird observation records (main spotting table)
 CREATE TABLE bird_spottings (
@@ -138,7 +140,7 @@ CREATE INDEX idx_birddex_family ON birddex(family);
 
 \section{Cloud Architecture and API Specifications}
 
-\subsection{Firebase Firestore Data Collections}
+\textbf{Firebase Firestore Data Collections}
 \begin{lstlisting}[style=javascript, caption=Firestore Collections, label=lst:firestore_collections]
 // User profile management
 users/{userId} {
@@ -183,7 +185,7 @@ media/{mediaId} {
 
 \section{Performance Evaluation and System Benchmarks}
 
-\subsection{Machine Learning Pipeline Performance Analysis}
+\textbf{Machine Learning Pipeline Performance Analysis}
 \begin{table}[H]
 \centering
 \begin{tabular}{|l|l|l|l|}
@@ -202,7 +204,7 @@ Audio classification & 1500ms & 1000ms & 500ms \\
 \label{tab:ml_performance}
 \end{table}
 
-\subsection{Memory Utilization Analysis}
+\textbf{Memory Utilization Analysis}
 \begin{table}[H]
 \centering
 \begin{tabular}{|l|l|}
@@ -223,7 +225,7 @@ User-generated data & Variable \\
 
 \section{System Configuration Framework}
 
-\subsection{Application Configuration Parameters}
+\textbf{Application Configuration Parameters}
 \begin{lstlisting}[style=javascript, caption=Configuration Options, label=lst:config_options]
 export const Config = {
   // Machine learning pipeline configuration
@@ -261,9 +263,9 @@ export const Config = {
 
 \section{System Diagnostics and Troubleshooting Framework}
 
-\subsection{Common System Issues and Resolution Procedures}
+\textbf{Common System Issues and Resolution Procedures}
 
-\subsubsection{Machine Learning Pipeline Initialization Failure}
+Machine Learning Pipeline Initialization Failure
 \textbf{Symptoms:} No ML processing activity, UI displays "Offline" status
 
 \textbf{Resolution procedures:}
@@ -274,7 +276,7 @@ export const Config = {
     \item Confirm device storage availability (minimum 1GB free space)
 \end{enumerate}
 
-\subsubsection{Audio Classification System Malfunction}
+Audio Classification System Malfunction
 \textbf{Symptoms:} Absence of audio predictions in HUD display
 
 \textbf{Resolution procedures:}
@@ -285,7 +287,7 @@ export const Config = {
     \item Confirm audio format compatibility requirements
 \end{enumerate}
 
-\subsubsection{System Performance Degradation}
+System Performance Degradation
 \textbf{Symptoms:} Reduced processing speed, elevated memory utilization
 
 \textbf{Optimization procedures:}
@@ -296,7 +298,7 @@ export const Config = {
     \item Terminate background application processes
 \end{enumerate}
 
-\subsection{Diagnostic Command Interface}
+\textbf{Diagnostic Command Interface}
 \begin{lstlisting}[style=javascript, caption=Debug Commands, label=lst:debug_commands]
 // Pipeline logging monitoring
 # Search for diagnostic patterns:
@@ -316,7 +318,7 @@ export const Config = {
 
 \section{Production Deployment Framework}
 
-\subsection{Android Application Package Build Process}
+\textbf{Android Application Package Build Process}
 \begin{lstlisting}[style=javascript, caption=Android Build Process, label=lst:android_build]
 # Dependency installation procedure
 npm install --legacy-peer-deps
@@ -331,7 +333,7 @@ npx expo run:android --device
 eas build --platform android --profile production
 \end{lstlisting}
 
-\subsection{iOS Application Build Framework}
+\textbf{iOS Application Build Framework}
 \begin{lstlisting}[style=javascript, caption=iOS Build Process, label=lst:ios_build]
 # Dependency installation procedure
 npm install --legacy-peer-deps
@@ -345,7 +347,7 @@ eas build --platform ios --profile production
 
 \section{Licensing Framework and Attribution}
 
-\subsection{Open Source License Compliance}
+\textbf{Open Source License Compliance}
 \begin{itemize}
     \item \textbf{LogChirpy:} AGPL-3.0 License
     \item \textbf{React Native:} MIT License
@@ -355,18 +357,17 @@ eas build --platform ios --profile production
     \item \textbf{MLKit:} Google Terms of Service
 \end{itemize}
 
-\subsection{Data Source Attribution}
+\textbf{Data Source Attribution}
 \begin{itemize}
-    \item \textbf{BirDex Database:} Compiled from comprehensive ornithological sources
-    \item \textbf{Wikipedia:} Species information and taxonomic imagery
-    \item \textbf{Macaulay Library:} Reference media for avian species validation
+    \item \textbf{BirDex Database:} Compiled from Cornell Lab CSV 2024
+    \item \textbf{Wikipedia:} taxonomic imagery
     \item \textbf{OpenStreetMap:} Cartographic data and geospatial services
 \end{itemize}
 
-\subsection{External Technical Contributions}
+\textbf{External Technical Contributions}
 \begin{itemize}
     \item \textbf{BirdNET Team:} Original audio classification models (.h5 source files)
-    \item \textbf{whoBIRD Project:} Original Kotlin implementation (ported to React Native by team)
+    \item \textbf{whoBIRD Project:} Original Kotlin implementation (ported to React Native by Marty)
     \item \textbf{Infinite Red:} MLKit React Native packages
     \item \textbf{Marc Wannenmacher:} React Native Vision Camera library development
 \end{itemize}
