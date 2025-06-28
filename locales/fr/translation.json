@@ -363,10 +363,10 @@
   "intro": {
     "line1": "Avez-vous déjà vu un oiseau...",
     "line2": "...et vous êtes-vous demandé\nde quelle espèce il s’agissait ?",
-    "line3": "Un groupe d’étudiants\nde l’Université de Reutlingen a développé une app pour vous aider à",
+    "line3": "Un groupe d’étudiants\nde l’Université de Reutlingen a développé\nune app pour vous aider à",
     "line4": "identifier les oiseaux via photo ou son\nmême hors ligne.",
     "line5": "L’app prend en charge 6 langues\npassez à la vôtre et essayez-la !",
-    "line6": "Vous pouvez enregistrer vos observations dans votre archive\net y accéder à tout moment."
+    "line6": "Vous pouvez enregistrer vos observations\ndans votre archive et y accéder à tout moment."
   },
   "audio": {
     "start": "Démarrer l'enregistrement",
