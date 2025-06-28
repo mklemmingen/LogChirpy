@@ -44,7 +44,7 @@ Audio Classification
 \section{Development Environment Setup}
 
 \textbf{Prerequisites}
-\begin{lstlisting}[style=javascript, caption=Package Versions, label=lst:package_versions]
+\begin{lstlisting}[caption=Package Versions, label=lst:package_versions]
 {
   "expo": "~51.0.39",
   "react": "18.2.0",
@@ -61,7 +61,7 @@ Audio Classification
 \end{lstlisting}
 
 \textbf{Development Commands}
-\begin{lstlisting}[style=javascript, caption=Development Scripts, label=lst:dev_scripts]
+\begin{lstlisting}[caption=Development Scripts, label=lst:dev_scripts]
 # TypeScript type checking
 npm run typecheck
 
@@ -84,7 +84,7 @@ npm run build
 \section{Database Architecture and Schema Design}
 
 \textbf{SQLite Database Schema Implementation}
-\begin{lstlisting}[style=javascript, caption=Database Schema, label=lst:db_schema]
+\begin{lstlisting}[caption=Database Schema, label=lst:db_schema]
 -- Bird observation records (main spotting table)
 CREATE TABLE bird_spottings (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,7 +141,7 @@ CREATE INDEX idx_birddex_family ON birddex(family);
 \section{Cloud Architecture and API Specifications}
 
 \textbf{Firebase Firestore Data Collections}
-\begin{lstlisting}[style=javascript, caption=Firestore Collections, label=lst:firestore_collections]
+\begin{lstlisting}[caption=Firestore Collections, label=lst:firestore_collections]
 // User profile management
 users/{userId} {
     email: string,
@@ -226,7 +226,7 @@ User-generated data & Variable \\
 \section{System Configuration Framework}
 
 \textbf{Application Configuration Parameters}
-\begin{lstlisting}[style=javascript, caption=Configuration Options, label=lst:config_options]
+\begin{lstlisting}[caption=Configuration Options, label=lst:config_options]
 export const Config = {
   // Machine learning pipeline configuration
   camera: {
@@ -299,7 +299,7 @@ System Performance Degradation
 \end{enumerate}
 
 \textbf{Diagnostic Command Interface}
-\begin{lstlisting}[style=javascript, caption=Debug Commands, label=lst:debug_commands]
+\begin{lstlisting}[caption=Debug Commands, label=lst:debug_commands]
 // Pipeline logging monitoring
 # Search for diagnostic patterns:
 [UnifiedPipeline] State: capturing_image
@@ -319,7 +319,7 @@ System Performance Degradation
 \section{Production Deployment Framework}
 
 \textbf{Android Application Package Build Process}
-\begin{lstlisting}[style=javascript, caption=Android Build Process, label=lst:android_build]
+\begin{lstlisting}[caption=Android Build Process, label=lst:android_build]
 # Dependency installation procedure
 npm install --legacy-peer-deps
 
@@ -334,7 +334,7 @@ eas build --platform android --profile production
 \end{lstlisting}
 
 \textbf{iOS Application Build Framework}
-\begin{lstlisting}[style=javascript, caption=iOS Build Process, label=lst:ios_build]
+\begin{lstlisting}[caption=iOS Build Process, label=lst:ios_build]
 # Dependency installation procedure
 npm install --legacy-peer-deps
 

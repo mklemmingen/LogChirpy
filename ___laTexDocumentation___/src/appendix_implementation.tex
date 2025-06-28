@@ -1,4 +1,4 @@
-\chapter{Implementation Reference Guide}
+ \chapter{Implementation Reference Guide}
 \label{appendix:implementation}
 
 This appendix provides detailed implementation references to support the technical claims made throughout this documentation. All line numbers and file paths are extracted directly from the LogChirpy codebase.
@@ -7,9 +7,10 @@ This appendix provides detailed implementation references to support the technic
 
 \subsection{ML Pipeline Implementation}
 
-The unified ML pipeline that eliminated race conditions is implemented across multiple services:
+The unified ML pipeline that eliminated race conditions is implemented 
+across multiple services:
 
-\textbf{Primary Pipeline Service:} \texttt{services/unifiedMLPipelineService.ts}
+\textbf{Primary Pipeline Service:} \texttt{services/\allowbreak unifiedMLPipelineService.ts}
 \begin{itemize}
     \item \texttt{createUnifiedPipeline()} - Pipeline initialization
     \item \texttt{processImagePhase()} at line 228 - Image ML processing
