@@ -253,32 +253,59 @@ export async function deleteRemoteSpotting(spottingId: string): Promise<void> {
     throw new Error("Remote deletion is only possible when logged in");
   }
 
-  // Get the spotting document from Firestore
-  const spottingRef = doc(firestore, "bird_spottings", spottingId);
-  const spottingDoc = await getDocs(query(
+  // Query for the spotting document
+  const spottingsQuery = query(
     collection(firestore, "bird_spottings"),
-    where("id", "==", spottingId),
+    where("id", "==", parseInt(spottingId)), // Convert to number since our local IDs are numbers
     where("userId", "==", user.uid)
+  );
+
+  const querySnapshot = await getDocs(spottingsQuery);
+  
+  if (querySnapshot.empty) {
+    console.warn(`No remote spotting found with ID ${spottingId}`);
+    return;
+  }
+
+  // There should only be one document matching our query
+  const spottingDoc = querySnapshot.docs[0];
+  const spotting = spottingDoc.data();
+  const storage = getStorage();
+
+  // Helper function to extract the file path from a Firebase Storage URL
+  const extractStoragePath = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    try {
+      // Extract the path between /o/ and ?alt=media
+      const match = url.match(/\/o\/(.+?)\?/);
+      if (match && match[1]) {
+        // Decode the URL-encoded path
+        return decodeURIComponent(match[1]);
+      }
+      return null;
+    } catch (error) {
+      console.warn('Failed to extract storage path from URL:', url, error);
+      return null;
+    }
+  };
+
+  // Delete media files from Storage if they exist
+  const filesToDelete = [
+    spotting.imageUrl && extractStoragePath(spotting.imageUrl),
+    spotting.videoUrl && extractStoragePath(spotting.videoUrl),
+    spotting.audioUrl && extractStoragePath(spotting.audioUrl)
+  ]
+    .filter(Boolean)
+    .map(path => ref(storage, path!));
+
+  // Delete all media files
+  await Promise.all(filesToDelete.map(fileRef => 
+    deleteObject(fileRef).catch(error => {
+      // Log but don't fail if media deletion fails
+      console.warn(`Failed to delete file ${fileRef.fullPath}:`, error);
+    })
   ));
 
-  if (!spottingDoc.empty) {
-    const spotting = spottingDoc.docs[0].data();
-    const storage = getStorage();
-
-    // Delete media files from Storage if they exist
-    const filesToDelete = [
-      spotting.imageUrl && ref(storage, spotting.imageUrl),
-      spotting.videoUrl && ref(storage, spotting.videoUrl),
-      spotting.audioUrl && ref(storage, spotting.audioUrl)
-    ].filter(Boolean);
-
-    await Promise.all(filesToDelete.map(fileRef => 
-      deleteObject(fileRef).catch(error => 
-        console.warn(`Failed to delete file ${fileRef.fullPath}:`, error)
-      )
-    ));
-
-    // Delete the Firestore document
-    await deleteDoc(spottingDoc.docs[0].ref);
-  }
+  // Delete the Firestore document
+  await deleteDoc(spottingDoc.ref);
 }
