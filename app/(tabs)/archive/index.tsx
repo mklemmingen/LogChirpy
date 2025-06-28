@@ -4,7 +4,6 @@ import {
   Dimensions,
   FlatList,
   Image,
-  Linking,
   Platform,
   Pressable,
   RefreshControl,
