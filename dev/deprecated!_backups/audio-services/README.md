@@ -96,7 +96,7 @@ This directory contains backups of all deprecated audio pipeline services that w
 
 If needed, these services can be restored from this backup:
 ```bash
-cp .backup/deprecated-audio-services/[filename] services/
+cp .backup/audio-services/[filename] services/
 ```
 
 But the ultra-simple implementation should handle all use cases more reliably.
