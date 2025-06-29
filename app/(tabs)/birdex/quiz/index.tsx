@@ -15,6 +15,8 @@ import { Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
 
 export default function BirdQuiz() {
     const [bird, setBird] = useState<BirdDexRecord | null>(null);
@@ -136,7 +138,7 @@ export default function BirdQuiz() {
     const name = bird.english_name;
     if (questionIndex === 4) {
         return (
-            <View style={styles.container}>
+            <ThemedView style={styles.container}>
                 <LottieView
                     source={
                         score >= 2
@@ -145,16 +147,16 @@ export default function BirdQuiz() {
                     }
                     autoPlay
                     loop={true}
-                    style={{ width: 200, height: 200, marginTop: 40, marginBottom: 5 }}
+                    style={styles.animation}
                 />
-                <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 20 }}>
+                <ThemedText variant="h1" style={styles.resultTitle}>
                     {t('results.title')}
-                </Text>
-                <Text style={{ fontSize: 20, marginBottom: 40, textAlign: 'center' }}>
+                </ThemedText>
+                <ThemedText variant="body" style={styles.resultMessage}>
                     {score >= 2
                         ? t('results.successMessage', { score })
                         : t('results.failureMessage')}
-                </Text>
+                </ThemedText>
 
                 {/* Restart */}
                 <TouchableOpacity
@@ -193,7 +195,7 @@ export default function BirdQuiz() {
                             setBird(correct);
                         }
                     }}
-                    style={{ marginBottom: 15 }}
+                    style={styles.restartButton}
                 >
                     <Ionicons name="refresh-circle" size={52} color={colors.text.secondary} />
                 </TouchableOpacity>
@@ -202,8 +204,7 @@ export default function BirdQuiz() {
                     onPress={() => router.replace('/birdex')}
                     variant="primary"
                 />
-
-            </View>
+            </ThemedView>
         );
     }
 
@@ -387,5 +388,25 @@ export default function BirdQuiz() {
 const styles = StyleSheet.create({
     container: { padding: 20, alignItems: 'center' },
     image: { width: 250, height: 250, borderRadius: 12, marginBottom: 16 },
-    input: { width: '100%', borderWidth: 1, padding: 8, borderRadius: 8, marginBottom: 12 }
+    input: { width: '100%', borderWidth: 1, padding: 8, borderRadius: 8, marginBottom: 12 },
+    animation: {
+        width: 200,
+        height: 200,
+        marginTop: 40,
+        marginBottom: 5,
+    },
+    resultTitle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    resultMessage: {
+        fontSize: 20,
+        marginBottom: 40,
+        textAlign: 'center',
+    },
+    restartButton: {
+        marginBottom: 15,
+    },
 });

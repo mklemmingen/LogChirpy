@@ -1,27 +1,27 @@
 import React from 'react';
-import {Dimensions, ScrollView, StyleSheet, View} from 'react-native';
-import {router} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {ThemedIcon} from '@/components/ThemedIcon';
-import {Feather} from '@expo/vector-icons';
+import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { ThemedIcon } from '@/components/ThemedIcon';
+import { Feather } from '@expo/vector-icons';
 import Animated, {
-    Easing,
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withTiming,
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import {HelloWave} from '@/components/HelloWave';
+import { HelloWave } from '@/components/HelloWave';
 import BirdAnimation from '@/components/BirdAnimationJS';
-import {ModernCard} from '@/components/ModernCard';
-import {ThemedText} from '@/components/ThemedText';
-import {ThemedView} from '@/components/ThemedView';
-import {ThemedSafeAreaView} from '@/components/ThemedSafeAreaView';
-import {ThemedPressable} from '@/components/ThemedPressable';
-import {useColors} from '@/hooks/useThemeColor';
+import { ModernCard } from '@/components/ModernCard';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedSafeAreaView } from '@/components/ThemedSafeAreaView';
+import { ThemedPressable } from '@/components/ThemedPressable';
+import { useColors, useShadows } from '@/hooks/useThemeColor';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,8 +46,9 @@ interface FeatureAction {
 export default function HomeScreen() {
   const { t } = useTranslation();
   const colors = useColors();
-  
-  const styles = createStyles();
+  const shadows = useShadows();
+
+  const styles = createStyles(colors, shadows);
 
   // Floating animation
   const floatAnimation = useSharedValue(0);
@@ -159,7 +160,7 @@ export default function HomeScreen() {
             <ThemedView
               style={[
                 styles.iconContainer,
-                { 
+                {
                   backgroundColor: isPrimary ? colors.backgroundTertiary : colors.backgroundSecondary,
                   width: 40,
                   height: 40,
@@ -180,9 +181,9 @@ export default function HomeScreen() {
               <ThemedText variant="h3" style={styles.cardTitle}>
                 {feature.title}
               </ThemedText>
-              <ThemedText 
-                variant="bodySmall" 
-                color="secondary" 
+              <ThemedText
+                variant="bodySmall"
+                color="secondary"
                 style={styles.cardDescription}
               >
                 {feature.description}
@@ -222,7 +223,7 @@ export default function HomeScreen() {
             <ThemedView
               style={[
                 styles.mlIconContainer,
-                { 
+                {
                   backgroundColor: isPrimary ? colors.backgroundTertiary : colors.backgroundSecondary,
                 }
               ]}
@@ -240,9 +241,9 @@ export default function HomeScreen() {
               <ThemedText variant="bodySmall" style={styles.mlButtonTitle}>
                 {feature.title}
               </ThemedText>
-              <ThemedText 
-                variant="caption" 
-                color="secondary" 
+              <ThemedText
+                variant="caption"
+                color="secondary"
                 style={styles.mlButtonDescription}
                 numberOfLines={2}
               >
@@ -260,12 +261,12 @@ export default function HomeScreen() {
       <ThemedSafeAreaView style={styles.safeArea}>
 
         {/* Tutorial Button - Fixed Position */}
-        <ThemedPressable 
+        <ThemedPressable
           onPress={() => router.push('/tutorial')}
           style={styles.tutorialButton}
         >
-          <ThemedIcon name="book-open" size={20} color="primary" />
-          <ThemedText variant="caption" color="primary" style={styles.tutorialText}>
+          <ThemedIcon name="book-open" size={20} color="secondary" />
+          <ThemedText variant="caption" color="secondary" style={styles.tutorialText}>
             {t('settings.tutorial.title', 'Tutorial')}
           </ThemedText>
         </ThemedPressable>
@@ -285,10 +286,10 @@ export default function HomeScreen() {
               <ThemedText variant="h1" center style={styles.heroTitle}>
                 {t('welcome')}
               </ThemedText>
-              <ThemedText 
-                variant="body" 
-                color="secondary" 
-                center 
+              <ThemedText
+                variant="body"
+                color="secondary"
+                center
                 style={styles.heroSubtitle}
               >
                 {t('start_logging')}
@@ -319,7 +320,7 @@ export default function HomeScreen() {
   );
 }
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: any, shadows: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -448,15 +449,8 @@ const createStyles = () => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.backgroundSecondary,
+    ...shadows.sm,
   },
   tutorialText: {
     fontSize: 12,
