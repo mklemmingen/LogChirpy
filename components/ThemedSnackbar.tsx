@@ -275,7 +275,7 @@ export function ThemedSnackbar({
                         borderWidth: 1,
                         borderColor: variantStyle.borderColor,
                         overflow: 'hidden',
-                        backgroundColor: semanticColors.isDark ? '#2A2A2A' : '#FFFFFF',
+                        backgroundColor: theme.colors.surface,
                         ...theme.shadows.lg,
                     }}
                 >
@@ -319,7 +319,7 @@ export function ThemedSnackbar({
                             style={[
                                 typography.body,
                                 {
-                                    color: semanticColors.primary,
+                                    color: theme.colors.text.primary,
                                     flex: 1,
                                     lineHeight: 20,
                                 },
@@ -349,7 +349,7 @@ export function ThemedSnackbar({
                                     style={[
                                         typography.label,
                                         {
-                                            color: semanticColors.primary,
+                                            color: theme.colors.text.primary,
                                             fontWeight: '600',
                                         },
                                     ]}
@@ -394,7 +394,7 @@ export function ThemedSnackbar({
                             }}
                         />
                     )}
-                </BlurView>
+                </View>
             </Animated.View>
         </PanGestureHandler>
     );
