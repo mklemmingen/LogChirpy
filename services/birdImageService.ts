@@ -5,7 +5,7 @@
  * Uses the local bird image manifest and assets to retrieve image URIs.
  */
 
-import birdManifest from '../assets/images/birds/bird_images_manifest.json';
+import birdManifest from '../assets/images/bird_images_manifest.json';
 import { genusImageLoader } from './genusImageLoader';
 import { getLocalImageUri, ensureImageDownloaded } from './birdImageDownloadService';
 import { genusLoaders } from './generated/genusIndex';
