@@ -6,7 +6,7 @@
  */
 
 import birdManifest from '../assets/images/birds/bird_images_manifest.json';
-import {birdImageMap} from './generated/BirdImageMap';
+import { genusImageLoader } from './genusImageLoader';
 
 export interface BirdImageInfo {
   latinName: string;
@@ -149,15 +149,42 @@ class BirdImageService {
       return null;
     }
 
-    // For local assets, we need to dynamically require based on the filename
+    // For local assets, we need to get the image from the appropriate genus map
     const filename = result.info?.imageFile;
     if (!filename) {
       return null;
     }
 
     try {
-      // Use the generated bird image map with all 5000+ images
-      return birdImageMap[filename] || null;
+      // Use the genus-based image loader for memory-efficient loading
+      // Note: This uses synchronous access to pre-loaded genus maps
+      return genusImageLoader.getBirdImageSourceSync(latinName);
+    } catch (error) {
+      console.warn('Failed to load bird image:', filename, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get bird image source asynchronously (for when genus needs to be loaded)
+   * Returns the require() statement needed for local assets
+   */
+  async getBirdImageSourceAsync(latinName: string): Promise<any> {
+    const result = this.getBirdImage(latinName);
+    
+    if (!result.found || !result.imageUri) {
+      return null;
+    }
+
+    // For local assets, we need to get the image from the appropriate genus map
+    const filename = result.info?.imageFile;
+    if (!filename) {
+      return null;
+    }
+
+    try {
+      // Use the genus-based image loader for memory-efficient loading
+      return await genusImageLoader.getBirdImageSource(latinName);
     } catch (error) {
       console.warn('Failed to load bird image:', filename, error);
       return null;
@@ -248,6 +275,7 @@ export const birdImageService = new BirdImageService();
 // Convenience functions
 export const getBirdImage = (latinName: string) => birdImageService.getBirdImage(latinName);
 export const getBirdImageSource = (latinName: string) => birdImageService.getBirdImageSource(latinName);
+export const getBirdImageSourceAsync = (latinName: string) => birdImageService.getBirdImageSourceAsync(latinName);
 export const searchBirdImages = (query: string) => birdImageService.searchBirdsByCommonName(query);
 export const getBirdsWithImages = () => birdImageService.getBirdsWithImages();
 export const getBirdImageStats = () => birdImageService.getStats();
