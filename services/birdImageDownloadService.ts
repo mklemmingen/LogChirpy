@@ -7,11 +7,13 @@
 
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { genusLoaders } from './generated/genusIndex';
 
 const BIRD_IMAGES_DIR = `${FileSystem.documentDirectory}birdImages/`;
 const DOWNLOAD_COMPLETE_KEY = 'bird_images_downloaded';
 const DOWNLOAD_PROGRESS_KEY = 'bird_images_download_progress';
+const DOWNLOAD_TIMEOUT_MS = 10000; // 10 seconds per image download
 
 export interface DownloadProgress {
   totalImages: number;
@@ -72,7 +74,20 @@ class BirdImageDownloadService {
   }
 
   /**
-   * Download a single image
+   * Check network connectivity
+   */
+  private async isNetworkAvailable(): Promise<boolean> {
+    try {
+      const networkState = await NetInfo.fetch();
+      return networkState.isConnected === true && networkState.isInternetReachable === true;
+    } catch (error) {
+      console.error('Network check failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Download a single image with timeout
    */
   private async downloadImage(filename: string, url: string): Promise<boolean> {
     try {
@@ -84,8 +99,13 @@ class BirdImageDownloadService {
         return true;
       }
 
-      // Download from GitHub
-      const downloadResult = await FileSystem.downloadAsync(url, localPath);
+      // Download from GitHub with timeout
+      const downloadPromise = FileSystem.downloadAsync(url, localPath);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Download timeout')), DOWNLOAD_TIMEOUT_MS)
+      );
+
+      const downloadResult = await Promise.race([downloadPromise, timeoutPromise]);
       
       if (downloadResult.status === 200) {
         return true;
@@ -94,7 +114,11 @@ class BirdImageDownloadService {
         return false;
       }
     } catch (error) {
-      console.error(`Error downloading ${filename}:`, error);
+      if (error instanceof Error && error.message === 'Download timeout') {
+        console.error(`Timeout downloading ${filename}`);
+      } else {
+        console.error(`Error downloading ${filename}:`, error);
+      }
       return false;
     }
   }
@@ -138,6 +162,14 @@ class BirdImageDownloadService {
     if (isComplete) {
       console.log('Bird images already downloaded');
       onComplete?.();
+      return;
+    }
+
+    // Check network connectivity
+    const networkAvailable = await this.isNetworkAvailable();
+    if (!networkAvailable) {
+      console.warn('No internet connection - skipping image download');
+      onError?.(new Error('No internet connection available'));
       return;
     }
 

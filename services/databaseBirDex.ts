@@ -281,7 +281,13 @@ class BirdDexDatabase {
                 this.updateState({
                     status: 'initializing',
                     progress: 100,
-                    currentOperation: 'Downloading bird images...'
+                    currentOperation: 'Preparing to download bird images...',
+                    imageDownload: {
+                        progress: 0,
+                        current: 0,
+                        total: 0,
+                        isActive: true
+                    }
                 });
                 
                 // Download images with progress tracking
@@ -291,14 +297,43 @@ class BirdDexDatabase {
                         this.updateState({
                             status: 'initializing',
                             progress: 100, // Keep DB at 100%, track download separately
-                            currentOperation: `Downloading images: ${current}/${total} (${genus || 'processing'}...)`
+                            currentOperation: `Downloading images: ${current}/${total} (${genus || 'processing'}...)`,
+                            imageDownload: {
+                                progress: downloadProgress,
+                                current,
+                                total,
+                                currentGenus: genus,
+                                isActive: true
+                            }
                         });
                     },
                     () => {
                         logger.info('Bird image download completed');
+                        this.updateState({
+                            status: 'initializing',
+                            progress: 100,
+                            currentOperation: 'Image download completed',
+                            imageDownload: {
+                                progress: 100,
+                                current: 0,
+                                total: 0,
+                                isActive: false
+                            }
+                        });
                     },
                     (error) => {
                         logger.error('Bird image download failed', error);
+                        this.updateState({
+                            status: 'initializing',
+                            progress: 100,
+                            currentOperation: 'Image download failed - continuing without images',
+                            imageDownload: {
+                                progress: 0,
+                                current: 0,
+                                total: 0,
+                                isActive: false
+                            }
+                        });
                         // Don't fail the entire init, just log the error
                     }
                 );
