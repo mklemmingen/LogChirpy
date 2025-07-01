@@ -9,6 +9,9 @@ node_modules
 # Development directory (495MB)
 dev
 
+# Bird images directory (now downloaded from GitHub)
+assets/images/birds
+
 # Backup directory (316KB)
 .backup
 
