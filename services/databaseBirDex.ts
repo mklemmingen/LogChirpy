@@ -4,6 +4,7 @@ import * as Papa from 'papaparse';
 import {Platform} from 'react-native';
 
 import * as SQLite from 'expo-sqlite';
+import { downloadAllBirdImages, isDownloadComplete } from './birdImageDownloadService';
 
 type SQLiteDatabase = SQLite.SQLiteDatabase;
 
@@ -29,6 +30,13 @@ export interface DatabaseState {
     totalRecords: number;
     loadedRecords: number;
     currentOperation?: string;
+    imageDownload?: {
+        progress: number;        // 0-100
+        current: number;         // current image count
+        total: number;          // total image count
+        currentGenus?: string;   // current genus being processed
+        isActive: boolean;       // whether downloading
+    };
 }
 
 export type BirdCategory =
@@ -265,6 +273,72 @@ class BirdDexDatabase {
             await this.markInitializationComplete(database);
 
             logger.info('Database initialization completed successfully');
+            
+            // Check if bird images need to be downloaded
+            const imagesDownloaded = await isDownloadComplete();
+            if (!imagesDownloaded) {
+                logger.info('Starting bird image download');
+                this.updateState({
+                    status: 'initializing',
+                    progress: 100,
+                    currentOperation: 'Preparing to download bird images...',
+                    imageDownload: {
+                        progress: 0,
+                        current: 0,
+                        total: 0,
+                        isActive: true
+                    }
+                });
+                
+                // Download images with progress tracking
+                await downloadAllBirdImages(
+                    (current, total, genus) => {
+                        const downloadProgress = Math.round((current / total) * 100);
+                        this.updateState({
+                            status: 'initializing',
+                            progress: 100, // Keep DB at 100%, track download separately
+                            currentOperation: `Downloading images: ${current}/${total} (${genus || 'processing'}...)`,
+                            imageDownload: {
+                                progress: downloadProgress,
+                                current,
+                                total,
+                                currentGenus: genus,
+                                isActive: true
+                            }
+                        });
+                    },
+                    () => {
+                        logger.info('Bird image download completed');
+                        this.updateState({
+                            status: 'initializing',
+                            progress: 100,
+                            currentOperation: 'Image download completed',
+                            imageDownload: {
+                                progress: 100,
+                                current: 0,
+                                total: 0,
+                                isActive: false
+                            }
+                        });
+                    },
+                    (error) => {
+                        logger.error('Bird image download failed', error);
+                        this.updateState({
+                            status: 'initializing',
+                            progress: 100,
+                            currentOperation: 'Image download failed - continuing without images',
+                            imageDownload: {
+                                progress: 0,
+                                current: 0,
+                                total: 0,
+                                isActive: false
+                            }
+                        });
+                        // Don't fail the entire init, just log the error
+                    }
+                );
+            }
+            
             this.updateState({
                 status: 'ready',
                 progress: 100,

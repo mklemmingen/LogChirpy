@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useRef} from 'react';
-import {Pressable, Text, ViewStyle,} from 'react-native';
-import {BlurView} from 'expo-blur';
+import {Pressable, Text, View, ViewStyle,} from 'react-native';
 import {ThemedIcon} from './ThemedIcon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
@@ -251,7 +250,8 @@ export function ThemedSnackbar({
     // Don't render if not visible
     if (!visible && opacity.value === 0) return null;
 
-    const bottomOffset = insets.bottom + theme.spacing.lg;
+    // Position 5% higher to avoid covering tabs
+    const bottomOffset = insets.bottom + theme.spacing.lg + 60; // Add 60px to move higher
     const topOffset = insets.top + theme.spacing.lg;
 
     return (
@@ -269,14 +269,13 @@ export function ThemedSnackbar({
                     style,
                 ]}
             >
-                <BlurView
-                    intensity={variant === 'default' ? 80 : 60}
-                    tint={semanticColors.background === '#FFFFFF' ? 'light' : 'dark'}
+                <View
                     style={{
                         borderRadius: theme.borderRadius.lg,
                         borderWidth: 1,
                         borderColor: variantStyle.borderColor,
                         overflow: 'hidden',
+                        backgroundColor: theme.colors.surface,
                         ...theme.shadows.lg,
                     }}
                 >
@@ -320,7 +319,7 @@ export function ThemedSnackbar({
                             style={[
                                 typography.body,
                                 {
-                                    color: semanticColors.primary,
+                                    color: theme.colors.text.primary,
                                     flex: 1,
                                     lineHeight: 20,
                                 },
@@ -350,7 +349,7 @@ export function ThemedSnackbar({
                                     style={[
                                         typography.label,
                                         {
-                                            color: semanticColors.primary,
+                                            color: theme.colors.text.primary,
                                             fontWeight: '600',
                                         },
                                     ]}
@@ -395,7 +394,7 @@ export function ThemedSnackbar({
                             }}
                         />
                     )}
-                </BlurView>
+                </View>
             </Animated.View>
         </PanGestureHandler>
     );

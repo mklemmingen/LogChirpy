@@ -379,6 +379,8 @@
     "language_setting_description": "Choose your preferred language for the app interface",
     "enable_gps_logging": "Enable GPS Location Logging",
     "logging": "Logging Settings",
+    "gps_location_logging": "GPS Location Logging",
+    "record_coordinates_description": "Record precise coordinates with your bird sightings for mapping and analysis",
     "tutorial": {
       "title": "Tutorial",
       "subtitle": "Quick start guide",
@@ -754,10 +756,18 @@
     "photos_taken": "{{count}} taken",
     "continue_with_photos": "Continue ({{count}})",
     "photo_saved": "Photo saved",
-    "capture_failed": "Failed to save photo"
+    "capture_failed": "Failed to save photo",
+    "capture_or_select": "Capture or Select",
+    "professional_camera_description": "Use professional camera controls or select from gallery",
+    "open_camera": "Open Camera",
+    "device_gallery": "Device Gallery",
+    "app_gallery": "App Gallery",
+    "saving": "Saving photo...",
+    "saving_description": "Saving to app gallery and device",
+    "saved_successfully": "Photo saved successfully"
   },
   "video": {
-    "recording_failed": "Failed",
+    "recording_failed": "Failed to record video",
     "stop_recording_title": "Stop?",
     "stop_recording_message": "Stop and save?",
     "stop_and_exit": "Save",
@@ -768,7 +778,14 @@
     "video_saved": "Video saved",
     "use_this_video": "Use this video?",
     "accept": "Accept",
-    "save_failed": "Failed to save video"
+    "save_failed": "Failed to save video",
+    "record_title": "Record Video",
+    "record_description": "Tap the button below to record a video using your camera",
+    "record_button": "Record Video",
+    "saving": "Saving video...",
+    "saved_successfully": "Video saved successfully",
+    "no_video_captured": "No video was captured",
+    "camera_launch_failed": "Failed to launch camera"
   },
   "location": {
     "success": "Updated",

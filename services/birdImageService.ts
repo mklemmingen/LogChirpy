@@ -6,7 +6,10 @@
  */
 
 import birdManifest from '../assets/images/birds/bird_images_manifest.json';
-import {birdImageMap} from './generated/BirdImageMap';
+import { genusImageLoader } from './genusImageLoader';
+import { getLocalImageUri, ensureImageDownloaded } from './birdImageDownloadService';
+import { genusLoaders } from './generated/genusIndex';
+import * as FileSystem from 'expo-file-system';
 
 export interface BirdImageInfo {
   latinName: string;
@@ -140,29 +143,83 @@ class BirdImageService {
 
   /**
    * Get bird image source for React Native Image component
-   * Returns the require() statement needed for local assets
+   * Returns synchronously but triggers background download if needed
    */
   getBirdImageSource(latinName: string): any {
     const result = this.getBirdImage(latinName);
     
-    if (!result.found || !result.imageUri) {
+    if (!result.found || !result.info) {
       return null;
     }
 
-    // For local assets, we need to dynamically require based on the filename
-    const filename = result.info?.imageFile;
+    const filename = result.info.imageFile;
     if (!filename) {
       return null;
     }
 
     try {
-      // Use the generated bird image map with all 5000+ images
-      return birdImageMap[filename] || null;
+      // Always return the local URI immediately
+      const localUri = getLocalImageUri(filename);
+      
+      // Trigger background download if image doesn't exist
+      this.triggerBackgroundDownload(latinName, filename);
+      
+      // Return local URI for React Native Image component
+      return { uri: localUri };
     } catch (error) {
-      console.warn('Failed to load bird image:', filename, error);
+      console.warn('Failed to get bird image:', filename, error);
       return null;
     }
   }
+
+  /**
+   * Trigger background download if image doesn't exist locally
+   */
+  private async triggerBackgroundDownload(latinName: string, filename: string): Promise<void> {
+    try {
+      // Check if image already exists
+      const exists = await (async () => {
+        try {
+          const info = await FileSystem.getInfoAsync(getLocalImageUri(filename));
+          return info.exists;
+        } catch {
+          return false;
+        }
+      })();
+
+      if (exists) {
+        return; // Image already exists, no need to download
+      }
+
+      // Try to get the image URL from genus map
+      const genus = latinName.split(' ')[0];
+      const genusLoader = genusLoaders[genus];
+      
+      if (genusLoader) {
+        const genusModule = genusLoader();
+        const genusMap = genusModule.default || {};
+        const githubUrl = genusMap[filename];
+        
+        if (githubUrl && typeof githubUrl === 'string') {
+          // Download in background - don't await
+          ensureImageDownloaded(filename, githubUrl).then(
+            (uri) => {
+              if (uri) {
+                console.log(`Downloaded missing image: ${filename}`);
+              }
+            },
+            (error) => {
+              console.warn(`Failed to download ${filename}:`, error);
+            }
+          );
+        }
+      }
+    } catch (error) {
+      // Silently fail - this is a background operation
+      console.warn('Background download error:', error);
+    }
+  }
+
 
   /**
    * Search for birds by common name (fuzzy search)

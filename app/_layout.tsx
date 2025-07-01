@@ -158,7 +158,7 @@ function LoadingAnimation() {
  */
 function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void; localDbReady: boolean }) {
     const { t } = useTranslation();
-    const { isReady, isLoading, hasError, progress, loadedRecords, error, retry } = useBirdDexDatabase(localDbReady);
+    const { isReady, isLoading, hasError, progress, loadedRecords, error, retry, imageDownload } = useBirdDexDatabase(localDbReady);
     const colors = useColors();
     const typography = useTypography();
     const theme = useTheme();
@@ -284,8 +284,11 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                             {t('loading_messages.loading_species_data')}
                         </Text>
 
-                        {/* Progress Bar */}
+                        {/* Database Progress Bar */}
                         <View style={styles.progressSection}>
+                            <Text style={[typography.label, { color: colors.textSecondary, marginBottom: 8 }]}>
+                                Database Setup
+                            </Text>
                             <View style={[
                                 styles.progressTrack,
                                 {
@@ -316,6 +319,42 @@ function DatabaseLoadingScreen({ onReady, localDbReady }: { onReady: () => void;
                                 )}
                             </View>
                         </View>
+
+                        {/* Image Download Progress Bar */}
+                        {imageDownload?.isActive && (
+                            <View style={[styles.progressSection, { marginTop: 16 }]}>
+                                <Text style={[typography.label, { color: colors.textSecondary, marginBottom: 8 }]}>
+                                    Downloading Images {imageDownload.currentGenus ? `(${imageDownload.currentGenus})` : ''}
+                                </Text>
+                                <View style={[
+                                    styles.progressTrack,
+                                    {
+                                        backgroundColor: colors.backgroundSecondary,
+                                        height: 8,
+                                    }
+                                ]}>
+                                    <Animated.View
+                                        style={[
+                                            styles.progressFill,
+                                            {
+                                                backgroundColor: colors.secondary,
+                                                width: `${Math.max(1, imageDownload.progress)}%`,
+                                                height: 8,
+                                            }
+                                        ]}
+                                    />
+                                </View>
+
+                                <View style={styles.progressStats}>
+                                    <Text style={[typography.label, { color: colors.secondary }]}>
+                                        {imageDownload.progress}%
+                                    </Text>
+                                    <Text style={[typography.label, { color: colors.textSecondary }]}>
+                                        {imageDownload.current.toLocaleString()} / {imageDownload.total.toLocaleString()} images
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
 
                         <Text style={[typography.bodySmall, { color: colors.textTertiary, textAlign: 'center' }]}>
                             {t('loading_messages.building_database')}

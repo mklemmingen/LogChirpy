@@ -284,6 +284,53 @@ The image extraction system implements a robust pipeline including Wikipedia API
     \item \textbf{Integration:} Generate manifest files for app integration and caching
 \end{enumerate}
 
+\textbf{Bird Image Service Architecture}
+
+The bird image service (\texttt{services/birdImageService.ts}) evolved from bundled assets to a sophisticated GitHub-hosted image delivery system. The service handles 9,331+ bird images through a hybrid synchronous/asynchronous architecture.
+
+\textbf{Current Implementation Features:}
+\begin{itemize}
+    \item \textbf{GitHub-hosted images:} All bird images stored in \texttt{github.com/mklemmingen/LogChirpy/assets/images/birds/}
+    \item \textbf{Genus-based organization:} Images grouped by genus (first word of Latin name) for memory efficiency
+    \item \textbf{Sequential bulk download:} Images download during app initialization with progress tracking
+    \item \textbf{Smart hybrid approach:} Synchronous API with background download for missing images
+    \item \textbf{Progressive enhancement:} App functions immediately while images download in background
+\end{itemize}
+
+\textbf{Image Download Architecture:}
+\begin{lstlisting}[style=javascript, caption=Hybrid Image Service Implementation, label=lst:image_service]
+// birdImageService.ts - Synchronous API with background downloads
+getBirdImageSource(latinName: string): any {
+  const result = this.getBirdImage(latinName);
+  const filename = result.info?.imageFile;
+  
+  // Return local URI immediately
+  const localUri = getLocalImageUri(filename);
+  
+  // Trigger background download if missing
+  this.triggerBackgroundDownload(latinName, filename);
+  
+  return { uri: localUri }; // React Native Image format
+}
+
+// Background download without blocking UI
+private async triggerBackgroundDownload(latinName: string, filename: string) {
+  const exists = await FileSystem.getInfoAsync(localUri).exists;
+  if (!exists) {
+    const githubUrl = genusMap[filename];
+    ensureImageDownloaded(filename, githubUrl); // No await
+  }
+}
+\end{lstlisting}
+
+This architecture achieves:
+\begin{itemize}
+    \item \textbf{50\%+ reduced app bundle size:} Images no longer bundled with application
+    \item \textbf{Zero component changes:} Existing UI components work without modification
+    \item \textbf{Progressive loading:} Images appear as they download from GitHub
+    \item \textbf{Offline capability:} Once downloaded, images persist in device storage
+\end{itemize}
+
 \textbf{OpenAI-Powered Translation System}
 
 The multilingual encyclopedia translates 33,000+ bird species names across five languages (German, Spanish, French, Ukrainian, Arabic) using OpenAI's API with fallback strategies.
