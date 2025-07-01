@@ -78,9 +78,19 @@ export default function VideoScreen() {
     if (isRecording) {
       // Stop recording
       try {
-        await cameraRef.current.stopRecording();
+        cameraRef.current.stopRecording();
+        setIsRecording(false);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
       } catch (error) {
         console.error('Stop recording failed:', error);
+        setIsRecording(false);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
       }
     } else {
       // Start recording
@@ -99,6 +109,13 @@ export default function VideoScreen() {
           maxDuration: 60, // 60 seconds max
         });
 
+        // Recording finished (either by stopping or timeout)
+        setIsRecording(false);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+
         if (video?.uri) {
           await handleVideoSave(video.uri);
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -107,7 +124,6 @@ export default function VideoScreen() {
         console.error('Recording failed:', error);
         showError(t('video.recording_failed', 'Failed to record video'));
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } finally {
         setIsRecording(false);
         if (timerRef.current) {
           clearInterval(timerRef.current);
