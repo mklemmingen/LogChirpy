@@ -759,7 +759,7 @@
     "capture_failed": "Failed to save photo"
   },
   "video": {
-    "recording_failed": "Failed",
+    "recording_failed": "Failed to record video",
     "stop_recording_title": "Stop?",
     "stop_recording_message": "Stop and save?",
     "stop_and_exit": "Save",
@@ -770,7 +770,14 @@
     "video_saved": "Video saved",
     "use_this_video": "Use this video?",
     "accept": "Accept",
-    "save_failed": "Failed to save video"
+    "save_failed": "Failed to save video",
+    "record_title": "Record Video",
+    "record_description": "Tap the button below to record a video using your camera",
+    "record_button": "Record Video",
+    "saving": "Saving video...",
+    "saved_successfully": "Video saved successfully",
+    "no_video_captured": "No video was captured",
+    "camera_launch_failed": "Failed to launch camera"
   },
   "location": {
     "success": "Updated",

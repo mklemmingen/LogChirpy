@@ -1,18 +1,15 @@
 /**
  * Video Recording Screen
  * 
- * Clean, memory-efficient video recorder with only essential features:
- * - Record button
- * - Camera flip button  
- * - Pinch-to-zoom (native camera feature)
- * - Recording timer
+ * Minimal video recorder using native camera API.
+ * Simple interface with just a record button that launches the phone's built-in camera.
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
+import { launchCamera, MediaType, ImagePickerResponse } from 'react-native-image-picker';
 import * as Haptics from 'expo-haptics';
 
 // Components
@@ -35,16 +32,8 @@ export default function VideoScreen() {
   const { t } = useTranslation();
   const { update } = useLogDraft();
   const { SnackbarComponent, showSuccess, showError } = useSnackbar();
-  const [permission, requestPermission] = useCameraPermissions();
   const colors = useColors();
   
-  const cameraRef = useRef<CameraView>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Minimal state - only what's essential
-  const [facing, setFacing] = useState<CameraType>('back');
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleVideoSave = useCallback(async (videoUri: string) => {
@@ -60,7 +49,11 @@ export default function VideoScreen() {
       if (result.success) {
         update({ videoUri: result.appUri });
         showSuccess(t('video.saved_successfully', 'Video saved successfully'));
-        router.replace('/log/manual');
+        // Auto-navigate to manual entry after successful save
+        setTimeout(() => {
+          const router = require('expo-router').router;
+          router.replace('/log/manual');
+        }, 1000);
       } else {
         throw new Error(result.error || 'Save failed');
       }
@@ -73,116 +66,55 @@ export default function VideoScreen() {
   }, [update, showSuccess, showError, t]);
 
   const handleRecord = useCallback(async () => {
-    if (!cameraRef.current) return;
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    if (isRecording) {
-      // Stop recording
-      try {
-        cameraRef.current.stopRecording();
-        setIsRecording(false);
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-      } catch (error) {
-        console.error('Stop recording failed:', error);
-        setIsRecording(false);
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-      }
-    } else {
-      // Start recording
-      setIsRecording(true);
-      setRecordingTime(0);
-      
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
+      const options = {
+        mediaType: 'video' as MediaType,
+        videoQuality: 'high' as const,
+        durationLimit: 60, // 60 seconds max
+        saveToPhotos: false, // We'll save it ourselves
+        includeBase64: false,
+        includeExtra: false,
+      };
 
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-        const video = await cameraRef.current.recordAsync({
-          maxDuration: 60, // 60 seconds max
-        });
-
-        // Recording finished (either by stopping or timeout)
-        setIsRecording(false);
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
+      launchCamera(options, (response: ImagePickerResponse) => {
+        if (response.didCancel) {
+          console.log('User cancelled video recording');
+          return;
         }
 
-        if (video?.uri) {
-          await handleVideoSave(video.uri);
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (response.errorMessage) {
+          console.error('Video recording error:', response.errorMessage);
+          showError(t('video.recording_failed', 'Failed to record video'));
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          return;
         }
-      } catch (error) {
-        console.error('Recording failed:', error);
-        showError(t('video.recording_failed', 'Failed to record video'));
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        setIsRecording(false);
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
+
+        if (response.assets && response.assets[0]?.uri) {
+          handleVideoSave(response.assets[0].uri);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          showError(t('video.no_video_captured', 'No video was captured'));
         }
-      }
+      });
+    } catch (error) {
+      console.error('Launch camera failed:', error);
+      showError(t('video.camera_launch_failed', 'Failed to launch camera'));
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [isRecording, showError, t, handleVideoSave]);
-
-  const toggleCamera = useCallback(() => {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
-    Haptics.selectionAsync();
-  }, []);
-
-  const handleBack = useCallback(() => {
-    // Clean up timer if running
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    router.back();
-  }, []);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  // Permission screen
-  if (!permission?.granted) {
-    return (
-      <ThemedSafeAreaView style={styles.container}>
-        <View style={styles.permissionContainer}>
-          <ThemedIcon name="camera-off" size={48} color="primary" />
-          <ThemedText variant="h2" style={styles.permissionTitle}>
-            {t('camera.permission_required', 'Camera Permission Required')}
-          </ThemedText>
-          <ThemedText variant="body" color="secondary" style={styles.permissionMessage}>
-            {t('camera.permission_message', 'LogChirpy needs camera access to record videos')}
-          </ThemedText>
-          <View style={styles.permissionActions}>
-            <ThemedPressable variant="secondary" onPress={handleBack} style={styles.button}>
-              <ThemedText>{t('common.cancel', 'Cancel')}</ThemedText>
-            </ThemedPressable>
-            <ThemedPressable variant="primary" onPress={requestPermission} style={styles.button}>
-              <ThemedText color="inverse">{t('camera.grant_permission', 'Grant Permission')}</ThemedText>
-            </ThemedPressable>
-          </View>
-        </View>
-      </ThemedSafeAreaView>
-    );
-  }
+  }, [showError, showSuccess, t, handleVideoSave]);
 
   // Processing screen
   if (isProcessing) {
     return (
       <ThemedSafeAreaView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.processingContainer}>
-          <ThemedText variant="h3">{t('video.saving', 'Saving video...')}</ThemedText>
+          <ThemedIcon name="video" size={64} color="primary" />
+          <ThemedText variant="h3" style={styles.processingText}>
+            {t('video.saving', 'Saving video...')}
+          </ThemedText>
         </View>
       </ThemedSafeAreaView>
     );
@@ -192,74 +124,42 @@ export default function VideoScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ThemedView style={styles.container}>
-        {/* Camera with pinch-to-zoom enabled by default */}
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          facing={facing}
-          mode="video"
-        />
-
-        {/* Back button */}
-        <ThemedPressable
-          variant="ghost"
-          onPress={handleBack}
-          style={[styles.backButton, { backgroundColor: colors.background + 'CC' }]}
-        >
-          <ThemedIcon name="arrow-left" size={24} color="inverse" />
-        </ThemedPressable>
-
-        {/* Recording indicator */}
-        {isRecording && (
-          <View style={[styles.recordingIndicator, { backgroundColor: colors.background + 'DD' }]}>
-            <View style={styles.recordingDot} />
-            <ThemedText style={[styles.recordingText, { color: colors.text }]}>
-              REC {formatTime(recordingTime)}
-            </ThemedText>
+        
+        {/* Main content */}
+        <View style={styles.content}>
+          <View style={styles.iconContainer}>
+            <ThemedIcon name="video" size={120} color="primary" />
           </View>
-        )}
+          
+          <ThemedText variant="h2" style={styles.title}>
+            {t('video.record_title', 'Record Video')}
+          </ThemedText>
+          
+          <ThemedText variant="body" color="secondary" style={styles.description}>
+            {t('video.record_description', 'Tap the button below to record a video using your camera')}
+          </ThemedText>
+        </View>
 
-        {/* Bottom controls */}
-        <View style={styles.controls}>
-          {/* Camera flip button */}
+        {/* Record button */}
+        <View style={styles.buttonContainer}>
           <ThemedPressable
-            variant="ghost"
-            onPress={toggleCamera}
-            disabled={isRecording}
-            style={[
-              styles.controlButton, 
-              { backgroundColor: colors.background + 'CC' },
-              ...(isRecording ? [styles.disabled] : [])
-            ]}
-          >
-            <ThemedIcon name="rotate-ccw" size={24} color="inverse" />
-          </ThemedPressable>
-
-          {/* Record button */}
-          <ThemedPressable
-            variant="ghost"
+            variant="primary"
             onPress={handleRecord}
+            disabled={isProcessing}
             style={[
               styles.recordButton,
-              { 
-                backgroundColor: colors.background,
-                borderColor: colors.border + '80'
-              },
-              ...(isRecording ? [{ backgroundColor: '#FF3B30' }] : [])
+              { backgroundColor: colors.primary }
             ]}
           >
-            <View style={[
-              styles.recordInner,
-              { backgroundColor: isRecording ? colors.background : '#FF3B30' },
-              ...(isRecording ? [styles.recordingInner] : [])
-            ]} />
+            <ThemedIcon name="video" size={32} color="inverse" />
+            <ThemedText variant="h3" color="inverse" style={styles.recordText}>
+              {t('video.record_button', 'Record Video')}
+            </ThemedText>
           </ThemedPressable>
-
-          {/* Spacer for symmetry */}
-          <View style={[styles.controlButton, { backgroundColor: 'transparent' }]} />
         </View>
+
+        <SnackbarComponent />
       </ThemedView>
-      <SnackbarComponent />
     </>
   );
 }
@@ -268,118 +168,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  camera: {
-    flex: 1,
-  },
-
-  // Permission screen
-  permissionContainer: {
+  content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
-    gap: 24,
+    paddingHorizontal: 32,
   },
-  permissionTitle: {
+  iconContainer: {
+    marginBottom: 32,
+  },
+  title: {
     textAlign: 'center',
+    marginBottom: 16,
   },
-  permissionMessage: {
+  description: {
     textAlign: 'center',
     lineHeight: 24,
+    maxWidth: 280,
   },
-  permissionActions: {
+  buttonContainer: {
+    padding: 32,
+    paddingBottom: 50,
+  },
+  recordButton: {
     flexDirection: 'row',
-    gap: 16,
-    width: '100%',
-    maxWidth: 300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    gap: 12,
   },
-
+  recordText: {
+    fontWeight: '600',
+  },
+  
   // Processing screen
   processingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 24,
   },
-
-  // Camera controls - theme colors applied dynamically
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-
-  recordingIndicator: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    zIndex: 10,
-  },
-  recordingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FF3B30', // Keep red for recording indicator
-    marginRight: 8,
-  },
-  recordingText: {
-    fontWeight: '600',
-    fontSize: 14,
-  },
-
-  controls: {
-    position: 'absolute',
-    bottom: 50,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    zIndex: 10,
-  },
-
-  controlButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  recordButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-  },
-  recordInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
-  recordingInner: {
-    width: 30,
-    height: 30,
-    borderRadius: 4,
-  },
-
-  button: {
-    flex: 1,
-  },
-  disabled: {
-    opacity: 0.5,
+  processingText: {
+    textAlign: 'center',
   },
 });
