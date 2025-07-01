@@ -21,6 +21,7 @@ export default {
     assetBundlePatterns: [
       "assets/fonts/**/*",
       "assets/images/**/*",
+      "!assets/images/birds/**/*", // Exclude bird images (downloaded from GitHub)
       "assets/models/**/*", 
       "assets/model_labels_whoBird/**/*",
       "assets/sounds/**/*",

@@ -10,4 +10,9 @@ config.watchFolders = [projectRoot];
 config.resolver.assetExts.push('bin', 'json', 'tflite', 'csv', 'xml', 'txt');
 config.resolver.sourceExts.push('cjs', 'mjs');
 
+// 3) Exclude bird images directory from bundling (images now downloaded from GitHub)
+config.resolver.blockList = [
+  /assets\/images\/birds\/.*/
+];
+
 module.exports = config;
