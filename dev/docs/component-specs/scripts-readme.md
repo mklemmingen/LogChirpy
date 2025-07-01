@@ -4,7 +4,7 @@ This directory contains scripts for managing the bird image pipeline in LogChirp
 
 ## Scripts
 
-### `generateBirdImageMap.js`
+### `generateBirdImageMapJs.js`
 
 Generates a TypeScript file with hardcoded `require()` statements for all bird images to ensure they are bundled by Metro bundler.
 
@@ -17,7 +17,7 @@ Generates a TypeScript file with hardcoded `require()` statements for all bird i
 
 **Usage:**
 ```bash
-node dev/scripts/generateBirdImageMap.js
+node dev/scripts/generateBirdImageMap.js.backup
 ```
 
 **Output:**
@@ -43,7 +43,7 @@ node dev/scripts/testBirdImageService.js
 ## Pipeline Architecture
 
 ```
-download_progress.json → generateBirdImageMap.js → BirdImageMap.ts → birdImageService.ts
+download_progress.json → generateBirdImageMap.js.backup → BirdImageMap.ts → birdImageService.ts
 ```
 
 1. **Input**: `download_progress.json` (maps Latin names to filenames)
@@ -95,7 +95,7 @@ Current pipeline status:
 When new bird images are downloaded:
 
 1. The image fetcher updates `download_progress.json`
-2. Run `generateBirdImageMap.js` to update the TypeScript map
+2. Run `generateBirdImageMapJs.js` to update the TypeScript map
 3. The service automatically gains access to new images
 4. No code changes required in the service layer
 

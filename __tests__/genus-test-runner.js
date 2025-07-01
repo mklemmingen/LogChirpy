@@ -156,7 +156,7 @@ async function runGenusSystemTests() {
   // Test 6: Check that old monolithic file is backed up
   console.log('\n🧪 Test 6: Checking backup of old system...');
   try {
-    const backupPath = path.join(__dirname, '../dev/backup/BirdImageMap_monolithic_backup.ts');
+    const backupPath = path.join(__dirname, '../dev/backup/BirdImageMap_monolithic.ts.backup');
     if (fs.existsSync(backupPath)) {
       const stats = fs.statSync(backupPath);
       if (stats.size > 900000) { // Should be ~937KB

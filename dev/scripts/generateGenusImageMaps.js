@@ -104,10 +104,10 @@ function findBestImageFormat(latinName, downloadProgressFilename) {
 }
 
 /**
- * Generate TypeScript require statement
+ * Generate GitHub URL for the image
  */
-function generateRequireStatement(filename) {
-    return `require('${CONFIG.relativePath}/${filename}')`;
+function generateGitHubUrl(filename) {
+    return `'https://github.com/mklemmingen/LogChirpy/raw/main/assets/images/birds/${filename}'`;
 }
 
 /**
@@ -138,7 +138,7 @@ function generateGenusTypeScriptContent(genus, imageMap) {
  * Coverage: ${Math.round((foundImages / speciesCount) * 100)}%
  */
 
-export const ${sanitizeGenusName(genus)}ImageMap: { [key: string]: any } = {
+export const ${sanitizeGenusName(genus)}ImageMap: { [key: string]: string | null } = {
 ${entries}
 };
 
@@ -253,7 +253,7 @@ async function generateGenusImageMaps() {
             try {
                 const bestFormat = findBestImageFormat(latinName, filename);
                 if (bestFormat) {
-                    genusGroups[genus][bestFormat] = generateRequireStatement(bestFormat);
+                    genusGroups[genus][bestFormat] = generateGitHubUrl(bestFormat);
                 } else {
                     // Add null entry for missing image files
                     const baseFilename = getBaseFilename(filename);
