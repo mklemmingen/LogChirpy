@@ -379,6 +379,8 @@
     "language_setting_description": "Choose your preferred language for the app interface",
     "enable_gps_logging": "Enable GPS Location Logging",
     "logging": "Logging Settings",
+    "gps_location_logging": "GPS Location Logging",
+    "record_coordinates_description": "Record precise coordinates with your bird sightings for mapping and analysis",
     "tutorial": {
       "title": "Tutorial",
       "subtitle": "Quick start guide",

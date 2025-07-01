@@ -152,7 +152,7 @@ export default ${sanitizeGenusName(genus)}ImageMap;
 function generateGenusIndexContent(genera) {
     const genusEntries = genera
         .sort()
-        .map(genus => `  '${genus}': () => import('./genus/${sanitizeGenusName(genus)}')`)
+        .map(genus => `  '${genus}': () => require('./genus/${sanitizeGenusName(genus)}')`)
         .join(',\n');
 
     return `/**
@@ -166,7 +166,7 @@ function generateGenusIndexContent(genera) {
  * Total genera: ${genera.length}
  */
 
-export type GenusImageMapLoader = () => Promise<{ default: { [key: string]: any } }>;
+export type GenusImageMapLoader = () => { default: { [key: string]: any } };
 
 export const genusLoaders: { [genus: string]: GenusImageMapLoader } = {
 ${genusEntries}

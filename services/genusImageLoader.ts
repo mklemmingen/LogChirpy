@@ -19,7 +19,6 @@ export interface GenusImageMap {
 
 class GenusImageLoader {
   private genusCache = new Map<string, GenusImageMap>();
-  private loadingPromises = new Map<string, Promise<GenusImageMap>>();
 
   /**
    * Extract genus (first word) from Latin scientific name
@@ -42,38 +41,25 @@ class GenusImageLoader {
   }
 
   /**
-   * Load genus image map dynamically
+   * Load genus image map synchronously
    */
-  private async loadGenusMap(genus: string): Promise<GenusImageMap> {
-    // Check if already loading
-    const existingPromise = this.loadingPromises.get(genus);
-    if (existingPromise) {
-      return existingPromise;
-    }
-
+  private loadGenusMap(genus: string): GenusImageMap {
     // Check cache first
     const cached = this.genusCache.get(genus);
     if (cached) {
       return cached;
     }
 
-    // Create loading promise
-    const loadingPromise = this.performGenusLoad(genus);
-    this.loadingPromises.set(genus, loadingPromise);
-
-    try {
-      const genusMap = await loadingPromise;
-      this.genusCache.set(genus, genusMap);
-      return genusMap;
-    } finally {
-      this.loadingPromises.delete(genus);
-    }
+    // Perform synchronous loading
+    const genusMap = this.performGenusLoad(genus);
+    this.genusCache.set(genus, genusMap);
+    return genusMap;
   }
 
   /**
-   * Perform the actual genus loading
+   * Perform the actual genus loading synchronously
    */
-  private async performGenusLoad(genus: string): Promise<GenusImageMap> {
+  private performGenusLoad(genus: string): GenusImageMap {
     try {
       if (!hasGenusMap(genus)) {
         console.warn(`No genus map available for: ${genus}`);
@@ -86,7 +72,7 @@ class GenusImageLoader {
         return {};
       }
 
-      const module = await loader();
+      const module = loader();
       const genusMap = module.default || {};
       
       console.log(`✅ Loaded genus map for ${genus}: ${Object.keys(genusMap).length} images`);
@@ -164,10 +150,10 @@ class GenusImageLoader {
   }
 
   /**
-   * Get bird image source by Latin scientific name (async version)
+   * Get bird image source by Latin scientific name
    * Returns the require() statement needed for React Native Image component
    */
-  async getBirdImageSource(latinName: string): Promise<any> {
+  getBirdImageSource(latinName: string): any {
     if (!latinName || typeof latinName !== 'string') {
       return null;
     }
@@ -179,7 +165,7 @@ class GenusImageLoader {
     }
 
     try {
-      const genusMap = await this.loadGenusMap(genus);
+      const genusMap = this.loadGenusMap(genus);
       
       // Try multiple filename strategies
       const strategies = [
@@ -241,9 +227,9 @@ class GenusImageLoader {
   /**
    * Preload a genus map (useful for performance optimization)
    */
-  async preloadGenus(genus: string): Promise<boolean> {
+  preloadGenus(genus: string): boolean {
     try {
-      await this.loadGenusMap(genus);
+      this.loadGenusMap(genus);
       return true;
     } catch (error) {
       console.error(`Failed to preload genus ${genus}:`, error);
@@ -254,19 +240,15 @@ class GenusImageLoader {
   /**
    * Preload multiple genera (useful for commonly accessed species)
    */
-  async preloadGenera(genera: string[]): Promise<{ loaded: string[], failed: string[] }> {
-    const results = await Promise.allSettled(
-      genera.map(genus => this.preloadGenus(genus).then(success => ({ genus, success })))
-    );
-
+  preloadGenera(genera: string[]): { loaded: string[], failed: string[] } {
     const loaded: string[] = [];
     const failed: string[] = [];
 
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled' && result.value.success) {
-        loaded.push(genera[index]);
+    genera.forEach(genus => {
+      if (this.preloadGenus(genus)) {
+        loaded.push(genus);
       } else {
-        failed.push(genera[index]);
+        failed.push(genus);
       }
     });
 
@@ -279,7 +261,7 @@ class GenusImageLoader {
   getCacheStats() {
     return {
       loadedGenera: this.genusCache.size,
-      currentlyLoading: this.loadingPromises.size,
+      currentlyLoading: 0, // No longer using async loading promises
       cachedGenera: Array.from(this.genusCache.keys()),
       totalMemoryMB: Math.round(
         (Array.from(this.genusCache.values()).reduce((acc, map) => acc + Object.keys(map).length, 0) * 0.1) // Rough estimate
@@ -292,7 +274,6 @@ class GenusImageLoader {
    */
   clearCache(): void {
     this.genusCache.clear();
-    this.loadingPromises.clear();
     console.log('Genus image cache cleared');
   }
 
