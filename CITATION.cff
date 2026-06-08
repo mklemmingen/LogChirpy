@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it using the metadata from this file."
+type: software
+title: "LogChirpy - Ornithological Archival App"
+abstract: >
+  LogChirpy is a mobile app for bird identification and observation logging.
+  It combines BirdNET-based audio classification and MobileNet image recognition
+  with a 25,000+ species taxonomic database (Clements). Features include
+  GPS-tagged sightings, a species encyclopaedia (BirDex), photo archiving, and
+  multilingual support — designed to support citizen-science ornithological fieldwork.
+authors:
+  - family-names: "Lauterbach"
+    given-names: "Martin"
+    orcid: "https://orcid.org/0009-0007-3396-872X"
+repository-code: "https://github.com/mklemmingen/LogChirpy"
+url: "https://github.com/mklemmingen/LogChirpy"
+license: "CC-BY-NC-SA-4.0"
+version: "1.0.0"
+date-released: "2025-01-01"
+keywords:
+  - ornithology
+  - bird identification
+  - machine learning
+  - BirdNET
+  - audio classification
+  - image recognition
+  - citizen science
+  - biodiversity
+  - React Native
+  - TensorFlow Lite
+  - Clements taxonomy

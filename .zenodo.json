@@ -1,0 +1,38 @@
+{
+  "title": "LogChirpy - Ornithological Archival App",
+  "description": "LogChirpy is a mobile application for bird identification and observation logging. It combines multi-modal machine learning — BirdNET-based audio classification and MobileNet image recognition — with a 25,000+ species database derived from the Clements taxonomy. The app supports ornithological field work through photo storage, GPS-tagged sightings, species lookup (BirDex), and multilingual UI. Built with React Native, Expo, TensorFlow Lite, and Firebase.",
+  "upload_type": "software",
+  "creators": [
+    {
+      "name": "Lauterbach, Martin",
+      "orcid": "0009-0007-3396-872X"
+    }
+  ],
+  "license": "cc-by-nc-sa-4.0",
+  "keywords": [
+    "ornithology",
+    "bird identification",
+    "machine learning",
+    "BirdNET",
+    "audio classification",
+    "image recognition",
+    "citizen science",
+    "biodiversity",
+    "React Native",
+    "TensorFlow Lite",
+    "Clements taxonomy"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/mklemmingen/LogChirpy",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://github.com/kahst/BirdNET-Lite",
+      "relation": "uses",
+      "scheme": "url"
+    }
+  ],
+  "notes": "The bundled BirdNET TFLite models (whoBIRD-TFlite) are licensed under CC BY-NC-SA 4.0 by @kahst (BirdNET framework). This software is therefore distributed under the same CC BY-NC-SA 4.0 terms."
+}

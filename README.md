@@ -1,6 +1,6 @@
 # LogChirpy - Ornithological Archival App
 
-🔄 **Ongoing Development** | 🌐 **AGPL-3.0 License**
+🔄 **Ongoing Development** | 🌐 **CC BY-NC-SA 4.0 License**
 
 **Tech Stack:** TensorFlow.js, TypeScript, JavaScript, React Native, Expo, SQL, Firebase, Relational Databasing, Batch Scripts, Android and iOS Building
 
