@@ -6,7 +6,7 @@
 % Character encoding and language settings
 \usepackage[utf8]{inputenc}        % UTF-8 input encoding
 \usepackage[T1]{fontenc}           % T1 font encoding for better hyphenation
-\usepackage[ngerman]{babel}        % German language support
+\usepackage[english]{babel}        % English language support
 
 %===============================================================================
 % FONTS AND TYPOGRAPHY
@@ -21,7 +21,7 @@
 \usepackage{microtype}             % Improved typography
 \usepackage[onehalfspacing]{setspace} % Line spacing
 \setstretch{1.08}                  % Fine-tune line spacing
-\usepackage[babel,german=guillemets]{csquotes}  % Proper quotation marks
+\usepackage[babel]{csquotes}  % Proper quotation marks
 
 %===============================================================================
 % PAGE LAYOUT
@@ -122,12 +122,7 @@
     singlelinecheck=false
 ]{caption}
 
-% German caption names
-\addto\captionsngerman
-{
-	\renewcommand{\figurename}{Abb.}
-	\renewcommand{\tablename}{Tab.} 
-}
+% English caption names (default — no override needed)
 
 % Background setup
 \backgroundsetup{contents={}}
@@ -178,8 +173,8 @@
 \hypersetup{
     pdftitle={LogChirpy - Ornithological Archival App},
     pdfauthor={Martin Lauterbach, Luis Wehrberger, Youmna Samouneh},
-    pdfsubject={Mobile Computing Project - Bird Watching Application with AI-Powered Recognition},
-    pdfkeywords={Mobile Computing, React Native, Machine Learning, Bird Identification, Ornithology},
+    pdfsubject={Ornithological Archival App with On-Device ML Recognition},
+    pdfkeywords={ornithology, BirdNET, MobileNetV2, React Native, citizen science, offline ML},
     pdfproducer={pdfLaTeX},
     colorlinks=true,
     linkcolor=black,
@@ -187,6 +182,11 @@
     urlcolor=accentblue,
     pdfdisplaydoctitle=true
 }
+
+%===============================================================================
+% BIBLIOGRAPHY
+%===============================================================================
+\usepackage[numbers,sort&compress]{natbib}
 
 %===============================================================================
 % MISCELLANEOUS

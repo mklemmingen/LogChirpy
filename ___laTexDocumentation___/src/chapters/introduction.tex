@@ -1,30 +1,38 @@
-\chapter{Introduction and Research Motivation}
+\chapter{Introduction}
 
-\section{Project Context and Educational Framework}
+Citizen-science bird monitoring generates observations at scales impossible for
+professional ornithologists alone.
+Platforms such as eBird receive hundreds of millions of observations annually,
+yet data quality depends critically on observers' ability to identify species in
+the field~\cite{Sullivan2009}.
+Mobile applications with automated species recognition lower this barrier, but
+most existing tools either require continuous network access, cover limited
+geographic ranges, or rely on a single sensing modality.
 
-LogChirpy was developed as a mobile computing project during the 4th semester at Reutlingen University, representing a 12-week development cycle from Q2-Q3 2025. This bird watching application emerged from the intersection of several academic learning objectives: mobile application development, ML integration, cross-platform deployment, and collaborative software engineering practices.
+BirdNET~\cite{BirdNET2021} demonstrated that a convolutional network trained on
+spectrograms can achieve macro-averaged AUC $> 0.99$ across thousands of species,
+making robust audio-based identification practical on consumer hardware.
+Image-based classifiers such as MobileNetV2~\cite{Sandler2018} offer a
+complementary modality; the two are rarely combined in an offline mobile context.
 
-The three-person team with varying technical experience provided insights into real-world software development challenges including workload distribution, technical complexity management, and balancing academic deadlines with feature completeness.
+LogChirpy addresses three concrete gaps:
 
-\section{Problem Definition and Market Context}
+\begin{enumerate}
+  \item \textbf{Multi-modal offline identification.}
+        Combining BirdNET audio and a MobileNetV2 image classifier on-device,
+        without any cloud inference dependency.
 
-Traditional bird watching faces modernization challenges that existing mobile applications have only partially addressed. Current ornithological apps typically excel in specific areas—such as species databases or audio recognition—but fail to provide integrated solutions that serve both amateur enthusiasts and serious ornithologists effectively.
+  \item \textbf{Large-scale multilingual reference database.}
+        The Clements 2024 checklist~\cite{Clements2024} with 33,241 species
+        in six languages and 9,331 Wikimedia Commons reference images, fully
+        accessible offline.
 
-Primary challenges include species identification difficulties for similar birds, inefficient documentation workflows, lack of reliable offline functionality for field work, and applications that are either overly simplified or prohibitively complex.
+  \item \textbf{Sequential pipeline architecture.}
+        A unified service layer that eliminates the file-lock race conditions
+        observed when audio recording and camera capture run concurrently on
+        Android.
+\end{enumerate}
 
-LogChirpy addresses these gaps through an integrated mobile application that combines machine learning, comprehensive species data, and efficient logging workflows.
-
-\textbf{Problem Statement:} Traditional bird watching methods face challenges including species identification difficulties for similar-looking birds (especially for beginners), inefficient paper-based record keeping, lack of centralized systems for storing photos, audio, and observation data, limited access to comprehensive bird information in the field, species information restricted to single languages, and existing mobile apps that are either too complex or lack important features.
-
-\section{Solution Overview}
-
-LogChirpy combines machine learning capabilities with comprehensive species data and efficient observation logging. The application processes bird identification through both visual and audio methods while maintaining a complete offline reference system. All functionality operates without internet connectivity, making it suitable for field work in remote locations.
-
-\section{Technical Learning and Development Challenges}
-
-LogChirpy provided practical learning in mobile application development encompassing ML integration, large-scale data processing, and complex media management systems. Development revealed coordination complexity across ML operations, database management for 33,000+ species records, and multi-modal logging workflows.
-
-The project involved data processing and system integration challenges including ML model adaptation, data enrichment pipelines for species translation, efficient media storage systems, and integration between encyclopedia lookup, ML classification, and observation logging.
-
-Managing three major architectural components required careful planning, modular design, and systematic approaches to database optimization and user interface consistency.
-
+The remainder of this paper describes the system architecture (Chapter~2),
+an independent benchmark of the image classifier (Chapter~3), and a
+discussion of limitations and scope (Chapter~4).

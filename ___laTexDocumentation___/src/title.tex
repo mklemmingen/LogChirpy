@@ -1,72 +1,65 @@
 \begin{titlepage}
-	% Header with Faculty Logo
-	\begin{figure}
-		\begin{flushright}
-			\includegraphics[scale=0.6]{img/INFLogo.png}
-		\end{flushright}
-	\end{figure}
-	
-	{\centering
-		
-		\vspace{1.5cm}
-		{\Large Mobile Computing Project SoSe 2025}\\
-		\vspace{0.8cm}
-		
-		% LogChirpy App Icon
-		\begin{figure}[h]
-			\centering
-			\includegraphics[width=80pt]{img/logo.png}
-		\end{figure}
-		\vspace{0.5cm}
-		
-		{\LARGE{\textbf{LogChirpy}} \\
-        \vspace{0.3cm}
-        Ornithological Archival \\
-        Application with ML-Powered Recognition \\
-        }
-        
-		\vspace{0.8cm}
-		
-		% Abstract - moved up for prominence
-        \textbf{\Large Abstract}\\
-		\vspace{0.3cm}
-		\begin{minipage}{0.95\textwidth}
-		\small
-		This 4th semester mobile computing project presents LogChirpy, a comprehensive bird watching application demonstrating advanced React Native development with integrated machine learning capabilities. The application successfully implements on-device ML for automated bird species identification through both visual object detection and audio classification systems. The technical architecture features local TensorFlow Lite models for real-time species recognition, combined with an offline-first data management approach that includes optional Firebase cloud synchronization. Notable achievements include complete localization across six languages and integration of a 30,000+ species database with automated translation workflows. LogChirpy serves amateur bird watchers and nature enthusiasts by providing an accessible mobile platform for documenting and sharing ornithological observations, showcasing effective integration of complex technologies within an educational project scope.
-		\end{minipage}
-		
-		\vspace{0.8cm}
+\begin{figure}
+  \begin{flushright}
+    \includegraphics[scale=0.6]{img/INFLogo.png}
+  \end{flushright}
+\end{figure}
 
-		\vspace{0.2cm}
-		Martin Lauterbach\\
-		\small\url{martin.lauterbach@student.reutlingen-university.de}\\
-        \vspace{0.1cm}
-        \normalsize Luis Wehrberger\\
-		\small\url{luis.wehrberger@student.reutlingen-university.de}\\
-        \vspace{0.1cm}
-        \normalsize Youmna Samouneh\\
-		\small\url{youmna.samouneh@student.reutlingen-university.de}\\
-        \vspace{0.3cm}
-        
-		\normalsize Prüfer:in: Prof. Dr. Martinez\\
-		
-		\vspace{0.2cm}
-		{\small Abgabedatum: \today}\\
-	}
-	
-	% Footer with University Branding
-	\backgroundsetup{
-		scale=1,
-		color=black,
-		opacity=1,
-		angle=0,
-		position=current page.south,
-		vshift=60pt,
-		hshift=-200pt,
-		contents={
-			\begin{minipage}{.18\textwidth}
-				\includegraphics[width=1000pt,height=70pt,keepaspectratio]{img/FHRTFooter.png}
-			\end{minipage}
-		}
-	}
+{\centering
+  \vspace{1.5cm}
+  {\Large Mobile Computing — Reutlingen University, SoSe 2025}\\
+  \vspace{0.8cm}
+
+  \begin{figure}[h]
+    \centering
+    \includegraphics[width=72pt]{img/logo.png}
+  \end{figure}
+  \vspace{0.4cm}
+
+  {\LARGE\textbf{LogChirpy}\\[0.25cm]
+   \large Ornithological Archival App with On-Device ML Recognition}
+
+  \vspace{0.9cm}
+
+  \textbf{\Large Abstract}\\[0.3cm]
+  \begin{minipage}{0.92\textwidth}
+  \small
+  LogChirpy is an open-source, offline-first mobile application for ornithological
+  field observation, combining two independent on-device machine-learning pipelines
+  with a 33,241-species encyclopaedic database.
+  The audio pipeline integrates BirdNET v2.4 (Kahl et al., 2021) with a geographic
+  metadata model over 6,522 species; the image pipeline chains an SSD MobileNet V1
+  detection gate with a MobileNetV2 400-class classifier.
+  A unified sequential pipeline service eliminates the file-lock race conditions
+  that arise when audio recording and camera processing run concurrently on Android.
+  The BirDex encyclopedia stores all 33,241 species from the Clements 2024 checklist
+  with translations across six languages and 9,331 Wikimedia Commons reference images.
+  Independent benchmarking of the image classifier against 258 label-matched Wikimedia
+  reference images yields Top-1 = 49.6\%, Top-3 = 64.3\%, Top-5 = 69.8\%.
+  All inference is local; cloud synchronisation of observation records is optional.
+  \end{minipage}
+
+  \vspace{0.9cm}
+  Martin Lauterbach \quad
+  \small\texttt{martin.lauterbach@student.reutlingen-university.de}\\[0.3cm]
+  \normalsize
+  Luis Wehrberger \quad
+  \small\texttt{luis.wehrberger@student.reutlingen-university.de}\\[0.1cm]
+  \normalsize
+  Youmna Samouneh \quad
+  \small\texttt{youmna.samouneh@student.reutlingen-university.de}\\[0.4cm]
+
+  \normalsize Supervisor: Prof.\ Dr.\ Martinez \quad{\small Reutlingen University}\\[0.3cm]
+  {\small \today}
+}
+
+\backgroundsetup{
+  scale=1, color=black, opacity=1, angle=0,
+  position=current page.south, vshift=60pt, hshift=-200pt,
+  contents={
+    \begin{minipage}{.18\textwidth}
+      \includegraphics[width=1000pt,height=70pt,keepaspectratio]{img/FHRTFooter.png}
+    \end{minipage}
+  }
+}
 \end{titlepage}

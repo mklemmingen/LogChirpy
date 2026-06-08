@@ -2,80 +2,27 @@
 
 \begin{document}
 \pagestyle{plain}
-
 \pagenumbering{gobble}
-%Deckblatt
+
 \include{src/title}
 
-%Inhaltsverzeichnis
 \cleardoublepage
 \tableofcontents
-
-%Abbildungsverzeichnis
-\cleardoublepage
-\listoffigures
-
-%Tabellenverzeichnis
-\cleardoublepage
-\listoftables
 
 \pagenumbering{arabic}
 \pagestyle{scrheadings}
 \cleardoublepage
 
-\tocgroup{Project Foundations}
-
-%Kapitel 1 - Einführung und Motivation
-\cleardoublepage
 \include{src/chapters/introduction}
-
-%Kapitel 2 - Ziele des Projekts
-\cleardoublepage
-\include{src/chapters/goals}
-
-%Kapitel 3 - Anforderungsanalyse
-\cleardoublepage
-\include{src/chapters/requirements}
-
-\tocgroup{Technical Implementation}
-
-%Kapitel 4 - Konzeptionelles Modell
 \cleardoublepage
 \include{src/chapters/architecture}
-
-%Kapitel 5 - Design-Entscheidungen
 \cleardoublepage
-\include{src/chapters/design}
-
-\tocgroup{Results and Insights}
-
-\cleardoublepage
-\include{src/chapters/aiUsage}
-
-%Kapitel 6 - Ergebnisse
-\cleardoublepage
-\include{src/chapters/results}
-
-\addtocontents{toc}{\vspace{200pt}}
-
-%Kapitel 7 - Fazit
+\include{src/chapters/evaluation}
 \cleardoublepage
 \include{src/chapters/conclusion}
 
-\appendix
-
 \cleardoublepage
-\include{src/appendix}
-
-\cleardoublepage
-\include{src/appendix_implementation}
-
-%Gruppendokumentation
-\cleardoublepage
-\include{src/groupDocu/responsibilities}
-
-%Kapitel 9 - Screens und Benutzeroberfläche
-\cleardoublepage
-\include{src/chapters/screens}
+\bibliographystyle{plainnat}
+\bibliography{src/bibliography}
 
 \end{document}

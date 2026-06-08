@@ -1,25 +1,54 @@
-\chapter{Project Conclusions and Learning Outcomes}
+\chapter{Discussion and Conclusion}
 
-\section{Educational Achievements and Technical Learning Outcomes}
+\section{Scientific Value and Scope}
 
-LogChirpy successfully completed a 12-week mobile computing project, delivering hands-on experience with React Native development, ML integration, and collaborative software engineering. The application demonstrates the feasibility of combining multiple ML approaches in mobile environments while providing valuable technical learning outcomes.
+LogChirpy's primary scientific contribution is not a new ML model but an
+\emph{integration} contribution: it delivers BirdNET audio identification and
+a MobileNetV2 image classifier in a single offline-capable mobile application,
+paired with the largest publicly available mobile-embedded ornithological
+encyclopedia (33,241 species, 6 languages, 9,331 reference images).
 
-\textbf{Machine Learning Integration and Model Deployment:} The project integrated existing ML models (BirdNET, MLKit) into React Native, focusing on mobile ML deployment challenges including \texttt{.h5} to \texttt{.tflite} model conversion and sequential processing to avoid resource conflicts. 
-\textbf{Cross-Platform Mobile Development Skills:} Working with React Native and Expo provided practical experience in cross-platform development, state management through React Context providers, and mobile-specific challenges including permissions handling, file system operations, and performance optimization across Android and iOS platforms. The development process included transitioning from Expo Go to custom development builds when integrating \texttt{.tflite} models.
+The sequential pipeline architecture solves a concrete engineering problem
+(audio/camera race conditions on Android) in a way that is replicable and
+documentable; the fix is committed and described in this paper.
 
-\textbf{Database Architecture and Internationalization:} Implementation of a 30,000+ species database with multi-language support involved data management challenges, translation workflows, and localization architecture. 
-\textbf{Collaborative Development and Project Management:} The project highlighted real-world challenges of team collaboration with an 85/12/3% contribution split among team members, emphasizing the importance of clear role definition and realistic project scoping within academic constraints.
+The BirDex database and its 9,331 Wikimedia image corpus constitute a reusable
+open dataset.
+The benchmark script (\texttt{dev/benchmark\_image\_classifier.py}) provides
+a reproducible evaluation baseline for future mobile bird image classifiers.
 
-\textbf{Critical Technical Challenge Resolution:} The project's primary technical achievement involved solving race conditions in ML processing. The initial dual-pipeline approach (concurrent image and audio processing) caused file stability errors and "Only one Recording object can be prepared" conflicts. The solution involved implementing a sequential processing pipeline that eliminated all resource conflicts and stability issues.
+\section{Limitations}
 
-\textbf{Mobile Development Environment Configuration:} Handling Windows path length limitations required solutions using WSL2 and drive substitution, highlighting the importance of proper development environment configuration for React Native projects with extensive dependencies.
+\begin{description}
+  \item[Image coverage.] MobileNetV2 covers 400 of 33,241 species (1.2\,\%).
+        For the remaining 98.8\,\%, image classification returns the
+        nearest trained class, which may be meaningless.
+        Audio (BirdNET, 6,522 spp., $\approx$65\,\% of recognised species)
+        is the primary identification modality.
 
-\textbf{Offline-First Architecture Design:} The decision to prioritize local functionality with optional cloud sync through Firebase Firestore proved beneficial for reliability during development and testing, while addressing privacy concerns for wildlife observation data.
+  \item[No original model training.] Both classifiers are pre-trained third-party
+        models~\cite{BirdNET2021,Sandler2018,BirdClassifier2023}.
+        LogChirpy integrates and delivers these models; it does not improve them.
 
-\section{Future Development Opportunities and Project Assessment} 
+  \item[Benchmark distribution shift.] Wikimedia reference images are
+        editorial quality; field-photo accuracy will be substantially lower.
 
-Future enhancements could include training custom models on local bird populations for improved accuracy, social sharing and citizen science integration, and adaptation for other wildlife observation use cases.
+  \item[Translation quality.] Automated mass translation of 33,241 species
+        names across six languages was spot-checked by family but not
+        formally validated by native-speaker ornithologists.
 
-LogChirpy successfully meets its goals as an educational mobile computing project. The application integrates multiple ML models, maintains user data across devices through Firebase synchronization, and provides a complete user experience from species identification to archival. The working application validates the approach of combining existing technologies and frameworks to create useful mobile applications within the constraints of a semester-long project.
+  \item[Scope.] This is a 12-week student project; it has not undergone
+        peer review, formal usability testing, or long-term field evaluation.
+\end{description}
 
-The project provided valuable experience with mobile development practices, ML integration, and collaborative software development. LogChirpy demonstrates successful adaptation of existing technologies to create functional mobile applications within academic constraints, serving as a practical example of applied mobile computing education.
+\section{Conclusion}
+
+LogChirpy demonstrates that multi-modal, offline-capable bird identification
+is feasible on a commodity Android device within a student project timeframe.
+The unified sequential pipeline, the BirDex encyclopedia, and the reproducible
+image-classifier benchmark are the three concrete artefacts offered to the
+research community.
+Future work should (1) expand image classifier coverage beyond 400 species,
+(2) conduct a field-condition accuracy study, and (3) integrate the app
+with a GBIF or eBird submission pipeline to convert observations into
+research-grade records.

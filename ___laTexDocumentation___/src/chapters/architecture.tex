@@ -1,381 +1,141 @@
-\chapter{System Architecture and Design}
+\chapter{System Architecture}
 
-\section{Architectural Overview and Design Principles}
+\section{Overview}
 
-LogChirpy uses a modular software architecture for cross-platform development. The system supports scalable bird data collection and processing with good performance on mobile devices.
-
-LogChirpy builds on React Native with Expo SDK for cross-platform deployment across iOS and Android. The machine learning architecture combines \texttt{react-native-fast-tflite} for BirdNET audio classification with MLKit packages for object detection and image classification, processing entirely through local \texttt{.tflite} models without cloud dependencies. Data management uses SQLite for the local species encyclopedia and observation storage, with optional Firebase Firestore synchronization. Firebase Authentication provides user management with offline fallback capabilities, while OpenStreetMap integration handles geolocation visualization for bird sightings.
-
-\textbf{Three-Pillar System Architecture:}
-
-\begin{figure}[H]
-    \centering
-    \begin{minipage}{0.9\textwidth}
-        \small
-        \begin{verbatim}
-+---------------------------------------------------------------------+
-|                    LOGCHIRPY ARCHITECTURE                           |
-+---------------------------------------------------------------------+
-|                                                                     |
-|  ML PROCESSING PILLAR        BIRDEX ENCYCLOPEDIA PILLAR             |
-|  +-- Unified Pipeline        +-- 33,000+ Species Database           |
-|  +-- Audio Classification    +-- 5-Language Translations            |
-|  +-- Image Detection         +-- Wikimedia Image Integration        |
-|  +-- Sequential Processing   +-- Search/Filter/Quiz Systems         |
-|                                                                     |
-|                    LOGGING SYSTEM PILLAR                            |
-|                    +-- Multi-Modal Capture                          |
-|                    +-- Draft Management                             |
-|                    +-- Gallery Integration                          |
-|                    +-- Cloud Synchronization                        |
-|                                                                     |
-+---------------------------------------------------------------------+
-|  SUPPORTING INFRASTRUCTURE                                          |
-|  +-- Authentication (Firebase)  +-- App Navigation Structure        |
-|  +-- Context Providers          +-- Themed Component System         |
-|  +-- Custom Hooks               +-- Configuration Management        |
-+---------------------------------------------------------------------+
-        \end{verbatim}
-    \end{minipage}
-    \caption{LogChirpy's Three-Pillar Architecture}
-    \label{fig:system_architecture}
-\end{figure}
-
-The architecture follows modular design principles with clear separation between authentication, observations, ML processing, and media management. The offline-first approach prioritizes local data persistence while offering optional cloud synchronization. UI components maintain clean boundaries from business logic and state management, while internationalization support spans six languages through integrated i18n frameworks.
-
-\section{Application Structure and Navigation Architecture}
-
-\textbf{App Directory Organization:}
-
-\begin{lstlisting}[style=javascript, caption=Application Structure, label=lst:folder_structure]
-/app/(tabs)/              # Main tab navigation (6 tabs)
-  ├── index.tsx           # Home screen with feature cards
-  ├── birdex/            # BirDex encyclopedia interface
-  ├── archive/           # Bird spotting archive and map
-  ├── gallery.tsx        # Media gallery and export
-  ├── account/           # User authentication
-  └── settings.tsx       # App configuration
-
-/app/log/                # Bird logging workflow
-  ├── select.tsx         # Logging method selection
-  ├── manual.tsx         # Manual text entry
-  ├── photo.tsx          # Photo capture and classification
-  ├── audio.tsx          # Audio recording
-  ├── video.tsx          # Video capture
-  └── objectIdentCamera.tsx  # AI-powered real-time detection
-
-/components/             # Reusable UI components
-  ├── ThemedView.tsx     # Base container with theme variants
-  ├── ThemedText.tsx     # Typography with semantic colors
-  ├── ThemedPressable.tsx # Interactive elements
-  ├── BackButton.tsx     # Navigation component
-  └── audio/             # Audio-specific components
-
-/contexts/               # React Context providers
-  ├── AuthContext.tsx    # Firebase authentication
-  └── LogDraftContext.tsx # Persistent draft storage
-
-/services/               # Business logic services
-  ├── unifiedMLPipelineService.ts  # ML orchestration
-  ├── ultraSimpleBirdClassifier.ts # Audio classification
-  ├── database.ts        # Bird observations database
-  ├── databaseBirDex.ts  # Species encyclopedia
-  ├── sync_layer.ts      # Firebase synchronization
-  └── uriUtils.ts        # File manipulation utilities
-
-/hooks/                  # Custom React hooks
-  ├── useThemeColor.ts   # Theme management
-  └── useBirdDexDatabase.ts # Species database state
-\end{lstlisting}
-
-\textbf{Navigation Architecture:}
-The application uses Expo Router with tab-based primary navigation organizing six main sections. The logging workflow is separated into dedicated screens supporting different input methods, from manual entry to automated ML processing.
-
-\section{BirDex Encyclopedia Architecture}
-
-\textbf{Comprehensive Species Database System:}
-
-The BirDex encyclopedia represents one of LogChirpy's major architectural achievements, transforming a massive CSV dataset into a fully functional multilingual bird encyclopedia. The system manages over 33,000 global bird species with comprehensive metadata and localized content through \texttt{services/databaseBirDex.ts}.
-
-\textbf{BirDex Database Structure:}
-
-\begin{lstlisting}[style=javascript, caption=BirDex Database Schema, label=lst:birdex_schema]
--- BirDex comprehensive species database (databaseBirDex.ts)
--- 33,000+ global bird species with multilingual support
-CREATE TABLE birddex (
-    species_code           TEXT    PRIMARY KEY,
-    english_name           TEXT    NOT NULL,
-    scientific_name        TEXT    NOT NULL,
-    category               TEXT,
-    family                 TEXT,
-    order_                 TEXT,
-    range                  TEXT,
-    de_name                TEXT,    -- German names
-    es_name                TEXT,    -- Spanish names
-    fr_name                TEXT,    -- French names
-    ukrainian_name         TEXT,    -- Ukrainian names
-    ar_name                TEXT,    -- Arabic names
-    hasBeenLogged          INTEGER DEFAULT 0
-);
-
--- Performance optimization indexes
-CREATE INDEX idx_birddex_english_name ON birddex(english_name);
-CREATE INDEX idx_birddex_scientific_name ON birddex(scientific_name);
-CREATE INDEX idx_birddex_family ON birddex(family);
-\end{lstlisting}
-
-\textbf{Encyclopedia Features:}
-\begin{itemize}
-    \item \textbf{Multi-language search:} Name lookup across all supported languages
-    \item \textbf{Taxonomic filtering:} Search by family, order, geographic range
-    \item \textbf{Educational quizzes:} Interactive species identification testing
-    \item \textbf{Visual integration:} Each species paired with locally stored Wikimedia images
-    \item \textbf{Performance optimization:} Strategic indexing and pagination for 33,000+ records
-\end{itemize}
-
-\textbf{Multi-Language Data Enrichment:}
-The encyclopedia system processes raw taxonomic data through comprehensive translation workflows, adding German, Spanish, French, Ukrainian, and Arabic common names to each species entry. This creates a truly multilingual reference system accessible across diverse user communities.
-
-\section{Logging System Architecture}
-
-\textbf{Multi-Modal Observation Management:}
-
-The logging system serves as LogChirpy's core functionality, integrating all other architectural components into a cohesive observation workflow. The system handles three distinct media types (images, audio, video) combined with ML predictions, manual entries, GPS coordinates, and taxonomic classifications.
-
-\textbf{Logging Workflow Architecture:}
-
-\textbf{Observation Data Structure:}
-
-\begin{lstlisting}[style=javascript, caption=Bird Observation Schema, label=lst:observation_schema]
--- Primary table for bird spotting records (database.ts)
-CREATE TABLE bird_spottings (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    image_uri        TEXT,
-    video_uri        TEXT,
-    audio_uri        TEXT,
-    text_note        TEXT,
-    gps_lat          REAL,
-    gps_lng          REAL,
-    date             TEXT,
-    bird_type        TEXT,
-    image_prediction TEXT,    -- ML classification results
-    audio_prediction TEXT,    -- BirdNET audio results
-    synced           INTEGER DEFAULT 0,
-    latinBirDex      TEXT     -- Link to BirDex species
-);
-
--- Performance indexes
-CREATE INDEX idx_bird_spottings_date ON bird_spottings(date);
-CREATE INDEX idx_bird_spottings_synced ON bird_spottings(synced);
-\end{lstlisting}
-
-\textbf{Draft Management System:}
-The \texttt{contexts/LogDraftContext.tsx} provides persistent draft storage using AsyncStorage, enabling auto-save functionality and recovery of incomplete observations during field work and app interruptions.
-
-\textbf{Media Integration:}
-The logging system integrates with device storage through \texttt{services/photoStorageService.ts} and the gallery interface. Captured media is available for review, organization, and export through \texttt{app/(tabs)/gallery.tsx}.
-
-\section{ML Processing Architecture}
-
-\textbf{Unified ML Pipeline:}
-
-The \texttt{services/unifiedMLPipelineService.ts} manages sequential ML processing to eliminate race conditions between image and audio operations, solving critical stability issues from concurrent ML processes.
+LogChirpy is built on React Native with Expo SDK 52, targeting Android (API 29+)
+and iOS.
+Three functionally independent service pillars share a common navigation shell
+and theme system (Figure~\ref{fig:arch}).
 
 \begin{figure}[H]
-    \centering
-    \begin{minipage}{0.9\textwidth}
-        \footnotesize
-        \begin{verbatim}
-START
-  ↓
-┌─────────────────────────────────────┐
-│         IMAGE PROCESSING PHASE      │
-├─────────────────────────────────────┤
-│ 1. Photo Capture (0.3 quality)      │
-│ 2. Object Detection (MLKit)         │
-│ 3. For each detected object:        │
-│    a. Crop detection region         │
-│    b. Classify with bird model      │
-│ 4. Update UI (SVG overlays)         │
-│ 5. Save high-confidence detections  │
-└─────────────────────────────────────┘
-  ↓
-┌─────────────────────────────────────┐
-│        AUDIO PROCESSING PHASE       │
-├─────────────────────────────────────┤
-│ 1. Audio Recording (3 seconds)      │
-│ 2. Process with local whoBird       │
-│ BirdNET fast-tflite models          │
-│ in dual-pipeline of audio and       │
-│ location/time                       │
-│ 3. Update UI (predictions)          │
-│ 4. Delete audio file (cleanup)      │
-└─────────────────────────────────────┘
-  ↓
-┌─────────────────────────────────────┐
-│            WAIT PHASE               │
-├─────────────────────────────────────┤
-│ Wait for configured delay           │
-│ (Config.camera.pipelineDelay)       │
-└─────────────────────────────────────┘
-  ↓
-REPEAT
-        \end{verbatim}
-    \end{minipage}
-    \caption{Unified ML Pipeline Processing Flow}
-    \label{fig:ml_pipeline}
+\centering
+\begin{minipage}{0.88\textwidth}
+\footnotesize
+\begin{verbatim}
++------------------------------------------------------------------+
+|                     LOGCHIRPY                                    |
++--------------------+--------------------+------------------------+
+|  ML PROCESSING     |  BIRDEX            |  LOGGING SYSTEM        |
+|  ─────────────     |  ENCYCLOPEDIA      |  ─────────────         |
+|  Audio pipeline    |  ──────────────    |  Multi-modal capture   |
+|   BirdNET v2.4     |  33 241 species    |   photo / audio / GPS  |
+|   6 522 species    |  Clements 2024     |  Draft persistence     |
+|  Image pipeline    |  6 languages       |  SQLite archival       |
+|   SSD gate         |  9 331 images      |  Firebase sync (opt.)  |
+|   MobileNetV2      |  SQLite local      |                        |
+|   400 species      |                    |                        |
++--------------------+--------------------+------------------------+
+|  SUPPORTING INFRASTRUCTURE                                       |
+|  Firebase Auth · OpenStreetMap · Expo Router · i18n (6 lang.)   |
++------------------------------------------------------------------+
+\end{verbatim}
+\end{minipage}
+\caption{Three-pillar architecture of LogChirpy.}
+\label{fig:arch}
 \end{figure}
 
-\textbf{Audio Classification System:}
+All ML inference runs locally on TFLite models loaded at startup via
+\texttt{react-native-fast-tflite}.
+Network access is required only for optional cloud sync and for the first-run
+download of Wikimedia reference images.
 
-The \texttt{services/ultraSimpleBirdClassifier.ts} implements BirdNET model integration with key processing methods: \texttt{processAudio()} at line 288 transforms audio files to model-ready format, \texttt{processAudioChunk()} at line 403 handles streaming audio analysis, and \texttt{classifyAudio()} serves as main classification entry point with dual-model processing.
-The \texttt{services/ultraSimpleBirdClassifier.ts} implements BirdNET dual-model architecture adapted from the whoBIRD project. The system uses \texttt{react-native-fast-tflite} for stable mobile integration, processing 3-second audio clips at 48kHz with location-based enhancement when GPS data is available.
+%──────────────────────────────────────────────────────────────────
+\section{Audio Classification Pipeline}
 
-\textbf{Image Detection Integration:}
-Visual processing uses MLKit packages from Infinite Red for object detection and image classification. The system captures photos at reduced quality (0.3) for ML processing, detects objects, crops detection regions, and classifies each cropped section for bird identification.
+The audio pipeline implements BirdNET v2.4~\cite{BirdNET2021} through two
+sequential TFLite models (Figure~\ref{fig:audio_pipeline}).
 
-\section{State Management and Context Architecture}
+\textbf{Pre-processing.}
+Raw audio is captured at 48\,kHz, mono; a bandpass filter (150--15\,000\,Hz)
+attenuates wind and handling noise; amplitude is normalised to $[-1, 1]$.
+A sliding 3-second window with 50\,\% overlap feeds inference at configurable
+cadence.
 
-\textbf{React Context Providers:}
+\textbf{Acoustic model} (\texttt{BirdNET\_GLOBAL\_6K\_V2.4\_Model\_FP32.tflite}):
+input tensor $\mathbb{R}^{1 \times 144\,000}$ (3\,s $\times$ 48\,kHz);
+output sigmoid logits over 6,522 species.
 
-React Context provides application-wide state management with clean separation between authentication, logging workflows, and UI state.
+\textbf{Metadata model} (\texttt{BirdNET\_GLOBAL\_6K\_V2.4\_MData\_Model\_FP16.tflite}):
+input $\mathbb{R}^{3}$ = [\textit{latitude, longitude, week-cosine}];
+output geographic prior over 6,522 species.
+When GPS is available, blended scores are computed as:
+\begin{equation}
+  p_{\text{blend}} = p_{\text{audio}} \cdot (0.7 + 0.3 \cdot p_{\text{geo}})
+  \label{eq:blend}
+\end{equation}
+The 0.3 meta-influence weight follows the whoBIRD reference implementation~\cite{WhoBird2023}.
 
-\textbf{AuthContext Implementation (\texttt{contexts/AuthContext.tsx}):} Handles Firebase Authentication for user sign-in, registration, and profile management, provides offline fallback for application functionality without mandatory authentication, and manages persistent authentication state across app sessions.
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.82\textwidth}
+\footnotesize
+\begin{verbatim}
+48 kHz mono audio
+  → bandpass(150–15 000 Hz) + normalise
+  → [FP32 acoustic model]  → sigmoid logits[6522]
+  → [FP16 metadata model]  → geographic prior[6522]   (if GPS)
+  → blend (Eq. 1)
+  → top-5 species + confidence scores
+\end{verbatim}
+\end{minipage}
+\caption{Audio classification data flow.}
+\label{fig:audio_pipeline}
+\end{figure}
 
-\textbf{LogDraftContext Implementation (\texttt{contexts/LogDraftContext.tsx}):} Provides AsyncStorage integration for automatic draft saving, timeout-protected auto-save functionality to prevent data loss, handles multi-modal observation data structures, and implements recovery system to restore incomplete observations after app interruption.
+%──────────────────────────────────────────────────────────────────
+\section{Image Classification Pipeline}
 
-\textbf{Custom Hooks Architecture:}
+Camera-based identification uses a two-stage approach to control false positives.
 
-\textbf{Theme Management (\texttt{hooks/useThemeColor.ts}):} Enables light/dark mode switching with consistent color systems, seamless theme integration across all UI components, semantic text styles and hierarchies, and consistent motion design across interactions.
+\textbf{Stage 1 — Detection gate.}
+SSD MobileNet V1 (via MLKit) runs at a configurable duty cycle on camera frames
+compressed to JPEG quality 0.3.
+Frames where the highest bird-class score falls below a user-adjustable threshold
+are discarded, reducing wasted classifier calls.
 
-\textbf{Database State Management (\texttt{hooks/useBirdDexDatabase.ts}):} Manages filtering and pagination for 33,000+ species records, provides efficient query handling with caching, and implements state management for cross-language searches.
+\textbf{Stage 2 — Species classification.}
+\texttt{bird\_classifier\_metadata.tflite} (MobileNetV2~\cite{Sandler2018})
+takes a $224 \times 224$ RGB tensor normalised to $[-1, 1]$ and outputs logits
+over 400 species.
+Softmax probabilities above 0.05 are surfaced to the user with a confidence bar.
 
-\section{Cloud Architecture, User Interface, and System Integration}
+\textbf{Sequential pipeline.}
+Early development revealed that concurrent audio recording and camera processing
+caused \texttt{MediaRecorder} file-lock conflicts on Android.
+\texttt{unifiedMLPipelineService.ts} enforces a strict image-then-audio sequencing;
+this eliminated all file-stability errors and reduced peak memory consumption.
 
-\textbf{Firebase Cloud Synchronization Architecture (\texttt{services/sync\_layer.ts}):}
+%──────────────────────────────────────────────────────────────────
+\section{BirDex Encyclopedia}
 
-The system uses offline-first cloud synchronization through Firebase. Three Firestore collections handle \texttt{users} (profiles and settings), \texttt{observations} (bird data and metadata), and \texttt{media} (Firebase Storage references). Local SQLite serves as primary storage with optional cloud backup and user-controlled synchronization.
+BirDex stores the complete Clements 2024 checklist~\cite{Clements2024} in an
+on-device SQLite database (schema: Table~\ref{tab:birdex_schema}).
+All 33,241 species carry translations in six languages generated by an automated
+pipeline (DeepL $\rightarrow$ Google Translate $\rightarrow$ GPT-4 fallback)
+and spot-checked by family.
+Reference images (9,331 WebP files, $\sim$50\,kB mean) are fetched from Wikimedia
+Commons at first launch and cached locally, organised by Clements genus.
 
-\textbf{Themed Component System and UI Architecture (\texttt{components/}):}
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lll}
+\hline
+\textbf{Column} & \textbf{Type} & \textbf{Description} \\
+\hline
+species\_code  & TEXT PK & eBird 6-letter code \\
+english\_name  & TEXT    & Clements English name \\
+scientific\_name & TEXT  & Binomial nomenclature \\
+family, order  & TEXT    & Clements taxonomy \\
+range          & TEXT    & Breeding/wintering range \\
+de, es, fr, uk, ar \_name & TEXT & Translated names \\
+hasBeenLogged  & INTEGER & Observation flag \\
+\hline
+\end{tabular}
+\caption{BirDex SQLite schema (abridged).}
+\label{tab:birdex_schema}
+\end{table}
 
-The design system ensures consistent UX through themed components: \texttt{ThemedView.tsx} (base containers), \texttt{ThemedText.tsx} (typography with semantic colors), \texttt{ThemedPressable.tsx} (interactive elements with haptic feedback), \texttt{BackButton.tsx} (navigation), and specialized audio components. The ML interface in \texttt{app/log/objectIdentCamera.tsx} features a cyberpunk-themed HUD with SVG overlays, confidence-based color coding, and integrated prediction displays.
-
-\textbf{System Integration and Data Flow Architecture:}
-
-The three-pillar architecture coordinates ML processing, encyclopedia data, and logging workflows. BirDex provides taxonomic foundation for ML classification. Logging integrates real-time ML results with observation capture. Encyclopedia-logging linkage connects entries through Latin names for taxonomic accuracy. The data flow combines ML predictions with manual entries, links BirDex taxonomic data, manages media through gallery integration, and synchronizes with Firebase cloud storage.
-
-\section{Data Processing Infrastructure}
-
-\textbf{Wikimedia Image Extraction System}
-
-The system creates a comprehensive image dataset for 33,000+ bird species through automated Wikimedia Commons scraping using Python scripts for bulk image processing.
-
-\textbf{Wikimedia Scraping Architecture (\texttt{dev/scripts/}):}
-
-The image extraction system implements a robust pipeline including Wikipedia API integration for automated species page discovery and image identification, direct image downloading from Wikimedia Commons repositories, rate limiting and quota management with respectful API usage and exponential backoff, automated selection of high-quality relevant images, WebP conversion for mobile-optimized performance, batch processing for efficient handling of 33,000+ species with resume functionality, metadata extraction for image attribution and licensing preservation, and direct integration with app asset structure.
-
-\textbf{Image Processing Workflow:}
-\begin{enumerate}
-    \item \textbf{Species Page Discovery:} Query Wikipedia for each bird species scientific name
-    \item \textbf{Image Identification:} Extract primary species images from infoboxes and galleries
-    \item \textbf{Quality Assessment:} Filter images based on resolution, relevance, and licensing
-    \item \textbf{Batch Download:} Download images with proper attribution and error handling
-    \item \textbf{Format Optimization:} Convert to WebP format and optimize for mobile devices
-    \item \textbf{Integration:} Generate manifest files for app integration and caching
-\end{enumerate}
-
-\textbf{Bird Image Service Architecture}
-
-The bird image service (\texttt{services/birdImageService.ts}) evolved from bundled assets to a sophisticated GitHub-hosted image delivery system. The service handles 9,331+ bird images through a hybrid synchronous/asynchronous architecture.
-
-\textbf{Current Implementation Features:}
-\begin{itemize}
-    \item \textbf{GitHub-hosted images:} All bird images stored in \texttt{github.com/mklemmingen/LogChirpy/assets/images/birds/}
-    \item \textbf{Genus-based organization:} Images grouped by genus (first word of Latin name) for memory efficiency
-    \item \textbf{Sequential bulk download:} Images download during app initialization with progress tracking
-    \item \textbf{Smart hybrid approach:} Synchronous API with background download for missing images
-    \item \textbf{Progressive enhancement:} App functions immediately while images download in background
-\end{itemize}
-
-\textbf{Image Download Architecture:}
-\begin{lstlisting}[style=javascript, caption=Hybrid Image Service Implementation, label=lst:image_service]
-// birdImageService.ts - Synchronous API with background downloads
-getBirdImageSource(latinName: string): any {
-  const result = this.getBirdImage(latinName);
-  const filename = result.info?.imageFile;
-  
-  // Return local URI immediately
-  const localUri = getLocalImageUri(filename);
-  
-  // Trigger background download if missing
-  this.triggerBackgroundDownload(latinName, filename);
-  
-  return { uri: localUri }; // React Native Image format
-}
-
-// Background download without blocking UI
-private async triggerBackgroundDownload(latinName: string, filename: string) {
-  const exists = await FileSystem.getInfoAsync(localUri).exists;
-  if (!exists) {
-    const githubUrl = genusMap[filename];
-    ensureImageDownloaded(filename, githubUrl); // No await
-  }
-}
-\end{lstlisting}
-
-This architecture achieves:
-\begin{itemize}
-    \item \textbf{50\%+ reduced app bundle size:} Images no longer bundled with application
-    \item \textbf{Zero component changes:} Existing UI components work without modification
-    \item \textbf{Progressive loading:} Images appear as they download from GitHub
-    \item \textbf{Offline capability:} Once downloaded, images persist in device storage
-\end{itemize}
-
-\textbf{OpenAI-Powered Translation System}
-
-The multilingual encyclopedia translates 33,000+ bird species names across five languages (German, Spanish, French, Ukrainian, Arabic) using OpenAI's API with fallback strategies.
-
-\textbf{Translation Architecture (\texttt{dev/scripts/\_birdyDex\_massTranslationScripts/}):}
-
-\begin{lstlisting}[style=javascript, caption=Translation System Implementation, label=lst:translation_system]
-// Core translation workflow with OpenAI integration
-const translateSpeciesBatch = async (speciesBatch) => {
-  // 1. Public API fallback attempts
-  for (const publicAPI of publicBirdAPIs) {
-    try {
-      const publicResults = await tryPublicAPI(speciesBatch, publicAPI);
-      if (publicResults.coverage > 0.8) {
-        return publicResults;
-      }
-    } catch (error) {
-      console.warn(`Public API ${publicAPI.name} failed, trying next`);
-    }
-  }
-  
-  // 2. OpenAI fallback for comprehensive coverage
-  const openAIResults = await translateWithOpenAI(speciesBatch, {
-    model: 'gpt-4',
-    maxTokens: 2000,
-    temperature: 0.1, // Low temperature for consistent translations
-    retryAttempts: 3,
-    rateLimitBackoff: true
-  });
-  
-  return openAIResults;
-};
-\end{lstlisting}
-
-\textbf{Translation System Features:} Implements hybrid API strategy using public bird APIs first with OpenAI as comprehensive fallback, cost optimization through public API prioritization, quality assurance via low-temperature GPT-4 settings for consistent translations, efficient API usage through intelligent batching, automatic recovery from interruptions with progress tracking, persistent caching to avoid re-translating completed entries, exponential backoff and quota monitoring for rate limit management, automatic fallback between GPT-4 and GPT-3.5 based on availability, and real-time progress tracking with periodic CSV exports.
-
-\textbf{Data Processing Pipeline:} Loads Clements v2024 taxonomy with 33,000+ species, queries public APIs for English common names, attempts translation through free ornithological APIs, fills gaps and enhances quality through GPT-4 translations, validates translations and handles special cases, produces final \texttt{birds\_fully\_translated.csv}, and imports enriched data into the app's SQLite database.
-
-\textbf{Translation Quality Management:}
-The system implements comprehensive quality controls including validation of translation completeness, detection of untranslated scientific names, handling of extinct species and regional variants, and maintenance of taxonomic accuracy across all target languages.
-
-\section{Performance Optimization and Scalability}
-
-\textbf{Database Performance Management:} Uses optimized indexes for species search across 33,000+ records, efficient handling of large datasets with 20-item pagination, 5-minute TTL cache for frequently accessed species data, and multi-stage search strategy from exact match to fuzzy matching.
-
-\textbf{ML Pipeline Optimizations:} Unified sequential processing eliminates race conditions, 0.3 quality factor optimizes ML processing performance, top 2 results display prevents UI clutter, and configurable adaptive delays accommodate different device capabilities.
-
-\textbf{Media and Storage Management:} Converts all bird images to WebP for mobile efficiency, systematically removes temporary ML processing files, implements on-demand model and image loading to minimize memory usage, and applies automatic media compression for storage efficiency.
+Multi-language search is handled by \texttt{searchBirdsByName()}, which queries
+all name columns simultaneously with SQLite \texttt{LIKE} and a cached
+normalisation map for diacritics and spacing variants.
