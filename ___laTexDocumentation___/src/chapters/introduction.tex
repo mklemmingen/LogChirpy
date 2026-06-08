@@ -1,38 +1,20 @@
-\chapter{Introduction}
+\section{Introduction}
 
-Citizen-science bird monitoring generates observations at scales impossible for
-professional ornithologists alone.
-Platforms such as eBird receive hundreds of millions of observations annually,
-yet data quality depends critically on observers' ability to identify species in
-the field~\cite{Sullivan2009}.
-Mobile applications with automated species recognition lower this barrier, but
-most existing tools either require continuous network access, cover limited
-geographic ranges, or rely on a single sensing modality.
+Citizen-science platforms such as eBird~\cite{Sullivan2009} aggregate hundreds of
+millions of bird observations, yet data quality depends on observers accurately
+identifying species in the field.
+Mobile apps with automated recognition lower this barrier; BirdNET~\cite{BirdNET2021}
+demonstrated macro-averaged AUC\,$>$\,0.99 for audio-based classification across
+thousands of species on consumer hardware.
+Image-based classifiers (e.g.\ MobileNetV2~\cite{Sandler2018}) are complementary
+but are rarely integrated with audio in a fully offline mobile context.
 
-BirdNET~\cite{BirdNET2021} demonstrated that a convolutional network trained on
-spectrograms can achieve macro-averaged AUC $> 0.99$ across thousands of species,
-making robust audio-based identification practical on consumer hardware.
-Image-based classifiers such as MobileNetV2~\cite{Sandler2018} offer a
-complementary modality; the two are rarely combined in an offline mobile context.
-
-LogChirpy addresses three concrete gaps:
-
-\begin{enumerate}
-  \item \textbf{Multi-modal offline identification.}
-        Combining BirdNET audio and a MobileNetV2 image classifier on-device,
-        without any cloud inference dependency.
-
-  \item \textbf{Large-scale multilingual reference database.}
-        The Clements 2024 checklist~\cite{Clements2024} with 33,241 species
-        in six languages and 9,331 Wikimedia Commons reference images, fully
-        accessible offline.
-
-  \item \textbf{Sequential pipeline architecture.}
-        A unified service layer that eliminates the file-lock race conditions
-        observed when audio recording and camera capture run concurrently on
-        Android.
-\end{enumerate}
-
-The remainder of this paper describes the system architecture (Chapter~2),
-an independent benchmark of the image classifier (Chapter~3), and a
-discussion of limitations and scope (Chapter~4).
+LogChirpy addresses three gaps: (1)~multi-modal on-device identification combining
+BirdNET audio with a MobileNetV2 image classifier, requiring no cloud inference;
+(2)~a multilingual offline encyclopedia of 33,241 species from the Clements 2024
+checklist~\cite{Clements2024} with six-language translations and 9,331 Wikimedia
+reference images; and (3)~a sequential pipeline service that eliminates the
+file-lock race conditions arising when audio recording and camera capture run
+concurrently on Android.
+Sections~\ref{sec:arch}--\ref{sec:conc} describe the architecture,
+an independent image-classifier benchmark, and limitations.

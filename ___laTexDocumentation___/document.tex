@@ -4,25 +4,19 @@
 \pagestyle{plain}
 \pagenumbering{gobble}
 
+% Title and abstract — full-width via titlepage environment
 \include{src/title}
-
-\cleardoublepage
-\tableofcontents
 
 \pagenumbering{arabic}
 \pagestyle{scrheadings}
-\cleardoublepage
 
+% Two-column body
 \include{src/chapters/introduction}
-\cleardoublepage
 \include{src/chapters/architecture}
-\cleardoublepage
 \include{src/chapters/evaluation}
-\cleardoublepage
 \include{src/chapters/conclusion}
 
-\cleardoublepage
-\bibliographystyle{plainnat}
+\bibliographystyle{ieeetr}
 \bibliography{src/bibliography}
 
 \end{document}

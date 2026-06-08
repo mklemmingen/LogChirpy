@@ -1,108 +1,83 @@
-\chapter{Evaluation}
+\section{Evaluation}
+\label{sec:eval}
 
-\section{Image Classifier Benchmark}
-
-The BirdNET audio model is independently validated in Kahl et al.~(2021)
-(macro-averaged AUC $> 0.99$ on the BirdNET benchmark corpus) and is not
-re-evaluated here.
-We instead benchmark the image classifier, for which no prior evaluation existed.
+BirdNET audio performance is validated externally (macro-AUC\,$>$\,0.99;
+\cite{BirdNET2021}); we benchmark only the image classifier, for which no
+prior evaluation existed.
 
 \subsection{Methodology}
 
 \textbf{Model.} \texttt{bird\_classifier\_metadata.tflite} — MobileNetV2,
 $224{\times}224$ float32 input, 400-class softmax output.
 
-\textbf{Test set construction.}
-The \texttt{bird\_images\_manifest.json} maps 11,145 Clements species to Wikimedia
-Commons reference images.
-Each of the 400 label strings was normalised (lowercase, punctuation stripped) and
-matched against manifest common names.
-258 species matched and had a locally available image file; the remaining 142 labels
-were unmatched due to label typos (e.g.\ ``Venezuelian Troupial'',
-``Groved Billed Ani'') or absent Wikimedia images.
-
-\textbf{Ground truth.} Image filename encodes the scientific name;
-the manifest supplies the common name that corresponds to the classifier label.
-
-\textbf{Preprocessing.} Images were resized to $224{\times}224$ with Lanczos
-resampling and normalised to $[-1,1]$ (MobileNetV2 standard).
-No augmentation or test-time cropping was applied.
-
-\textbf{Benchmark script.}
-\texttt{dev/benchmark\_image\_classifier.py} (Python 3.11, TensorFlow 2.21,
-Pillow 12.2); fully reproducible from the repository.
+\textbf{Test set.} Label strings were normalised (lowercase, punctuation stripped)
+and matched against common names in \texttt{bird\_images\_manifest.json}.
+258 of 400 labels matched a locally available Wikimedia image; the remaining 142
+were excluded due to label typos or absent images.
+Ground truth is the image filename (scientific\,$\to$\,common name via manifest).
+Images were resized to $224{\times}224$ (Lanczos) and normalised to $[-1,1]$;
+no augmentation was applied.
+Benchmark script: \texttt{dev/benchmark\_image\_classifier.py}
+(Python\,3.11, TensorFlow\,2.21, Pillow\,12.2).
 
 \subsection{Results}
 
-\begin{table}[H]
+\begin{table}[htb]
 \centering
+\small
 \begin{tabular}{lccc}
 \hline
-\textbf{Metric} & \textbf{Score} & \textbf{Correct / Total} & \textbf{Random baseline} \\
+\textbf{Metric} & \textbf{Score} & \textbf{n} & \textbf{Random} \\
 \hline
-Top-1 accuracy & 49.6\,\% & 128 / 258 & 0.25\,\% \\
-Top-3 accuracy & 64.3\,\% & 166 / 258 & 0.75\,\% \\
-Top-5 accuracy & 69.8\,\% & 180 / 258 & 1.25\,\% \\
+Top-1 & 49.6\,\% & 128/258 & 0.25\,\% \\
+Top-3 & 64.3\,\% & 166/258 & 0.75\,\% \\
+Top-5 & 69.8\,\% & 180/258 & 1.25\,\% \\
 \hline
 \end{tabular}
-\caption{Image classifier accuracy on 258 Wikimedia reference images (400-class model).}
+\caption{Image classifier accuracy on 258 Wikimedia reference images.}
 \label{tab:accuracy}
 \end{table}
 
-The classifier operates at ${\sim}200\times$ random-chance at Top-1 and
-${\sim}256\times$ at Top-3.
-The gap between Top-1 (49.6\,\%) and Top-5 (69.8\,\%) indicates the correct
-species is frequently ranked within the top predictions even when it is not first,
-which is consistent with high within-family visual similarity driving confusion.
+The model operates at ${\approx}200{\times}$ random chance (Top-1) and
+${\approx}256{\times}$ (Top-3).
+The 20\,pp gap between Top-1 and Top-5 reflects within-family visual
+similarity driving systematic rank errors rather than random failure.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{img/benchmark.png}
-\caption{%
-  Six-panel benchmark report.
-  \textbf{Top-left:} top-$k$ accuracy bars.
-  \textbf{Top-centre:} confidence distributions for correct (green)
-  vs.\ incorrect (red) Top-1 predictions.
-  \textbf{Top-right:} correct/incorrect split.
-  \textbf{Bottom-left:} CDF of model confidence on the true-class label.
-  \textbf{Bottom-centre:} per-family Top-1 accuracy (15 largest families).
-  \textbf{Bottom-right:} summary statistics with best and worst individual predictions.
-}
-\label{fig:benchmark}
-\end{figure}
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\linewidth]{img/benchmark.png}
+  \caption{Six-panel benchmark report.
+    \textit{Top row:} top-$k$ accuracy bars; confidence distributions
+    for correct (green) vs.\ incorrect (red) Top-1 predictions; correct/incorrect
+    split pie.
+    \textit{Bottom row:} CDF of confidence on the true class; per-family
+    Top-1 accuracy (15 largest families by test count); summary statistics.}
+  \label{fig:benchmark}
+\end{figure*}
 
-\subsection{Limitations of the Benchmark}
+\subsection{Benchmark Limitations}
 
-This is a \emph{reference-image benchmark}, not a field-photo benchmark.
-Wikimedia Commons images are typically professional photographs of single
-individuals in good light — a distribution markedly different from the
-hand-held, partially occluded, backlit images typical of field observation.
+Wikimedia reference images are editorial quality — a distribution markedly
+different from hand-held, partially occluded field photographs.
 Real-world Top-1 accuracy is expected to be substantially lower.
+Coverage is 400 of 33,241 species (1.2\,\%); the audio pipeline (6,522 spp.)
+is the primary identification modality.
 
-Coverage is also limited: 400 of 33,241 species (1.2\,\%) are classifiable
-from images.
-The audio pipeline (BirdNET, 6,522 species) covers a larger fraction of
-recognisable species and should be considered the primary identification modality.
+\subsection{System Latency}
 
-\section{System Performance}
-
-The following metrics were recorded on a 2022 mid-range Android device
-(Snapdragon 695) during development testing; they are informal observations,
-not a controlled benchmark.
-
-\begin{table}[H]
+\begin{table}[htb]
 \centering
 \small
 \begin{tabular}{ll}
 \hline
-\textbf{Operation} & \textbf{Observed latency} \\
+\textbf{Operation} & \textbf{Latency (observed)} \\
 \hline
-App cold start & $<$\,2\,s \\
-BirDex text search (33 241 records) & $<$\,1\,s \\
-BirdNET inference (3\,s audio clip) & 4.8\,s (high-end) – 8.5\,s (low-end) \\
-Image pipeline (gate + classifier) & $\sim$\,1.5\,s per frame \\
+App cold start          & $<$\,2\,s \\
+BirDex search (33\,k)   & $<$\,1\,s \\
+BirdNET audio (3\,s)    & 4.8\,s–8.5\,s \\
+Image pipeline (1 frame)& $\approx$\,1.5\,s \\
 \hline
 \end{tabular}
-\caption{Informal performance observations (single device, development build).}
-\label{tab:perf}
+\caption{Informal latency on a Snapdragon 695 device (development build).}
+\label{tab:latency}
 \end{table}

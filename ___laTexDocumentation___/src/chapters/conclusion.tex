@@ -1,54 +1,32 @@
-\chapter{Discussion and Conclusion}
+\section{Discussion and Conclusion}
+\label{sec:conc}
 
-\section{Scientific Value and Scope}
+\subsection{Contributions}
 
-LogChirpy's primary scientific contribution is not a new ML model but an
-\emph{integration} contribution: it delivers BirdNET audio identification and
-a MobileNetV2 image classifier in a single offline-capable mobile application,
-paired with the largest publicly available mobile-embedded ornithological
-encyclopedia (33,241 species, 6 languages, 9,331 reference images).
+LogChirpy's primary contribution is integration rather than novel modelling:
+BirdNET audio and MobileNetV2 image classification are delivered in a single
+offline-capable mobile application alongside a 33,241-species multilingual
+encyclopedia — the largest we are aware of in a mobile-embedded open-source
+ornithological tool.
+The sequential pipeline service is a replicable solution to a documented
+Android concurrency problem.
+The BirDex corpus (33,241 species × 6 languages × 9,331 images) and the
+benchmark script constitute independently reusable artefacts.
 
-The sequential pipeline architecture solves a concrete engineering problem
-(audio/camera race conditions on Android) in a way that is replicable and
-documentable; the fix is committed and described in this paper.
+\subsection{Limitations}
 
-The BirDex database and its 9,331 Wikimedia image corpus constitute a reusable
-open dataset.
-The benchmark script (\texttt{dev/benchmark\_image\_classifier.py}) provides
-a reproducible evaluation baseline for future mobile bird image classifiers.
+\textbf{Image coverage:} 400 of 33,241 species (1.2\,\%); audio remains the
+primary modality.
+\textbf{No original models:} both classifiers are pre-trained third-party
+weights~\cite{BirdNET2021,Sandler2018,BirdClassifier2023}.
+\textbf{Benchmark shift:} editorial Wikimedia images $\neq$ field conditions.
+\textbf{Translations:} automated; not validated by domain-expert native speakers.
+\textbf{Scope:} 12-week student project; no peer review or long-term field trial.
 
-\section{Limitations}
+\subsection{Conclusion}
 
-\begin{description}
-  \item[Image coverage.] MobileNetV2 covers 400 of 33,241 species (1.2\,\%).
-        For the remaining 98.8\,\%, image classification returns the
-        nearest trained class, which may be meaningless.
-        Audio (BirdNET, 6,522 spp., $\approx$65\,\% of recognised species)
-        is the primary identification modality.
-
-  \item[No original model training.] Both classifiers are pre-trained third-party
-        models~\cite{BirdNET2021,Sandler2018,BirdClassifier2023}.
-        LogChirpy integrates and delivers these models; it does not improve them.
-
-  \item[Benchmark distribution shift.] Wikimedia reference images are
-        editorial quality; field-photo accuracy will be substantially lower.
-
-  \item[Translation quality.] Automated mass translation of 33,241 species
-        names across six languages was spot-checked by family but not
-        formally validated by native-speaker ornithologists.
-
-  \item[Scope.] This is a 12-week student project; it has not undergone
-        peer review, formal usability testing, or long-term field evaluation.
-\end{description}
-
-\section{Conclusion}
-
-LogChirpy demonstrates that multi-modal, offline-capable bird identification
-is feasible on a commodity Android device within a student project timeframe.
-The unified sequential pipeline, the BirDex encyclopedia, and the reproducible
-image-classifier benchmark are the three concrete artefacts offered to the
-research community.
-Future work should (1) expand image classifier coverage beyond 400 species,
-(2) conduct a field-condition accuracy study, and (3) integrate the app
-with a GBIF or eBird submission pipeline to convert observations into
-research-grade records.
+Multi-modal, fully offline bird identification is feasible on commodity Android
+hardware within a student project timeframe.
+Future work should expand image classifier coverage beyond 400 species, conduct
+a field-condition accuracy study, and integrate observation upload with GBIF or
+eBird to produce research-grade records.

@@ -88,6 +88,12 @@ This is a **zero-shot reference-image benchmark** — the Wikimedia images are n
 | Top-5 accuracy | **69.8 %** | 258 |
 | Random baseline (Top-1, 400 classes) | 0.25 % | — |
 
+![Architecture](docs/figures/architecture.png)
+
+![ML Pipelines — audio (left) and image (right) with tensor shapes](docs/figures/pipelines.png)
+
+### Benchmark results
+
 ![Benchmark — MobileNetV2 image classifier on 258 Wikimedia reference images](docs/figures/benchmark.png)
 
 *Figure: Six-panel benchmark report. Top-left: top-k accuracy bars. Top-centre: confidence distributions for correct (green) vs incorrect (red) predictions. Top-right: correct/incorrect split pie. Bottom-left: CDF of confidence on the true class. Bottom-centre: per-family top-1 accuracy (15 largest families). Bottom-right: summary statistics and best/worst individual predictions.*

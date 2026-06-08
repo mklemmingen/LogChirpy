@@ -1,141 +1,90 @@
-\chapter{System Architecture}
+\section{System Architecture}
+\label{sec:arch}
 
-\section{Overview}
+LogChirpy is built on React Native / Expo SDK~52 targeting Android (API\,29+) and
+iOS.
+Three service pillars — ML Processing, BirDex Encyclopedia, and Logging System —
+share a common navigation shell built on Expo Router (Figure~\ref{fig:arch}).
+All ML inference runs locally via \texttt{react-native-fast-tflite};
+network access is limited to optional Firestore sync and first-run image download.
 
-LogChirpy is built on React Native with Expo SDK 52, targeting Android (API 29+)
-and iOS.
-Three functionally independent service pillars share a common navigation shell
-and theme system (Figure~\ref{fig:arch}).
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\linewidth]{img/architecture.png}
+  \caption{Three-pillar architecture. Each pillar is functionally independent;
+           the unified sequential ML pipeline service (bottom bar) orchestrates
+           audio and image processing to prevent Android file-lock conflicts.}
+  \label{fig:arch}
+\end{figure*}
 
-\begin{figure}[H]
-\centering
-\begin{minipage}{0.88\textwidth}
-\footnotesize
-\begin{verbatim}
-+------------------------------------------------------------------+
-|                     LOGCHIRPY                                    |
-+--------------------+--------------------+------------------------+
-|  ML PROCESSING     |  BIRDEX            |  LOGGING SYSTEM        |
-|  ─────────────     |  ENCYCLOPEDIA      |  ─────────────         |
-|  Audio pipeline    |  ──────────────    |  Multi-modal capture   |
-|   BirdNET v2.4     |  33 241 species    |   photo / audio / GPS  |
-|   6 522 species    |  Clements 2024     |  Draft persistence     |
-|  Image pipeline    |  6 languages       |  SQLite archival       |
-|   SSD gate         |  9 331 images      |  Firebase sync (opt.)  |
-|   MobileNetV2      |  SQLite local      |                        |
-|   400 species      |                    |                        |
-+--------------------+--------------------+------------------------+
-|  SUPPORTING INFRASTRUCTURE                                       |
-|  Firebase Auth · OpenStreetMap · Expo Router · i18n (6 lang.)   |
-+------------------------------------------------------------------+
-\end{verbatim}
-\end{minipage}
-\caption{Three-pillar architecture of LogChirpy.}
-\label{fig:arch}
-\end{figure}
+\subsection{Audio Pipeline}
 
-All ML inference runs locally on TFLite models loaded at startup via
-\texttt{react-native-fast-tflite}.
-Network access is required only for optional cloud sync and for the first-run
-download of Wikimedia reference images.
-
-%──────────────────────────────────────────────────────────────────
-\section{Audio Classification Pipeline}
-
-The audio pipeline implements BirdNET v2.4~\cite{BirdNET2021} through two
-sequential TFLite models (Figure~\ref{fig:audio_pipeline}).
-
-\textbf{Pre-processing.}
-Raw audio is captured at 48\,kHz, mono; a bandpass filter (150--15\,000\,Hz)
-attenuates wind and handling noise; amplitude is normalised to $[-1, 1]$.
-A sliding 3-second window with 50\,\% overlap feeds inference at configurable
-cadence.
-
-\textbf{Acoustic model} (\texttt{BirdNET\_GLOBAL\_6K\_V2.4\_Model\_FP32.tflite}):
-input tensor $\mathbb{R}^{1 \times 144\,000}$ (3\,s $\times$ 48\,kHz);
-output sigmoid logits over 6,522 species.
-
-\textbf{Metadata model} (\texttt{BirdNET\_GLOBAL\_6K\_V2.4\_MData\_Model\_FP16.tflite}):
-input $\mathbb{R}^{3}$ = [\textit{latitude, longitude, week-cosine}];
-output geographic prior over 6,522 species.
-When GPS is available, blended scores are computed as:
+BirdNET\,v2.4~\cite{BirdNET2021} is implemented via two sequential TFLite models
+(Figure~\ref{fig:pipelines}).
+Audio is captured at 48\,kHz mono; a 150–15\,000\,Hz bandpass filter attenuates
+wind and handling noise and the signal is normalised to $[-1,1]$.
+The \textbf{acoustic model} (FP32) accepts a $\mathbb{R}^{1\times144\,000}$
+tensor and outputs sigmoid logits over 6,522 species.
+When GPS is available the \textbf{metadata model} (FP16) takes
+$[\text{lat},\,\text{lon},\,\text{week-cos}]$ and produces a geographic prior;
+scores are fused as
 \begin{equation}
-  p_{\text{blend}} = p_{\text{audio}} \cdot (0.7 + 0.3 \cdot p_{\text{geo}})
+  p_{\text{blend}} = p_{\text{audio}}\cdot(0.7 + 0.3\cdot p_{\text{geo}}),
   \label{eq:blend}
 \end{equation}
-The 0.3 meta-influence weight follows the whoBIRD reference implementation~\cite{WhoBird2023}.
+following the whoBIRD reference implementation~\cite{WhoBird2023}.
 
-\begin{figure}[H]
-\centering
-\begin{minipage}{0.82\textwidth}
-\footnotesize
-\begin{verbatim}
-48 kHz mono audio
-  → bandpass(150–15 000 Hz) + normalise
-  → [FP32 acoustic model]  → sigmoid logits[6522]
-  → [FP16 metadata model]  → geographic prior[6522]   (if GPS)
-  → blend (Eq. 1)
-  → top-5 species + confidence scores
-\end{verbatim}
-\end{minipage}
-\caption{Audio classification data flow.}
-\label{fig:audio_pipeline}
-\end{figure}
+\subsection{Image Pipeline}
 
-%──────────────────────────────────────────────────────────────────
-\section{Image Classification Pipeline}
+Camera frames are JPEG-compressed (quality\,0.3) and passed to an SSD MobileNet
+V1 detection gate (MLKit).
+Frames without a sufficiently confident bird detection are discarded.
+Passing frames go to \texttt{bird\_classifier\_metadata.tflite}
+(MobileNetV2~\cite{Sandler2018}): input $\mathbb{R}^{1\times224\times224\times3}$
+normalised to $[-1,1]$, output softmax logits over 400 species.
 
-Camera-based identification uses a two-stage approach to control false positives.
+\textbf{Sequential lock.}
+Concurrent audio recording and camera processing caused
+\texttt{MediaRecorder} file-lock conflicts on Android.
+\texttt{unifiedMLPipelineService.ts} enforces image-before-audio sequencing,
+eliminating all recorded stability errors.
 
-\textbf{Stage 1 — Detection gate.}
-SSD MobileNet V1 (via MLKit) runs at a configurable duty cycle on camera frames
-compressed to JPEG quality 0.3.
-Frames where the highest bird-class score falls below a user-adjustable threshold
-are discarded, reducing wasted classifier calls.
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\linewidth]{img/pipelines.png}
+  \caption{Audio (left) and image (right) ML pipelines with tensor shapes.
+           Both run entirely on-device via TFLite; the sequential lock prevents
+           concurrent audio/camera conflicts on Android.}
+  \label{fig:pipelines}
+\end{figure*}
 
-\textbf{Stage 2 — Species classification.}
-\texttt{bird\_classifier\_metadata.tflite} (MobileNetV2~\cite{Sandler2018})
-takes a $224 \times 224$ RGB tensor normalised to $[-1, 1]$ and outputs logits
-over 400 species.
-Softmax probabilities above 0.05 are surfaced to the user with a confidence bar.
-
-\textbf{Sequential pipeline.}
-Early development revealed that concurrent audio recording and camera processing
-caused \texttt{MediaRecorder} file-lock conflicts on Android.
-\texttt{unifiedMLPipelineService.ts} enforces a strict image-then-audio sequencing;
-this eliminated all file-stability errors and reduced peak memory consumption.
-
-%──────────────────────────────────────────────────────────────────
-\section{BirDex Encyclopedia}
+\subsection{BirDex Encyclopedia}
 
 BirDex stores the complete Clements 2024 checklist~\cite{Clements2024} in an
-on-device SQLite database (schema: Table~\ref{tab:birdex_schema}).
-All 33,241 species carry translations in six languages generated by an automated
-pipeline (DeepL $\rightarrow$ Google Translate $\rightarrow$ GPT-4 fallback)
-and spot-checked by family.
-Reference images (9,331 WebP files, $\sim$50\,kB mean) are fetched from Wikimedia
-Commons at first launch and cached locally, organised by Clements genus.
+on-device SQLite database (Table~\ref{tab:schema}).
+Translations across six languages were generated by an automated pipeline
+(DeepL\,$\to$\,Google Translate\,$\to$\,GPT-4 fallback) and spot-checked by
+family.
+Reference images (9,331 WebP files, $\approx$50\,kB each) are downloaded from
+Wikimedia Commons at first launch and cached by Clements genus.
 
-\begin{table}[H]
+\begin{table}[htb]
 \centering
 \small
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lll}
 \hline
 \textbf{Column} & \textbf{Type} & \textbf{Description} \\
 \hline
-species\_code  & TEXT PK & eBird 6-letter code \\
-english\_name  & TEXT    & Clements English name \\
-scientific\_name & TEXT  & Binomial nomenclature \\
-family, order  & TEXT    & Clements taxonomy \\
-range          & TEXT    & Breeding/wintering range \\
-de, es, fr, uk, ar \_name & TEXT & Translated names \\
-hasBeenLogged  & INTEGER & Observation flag \\
+\texttt{species\_code}    & TEXT PK & eBird 6-letter code \\
+\texttt{english\_name}    & TEXT    & Clements English name \\
+\texttt{scientific\_name} & TEXT    & Binomial nomenclature \\
+\texttt{family / order}   & TEXT    & Clements taxonomy \\
+\texttt{range}            & TEXT    & Breeding/wintering range \\
+\texttt{de/es/fr/uk/ar}   & TEXT    & Translated names (×5) \\
+\texttt{hasBeenLogged}    & INT     & Observation flag \\
 \hline
 \end{tabular}
-\caption{BirDex SQLite schema (abridged).}
-\label{tab:birdex_schema}
+\caption{BirDex SQLite schema (abridged, 33,241 rows).}
+\label{tab:schema}
 \end{table}
-
-Multi-language search is handled by \texttt{searchBirdsByName()}, which queries
-all name columns simultaneously with SQLite \texttt{LIKE} and a cached
-normalisation map for diacritics and spacing variants.
